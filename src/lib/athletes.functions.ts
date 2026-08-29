@@ -150,16 +150,25 @@ async function upsertAthlete(
 
 export const listOrgAthletes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { q?: string; gradYear?: string } | undefined) => ({
-    q: str(input?.q),
-    gradYear: str(input?.gradYear),
-  }))
+  .inputValidator(
+    (
+      input:
+        | { q?: string; gradYear?: string; seasonId?: string; teamId?: string; status?: string }
+        | undefined,
+    ) => ({
+      q: str(input?.q),
+      gradYear: str(input?.gradYear),
+      seasonId: str(input?.seasonId),
+      teamId: str(input?.teamId),
+      status: str(input?.status),
+    }),
+  )
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
     let query = context.supabase
       .from("org_athletes")
       .select(
-        "id, name, grad_year, primary_position, bats, throws, athlete_data_source, organization_id, created_at",
+        "id, name, grad_year, primary_position, bats, throws, athlete_data_source, status, organization_id, created_at",
       )
       .order("grad_year", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true });
@@ -167,9 +176,41 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
     if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
     if (data.q) query = query.ilike("name", `%${data.q}%`);
     if (data.gradYear) query = query.eq("grad_year", Number(data.gradYear));
+    if (data.status) query = query.eq("status", data.status);
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
+
+    // Season/team assignment lives in team_athletes so the roster can be read
+    // for any season without duplicating the athlete record.
+    let assignments: Record<string, any>[] = [];
+    if (data.seasonId) {
+      const { data: assigned, error: assignError } = await context.supabase
+        .from("team_athletes")
+        .select("org_athlete_id, jersey_number, team_id, teams(id, name, age_group)")
+        .eq("season_id", data.seasonId);
+      if (assignError) throw new Error(assignError.message);
+      assignments = (assigned ?? []) as Record<string, any>[];
+    }
+    const assignmentByAthlete = new Map(
+      assignments.map((row) => [row['org_athlete_id'] as string, row]),
+    );
+
+    let athletes = ((rows ?? []) as Record<string, any>[]).map((athlete) => {
+      const assignment = assignmentByAthlete.get(athlete['id'] as string);
+      return {
+        ...athlete,
+        team_id: (assignment?.['team_id'] ?? null) as string | null,
+        team_name: (assignment?.['teams']?.name ?? null) as string | null,
+        jersey_number: (assignment?.['jersey_number'] ?? null) as string | null,
+      };
+    });
+
+    if (data.teamId === "__unassigned") {
+      athletes = athletes.filter((a) => !a['team_id']);
+    } else if (data.teamId) {
+      athletes = athletes.filter((a) => a['team_id'] === data.teamId);
+    }
 
     const { data: years } = await context.supabase
       .from("org_athletes")
@@ -181,12 +222,13 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
     ).sort((a, b) => a - b);
 
     return {
-      athletes: (rows ?? []) as Record<string, any>[],
+      athletes,
       gradYears,
       canEdit: true,
       isOrgAdmin: actor.isOrgAdmin,
     };
   });
+
 
 export const getOrgAthlete = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
