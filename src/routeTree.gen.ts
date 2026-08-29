@@ -20,6 +20,7 @@ import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminDataRouteImport } from './routes/_authenticated/admin.data'
 import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
+import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_authenticated/admin.programs.new'
 import { Route as AuthenticatedAdminSchoolsNewRouteImport } from './routes/_authenticated/admin.schools.new'
 import { Route as AuthenticatedAdminUniversitiesIndexRouteImport } from './routes/_authenticated/admin.universities.index'
 import { Route as AuthenticatedAdminUniversitiesIdRouteImport } from './routes/_authenticated/admin.universities.$id'
@@ -80,6 +81,12 @@ const AuthenticatedAdminProgramsIndexRoute =
     path: '/programs/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminProgramsNewRoute =
+  AuthenticatedAdminProgramsNewRouteImport.update({
+    id: '/programs/new',
+    path: '/programs/new',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminSchoolsNewRoute =
   AuthenticatedAdminSchoolsNewRouteImport.update({
     id: '/schools/new',
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/family': typeof AuthenticatedFamilyRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
   '/admin/programs/': typeof AuthenticatedAdminProgramsIndexRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
   '/family': typeof AuthenticatedFamilyRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
   '/admin/programs': typeof AuthenticatedAdminProgramsIndexRoute
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/admin/data': typeof AuthenticatedAdminDataRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/_authenticated/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/_authenticated/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
   '/_authenticated/admin/programs/': typeof AuthenticatedAdminProgramsIndexRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/admin/data'
     | '/admin/'
+    | '/admin/programs/new'
     | '/admin/schools/new'
     | '/admin/universities/$id'
     | '/admin/programs/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/admin/data'
     | '/admin'
+    | '/admin/programs/new'
     | '/admin/schools/new'
     | '/admin/universities/$id'
     | '/admin/programs'
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
     | '/_authenticated/family'
     | '/_authenticated/admin/data'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/programs/new'
     | '/_authenticated/admin/schools/new'
     | '/_authenticated/admin/universities/$id'
     | '/_authenticated/admin/programs/'
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminProgramsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/programs/new': {
+      id: '/_authenticated/admin/programs/new'
+      path: '/programs/new'
+      fullPath: '/admin/programs/new'
+      preLoaderRoute: typeof AuthenticatedAdminProgramsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/schools/new': {
       id: '/_authenticated/admin/schools/new'
       path: '/schools/new'
@@ -341,6 +361,7 @@ const AuthenticatedAdminUniversitiesIdRouteWithChildren =
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDataRoute: typeof AuthenticatedAdminDataRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminProgramsNewRoute: typeof AuthenticatedAdminProgramsNewRoute
   AuthenticatedAdminSchoolsNewRoute: typeof AuthenticatedAdminSchoolsNewRoute
   AuthenticatedAdminUniversitiesIdRoute: typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
   AuthenticatedAdminProgramsIndexRoute: typeof AuthenticatedAdminProgramsIndexRoute
@@ -350,6 +371,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminProgramsNewRoute: AuthenticatedAdminProgramsNewRoute,
   AuthenticatedAdminSchoolsNewRoute: AuthenticatedAdminSchoolsNewRoute,
   AuthenticatedAdminUniversitiesIdRoute:
     AuthenticatedAdminUniversitiesIdRouteWithChildren,
