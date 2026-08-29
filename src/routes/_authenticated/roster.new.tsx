@@ -141,7 +141,30 @@ function NewAthlete() {
               <option value="L">L</option>
             </select>
           </label>
+          {ctx.hasSeasons ? (
+            <label className="sm:col-span-2">
+              <span className={LABEL}>Team ({ctx.season?.name ?? "current season"})</span>
+              <select
+                value={teamId}
+                onChange={(event) => setTeamId(event.target.value)}
+                className={`mt-1 ${FIELD}`}
+              >
+                <option value="">Unassigned for now</option>
+                {ctx.teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                    {team.ageGroup ? ` · ${team.ageGroup}` : ""}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-xs text-steel">
+                Team assignments are per season — the athlete's record and shortlist carry forward
+                regardless.
+              </span>
+            </label>
+          ) : null}
         </div>
+
 
         <button
           type="submit"
