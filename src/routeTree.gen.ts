@@ -21,6 +21,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminDataRouteImport } from './routes/_authenticated/admin.data'
 import { Route as AuthenticatedAdminUniversitiesIndexRouteImport } from './routes/_authenticated/admin.universities.index'
 import { Route as AuthenticatedAdminUniversitiesIdRouteImport } from './routes/_authenticated/admin.universities.$id'
+import { Route as AuthenticatedAdminUniversitiesIdEditRouteImport } from './routes/_authenticated/admin.universities.$id.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -83,6 +84,12 @@ const AuthenticatedAdminUniversitiesIdRoute =
     path: '/universities/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminUniversitiesIdEditRoute =
+  AuthenticatedAdminUniversitiesIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAdminUniversitiesIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,8 +101,9 @@ export interface FileRoutesByFullPath {
   '/family': typeof AuthenticatedFamilyRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
-  '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
+  '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
   '/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
+  '/admin/universities/$id/edit': typeof AuthenticatedAdminUniversitiesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -106,8 +114,9 @@ export interface FileRoutesByTo {
   '/family': typeof AuthenticatedFamilyRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
-  '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
+  '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
   '/admin/universities': typeof AuthenticatedAdminUniversitiesIndexRoute
+  '/admin/universities/$id/edit': typeof AuthenticatedAdminUniversitiesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -121,8 +130,9 @@ export interface FileRoutesById {
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/admin/data': typeof AuthenticatedAdminDataRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
-  '/_authenticated/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
+  '/_authenticated/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
   '/_authenticated/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
+  '/_authenticated/admin/universities/$id/edit': typeof AuthenticatedAdminUniversitiesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/universities/$id'
     | '/admin/universities/'
+    | '/admin/universities/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/universities/$id'
     | '/admin/universities'
+    | '/admin/universities/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -164,6 +176,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/admin/universities/$id'
     | '/_authenticated/admin/universities/'
+    | '/_authenticated/admin/universities/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -260,20 +273,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUniversitiesIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/universities/$id/edit': {
+      id: '/_authenticated/admin/universities/$id/edit'
+      path: '/edit'
+      fullPath: '/admin/universities/$id/edit'
+      preLoaderRoute: typeof AuthenticatedAdminUniversitiesIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminUniversitiesIdRoute
+    }
   }
 }
+
+interface AuthenticatedAdminUniversitiesIdRouteChildren {
+  AuthenticatedAdminUniversitiesIdEditRoute: typeof AuthenticatedAdminUniversitiesIdEditRoute
+}
+
+const AuthenticatedAdminUniversitiesIdRouteChildren: AuthenticatedAdminUniversitiesIdRouteChildren =
+  {
+    AuthenticatedAdminUniversitiesIdEditRoute:
+      AuthenticatedAdminUniversitiesIdEditRoute,
+  }
+
+const AuthenticatedAdminUniversitiesIdRouteWithChildren =
+  AuthenticatedAdminUniversitiesIdRoute._addFileChildren(
+    AuthenticatedAdminUniversitiesIdRouteChildren,
+  )
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDataRoute: typeof AuthenticatedAdminDataRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
-  AuthenticatedAdminUniversitiesIdRoute: typeof AuthenticatedAdminUniversitiesIdRoute
+  AuthenticatedAdminUniversitiesIdRoute: typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
   AuthenticatedAdminUniversitiesIndexRoute: typeof AuthenticatedAdminUniversitiesIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
-  AuthenticatedAdminUniversitiesIdRoute: AuthenticatedAdminUniversitiesIdRoute,
+  AuthenticatedAdminUniversitiesIdRoute:
+    AuthenticatedAdminUniversitiesIdRouteWithChildren,
   AuthenticatedAdminUniversitiesIndexRoute:
     AuthenticatedAdminUniversitiesIndexRoute,
 }
