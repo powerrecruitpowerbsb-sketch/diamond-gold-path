@@ -239,9 +239,7 @@ function ImportAthletes() {
         navigate({ to: "/roster" });
       }
     } catch (error) {
-      toast error: {
-        /* unreachable */
-      }
+      toast.error((error as Error).message);
     } finally {
       setImporting(false);
     }
