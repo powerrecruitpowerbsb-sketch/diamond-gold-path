@@ -20,6 +20,7 @@ import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminDataRouteImport } from './routes/_authenticated/admin.data'
 import { Route as AuthenticatedAdminUniversitiesIndexRouteImport } from './routes/_authenticated/admin.universities.index'
+import { Route as AuthenticatedAdminUniversitiesIdRouteImport } from './routes/_authenticated/admin.universities.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +77,12 @@ const AuthenticatedAdminUniversitiesIndexRoute =
     path: '/universities/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminUniversitiesIdRoute =
+  AuthenticatedAdminUniversitiesIdRouteImport.update({
+    id: '/universities/$id',
+    path: '/universities/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/family': typeof AuthenticatedFamilyRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
   '/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
   '/family': typeof AuthenticatedFamilyRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
   '/admin/universities': typeof AuthenticatedAdminUniversitiesIndexRoute
 }
 export interface FileRoutesById {
@@ -112,6 +121,7 @@ export interface FileRoutesById {
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/admin/data': typeof AuthenticatedAdminDataRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
   '/_authenticated/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
 }
 export interface FileRouteTypes {
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/admin/data'
     | '/admin/'
+    | '/admin/universities/$id'
     | '/admin/universities/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/admin/data'
     | '/admin'
+    | '/admin/universities/$id'
     | '/admin/universities'
   id:
     | '__root__'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
     | '/_authenticated/family'
     | '/_authenticated/admin/data'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/universities/$id'
     | '/_authenticated/admin/universities/'
   fileRoutesById: FileRoutesById
 }
@@ -240,18 +253,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUniversitiesIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/universities/$id': {
+      id: '/_authenticated/admin/universities/$id'
+      path: '/universities/$id'
+      fullPath: '/admin/universities/$id'
+      preLoaderRoute: typeof AuthenticatedAdminUniversitiesIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDataRoute: typeof AuthenticatedAdminDataRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminUniversitiesIdRoute: typeof AuthenticatedAdminUniversitiesIdRoute
   AuthenticatedAdminUniversitiesIndexRoute: typeof AuthenticatedAdminUniversitiesIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminUniversitiesIdRoute: AuthenticatedAdminUniversitiesIdRoute,
   AuthenticatedAdminUniversitiesIndexRoute:
     AuthenticatedAdminUniversitiesIndexRoute,
 }
