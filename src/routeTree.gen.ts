@@ -23,6 +23,11 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
+import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenticated/roster.index'
+import { Route as AuthenticatedRosterIdRouteImport } from './routes/_authenticated/roster.$id'
+import { Route as AuthenticatedRosterImportRouteImport } from './routes/_authenticated/roster.import'
+import { Route as AuthenticatedRosterNewRouteImport } from './routes/_authenticated/roster.new'
+import { Route as AuthenticatedSettingsBrandingRouteImport } from './routes/_authenticated/settings.branding'
 import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
 import { Route as AuthenticatedAdminProgramsIdRouteImport } from './routes/_authenticated/admin.programs.$id'
 import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_authenticated/admin.programs.new'
@@ -102,6 +107,34 @@ const AuthenticatedProgramsIdRoute = AuthenticatedProgramsIdRouteImport.update({
   path: '/programs/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRosterIndexRoute =
+  AuthenticatedRosterIndexRouteImport.update({
+    id: '/roster/',
+    path: '/roster/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRosterIdRoute = AuthenticatedRosterIdRouteImport.update({
+  id: '/roster/$id',
+  path: '/roster/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRosterImportRoute =
+  AuthenticatedRosterImportRouteImport.update({
+    id: '/roster/import',
+    path: '/roster/import',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRosterNewRoute = AuthenticatedRosterNewRouteImport.update({
+  id: '/roster/new',
+  path: '/roster/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsBrandingRoute =
+  AuthenticatedSettingsBrandingRouteImport.update({
+    id: '/settings/branding',
+    path: '/settings/branding',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminProgramsIndexRoute =
   AuthenticatedAdminProgramsIndexRouteImport.update({
     id: '/programs/',
@@ -164,7 +197,12 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
+  '/roster/$id': typeof AuthenticatedRosterIdRoute
+  '/roster/import': typeof AuthenticatedRosterImportRoute
+  '/roster/new': typeof AuthenticatedRosterNewRoute
+  '/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/roster/': typeof AuthenticatedRosterIndexRoute
   '/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -186,7 +224,12 @@ export interface FileRoutesByTo {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
+  '/roster/$id': typeof AuthenticatedRosterIdRoute
+  '/roster/import': typeof AuthenticatedRosterImportRoute
+  '/roster/new': typeof AuthenticatedRosterNewRoute
+  '/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/roster': typeof AuthenticatedRosterIndexRoute
   '/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -211,7 +254,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
+  '/_authenticated/roster/$id': typeof AuthenticatedRosterIdRoute
+  '/_authenticated/roster/import': typeof AuthenticatedRosterImportRoute
+  '/_authenticated/roster/new': typeof AuthenticatedRosterNewRoute
+  '/_authenticated/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/roster/': typeof AuthenticatedRosterIndexRoute
   '/_authenticated/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/_authenticated/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/_authenticated/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -236,7 +284,12 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/majors'
     | '/programs/$id'
+    | '/roster/$id'
+    | '/roster/import'
+    | '/roster/new'
+    | '/settings/branding'
     | '/admin/'
+    | '/roster/'
     | '/admin/programs/$id'
     | '/admin/programs/new'
     | '/admin/schools/new'
@@ -258,7 +311,12 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/majors'
     | '/programs/$id'
+    | '/roster/$id'
+    | '/roster/import'
+    | '/roster/new'
+    | '/settings/branding'
     | '/admin'
+    | '/roster'
     | '/admin/programs/$id'
     | '/admin/programs/new'
     | '/admin/schools/new'
@@ -282,7 +340,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/majors'
     | '/_authenticated/programs/$id'
+    | '/_authenticated/roster/$id'
+    | '/_authenticated/roster/import'
+    | '/_authenticated/roster/new'
+    | '/_authenticated/settings/branding'
     | '/_authenticated/admin/'
+    | '/_authenticated/roster/'
     | '/_authenticated/admin/programs/$id'
     | '/_authenticated/admin/programs/new'
     | '/_authenticated/admin/schools/new'
@@ -401,6 +464,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProgramsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/roster/': {
+      id: '/_authenticated/roster/'
+      path: '/roster'
+      fullPath: '/roster/'
+      preLoaderRoute: typeof AuthenticatedRosterIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/roster/$id': {
+      id: '/_authenticated/roster/$id'
+      path: '/roster/$id'
+      fullPath: '/roster/$id'
+      preLoaderRoute: typeof AuthenticatedRosterIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/roster/import': {
+      id: '/_authenticated/roster/import'
+      path: '/roster/import'
+      fullPath: '/roster/import'
+      preLoaderRoute: typeof AuthenticatedRosterImportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/roster/new': {
+      id: '/_authenticated/roster/new'
+      path: '/roster/new'
+      fullPath: '/roster/new'
+      preLoaderRoute: typeof AuthenticatedRosterNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings/branding': {
+      id: '/_authenticated/settings/branding'
+      path: '/settings/branding'
+      fullPath: '/settings/branding'
+      preLoaderRoute: typeof AuthenticatedSettingsBrandingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/programs/': {
       id: '/_authenticated/admin/programs/'
       path: '/programs'
@@ -500,6 +598,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedProgramsIdRoute: typeof AuthenticatedProgramsIdRoute
+  AuthenticatedRosterIdRoute: typeof AuthenticatedRosterIdRoute
+  AuthenticatedRosterImportRoute: typeof AuthenticatedRosterImportRoute
+  AuthenticatedRosterNewRoute: typeof AuthenticatedRosterNewRoute
+  AuthenticatedSettingsBrandingRoute: typeof AuthenticatedSettingsBrandingRoute
+  AuthenticatedRosterIndexRoute: typeof AuthenticatedRosterIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -509,6 +612,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedProgramsIdRoute: AuthenticatedProgramsIdRoute,
+  AuthenticatedRosterIdRoute: AuthenticatedRosterIdRoute,
+  AuthenticatedRosterImportRoute: AuthenticatedRosterImportRoute,
+  AuthenticatedRosterNewRoute: AuthenticatedRosterNewRoute,
+  AuthenticatedSettingsBrandingRoute: AuthenticatedSettingsBrandingRoute,
+  AuthenticatedRosterIndexRoute: AuthenticatedRosterIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

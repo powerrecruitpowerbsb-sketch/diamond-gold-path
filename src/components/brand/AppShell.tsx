@@ -1,54 +1,93 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
-import { Database, Home, Menu, Search, Table2, UserRound, X } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import {
+  Database,
+  Home,
+  Menu,
+  Palette,
+  Search,
+  Table2,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
 
+import { OrgTheme } from "@/components/brand/OrgTheme";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { useMyAccount } from "@/hooks/use-my-account";
+import { useOrgBranding } from "@/hooks/use-org-branding";
 import { cn } from "@/lib/utils";
 
 type NavItem = { to: string; label: string; icon: typeof Home };
 
-const PRIMARY_NAV: NavItem[] = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/search", label: "Search", icon: Search },
-  { to: "/admin", label: "Console", icon: Table2 },
-];
-
-const OVERFLOW_NAV: NavItem[] = [
-  { to: "/admin/universities", label: "College database", icon: Database },
-  { to: "/auth", label: "Account", icon: UserRound },
-];
-
 export function AppShell({ children, right }: { children: ReactNode; right?: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { account } = useMyAccount();
-  const isStaff = Boolean(account?.isSuperadmin);
+  const { branding } = useOrgBranding();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const primaryNav = PRIMARY_NAV.filter((item) => isStaff || item.to !== "/admin");
-  const overflowNav = OVERFLOW_NAV.filter(
-    (item) => isStaff || !item.to.startsWith("/admin"),
-  );
+  const isStaff = Boolean(account?.isSuperadmin);
+  const role = account?.primaryRole ?? null;
+  const isOrgManager = role === "org_admin" || role === "org_staff";
+  const isOrgAdmin = role === "org_admin";
+
+  // The superadmin console always shows the fixed Power Recruit identity —
+  // never an organization's colors or logo, whatever the database holds.
+  const consoleView = pathname === "/admin" || pathname.startsWith("/admin/");
+  const themed = !isStaff && !consoleView;
+  const orgLogo = themed ? branding?.logoUrl : null;
+  const orgName = themed ? branding?.name : null;
+
+  const primaryNav: NavItem[] = [
+    { to: "/", label: "Home", icon: Home },
+    { to: "/search", label: "Search", icon: Search },
+    ...(isOrgManager ? [{ to: "/roster", label: "Roster", icon: Users }] : []),
+    ...(isStaff ? [{ to: "/admin", label: "Console", icon: Table2 }] : []),
+  ];
+
+  const overflowNav: NavItem[] = [
+    ...(isStaff ? [{ to: "/admin/universities", label: "College database", icon: Database }] : []),
+    ...(isOrgAdmin
+      ? [{ to: "/settings/branding", label: "Branding settings", icon: Palette }]
+      : []),
+    { to: "/auth", label: "Account", icon: UserRound },
+  ];
+
   const tabs = [
     { to: "/", label: "Home", icon: Home, exact: true },
     { to: "/search", label: "Search", icon: Search, exact: false },
     ...(isStaff
       ? [{ to: "/admin", label: "Console", icon: Table2, exact: true }]
-      : [{ to: "/family", label: "My list", icon: Database, exact: false }]),
+      : isOrgManager
+        ? [{ to: "/roster", label: "Roster", icon: Users, exact: false }]
+        : [{ to: "/family", label: "My list", icon: Database, exact: false }]),
     { to: "/auth", label: "Account", icon: UserRound, exact: false },
   ];
 
   return (
+    <OrgTheme
+      primaryColor={themed ? (branding?.primary ?? null) : null}
+      accentColor={themed ? (branding?.accent ?? null) : null}
+    >
     <div className="min-h-screen bg-chalk pb-[76px] min-[680px]:pb-0">
       {/* Chrome: top nav on desktop, condensed bar + hamburger on mobile */}
       <header className="sticky top-0 z-40 bg-org-primary text-white shadow-[0_1px_0_rgba(255,255,255,0.08)]">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
           <Link to="/" className="touch-target flex items-center gap-2.5">
-            <span
-              className="grid size-8 place-items-center rounded-md bg-org-accent font-display text-[15px] font-bold text-navy-deep"
-              aria-hidden
-            >
-              P
-            </span>
+            {orgLogo ? (
+              <img
+                src={orgLogo}
+                alt={orgName ? `${orgName} logo` : "Organization logo"}
+                className="size-8 rounded-md bg-white/10 object-contain"
+              />
+            ) : (
+              <span
+                className="grid size-8 place-items-center rounded-md bg-org-accent font-display text-[15px] font-bold text-navy-deep"
+                aria-hidden
+              >
+                P
+              </span>
+            )}
             <span className="font-display text-lg font-bold text-white">Power Recruit</span>
           </Link>
 
@@ -125,5 +164,6 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
       <CompareTray />
     </div>
+    </OrgTheme>
   );
 }
