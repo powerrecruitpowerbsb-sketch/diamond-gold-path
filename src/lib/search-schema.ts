@@ -98,36 +98,36 @@ const num = (value: unknown, lo: number, hi: number): number | null => {
 };
 
 /** Clamp + coerce raw URL params into the server-side filter shape. */
-export function normalizeSearchInput(input: Partial<SearchParams> | SearchFilters): SearchFilters {
-  const raw = input as Record<string, unknown>;
-  const sport = str(raw.sport) === "softball" ? "softball" : "baseball";
+export function normalizeSearchInput(input: unknown): SearchFilters {
+  const raw = (input ?? {}) as Record<string, unknown>;
+  const at = (key: string) => raw[key];
   return {
-    sport,
-    q: str(raw.q).slice(0, 100),
-    state: str(raw.state),
-    governingBody: str(raw.governingBody),
-    division: str(raw.division),
-    region: str(raw.region),
-    conference: str(raw.conference),
-    publicPrivate: str(raw.publicPrivate),
-    schoolSize: str(raw.schoolSize),
-    campusSetting: str(raw.campusSetting),
-    academicBucket: str(raw.academicBucket),
-    majorId: str(raw.majorId),
-    religious: bool(raw.religious),
-    scholarships: bool(raw.scholarships),
-    tuitionMin: num(raw.tuitionMin, 0, 200000),
-    tuitionMax: num(raw.tuitionMax, 0, 200000),
-    gpaMin: num(raw.gpaMin, 0, 5),
-    gpaMax: num(raw.gpaMax, 0, 5),
-    satMin: num(raw.satMin, 400, 1600),
-    satMax: num(raw.satMax, 400, 1600),
-    actMin: num(raw.actMin, 1, 36),
-    actMax: num(raw.actMax, 1, 36),
-    acceptanceMin: num(raw.acceptanceMin, 0, 100),
-    acceptanceMax: num(raw.acceptanceMax, 0, 100),
-    rosterMin: num(raw.rosterMin, 0, 200),
-    rosterMax: num(raw.rosterMax, 0, 200),
+    sport: str(at("sport")) === "softball" ? "softball" : "baseball",
+    q: str(at("q")).slice(0, 100),
+    state: str(at("state")),
+    governingBody: str(at("governingBody")),
+    division: str(at("division")),
+    region: str(at("region")),
+    conference: str(at("conference")),
+    publicPrivate: str(at("publicPrivate")),
+    schoolSize: str(at("schoolSize")),
+    campusSetting: str(at("campusSetting")),
+    academicBucket: str(at("academicBucket")),
+    majorId: str(at("majorId")),
+    religious: bool(at("religious")),
+    scholarships: bool(at("scholarships")),
+    tuitionMin: num(at("tuitionMin"), 0, 200000),
+    tuitionMax: num(at("tuitionMax"), 0, 200000),
+    gpaMin: num(at("gpaMin"), 0, 5),
+    gpaMax: num(at("gpaMax"), 0, 5),
+    satMin: num(at("satMin"), 400, 1600),
+    satMax: num(at("satMax"), 400, 1600),
+    actMin: num(at("actMin"), 1, 36),
+    actMax: num(at("actMax"), 1, 36),
+    acceptanceMin: num(at("acceptanceMin"), 0, 100),
+    acceptanceMax: num(at("acceptanceMax"), 0, 100),
+    rosterMin: num(at("rosterMin"), 0, 200),
+    rosterMax: num(at("rosterMax"), 0, 200),
   };
 }
 
