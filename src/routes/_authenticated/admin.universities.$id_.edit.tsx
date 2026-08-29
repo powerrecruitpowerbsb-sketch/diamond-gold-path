@@ -16,7 +16,7 @@ import {
   type Values,
 } from "@/components/admin/form-kit";
 
-export const Route = createFileRoute("/_authenticated/admin/universities/$id/edit")({
+export const Route = createFileRoute("/_authenticated/admin/universities/$id_/edit")({
   component: EditUniversity,
 });
 
