@@ -12,7 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminDataRouteImport } from './routes/_authenticated/admin.data'
+import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
+import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
+import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_authenticated/admin.programs.new'
+import { Route as AuthenticatedAdminSchoolsNewRouteImport } from './routes/_authenticated/admin.schools.new'
+import { Route as AuthenticatedAdminUniversitiesIndexRouteImport } from './routes/_authenticated/admin.universities.index'
+import { Route as AuthenticatedAdminUniversitiesIdRouteImport } from './routes/_authenticated/admin.universities.$id'
+import { Route as AuthenticatedAdminProgramsIdEditRouteImport } from './routes/_authenticated/admin.programs.$id.edit'
+import { Route as AuthenticatedAdminUniversitiesIdEditRouteImport } from './routes/_authenticated/admin.universities.$id.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,46 +42,214 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminDataRoute = AuthenticatedAdminDataRouteImport.update({
-  id: '/admin/data',
-  path: '/admin/data',
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
+  id: '/family',
+  path: '/family',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminDataRoute = AuthenticatedAdminDataRouteImport.update({
+  id: '/data',
+  path: '/data',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminMajorsRoute =
+  AuthenticatedAdminMajorsRouteImport.update({
+    id: '/majors',
+    path: '/majors',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminProgramsIndexRoute =
+  AuthenticatedAdminProgramsIndexRouteImport.update({
+    id: '/programs/',
+    path: '/programs/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminProgramsNewRoute =
+  AuthenticatedAdminProgramsNewRouteImport.update({
+    id: '/programs/new',
+    path: '/programs/new',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSchoolsNewRoute =
+  AuthenticatedAdminSchoolsNewRouteImport.update({
+    id: '/schools/new',
+    path: '/schools/new',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminUniversitiesIndexRoute =
+  AuthenticatedAdminUniversitiesIndexRouteImport.update({
+    id: '/universities/',
+    path: '/universities/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminUniversitiesIdRoute =
+  AuthenticatedAdminUniversitiesIdRouteImport.update({
+    id: '/universities/$id',
+    path: '/universities/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminProgramsIdEditRoute =
+  AuthenticatedAdminProgramsIdEditRouteImport.update({
+    id: '/programs/$id/edit',
+    path: '/programs/$id/edit',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminUniversitiesIdEditRoute =
+  AuthenticatedAdminUniversitiesIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAdminUniversitiesIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/family': typeof AuthenticatedFamilyRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
+  '/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
+  '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
+  '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
+  '/admin/programs/': typeof AuthenticatedAdminProgramsIndexRoute
+  '/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
+  '/admin/programs/$id/edit': typeof AuthenticatedAdminProgramsIdEditRoute
+  '/admin/universities/$id/edit': typeof AuthenticatedAdminUniversitiesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/family': typeof AuthenticatedFamilyRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
+  '/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
+  '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
+  '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
+  '/admin/programs': typeof AuthenticatedAdminProgramsIndexRoute
+  '/admin/universities': typeof AuthenticatedAdminUniversitiesIndexRoute
+  '/admin/programs/$id/edit': typeof AuthenticatedAdminProgramsIdEditRoute
+  '/admin/universities/$id/edit': typeof AuthenticatedAdminUniversitiesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/admin/data': typeof AuthenticatedAdminDataRoute
+  '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
+  '/_authenticated/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
+  '/_authenticated/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
+  '/_authenticated/admin/programs/': typeof AuthenticatedAdminProgramsIndexRoute
+  '/_authenticated/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
+  '/_authenticated/admin/programs/$id/edit': typeof AuthenticatedAdminProgramsIdEditRoute
+  '/_authenticated/admin/universities/$id/edit': typeof AuthenticatedAdminUniversitiesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/admin/data'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/admin'
+    | '/dashboard'
+    | '/family'
+    | '/admin/data'
+    | '/admin/majors'
+    | '/admin/'
+    | '/admin/programs/new'
+    | '/admin/schools/new'
+    | '/admin/universities/$id'
+    | '/admin/programs/'
+    | '/admin/universities/'
+    | '/admin/programs/$id/edit'
+    | '/admin/universities/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/admin/data'
+  to:
+    | '/'
+    | '/auth'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/dashboard'
+    | '/family'
+    | '/admin/data'
+    | '/admin/majors'
+    | '/admin'
+    | '/admin/programs/new'
+    | '/admin/schools/new'
+    | '/admin/universities/$id'
+    | '/admin/programs'
+    | '/admin/universities'
+    | '/admin/programs/$id/edit'
+    | '/admin/universities/$id/edit'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/_authenticated/admin'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/family'
     | '/_authenticated/admin/data'
+    | '/_authenticated/admin/majors'
+    | '/_authenticated/admin/'
+    | '/_authenticated/admin/programs/new'
+    | '/_authenticated/admin/schools/new'
+    | '/_authenticated/admin/universities/$id'
+    | '/_authenticated/admin/programs/'
+    | '/_authenticated/admin/universities/'
+    | '/_authenticated/admin/programs/$id/edit'
+    | '/_authenticated/admin/universities/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -93,22 +275,168 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/family': {
+      id: '/_authenticated/family'
+      path: '/family'
+      fullPath: '/family'
+      preLoaderRoute: typeof AuthenticatedFamilyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/data': {
       id: '/_authenticated/admin/data'
-      path: '/admin/data'
+      path: '/data'
       fullPath: '/admin/data'
       preLoaderRoute: typeof AuthenticatedAdminDataRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/majors': {
+      id: '/_authenticated/admin/majors'
+      path: '/majors'
+      fullPath: '/admin/majors'
+      preLoaderRoute: typeof AuthenticatedAdminMajorsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/programs/': {
+      id: '/_authenticated/admin/programs/'
+      path: '/programs'
+      fullPath: '/admin/programs/'
+      preLoaderRoute: typeof AuthenticatedAdminProgramsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/programs/new': {
+      id: '/_authenticated/admin/programs/new'
+      path: '/programs/new'
+      fullPath: '/admin/programs/new'
+      preLoaderRoute: typeof AuthenticatedAdminProgramsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/schools/new': {
+      id: '/_authenticated/admin/schools/new'
+      path: '/schools/new'
+      fullPath: '/admin/schools/new'
+      preLoaderRoute: typeof AuthenticatedAdminSchoolsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/universities/': {
+      id: '/_authenticated/admin/universities/'
+      path: '/universities'
+      fullPath: '/admin/universities/'
+      preLoaderRoute: typeof AuthenticatedAdminUniversitiesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/universities/$id': {
+      id: '/_authenticated/admin/universities/$id'
+      path: '/universities/$id'
+      fullPath: '/admin/universities/$id'
+      preLoaderRoute: typeof AuthenticatedAdminUniversitiesIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/programs/$id/edit': {
+      id: '/_authenticated/admin/programs/$id/edit'
+      path: '/programs/$id/edit'
+      fullPath: '/admin/programs/$id/edit'
+      preLoaderRoute: typeof AuthenticatedAdminProgramsIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/universities/$id/edit': {
+      id: '/_authenticated/admin/universities/$id/edit'
+      path: '/edit'
+      fullPath: '/admin/universities/$id/edit'
+      preLoaderRoute: typeof AuthenticatedAdminUniversitiesIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminUniversitiesIdRoute
     }
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
+interface AuthenticatedAdminUniversitiesIdRouteChildren {
+  AuthenticatedAdminUniversitiesIdEditRoute: typeof AuthenticatedAdminUniversitiesIdEditRoute
+}
+
+const AuthenticatedAdminUniversitiesIdRouteChildren: AuthenticatedAdminUniversitiesIdRouteChildren =
+  {
+    AuthenticatedAdminUniversitiesIdEditRoute:
+      AuthenticatedAdminUniversitiesIdEditRoute,
+  }
+
+const AuthenticatedAdminUniversitiesIdRouteWithChildren =
+  AuthenticatedAdminUniversitiesIdRoute._addFileChildren(
+    AuthenticatedAdminUniversitiesIdRouteChildren,
+  )
+
+interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDataRoute: typeof AuthenticatedAdminDataRoute
+  AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminProgramsNewRoute: typeof AuthenticatedAdminProgramsNewRoute
+  AuthenticatedAdminSchoolsNewRoute: typeof AuthenticatedAdminSchoolsNewRoute
+  AuthenticatedAdminUniversitiesIdRoute: typeof AuthenticatedAdminUniversitiesIdRouteWithChildren
+  AuthenticatedAdminProgramsIndexRoute: typeof AuthenticatedAdminProgramsIndexRoute
+  AuthenticatedAdminUniversitiesIndexRoute: typeof AuthenticatedAdminUniversitiesIndexRoute
+  AuthenticatedAdminProgramsIdEditRoute: typeof AuthenticatedAdminProgramsIdEditRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
+  AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminProgramsNewRoute: AuthenticatedAdminProgramsNewRoute,
+  AuthenticatedAdminSchoolsNewRoute: AuthenticatedAdminSchoolsNewRoute,
+  AuthenticatedAdminUniversitiesIdRoute:
+    AuthenticatedAdminUniversitiesIdRouteWithChildren,
+  AuthenticatedAdminProgramsIndexRoute: AuthenticatedAdminProgramsIndexRoute,
+  AuthenticatedAdminUniversitiesIndexRoute:
+    AuthenticatedAdminUniversitiesIndexRoute,
+  AuthenticatedAdminProgramsIdEditRoute: AuthenticatedAdminProgramsIdEditRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -118,6 +446,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
