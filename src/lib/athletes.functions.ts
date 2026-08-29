@@ -363,6 +363,7 @@ export const importAthletes = createServerFn({ method: "POST" })
               email: parentEmail,
               role: "parent",
               athleteId,
+              redirectTo: inviteRedirect(),
             });
             if (result.status === "sent") invited += 1;
           } catch (error) {
