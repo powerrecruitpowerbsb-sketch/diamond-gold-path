@@ -41,12 +41,17 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function RosterScreen() {
   const listFn = useServerFn(listOrgAthletes);
+  const ctx = useSeasonContext();
   const [q, setQ] = useState("");
   const [gradYear, setGradYear] = useState("");
+  const [status, setStatus] = useState("active");
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["org-athletes", q, gradYear],
-    queryFn: () => listFn({ data: { q, gradYear } }),
+    queryKey: ["org-athletes", q, gradYear, status, ctx.seasonId, ctx.teamId],
+    queryFn: () =>
+      listFn({
+        data: { q, gradYear, status, seasonId: ctx.seasonId, teamId: ctx.teamId },
+      }),
     retry: false,
   });
 
@@ -60,7 +65,15 @@ function RosterScreen() {
             Your organization's players — separate from the verified college roster data.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {ctx.canManage ? (
+            <Link
+              to="/settings/seasons"
+              className="touch-target inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-graphite hover:bg-chalk"
+            >
+              <CalendarRange className="size-4" aria-hidden /> Seasons &amp; teams
+            </Link>
+          ) : null}
           <Link
             to="/roster/import"
             className="touch-target inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-graphite hover:bg-chalk"
@@ -75,6 +88,12 @@ function RosterScreen() {
           </Link>
         </div>
       </div>
+
+      <div className="mt-6">
+        <SeasonTeamPicker ctx={ctx} />
+      </div>
+
+
 
       <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white p-3 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
         <label className="relative flex min-w-56 flex-1 items-center">
