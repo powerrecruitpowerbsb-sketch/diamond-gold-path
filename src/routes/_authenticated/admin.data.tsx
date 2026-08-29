@@ -230,7 +230,7 @@ function DataTable({
       <table className="tabular w-full min-w-[900px] border-collapse text-left text-[13px]">
         <thead>
           <tr className="border-b border-border bg-muted/60">
-            {head.map((label) => (
+            {[...head, "Source"].map((label) => (
               <th
                 key={label}
                 className="px-3 py-2 font-mono text-[11px] font-medium tracking-wide text-steel uppercase whitespace-nowrap"
@@ -242,7 +242,7 @@ function DataTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.key} className="border-b border-border/70 last:border-0">
+            <tr key={row.key} className="border-b border-border/70 last:border-0 align-top">
               {row.cells.map((cell, index) => (
                 <td
                   key={index}
@@ -252,19 +252,14 @@ function DataTable({
                       : "px-3 py-2 text-graphite/85"
                   }
                 >
-                  {index === 0 ? (
-                    <span className="block">
-                      {cell}
-                      {row.footer ? <span className="mt-0.5 block">{row.footer}</span> : null}
-                    </span>
-                  ) : (
-                    cell
-                  )}
+                  {cell}
                 </td>
               ))}
+              <td className="px-3 py-2 whitespace-nowrap">{row.footer ?? null}</td>
             </tr>
           ))}
         </tbody>
+
       </table>
     </div>
   );
