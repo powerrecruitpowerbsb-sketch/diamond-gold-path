@@ -112,9 +112,11 @@ function ImportAthletes() {
     primaryPosition: "",
     bats: "",
     throws: "",
+    parentEmail: "",
   });
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [importing, setImporting] = useState(false);
+  const [sendFamilyInvites, setSendFamilyInvites] = useState(true);
 
   async function onFile(file: File | null) {
     setPreview(null);
