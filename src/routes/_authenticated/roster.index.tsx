@@ -121,6 +121,21 @@ function RosterScreen() {
             ))}
           </select>
         </label>
+        <label className="flex items-center gap-2 text-sm text-steel">
+          Status
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            className="touch-target rounded-lg border border-border bg-white px-3 text-sm text-graphite"
+          >
+            <option value="">All</option>
+            {Object.entries(ATHLETE_STATUS_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {error ? (
@@ -134,23 +149,25 @@ function RosterScreen() {
           <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>
               <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Team</th>
               <th className="px-4 py-3">Grad year</th>
               <th className="px-4 py-3">Position</th>
               <th className="px-4 py-3">B/T</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Source</th>
             </tr>
           </thead>
           <tbody>
             {isPending ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-steel">
+                <td colSpan={7} className="px-4 py-6 text-steel">
                   Loading roster…
                 </td>
               </tr>
             ) : (data?.athletes ?? []).length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-steel">
-                  No athletes yet. Add one manually or import a CSV.
+                <td colSpan={7} className="px-4 py-6 text-steel">
+                  No athletes match this season and filter. Add one manually or import a CSV.
                 </td>
               </tr>
             ) : (
@@ -165,10 +182,20 @@ function RosterScreen() {
                       {athlete['name']}
                     </Link>
                   </td>
+                  <td className="px-4 py-3 text-graphite">
+                    {athlete['team_name'] ?? (
+                      <span className="font-mono text-xs text-steel">Unassigned</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-graphite">{athlete['grad_year'] ?? "—"}</td>
                   <td className="px-4 py-3 text-graphite">{athlete['primary_position'] ?? "—"}</td>
                   <td className="px-4 py-3 text-graphite">
                     {athlete['bats'] ?? "—"}/{athlete['throws'] ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-steel">
+                    {ATHLETE_STATUS_LABEL[
+                      (athlete['status'] ?? "active") as keyof typeof ATHLETE_STATUS_LABEL
+                    ] ?? "Active"}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-steel">
                     {SOURCE_LABELS[athlete['athlete_data_source'] as string] ??
@@ -176,6 +203,8 @@ function RosterScreen() {
                   </td>
                 </tr>
               ))
+            )}
+
             )}
           </tbody>
         </table>
