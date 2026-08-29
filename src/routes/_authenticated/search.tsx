@@ -3,11 +3,12 @@ import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ChevronDown, MapPin, Search as SearchIcon, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, Columns3, MapPin, Search as SearchIcon, SlidersHorizontal } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { VerifiedChip } from "@/components/brand/DataSignals";
+import { useCompare } from "@/components/compare/compare-selection";
 import { getSearchFacets, searchPrograms } from "@/lib/search.functions";
 import {
   ACADEMIC_BUCKETS,
