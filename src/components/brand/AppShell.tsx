@@ -57,7 +57,6 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
               aria-expanded={menuOpen}
               className="touch-target grid place-items-center rounded-md text-white/85 hover:bg-white/10 hover:text-white"
             >
-              {menuOpen ? <Menu className="size-5 hidden" /> : null}
               {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
           </div>
