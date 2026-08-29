@@ -1,10 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { normalizeSearchInput, type SearchFilters } from "@/lib/search-schema";
-
-const UNIVERSITY_COLS =
-  "id, name, city, state, region, campus_setting, school_size_bucket, public_private, religious_affiliation, religious_tradition, undergrad_enrollment, avg_gpa, avg_sat, avg_act, acceptance_rate, graduation_rate, student_faculty_ratio, test_optional, tuition_in_state, tuition_out_state, room_board, est_cost_of_attendance, est_net_price, tuition_source_url, admissions_url, website_url, financial_aid_url, updated_at";
+import {
+  UNIVERSITY_COLS,
+  normalizeSearchInput,
+  type SearchFilters,
+} from "@/lib/search-schema";
 
 /** Distinct values available for the secondary filters. */
 export const getSearchFacets = createServerFn({ method: "GET" })
