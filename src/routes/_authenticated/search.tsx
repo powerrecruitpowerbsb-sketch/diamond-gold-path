@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/admin-schemas";
 import {
   DIVISIONS_BY_BODY,
+  SEARCH_DEFAULTS,
   activeSecondaryCount,
   searchParamsSchema,
   type SearchParams,
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/search")({
   validateSearch: zodValidator(searchParamsSchema),
+  search: { middlewares: [stripSearchParams(SEARCH_DEFAULTS)] },
   head: () => ({
     meta: [
       { title: "Find your college fit — Power Recruit" },

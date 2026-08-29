@@ -55,6 +55,37 @@ export const searchParamsSchema = z.object({
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;
 
+/** Default values stripped from the URL so a fresh search has a clean link. */
+export const SEARCH_DEFAULTS = {
+  sport: "baseball",
+  q: "",
+  state: "",
+  governingBody: "",
+  division: "",
+  region: "",
+  conference: "",
+  publicPrivate: "",
+  schoolSize: "",
+  campusSetting: "",
+  academicBucket: "",
+  majorId: "",
+  religious: "",
+  scholarships: "",
+  tuitionMin: 0,
+  tuitionMax: 0,
+  gpaMin: 0,
+  gpaMax: 0,
+  satMin: 0,
+  satMax: 0,
+  actMin: 0,
+  actMax: 0,
+  acceptanceMin: 0,
+  acceptanceMax: 0,
+  rosterMin: 0,
+  rosterMax: 0,
+  more: false,
+} as const;
+
 export type SearchFilters = {
   sport: string;
   q: string;
