@@ -36,7 +36,9 @@ function NewAthlete() {
   const saveFn = useServerFn(saveOrgAthlete);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const ctx = useSeasonContext();
   const [saving, setSaving] = useState(false);
+  const [teamId, setTeamId] = useState("");
   const [form, setForm] = useState({
     name: "",
     gradYear: "",
@@ -60,10 +62,14 @@ function NewAthlete() {
           bats: form.bats || null,
           throws: form.throws || null,
           source: "manual",
+          seasonId: ctx.seasonId || null,
+          teamId: teamId || null,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["org-athletes"] });
+      await queryClient.invalidateQueries({ queryKey: ["season-detail"] });
       toast.success("Athlete added");
+
       navigate({ to: "/roster/$id", params: { id: result.id } });
     } catch (error) {
       toast.error((error as Error).message);
