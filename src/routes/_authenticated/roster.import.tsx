@@ -404,6 +404,9 @@ function ImportAthletes() {
                       <td className="px-3 py-2">
                         {row.bats ?? "—"}/{row.throws ?? "—"}
                       </td>
+                      <td className="px-3 py-2 font-mono text-xs text-steel">
+                        {row.parentEmail ?? "—"}
+                      </td>
                       <td className="px-3 py-2 text-xs">
                         {row.errors.length ? (
                           <span className="text-seam-red">{row.errors.join("; ")}</span>
