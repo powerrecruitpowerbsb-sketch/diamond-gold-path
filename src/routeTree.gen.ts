@@ -24,6 +24,7 @@ import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
 import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenticated/roster.index'
+import { Route as AuthenticatedRosterNewRouteImport } from './routes/_authenticated/roster.new'
 import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
 import { Route as AuthenticatedAdminProgramsIdRouteImport } from './routes/_authenticated/admin.programs.$id'
 import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_authenticated/admin.programs.new'
@@ -109,6 +110,11 @@ const AuthenticatedRosterIndexRoute =
     path: '/roster/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRosterNewRoute = AuthenticatedRosterNewRouteImport.update({
+  id: '/roster/new',
+  path: '/roster/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminProgramsIndexRoute =
   AuthenticatedAdminProgramsIndexRouteImport.update({
     id: '/programs/',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
+  '/roster/new': typeof AuthenticatedRosterNewRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/roster/': typeof AuthenticatedRosterIndexRoute
   '/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
+  '/roster/new': typeof AuthenticatedRosterNewRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/roster': typeof AuthenticatedRosterIndexRoute
   '/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
+  '/_authenticated/roster/new': typeof AuthenticatedRosterNewRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/roster/': typeof AuthenticatedRosterIndexRoute
   '/_authenticated/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
@@ -246,6 +255,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/majors'
     | '/programs/$id'
+    | '/roster/new'
     | '/admin/'
     | '/roster/'
     | '/admin/programs/$id'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/majors'
     | '/programs/$id'
+    | '/roster/new'
     | '/admin'
     | '/roster'
     | '/admin/programs/$id'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/majors'
     | '/_authenticated/programs/$id'
+    | '/_authenticated/roster/new'
     | '/_authenticated/admin/'
     | '/_authenticated/roster/'
     | '/_authenticated/admin/programs/$id'
@@ -421,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRosterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/roster/new': {
+      id: '/_authenticated/roster/new'
+      path: '/roster/new'
+      fullPath: '/roster/new'
+      preLoaderRoute: typeof AuthenticatedRosterNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/programs/': {
       id: '/_authenticated/admin/programs/'
       path: '/programs'
@@ -520,6 +539,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedProgramsIdRoute: typeof AuthenticatedProgramsIdRoute
+  AuthenticatedRosterNewRoute: typeof AuthenticatedRosterNewRoute
   AuthenticatedRosterIndexRoute: typeof AuthenticatedRosterIndexRoute
 }
 
@@ -530,6 +550,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedProgramsIdRoute: AuthenticatedProgramsIdRoute,
+  AuthenticatedRosterNewRoute: AuthenticatedRosterNewRoute,
   AuthenticatedRosterIndexRoute: AuthenticatedRosterIndexRoute,
 }
 
