@@ -1,7 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Database, Home, Menu, Search, Table2, UserRound, X } from "lucide-react";
 
+import { getMyAccount } from "@/lib/admin.functions";
 import { cn } from "@/lib/utils";
 
 type NavItem = { to: string; label: string; icon: typeof Home };
@@ -19,6 +22,22 @@ const OVERFLOW_NAV: NavItem[] = [
 
 export function AppShell({ children, right }: { children: ReactNode; right?: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const accountFn = useServerFn(getMyAccount);
+  const { data: account } = useQuery({ queryKey: ["my-account"], queryFn: () => accountFn() });
+  const isStaff = Boolean(account?.isSuperadmin);
+
+  const primaryNav = PRIMARY_NAV.filter((item) => isStaff || item.to !== "/admin");
+  const overflowNav = OVERFLOW_NAV.filter(
+    (item) => isStaff || !item.to.startsWith("/admin"),
+  );
+  const tabs = [
+    { to: "/", label: "Home", icon: Home, exact: true },
+    { to: "/search", label: "Search", icon: Search, exact: false },
+    ...(isStaff
+      ? [{ to: "/admin", label: "Console", icon: Table2, exact: true }]
+      : [{ to: "/family", label: "My list", icon: Database, exact: false }]),
+    { to: "/auth", label: "Account", icon: UserRound, exact: false },
+  ];
 
   return (
     <div className="min-h-screen bg-chalk pb-[76px] min-[680px]:pb-0">
@@ -36,7 +55,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           </Link>
 
           <nav className="ml-6 hidden items-center gap-1 min-[680px]:flex">
-            {PRIMARY_NAV.map((item) => (
+            {primaryNav.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -66,7 +85,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
         {menuOpen ? (
           <div className="border-t border-white/10 bg-navy-deep px-4 py-2 sm:px-6">
             <div className="mx-auto flex max-w-7xl flex-col">
-              {OVERFLOW_NAV.map((item) => (
+              {overflowNav.map((item) => (
                 <Link
                   key={item.label}
                   to={item.to}
@@ -90,12 +109,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-white shadow-[0_-4px_20px_-8px_rgba(18,35,58,0.25)] min-[680px]:hidden"
       >
-        {[
-          { to: "/", label: "Home", icon: Home, exact: true },
-          { to: "/search", label: "Search", icon: Search, exact: false },
-          { to: "/admin", label: "Console", icon: Table2, exact: true },
-          { to: "/auth", label: "Account", icon: UserRound, exact: false },
-        ].map((item, index) => (
+        {tabs.map((item, index) => (
           <Link
             key={`${item.label}-${index}`}
             to={item.to}
