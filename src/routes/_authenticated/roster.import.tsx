@@ -180,6 +180,11 @@ function ImportAthletes() {
       const throws = cell("throws").toUpperCase().slice(0, 1);
       if (throws && !["R", "L"].includes(throws)) errors.push(`throws "${cell("throws")}" must be R or L`);
 
+      const parentEmail = cell("parentEmail").toLowerCase();
+      if (parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(parentEmail)) {
+        errors.push(`unreadable parent email "${cell("parentEmail")}"`);
+      }
+
       return {
         index: i + 2,
         name,
@@ -187,6 +192,7 @@ function ImportAthletes() {
         primaryPosition: cell("primaryPosition") || null,
         bats: bats || null,
         throws: throws || null,
+        parentEmail: parentEmail || null,
         errors,
         matchId: null,
         action: errors.length ? "skip" : "create",
