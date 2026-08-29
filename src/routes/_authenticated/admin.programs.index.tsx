@@ -129,11 +129,11 @@ function ProgramsList() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      to="/admin/programs/$id/edit"
+                      to="/admin/programs/$id"
                       params={{ id: p.id }}
                       className="text-xs font-semibold text-org-primary hover:underline"
                     >
-                      Edit
+                      Manage
                     </Link>
                   </td>
                 </tr>
