@@ -241,16 +241,26 @@ function ImportAthletes() {
               primaryPosition: row.primaryPosition,
               bats: row.bats,
               throws: row.throws,
+              parentEmail: row.parentEmail,
               action: row.action,
               matchId: row.matchId,
             })),
+          sendFamilyInvites,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["org-athletes"] });
       if (result.failures.length) {
         toast.error(`${result.failures.length} row(s) failed: ${result.failures[0]?.message}`);
       } else {
-        toast.success(`Imported ${result.created} new, updated ${result.updated}`);
+        const invited = result.invited
+          ? ` · ${result.invited} family invite(s) sent`
+          : "";
+        toast.success(`Imported ${result.created} new, updated ${result.updated}${invited}`);
+        if (result.inviteFailures.length) {
+          toast.error(
+            `${result.inviteFailures.length} invite(s) failed: ${result.inviteFailures[0]?.message}`,
+          );
+        }
         navigate({ to: "/roster" });
       }
     } catch (error) {
