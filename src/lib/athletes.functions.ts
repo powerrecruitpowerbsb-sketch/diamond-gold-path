@@ -423,6 +423,25 @@ export const importAthletes = createServerFn({ method: "POST" })
         continue;
       }
 
+      // Optional Team column: assign into the selected season's roster.
+      const teamName = String(row.team ?? "").trim();
+      if (data.seasonId && athleteId && teamName) {
+        const teamId = teamsByName.get(teamName.toLowerCase());
+        if (!teamId) {
+          unknownTeams.add(teamName);
+        } else {
+          const { error: assignError } = await context.supabase.from("team_athletes").upsert(
+            { season_id: data.seasonId, team_id: teamId, org_athlete_id: athleteId },
+            { onConflict: "season_id,org_athlete_id" },
+          );
+          if (assignError) {
+            failures.push({ row: i + 1, message: assignError.message });
+          } else {
+            assigned += 1;
+          }
+        }
+      }
+
       // Same invite path as the athlete page — one service, three entry points.
       const parentEmail = String(row.parentEmail ?? "").trim().toLowerCase();
       if (sendInviteCore && athleteId && parentEmail) {
@@ -450,7 +469,17 @@ export const importAthletes = createServerFn({ method: "POST" })
       }
     }
 
-    return { created, updated, skipped, invited, failures, inviteFailures };
+    return {
+      created,
+      updated,
+      skipped,
+      invited,
+      assigned,
+      unknownTeams: Array.from(unknownTeams),
+      failures,
+      inviteFailures,
+    };
+
   });
 
 /* ------------------------------------------------------------------ */
