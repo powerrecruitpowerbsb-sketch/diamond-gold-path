@@ -58,7 +58,7 @@ function assertCanInviteRole(
   actor: { isSuperadmin: boolean; isOrgAdmin: boolean },
   role: string,
 ) {
-  if (STAFF_ROLES.includes(role) && !actor.isSuperadmin && !actor.isOrgAdmin) {
+  if ((STAFF_ROLES as readonly string[]).includes(role) && !actor.isSuperadmin && !actor.isOrgAdmin) {
     throw new Error("Only organization admins can invite staff members");
   }
 }
