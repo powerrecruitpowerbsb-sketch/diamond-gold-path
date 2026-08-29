@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { SectionedFields, normalizeValues, type Values } from "@/components/admin/form-kit";
 import { ClassificationsPanel } from "@/components/admin/ClassificationsPanel";
 
-export const Route = createFileRoute("/_authenticated/admin/programs/$id/edit")({
+export const Route = createFileRoute("/_authenticated/admin/programs/$id_/edit")({
   component: EditProgram,
 });
 
