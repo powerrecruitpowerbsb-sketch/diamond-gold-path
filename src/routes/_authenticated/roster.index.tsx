@@ -2,11 +2,15 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Search as SearchIcon, Upload } from "lucide-react";
+import { CalendarRange, Plus, Search as SearchIcon, Upload } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
+import { useSeasonContext } from "@/hooks/use-season-context";
 import { listOrgAthletes } from "@/lib/athletes.functions";
+import { ATHLETE_STATUS_LABEL } from "@/lib/season-constants";
+
 
 export const Route = createFileRoute("/_authenticated/roster/")({
   head: () => ({
@@ -37,12 +41,17 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function RosterScreen() {
   const listFn = useServerFn(listOrgAthletes);
+  const ctx = useSeasonContext();
   const [q, setQ] = useState("");
   const [gradYear, setGradYear] = useState("");
+  const [status, setStatus] = useState("active");
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["org-athletes", q, gradYear],
-    queryFn: () => listFn({ data: { q, gradYear } }),
+    queryKey: ["org-athletes", q, gradYear, status, ctx.seasonId, ctx.teamId],
+    queryFn: () =>
+      listFn({
+        data: { q, gradYear, status, seasonId: ctx.seasonId, teamId: ctx.teamId },
+      }),
     retry: false,
   });
 
@@ -56,7 +65,15 @@ function RosterScreen() {
             Your organization's players — separate from the verified college roster data.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {ctx.canManage ? (
+            <Link
+              to="/settings/seasons"
+              className="touch-target inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-graphite hover:bg-chalk"
+            >
+              <CalendarRange className="size-4" aria-hidden /> Seasons &amp; teams
+            </Link>
+          ) : null}
           <Link
             to="/roster/import"
             className="touch-target inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-graphite hover:bg-chalk"
@@ -71,6 +88,12 @@ function RosterScreen() {
           </Link>
         </div>
       </div>
+
+      <div className="mt-6">
+        <SeasonTeamPicker ctx={ctx} />
+      </div>
+
+
 
       <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white p-3 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
         <label className="relative flex min-w-56 flex-1 items-center">
@@ -98,6 +121,21 @@ function RosterScreen() {
             ))}
           </select>
         </label>
+        <label className="flex items-center gap-2 text-sm text-steel">
+          Status
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            className="touch-target rounded-lg border border-border bg-white px-3 text-sm text-graphite"
+          >
+            <option value="">All</option>
+            {Object.entries(ATHLETE_STATUS_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {error ? (
@@ -111,23 +149,25 @@ function RosterScreen() {
           <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>
               <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Team</th>
               <th className="px-4 py-3">Grad year</th>
               <th className="px-4 py-3">Position</th>
               <th className="px-4 py-3">B/T</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Source</th>
             </tr>
           </thead>
           <tbody>
             {isPending ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-steel">
+                <td colSpan={7} className="px-4 py-6 text-steel">
                   Loading roster…
                 </td>
               </tr>
             ) : (data?.athletes ?? []).length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-steel">
-                  No athletes yet. Add one manually or import a CSV.
+                <td colSpan={7} className="px-4 py-6 text-steel">
+                  No athletes match this season and filter. Add one manually or import a CSV.
                 </td>
               </tr>
             ) : (
@@ -142,10 +182,20 @@ function RosterScreen() {
                       {athlete['name']}
                     </Link>
                   </td>
+                  <td className="px-4 py-3 text-graphite">
+                    {athlete['team_name'] ?? (
+                      <span className="font-mono text-xs text-steel">Unassigned</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-graphite">{athlete['grad_year'] ?? "—"}</td>
                   <td className="px-4 py-3 text-graphite">{athlete['primary_position'] ?? "—"}</td>
                   <td className="px-4 py-3 text-graphite">
                     {athlete['bats'] ?? "—"}/{athlete['throws'] ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-steel">
+                    {ATHLETE_STATUS_LABEL[
+                      (athlete['status'] ?? "active") as keyof typeof ATHLETE_STATUS_LABEL
+                    ] ?? "Active"}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-steel">
                     {SOURCE_LABELS[athlete['athlete_data_source'] as string] ??
@@ -153,6 +203,8 @@ function RosterScreen() {
                   </td>
                 </tr>
               ))
+            )}
+
             )}
           </tbody>
         </table>

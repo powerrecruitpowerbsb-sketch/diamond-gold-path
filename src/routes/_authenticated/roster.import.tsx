@@ -29,7 +29,14 @@ export const Route = createFileRoute("/_authenticated/roster/import")({
   component: ImportAthletes,
 });
 
-type Field = "name" | "gradYear" | "primaryPosition" | "bats" | "throws" | "parentEmail";
+type Field =
+  | "name"
+  | "gradYear"
+  | "primaryPosition"
+  | "bats"
+  | "throws"
+  | "parentEmail"
+  | "team";
 
 const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[] = [
   { key: "name", label: "Name", required: true, hints: ["name", "athlete", "player", "full name"] },
@@ -43,6 +50,7 @@ const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[
     required: false,
     hints: ["parent email", "parent", "guardian", "email"],
   },
+  { key: "team", label: "Team", required: false, hints: ["team", "roster", "squad"] },
 ];
 
 /** Minimal RFC4180-ish CSV parser: handles quoted fields, commas and CRLF. */
@@ -89,6 +97,7 @@ type PreviewRow = {
   bats: string | null;
   throws: string | null;
   parentEmail: string | null;
+  team: string | null;
   errors: string[];
   matchId: string | null;
   action: "create" | "update" | "skip";
@@ -113,6 +122,7 @@ function ImportAthletes() {
     bats: "",
     throws: "",
     parentEmail: "",
+    team: "",
   });
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [importing, setImporting] = useState(false);
@@ -193,6 +203,7 @@ function ImportAthletes() {
         bats: bats || null,
         throws: throws || null,
         parentEmail: parentEmail || null,
+        team: cell("team") || null,
         errors,
         matchId: null,
         action: errors.length ? "skip" : "create",
@@ -243,6 +254,7 @@ function ImportAthletes() {
               bats: row.bats,
               throws: row.throws,
               parentEmail: row.parentEmail,
+              team: row.team,
               action: row.action,
               matchId: row.matchId,
             })),

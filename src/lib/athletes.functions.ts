@@ -150,16 +150,25 @@ async function upsertAthlete(
 
 export const listOrgAthletes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { q?: string; gradYear?: string } | undefined) => ({
-    q: str(input?.q),
-    gradYear: str(input?.gradYear),
-  }))
+  .inputValidator(
+    (
+      input:
+        | { q?: string; gradYear?: string; seasonId?: string; teamId?: string; status?: string }
+        | undefined,
+    ) => ({
+      q: str(input?.q),
+      gradYear: str(input?.gradYear),
+      seasonId: str(input?.seasonId),
+      teamId: str(input?.teamId),
+      status: str(input?.status),
+    }),
+  )
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
     let query = context.supabase
       .from("org_athletes")
       .select(
-        "id, name, grad_year, primary_position, bats, throws, athlete_data_source, organization_id, created_at",
+        "id, name, grad_year, primary_position, bats, throws, athlete_data_source, status, organization_id, created_at",
       )
       .order("grad_year", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true });
@@ -167,9 +176,41 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
     if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
     if (data.q) query = query.ilike("name", `%${data.q}%`);
     if (data.gradYear) query = query.eq("grad_year", Number(data.gradYear));
+    if (data.status) query = query.eq("status", data.status);
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
+
+    // Season/team assignment lives in team_athletes so the roster can be read
+    // for any season without duplicating the athlete record.
+    let assignments: Record<string, any>[] = [];
+    if (data.seasonId) {
+      const { data: assigned, error: assignError } = await context.supabase
+        .from("team_athletes")
+        .select("org_athlete_id, jersey_number, team_id, teams(id, name, age_group)")
+        .eq("season_id", data.seasonId);
+      if (assignError) throw new Error(assignError.message);
+      assignments = (assigned ?? []) as Record<string, any>[];
+    }
+    const assignmentByAthlete = new Map(
+      assignments.map((row) => [row['org_athlete_id'] as string, row]),
+    );
+
+    let athletes = ((rows ?? []) as Record<string, any>[]).map((athlete) => {
+      const assignment = assignmentByAthlete.get(athlete['id'] as string);
+      return {
+        ...athlete,
+        team_id: (assignment?.['team_id'] ?? null) as string | null,
+        team_name: (assignment?.['teams']?.name ?? null) as string | null,
+        jersey_number: (assignment?.['jersey_number'] ?? null) as string | null,
+      };
+    });
+
+    if (data.teamId === "__unassigned") {
+      athletes = athletes.filter((a) => !a['team_id']);
+    } else if (data.teamId) {
+      athletes = athletes.filter((a) => a['team_id'] === data.teamId);
+    }
 
     const { data: years } = await context.supabase
       .from("org_athletes")
@@ -181,12 +222,13 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
     ).sort((a, b) => a - b);
 
     return {
-      athletes: (rows ?? []) as Record<string, any>[],
+      athletes,
       gradYears,
       canEdit: true,
       isOrgAdmin: actor.isOrgAdmin,
     };
   });
+
 
 export const getOrgAthlete = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -197,7 +239,7 @@ export const getOrgAthlete = createServerFn({ method: "GET" })
     const { data: athlete, error } = await context.supabase
       .from("org_athletes")
       .select(
-        "id, organization_id, name, grad_year, primary_position, bats, throws, athlete_data_source, linked_parent_user_id, created_at, updated_at",
+        "id, organization_id, name, grad_year, primary_position, bats, throws, athlete_data_source, status, linked_parent_user_id, created_at, updated_at",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -246,16 +288,29 @@ export const getOrgAthlete = createServerFn({ method: "GET" })
 
 export const saveOrgAthlete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: AthleteInput) => input)
+  .inputValidator((input: AthleteInput & { seasonId?: string | null; teamId?: string | null }) => input)
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
     const orgId = actor.organizationId;
     if (!orgId && !data.id) throw new Error("Select an organization before adding athletes");
-    return upsertAthlete(context as any, orgId ?? "", {
+    const result = await upsertAthlete(context as any, orgId ?? "", {
       ...data,
       source: data.source ?? "manual",
     });
+
+    // A roster spot is a season assignment, not a column on the athlete.
+    const seasonId = nullable(data.seasonId);
+    const teamId = nullable(data.teamId);
+    if (seasonId && teamId) {
+      const { error } = await context.supabase.from("team_athletes").upsert(
+        { season_id: seasonId, team_id: teamId, org_athlete_id: result.id },
+        { onConflict: "season_id,org_athlete_id" },
+      );
+      if (error) throw new Error(error.message);
+    }
+    return result;
   });
+
 
 export const deleteOrgAthlete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -303,11 +358,14 @@ export const importAthletes = createServerFn({ method: "POST" })
         action?: "create" | "update" | "skip";
         matchId?: string | null;
         parentEmail?: string | null;
+        team?: string | null;
       })[];
       sendFamilyInvites?: boolean;
+      seasonId?: string | null;
     }) => ({
       rows: Array.isArray(input?.rows) ? input.rows.slice(0, 2000) : [],
       sendFamilyInvites: input?.sendFamilyInvites !== false,
+      seasonId: nullable(input?.seasonId),
     }),
   )
   .handler(async ({ context, data }) => {
@@ -319,8 +377,10 @@ export const importAthletes = createServerFn({ method: "POST" })
     let updated = 0;
     let skipped = 0;
     let invited = 0;
+    let assigned = 0;
     const failures: { row: number; message: string }[] = [];
     const inviteFailures: { row: number; email: string; message: string }[] = [];
+    const unknownTeams = new Set<string>();
 
     const wantsInvites =
       data.sendFamilyInvites &&
@@ -328,6 +388,19 @@ export const importAthletes = createServerFn({ method: "POST" })
     const sendInviteCore = wantsInvites
       ? (await import("./invites.server")).sendInviteCore
       : null;
+
+    // Team names in the CSV are matched to existing teams in the chosen season.
+    const teamsByName = new Map<string, string>();
+    if (data.seasonId) {
+      const { data: teams } = await context.supabase
+        .from("teams")
+        .select("id, name")
+        .eq("season_id", data.seasonId);
+      for (const team of (teams ?? []) as { id: string; name: string }[]) {
+        teamsByName.set(team.name.trim().toLowerCase(), team.id);
+      }
+    }
+
 
     for (let i = 0; i < data.rows.length; i += 1) {
       const row = data.rows[i]!;
@@ -348,6 +421,25 @@ export const importAthletes = createServerFn({ method: "POST" })
       } catch (error) {
         failures.push({ row: i + 1, message: (error as Error).message });
         continue;
+      }
+
+      // Optional Team column: assign into the selected season's roster.
+      const teamName = String(row.team ?? "").trim();
+      if (data.seasonId && athleteId && teamName) {
+        const teamId = teamsByName.get(teamName.toLowerCase());
+        if (!teamId) {
+          unknownTeams.add(teamName);
+        } else {
+          const { error: assignError } = await context.supabase.from("team_athletes").upsert(
+            { season_id: data.seasonId, team_id: teamId, org_athlete_id: athleteId },
+            { onConflict: "season_id,org_athlete_id" },
+          );
+          if (assignError) {
+            failures.push({ row: i + 1, message: assignError.message });
+          } else {
+            assigned += 1;
+          }
+        }
       }
 
       // Same invite path as the athlete page — one service, three entry points.
@@ -377,7 +469,17 @@ export const importAthletes = createServerFn({ method: "POST" })
       }
     }
 
-    return { created, updated, skipped, invited, failures, inviteFailures };
+    return {
+      created,
+      updated,
+      skipped,
+      invited,
+      assigned,
+      unknownTeams: Array.from(unknownTeams),
+      failures,
+      inviteFailures,
+    };
+
   });
 
 /* ------------------------------------------------------------------ */

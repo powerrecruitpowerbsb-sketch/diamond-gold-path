@@ -7,7 +7,9 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { useSeasonContext } from "@/hooks/use-season-context";
 import { saveOrgAthlete } from "@/lib/athletes.functions";
+
 
 export const Route = createFileRoute("/_authenticated/roster/new")({
   head: () => ({
@@ -34,7 +36,9 @@ function NewAthlete() {
   const saveFn = useServerFn(saveOrgAthlete);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const ctx = useSeasonContext();
   const [saving, setSaving] = useState(false);
+  const [teamId, setTeamId] = useState("");
   const [form, setForm] = useState({
     name: "",
     gradYear: "",
@@ -58,10 +62,14 @@ function NewAthlete() {
           bats: form.bats || null,
           throws: form.throws || null,
           source: "manual",
+          seasonId: ctx.seasonId || null,
+          teamId: teamId || null,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["org-athletes"] });
+      await queryClient.invalidateQueries({ queryKey: ["season-detail"] });
       toast.success("Athlete added");
+
       navigate({ to: "/roster/$id", params: { id: result.id } });
     } catch (error) {
       toast.error((error as Error).message);
@@ -133,7 +141,30 @@ function NewAthlete() {
               <option value="L">L</option>
             </select>
           </label>
+          {ctx.hasSeasons ? (
+            <label className="sm:col-span-2">
+              <span className={LABEL}>Team ({ctx.season?.name ?? "current season"})</span>
+              <select
+                value={teamId}
+                onChange={(event) => setTeamId(event.target.value)}
+                className={`mt-1 ${FIELD}`}
+              >
+                <option value="">Unassigned for now</option>
+                {ctx.teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                    {team.ageGroup ? ` · ${team.ageGroup}` : ""}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-xs text-steel">
+                Team assignments are per season — the athlete's record and shortlist carry forward
+                regardless.
+              </span>
+            </label>
+          ) : null}
         </div>
+
 
         <button
           type="submit"
