@@ -190,6 +190,66 @@ export type Database = {
         }
         Relationships: []
       }
+      org_invites: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          grants_role: Database["public"]["Enums"]["user_type"]
+          id: string
+          is_active: boolean
+          label: string | null
+          max_uses: number | null
+          organization_id: string
+          updated_at: string
+          uses: number
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          grants_role?: Database["public"]["Enums"]["user_type"]
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          max_uses?: number | null
+          organization_id: string
+          updated_at?: string
+          uses?: number
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          grants_role?: Database["public"]["Enums"]["user_type"]
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          max_uses?: number | null
+          organization_id?: string
+          updated_at?: string
+          uses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           access_expires_at: string | null
@@ -607,6 +667,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      hash_invite_code: { Args: { _code: string }; Returns: string }
+      invite_code_valid: { Args: { _code: string }; Returns: boolean }
       is_org_manager: { Args: never; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
     }
