@@ -12,15 +12,15 @@ const str = (value: unknown) => String(value ?? "").trim();
 export const INVITE_ROLES = ["org_admin", "org_staff", "parent", "player"] as const;
 export type InviteRole = (typeof INVITE_ROLES)[number];
 
-export const INVITE_ROLE_LABEL: Record<InviteRole, string> = {
+export const INVITE_ROLE_LABEL: Record<string, string> = {
   org_admin: "Admin",
   org_staff: "Staff",
   parent: "Parent",
   player: "Player",
 };
 
-const FAMILY_ROLES: InviteRole[] = ["parent", "player"];
-const STAFF_ROLES: InviteRole[] = ["org_admin", "org_staff"];
+const FAMILY_ROLES: string[] = ["parent", "player"];
+const STAFF_ROLES: string[] = ["org_admin", "org_staff"];
 
 type Ctx = { supabase: any; userId: string };
 
@@ -48,7 +48,7 @@ async function requireInviteActor(context: Ctx, organizationId?: string | null) 
   if (!isSuperadmin && !isManager) throw new Error("Forbidden: organization staff only");
 
   // Superadmins may act on any organization; everyone else is pinned to theirs.
-  const orgId = isSuperadmin ? (str(organizationId) || ownOrg) : ownOrg;
+  const orgId = isSuperadmin ? str(organizationId) || ownOrg : ownOrg;
   if (!orgId) throw new Error("No organization selected for this invite");
 
   return { orgId, isSuperadmin, isOrgAdmin, isManager };
@@ -56,7 +56,7 @@ async function requireInviteActor(context: Ctx, organizationId?: string | null) 
 
 function assertCanInviteRole(
   actor: { isSuperadmin: boolean; isOrgAdmin: boolean },
-  role: InviteRole,
+  role: string,
 ) {
   if (STAFF_ROLES.includes(role) && !actor.isSuperadmin && !actor.isOrgAdmin) {
     throw new Error("Only organization admins can invite staff members");
@@ -69,7 +69,7 @@ function normalizeEmail(value: unknown) {
   return email;
 }
 
-function acceptUrl() {
+function acceptUrl(): string | undefined {
   try {
     const request = getRequest();
     return new URL("/reset-password", new URL(request.url).origin).toString();
@@ -98,10 +98,12 @@ async function requireAthleteInOrg(context: Ctx, athleteId: string, orgId: strin
 
 export const listInvites = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { athleteId?: string | null; organizationId?: string | null } | undefined) => ({
-    athleteId: str(input?.athleteId) || null,
-    organizationId: str(input?.organizationId) || null,
-  }))
+  .inputValidator(
+    (input: { athleteId?: string | null; organizationId?: string | null } | undefined) => ({
+      athleteId: str(input?.athleteId) || null,
+      organizationId: str(input?.organizationId) || null,
+    }),
+  )
   .handler(async ({ context, data }) => {
     const actor = await requireInviteActor(context as any, data.organizationId);
 
@@ -158,121 +160,8 @@ export const listInvites = createServerFn({ method: "GET" })
   });
 
 /* ------------------------------------------------------------------ */
-/* The single invite path                                              */
+/* Writes                                                              */
 /* ------------------------------------------------------------------ */
-
-type SendResult = {
-  status: "sent" | "already_invited" | "already_member";
-  email: string;
-  inviteId?: string;
-  message: string;
-};
-
-/**
- * THE one place an invite is created and emailed. Athlete pages, the settings
- * screen and the CSV importer all call this — never their own insert or send.
- */
-async function sendInvite(
-  context: Ctx,
-  args: { orgId: string; email: string; role: InviteRole; athleteId: string | null },
-): Promise<SendResult> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const email = args.email;
-
-  // Already has an account in this organization → nothing to send.
-  const { data: existing } = await supabaseAdmin
-    .from("users")
-    .select("id, organization_id")
-    .ilike("email", email)
-    .maybeSingle();
-
-  if (existing && (existing as any).organization_id === args.orgId) {
-    if (args.athleteId) {
-      // Link an existing family account straight to the athlete.
-      await supabaseAdmin
-        .from("athlete_family_links")
-        .upsert(
-          { org_athlete_id: args.athleteId, user_id: (existing as any).id, relationship: args.role },
-          { onConflict: "org_athlete_id,user_id" },
-        );
-    }
-    return {
-      status: "already_member",
-      email,
-      message: `${email} already has an account — linked instead of re-invited.`,
-    };
-  }
-
-  const { data: pending } = await supabaseAdmin
-    .from("org_member_invites")
-    .select("id")
-    .eq("organization_id", args.orgId)
-    .eq("status", "pending")
-    .ilike("email", email)
-    .is("org_athlete_id", args.athleteId ? undefined : null)
-    .maybeSingle();
-
-  if (pending && !args.athleteId) {
-    return { status: "already_invited", email, message: `${email} already has a pending invite.` };
-  }
-
-  if (args.athleteId) {
-    const { data: pendingForAthlete } = await supabaseAdmin
-      .from("org_member_invites")
-      .select("id")
-      .eq("organization_id", args.orgId)
-      .eq("org_athlete_id", args.athleteId)
-      .eq("status", "pending")
-      .ilike("email", email)
-      .maybeSingle();
-    if (pendingForAthlete) {
-      return { status: "already_invited", email, message: `${email} already has a pending invite.` };
-    }
-  }
-
-  const { data: inserted, error: insertError } = await supabaseAdmin
-    .from("org_member_invites")
-    .insert({
-      organization_id: args.orgId,
-      email,
-      invited_role: args.role,
-      org_athlete_id: args.athleteId,
-      invited_by: context.userId,
-    })
-    .select("id")
-    .single();
-  if (insertError) throw new Error(insertError.message);
-
-  const inviteId = (inserted as { id: string }).id;
-  const redirectTo = acceptUrl();
-
-  // The account is created by the invite email; the signup trigger reads the
-  // pending row above and applies role + org + athlete link server-side.
-  const { error: sendError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-    ...(redirectTo ? { redirectTo } : {}),
-  });
-
-  if (sendError) {
-    const message = sendError.message ?? "";
-    const alreadyRegistered = /already been registered|already registered|email_exists/i.test(message);
-    if (alreadyRegistered) {
-      // Auth account exists (e.g. from another org or an unfinished invite):
-      // send a set-password email instead so they can still get in.
-      const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-        ...(redirectTo ? { redirectTo } : {}),
-      });
-      if (resetError) {
-        await supabaseAdmin.from("org_member_invites").delete().eq("id", inviteId);
-        throw new Error(resetError.message);
-      }
-      return { status: "sent", email, inviteId, message: `Invite email sent to ${email}.` };
-    }
-    await supabaseAdmin.from("org_member_invites").delete().eq("id", inviteId);
-    throw new Error(message || "Could not send the invite email");
-  }
-
-  return { status: "sent", email, inviteId, message: `Invite email sent to ${email}.` };
-}
 
 export const sendOrgInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -284,14 +173,16 @@ export const sendOrgInvite = createServerFn({ method: "POST" })
       organizationId?: string | null;
     }) => ({
       email: str(input?.email),
-      role: str(input?.role) as InviteRole,
+      role: str(input?.role),
       athleteId: str(input?.athleteId) || null,
       organizationId: str(input?.organizationId) || null,
     }),
   )
   .handler(async ({ context, data }) => {
     const actor = await requireInviteActor(context as any, data.organizationId);
-    if (!INVITE_ROLES.includes(data.role)) throw new Error("Pick a role for this invite");
+    if (!(INVITE_ROLES as readonly string[]).includes(data.role)) {
+      throw new Error("Pick a role for this invite");
+    }
     assertCanInviteRole(actor, data.role);
 
     const email = normalizeEmail(data.email);
@@ -304,11 +195,14 @@ export const sendOrgInvite = createServerFn({ method: "POST" })
       throw new Error("Staff invites are not tied to an athlete");
     }
 
-    return sendInvite(context as any, {
+    const { sendInviteCore } = await import("./invites.server");
+    return sendInviteCore({
+      actorUserId: context.userId,
       orgId: actor.orgId,
       email,
-      role: data.role,
+      role: data.role as any,
       athleteId: isFamily ? data.athleteId : null,
+      redirectTo: acceptUrl(),
     });
   });
 
@@ -317,37 +211,26 @@ export const resendOrgInvite = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => ({ id: str(input?.id) }))
   .handler(async ({ context, data }) => {
     const actor = await requireInviteActor(context as any);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: invite, error } = await supabaseAdmin
+    const { data: invite, error } = await context.supabase
       .from("org_member_invites")
-      .select("id, email, invited_role, org_athlete_id, organization_id, status")
+      .select("id, email, invited_role, organization_id, status")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!invite) throw new Error("Invite not found");
     const row = invite as any;
-    if (!actor.isSuperadmin && row.organization_id !== actor.orgId) {
-      throw new Error("Forbidden: that invite belongs to another organization");
-    }
-    assertCanInviteRole(actor, row.invited_role as InviteRole);
+    assertCanInviteRole(actor, row.invited_role);
     if (row.status !== "pending") throw new Error("That invite is no longer pending");
 
-    const redirectTo = acceptUrl();
-    const { error: sendError } = await supabaseAdmin.auth.resetPasswordForEmail(row.email, {
-      ...(redirectTo ? { redirectTo } : {}),
-    });
-    if (sendError) {
-      const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(row.email, {
-        ...(redirectTo ? { redirectTo } : {}),
-      });
-      if (inviteError) throw new Error(inviteError.message);
-    }
+    const { resendInviteCore, INVITE_TTL_MS } = await import("./invites.server");
+    await resendInviteCore(row.email, acceptUrl());
 
-    await supabaseAdmin
+    const { error: updateError } = await context.supabase
       .from("org_member_invites")
-      .update({ expires_at: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString() })
+      .update({ expires_at: new Date(Date.now() + INVITE_TTL_MS).toISOString() })
       .eq("id", row.id);
+    if (updateError) throw new Error(updateError.message);
 
     return { ok: true, email: row.email as string };
   });
@@ -364,7 +247,7 @@ export const revokeOrgInvite = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!invite) throw new Error("Invite not found");
-    assertCanInviteRole(actor, (invite as any).invited_role as InviteRole);
+    assertCanInviteRole(actor, (invite as any).invited_role);
 
     const { error: updateError } = await context.supabase
       .from("org_member_invites")
@@ -430,7 +313,9 @@ export const getFamilyPortal = createServerFn({ method: "GET" })
     if (programIds.length) {
       const { data: programRows } = await context.supabase
         .from("programs")
-        .select("id, sport, division, governing_body, conference, universities:university_id (name, city, state)")
+        .select(
+          "id, sport, division, governing_body, conference, universities:university_id (name, city, state)",
+        )
         .in("id", programIds);
       programs = (programRows ?? []) as any[];
     }
