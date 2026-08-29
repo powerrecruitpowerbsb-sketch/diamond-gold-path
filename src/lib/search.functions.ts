@@ -78,7 +78,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
     if (f.division) query = query.eq("division", f.division);
     if (f.conference) query = query.eq("conference", f.conference);
     if (f.scholarships !== null) query = query.eq("scholarships_available", f.scholarships);
-    if (restrictUniversityIds !== null) query = query.in("university_id", restrictUniversityIds);
+    if (restrict.ids !== null) query = query.in("university_id", restrict.ids);
 
     if (f.q) query = query.ilike("universities.name", `%${f.q}%`);
     if (f.state) query = query.eq("universities.state", f.state);
