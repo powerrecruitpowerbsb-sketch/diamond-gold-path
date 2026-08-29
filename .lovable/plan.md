@@ -1,8 +1,9 @@
-# Family accounts: staff-sent email invites
+# Email invites for families and staff
 
-Today no parent or player account can exist: the only signup path is the org invite code, and it always creates an `org_admin`. This adds a real family invite flow, sent by email, and makes it automatic when staff bulk-upload athletes.
+Today no parent, player, or staff account can be invited by email: the only signup path is a shared org invite code that always creates an `org_admin`. This adds one email-invite flow used for both families and staff, and makes family invites automatic when staff bulk-upload athletes.
 
 Emails will go out from Lovable's default sender for now (unbranded). When you set up your own domain later, the same invites become branded with no rework.
+
 
 ## 1. Invite a parent from an athlete's page
 
