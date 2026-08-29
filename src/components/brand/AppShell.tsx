@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Database, Home, Menu, Table2, UserRound, X } from "lucide-react";
+import { Database, Home, Menu, Search, Table2, UserRound, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,7 @@ type NavItem = { to: string; label: string; icon: typeof Home };
 
 const PRIMARY_NAV: NavItem[] = [
   { to: "/", label: "Home", icon: Home },
+  { to: "/search", label: "Search", icon: Search },
   { to: "/admin", label: "Console", icon: Table2 },
 ];
 
