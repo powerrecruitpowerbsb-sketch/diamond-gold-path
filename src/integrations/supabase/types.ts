@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      athlete_family_links: {
+        Row: {
+          created_at: string
+          id: string
+          org_athlete_id: string
+          relationship: Database["public"]["Enums"]["user_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_athlete_id: string
+          relationship?: Database["public"]["Enums"]["user_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_athlete_id?: string
+          relationship?: Database["public"]["Enums"]["user_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_family_links_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_family_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athlete_saved_schools: {
         Row: {
           added_by_user_id: string | null
@@ -406,6 +445,80 @@ export type Database = {
           },
           {
             foreignKeyName: "org_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_member_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_user_id: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          invited_role: Database["public"]["Enums"]["user_type"]
+          org_athlete_id: string | null
+          organization_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          invited_role: Database["public"]["Enums"]["user_type"]
+          org_athlete_id?: string | null
+          organization_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          invited_role?: Database["public"]["Enums"]["user_type"]
+          org_athlete_id?: string | null
+          organization_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_member_invites_accepted_user_id_fkey"
+            columns: ["accepted_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_member_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_member_invites_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_member_invites_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -974,6 +1087,7 @@ export type Database = {
       }
       hash_invite_code: { Args: { _code: string }; Returns: string }
       invite_code_valid: { Args: { _code: string }; Returns: boolean }
+      is_linked_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       is_org_manager: { Args: never; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
       program_roster_summary: {
