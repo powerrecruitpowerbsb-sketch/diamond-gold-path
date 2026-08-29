@@ -7,7 +7,9 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { useSeasonContext } from "@/hooks/use-season-context";
 import { saveOrgAthlete } from "@/lib/athletes.functions";
+
 
 export const Route = createFileRoute("/_authenticated/roster/new")({
   head: () => ({
