@@ -288,16 +288,29 @@ export const getOrgAthlete = createServerFn({ method: "GET" })
 
 export const saveOrgAthlete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: AthleteInput) => input)
+  .inputValidator((input: AthleteInput & { seasonId?: string | null; teamId?: string | null }) => input)
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
     const orgId = actor.organizationId;
     if (!orgId && !data.id) throw new Error("Select an organization before adding athletes");
-    return upsertAthlete(context as any, orgId ?? "", {
+    const result = await upsertAthlete(context as any, orgId ?? "", {
       ...data,
       source: data.source ?? "manual",
     });
+
+    // A roster spot is a season assignment, not a column on the athlete.
+    const seasonId = nullable(data.seasonId);
+    const teamId = nullable(data.teamId);
+    if (seasonId && teamId) {
+      const { error } = await context.supabase.from("team_athletes").upsert(
+        { season_id: seasonId, team_id: teamId, org_athlete_id: result.id },
+        { onConflict: "season_id,org_athlete_id" },
+      );
+      if (error) throw new Error(error.message);
+    }
+    return result;
   });
+
 
 export const deleteOrgAthlete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
