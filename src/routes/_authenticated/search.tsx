@@ -9,6 +9,8 @@ import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { VerifiedChip } from "@/components/brand/DataSignals";
 import { useCompare } from "@/components/compare/compare-selection";
+import { ShortlistSaveButton } from "@/components/brand/ShortlistSaveButton";
+import { listAthletePicker } from "@/lib/shortlist.functions";
 import { getSearchFacets, searchPrograms } from "@/lib/search.functions";
 import {
   ACADEMIC_BUCKETS,
@@ -68,6 +70,19 @@ function SearchScreen() {
 
   const facetsFn = useServerFn(getSearchFacets);
   const searchFn = useServerFn(searchPrograms);
+
+  const pickerFn = useServerFn(listAthletePicker);
+  const picker = useQuery({
+    queryKey: ["athlete-picker"],
+    queryFn: () => pickerFn(),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const contextAthlete = params.athleteId
+    ? ((picker.data?.athletes ?? []) as Record<string, any>[]).find(
+        (row) => row['id'] === params.athleteId,
+      ) ?? null
+    : null;
 
   const facets = useQuery({ queryKey: ["search-facets"], queryFn: () => facetsFn() });
   const results = useQuery({
@@ -310,6 +325,32 @@ function SearchScreen() {
         </div>
       </section>
 
+      {params.athleteId ? (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-org-accent/40 bg-org-accent/10 p-4">
+          <p className="text-sm text-graphite">
+            Building the shortlist for{" "}
+            <span className="font-display font-bold">
+              {contextAthlete?.['name'] ?? "this athlete"}
+            </span>
+            . Saves go straight to their board.
+          </p>
+          <Link
+            to="/roster/$id"
+            params={{ id: params.athleteId }}
+            className="text-sm font-semibold text-org-primary underline decoration-dotted underline-offset-4"
+          >
+            Back to athlete
+          </Link>
+          <Link
+            to="/search"
+            search={(prev: any) => ({ ...prev, athleteId: "" })}
+            className="ml-auto text-sm font-semibold text-seam-red underline decoration-dotted underline-offset-4"
+          >
+            Exit athlete context
+          </Link>
+        </div>
+      ) : null}
+
       {/* Results */}
       <div className="mt-8 flex items-baseline justify-between gap-3">
         <h2 className="font-display text-xl font-bold text-graphite">
@@ -378,6 +419,13 @@ function SearchScreen() {
               </div>
             </Link>
 
+              <ShortlistSaveButton
+                programId={row.id}
+                athleteId={params.athleteId || undefined}
+                athleteName={(contextAthlete?.['name'] as string | undefined) ?? undefined}
+                className="mt-4 w-full"
+              />
+
               <button
                 type="button"
                 aria-pressed={selected}
@@ -390,7 +438,7 @@ function SearchScreen() {
                   })
                 }
                 className={cn(
-                  "touch-target mt-4 flex w-full items-center justify-center gap-2 rounded-lg border text-sm font-semibold transition-colors",
+                  "touch-target mt-2 flex w-full items-center justify-center gap-2 rounded-lg border text-sm font-semibold transition-colors",
                   selected
                     ? "border-org-primary bg-org-primary text-white"
                     : "border-border bg-card text-org-primary hover:bg-muted",
