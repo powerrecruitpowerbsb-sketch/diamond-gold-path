@@ -175,6 +175,54 @@ export type Database = {
           },
         ]
       }
+      interaction_log: {
+        Row: {
+          created_at: string
+          event_context: string | null
+          id: string
+          interaction_date: string
+          notes: string | null
+          relationship_id: string
+          staff_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_context?: string | null
+          id?: string
+          interaction_date?: string
+          notes?: string | null
+          relationship_id: string
+          staff_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_context?: string | null
+          id?: string
+          interaction_date?: string
+          notes?: string | null
+          relationship_id?: string
+          staff_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interaction_log_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "program_relationships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interaction_log_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       majors: {
         Row: {
           id: string
@@ -318,6 +366,51 @@ export type Database = {
           },
         ]
       }
+      program_relationships: {
+        Row: {
+          created_at: string
+          id: string
+          last_meaningful_interaction_at: string | null
+          primary_contact_staff_id: string | null
+          program_id: string
+          relationship_strength: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_meaningful_interaction_at?: string | null
+          primary_contact_staff_id?: string | null
+          program_id: string
+          relationship_strength?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_meaningful_interaction_at?: string | null
+          primary_contact_staff_id?: string | null
+          program_id?: string
+          relationship_strength?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_relationships_primary_contact_staff_id_fkey"
+            columns: ["primary_contact_staff_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_relationships_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: true
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       programs: {
         Row: {
           athletic_website: string | null
@@ -385,6 +478,61 @@ export type Database = {
             columns: ["university_id"]
             isOneToOne: false
             referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruiting_intelligence: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string | null
+          field_type: Database["public"]["Enums"]["intel_field_type"]
+          id: string
+          program_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_type: Database["public"]["Enums"]["intel_field_type"]
+          id?: string
+          program_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_type?: Database["public"]["Enums"]["intel_field_type"]
+          id?: string
+          program_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruiting_intelligence_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruiting_intelligence_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruiting_intelligence_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -671,6 +819,13 @@ export type Database = {
       invite_code_valid: { Args: { _code: string }; Returns: boolean }
       is_org_manager: { Args: never; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
+      program_roster_summary: {
+        Args: { _program_id: string }
+        Returns: {
+          roster_size: number
+          season_year: number
+        }[]
+      }
     }
     Enums: {
       audit_action: "create" | "update" | "override"
@@ -690,6 +845,16 @@ export type Database = {
         | "geographic_region"
         | "campus_setting"
       governing_body: "NCAA" | "NAIA" | "NJCAA"
+      intel_field_type:
+        | "style_of_play"
+        | "recruiting_philosophy"
+        | "positions_prioritized"
+        | "preferred_player_profile"
+        | "transfer_juco_tendencies"
+        | "freshman_tendencies"
+        | "geographic_tendencies"
+        | "recruiting_timeline"
+        | "roster_construction_tendencies"
       player_position:
         | "C"
         | "1B"
@@ -853,6 +1018,17 @@ export const Constants = {
         "campus_setting",
       ],
       governing_body: ["NCAA", "NAIA", "NJCAA"],
+      intel_field_type: [
+        "style_of_play",
+        "recruiting_philosophy",
+        "positions_prioritized",
+        "preferred_player_profile",
+        "transfer_juco_tendencies",
+        "freshman_tendencies",
+        "geographic_tendencies",
+        "recruiting_timeline",
+        "roster_construction_tendencies",
+      ],
       player_position: [
         "C",
         "1B",

@@ -17,9 +17,11 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
+import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
+import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
 import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
 import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_authenticated/admin.programs.new'
 import { Route as AuthenticatedAdminSchoolsNewRouteImport } from './routes/_authenticated/admin.schools.new'
@@ -67,6 +69,11 @@ const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
   path: '/family',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -83,6 +90,11 @@ const AuthenticatedAdminMajorsRoute =
     path: '/majors',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedProgramsIdRoute = AuthenticatedProgramsIdRouteImport.update({
+  id: '/programs/$id',
+  path: '/programs/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminProgramsIndexRoute =
   AuthenticatedAdminProgramsIndexRouteImport.update({
     id: '/programs/',
@@ -134,8 +146,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/search': typeof AuthenticatedSearchRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -152,8 +166,10 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/search': typeof AuthenticatedSearchRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -173,8 +189,10 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
+  '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/_authenticated/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -194,8 +212,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/family'
+    | '/search'
     | '/admin/audit'
     | '/admin/majors'
+    | '/programs/$id'
     | '/admin/'
     | '/admin/programs/new'
     | '/admin/schools/new'
@@ -212,8 +232,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/family'
+    | '/search'
     | '/admin/audit'
     | '/admin/majors'
+    | '/programs/$id'
     | '/admin'
     | '/admin/programs/new'
     | '/admin/schools/new'
@@ -232,8 +254,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/_authenticated/family'
+    | '/_authenticated/search'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/majors'
+    | '/_authenticated/programs/$id'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/programs/new'
     | '/_authenticated/admin/schools/new'
@@ -310,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFamilyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/search': {
+      id: '/_authenticated/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof AuthenticatedSearchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/'
@@ -330,6 +361,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/majors'
       preLoaderRoute: typeof AuthenticatedAdminMajorsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/programs/$id': {
+      id: '/_authenticated/programs/$id'
+      path: '/programs/$id'
+      fullPath: '/programs/$id'
+      preLoaderRoute: typeof AuthenticatedProgramsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/programs/': {
       id: '/_authenticated/admin/programs/'
@@ -418,12 +456,16 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
+  AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
+  AuthenticatedProgramsIdRoute: typeof AuthenticatedProgramsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
+  AuthenticatedSearchRoute: AuthenticatedSearchRoute,
+  AuthenticatedProgramsIdRoute: AuthenticatedProgramsIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
