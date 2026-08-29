@@ -56,7 +56,7 @@ function Index() {
               variant="outline"
               className="touch-target border-white/25 bg-transparent px-6 text-base text-white hover:bg-white/10 hover:text-white"
             >
-              <Link to="/admin/data">Internal data check</Link>
+              <Link to="/admin">Staff console</Link>
             </Button>
           </>
         }
