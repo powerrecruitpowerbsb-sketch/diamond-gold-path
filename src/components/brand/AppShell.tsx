@@ -164,5 +164,6 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
       <CompareTray />
     </div>
+    </OrgTheme>
   );
 }
