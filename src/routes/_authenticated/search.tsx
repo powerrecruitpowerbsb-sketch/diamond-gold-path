@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/search")({
   validateSearch: zodValidator(searchParamsSchema),
+  search: { middlewares: [stripSearchParams(SEARCH_DEFAULTS)] },
   head: () => ({
     meta: [
       { title: "Find your college fit — Power Recruit" },
