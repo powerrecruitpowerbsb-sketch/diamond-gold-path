@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Database, Home, Menu, Search, Table2, UserRound, X } from "lucide-react";
 
+import { CompareTray } from "@/components/compare/CompareTray";
 import { useMyAccount } from "@/hooks/use-my-account";
 import { cn } from "@/lib/utils";
 
