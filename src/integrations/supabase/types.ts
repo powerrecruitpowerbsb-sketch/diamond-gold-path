@@ -344,6 +344,7 @@ export type Database = {
           name: string
           organization_id: string
           primary_position: string | null
+          status: Database["public"]["Enums"]["athlete_status"]
           throws: Database["public"]["Enums"]["throws_hand"] | null
           updated_at: string
         }
@@ -358,6 +359,7 @@ export type Database = {
           name: string
           organization_id: string
           primary_position?: string | null
+          status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
           updated_at?: string
         }
@@ -372,6 +374,7 @@ export type Database = {
           name?: string
           organization_id?: string
           primary_position?: string | null
+          status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
           updated_at?: string
         }
@@ -872,6 +875,196 @@ export type Database = {
           },
         ]
       }
+      seasons: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          name: string
+          organization_id: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name: string
+          organization_id: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name?: string
+          organization_id?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_athletes: {
+        Row: {
+          created_at: string
+          id: string
+          jersey_number: string | null
+          org_athlete_id: string
+          season_id: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jersey_number?: string | null
+          org_athlete_id: string
+          season_id: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jersey_number?: string | null
+          org_athlete_id?: string
+          season_id?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_athletes_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_athletes_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_athletes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_coaches: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_coaches_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_coaches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          age_group: string | null
+          created_at: string
+          head_coach_user_id: string | null
+          id: string
+          name: string
+          organization_id: string
+          season_id: string
+          updated_at: string
+        }
+        Insert: {
+          age_group?: string | null
+          created_at?: string
+          head_coach_user_id?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          season_id: string
+          updated_at?: string
+        }
+        Update: {
+          age_group?: string | null
+          created_at?: string
+          head_coach_user_id?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          season_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_head_coach_user_id_fkey"
+            columns: ["head_coach_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       universities: {
         Row: {
           acceptance_rate: number | null
@@ -1041,6 +1234,7 @@ export type Database = {
           id: string
           linked_org_athlete_id: string | null
           name: string | null
+          org_wide_access: boolean
           organization_id: string | null
           user_type: Database["public"]["Enums"]["user_type"]
         }
@@ -1050,6 +1244,7 @@ export type Database = {
           id: string
           linked_org_athlete_id?: string | null
           name?: string | null
+          org_wide_access?: boolean
           organization_id?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
         }
@@ -1059,6 +1254,7 @@ export type Database = {
           id?: string
           linked_org_athlete_id?: string | null
           name?: string | null
+          org_wide_access?: boolean
           organization_id?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
         }
@@ -1077,7 +1273,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      active_season_id: { Args: never; Returns: string }
+      can_access_athlete: { Args: { _athlete_id: string }; Returns: boolean }
+      coaches_team: { Args: { _team_id: string }; Returns: boolean }
       current_org_id: { Args: never; Returns: string }
+      has_org_wide_access: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_type"]
@@ -1100,6 +1300,7 @@ export type Database = {
     }
     Enums: {
       athlete_data_source: "manual" | "csv" | "handled" | "curve_testing"
+      athlete_status: "active" | "graduated" | "departed"
       audit_action: "create" | "update" | "override"
       bats_hand: "R" | "L" | "S"
       billing_status:
@@ -1278,6 +1479,7 @@ export const Constants = {
   public: {
     Enums: {
       athlete_data_source: ["manual", "csv", "handled", "curve_testing"],
+      athlete_status: ["active", "graduated", "departed"],
       audit_action: ["create", "update", "override"],
       bats_hand: ["R", "L", "S"],
       billing_status: [
