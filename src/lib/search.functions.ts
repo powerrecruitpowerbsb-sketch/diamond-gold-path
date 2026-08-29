@@ -61,7 +61,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
       );
     }
 
-    if (restrictUniversityIds !== null && restrictUniversityIds.length === 0) {
+    if (restrict.ids !== null && restrict.ids.length === 0) {
       return { results: [], total: 0 };
     }
 
