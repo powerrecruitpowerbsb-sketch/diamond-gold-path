@@ -6,16 +6,18 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: profile } = await context.supabase
+    const { data: profile, error: profileError } = await context.supabase
       .from("users")
       .select("id, email, name, user_type, organization_id")
       .eq("id", context.userId)
       .maybeSingle();
+    if (profileError) throw new Error(profileError.message);
 
-    const { data: roles } = await context.supabase
+    const { data: roles, error: rolesError } = await context.supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", context.userId);
+    if (rolesError) throw new Error(rolesError.message);
 
     const roleList = (roles ?? []).map((row) => row.role);
 
