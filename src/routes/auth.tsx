@@ -114,7 +114,7 @@ function AuthPage() {
         </div>
       </div>
 
-      <div className="mx-auto -mt-20 max-w-md px-4 pb-16 sm:-mt-24 sm:px-6">
+      <div className="relative z-10 mx-auto -mt-20 max-w-md px-4 pb-16 sm:-mt-24 sm:px-6">
         <div className="rounded-xl border border-border bg-card p-6 shadow-[0_18px_40px_-24px_rgba(18,35,58,0.55)] sm:p-7">
           {confirmSent ? (
             <div className="text-center">

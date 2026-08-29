@@ -113,7 +113,7 @@ function UniversitiesList() {
               <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-3">
                 <Stat label="Enrollment" value={fmt(u.undergrad_enrollment)} />
                 <Stat label="Avg GPA" value={u.avg_gpa ?? "—"} />
-                <Stat label="Accept %" value={u.acceptance_rate ?? "—"} />
+                <Stat label="Accept %" value={pct(u.acceptance_rate)} />
               </dl>
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -175,4 +175,11 @@ function FilterSelect({
 
 function fmt(value: number | null) {
   return value == null ? "—" : value.toLocaleString();
+}
+
+/** Acceptance rates are stored as fractions (0.29) or whole percents (29). */
+function pct(value: number | null) {
+  if (value == null) return "—";
+  const asPercent = value <= 1 ? value * 100 : value;
+  return `${Math.round(asPercent)}%`;
 }
