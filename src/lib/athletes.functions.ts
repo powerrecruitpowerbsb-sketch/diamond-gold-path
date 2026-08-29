@@ -1,6 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+/** Where an invited user lands to set their password. */
+function inviteRedirect(): string | undefined {
+  try {
+    return new URL("/reset-password", new URL(getRequest().url).origin).toString();
+  } catch {
+    return undefined;
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* Shared helpers                                                      */
