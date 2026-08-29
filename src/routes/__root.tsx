@@ -138,8 +138,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {/* Compare selections must survive navigation between search and profiles. */}
+      <CompareProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </CompareProvider>
       <Toaster />
     </QueryClientProvider>
   );
