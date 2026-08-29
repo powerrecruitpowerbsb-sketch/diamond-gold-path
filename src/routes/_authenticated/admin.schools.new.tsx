@@ -27,7 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/schools/new")({
-  component: NewSchool;
+  component: NewSchool,
 });
 
 const STEPS = ["School basics", "Academics & cost", "Programs"] as const;
