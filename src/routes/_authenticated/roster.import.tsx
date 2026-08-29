@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/roster/import")({
   component: ImportAthletes,
 });
 
-type Field = "name" | "gradYear" | "primaryPosition" | "bats" | "throws";
+type Field = "name" | "gradYear" | "primaryPosition" | "bats" | "throws" | "parentEmail";
 
 const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[] = [
   { key: "name", label: "Name", required: true, hints: ["name", "athlete", "player", "full name"] },
@@ -37,6 +37,12 @@ const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[
   { key: "primaryPosition", label: "Primary position", required: false, hints: ["position", "pos"] },
   { key: "bats", label: "Bats", required: false, hints: ["bats", "b"] },
   { key: "throws", label: "Throws", required: false, hints: ["throws", "t"] },
+  {
+    key: "parentEmail",
+    label: "Parent email",
+    required: false,
+    hints: ["parent email", "parent", "guardian", "email"],
+  },
 ];
 
 /** Minimal RFC4180-ish CSV parser: handles quoted fields, commas and CRLF. */
@@ -82,6 +88,7 @@ type PreviewRow = {
   primaryPosition: string | null;
   bats: string | null;
   throws: string | null;
+  parentEmail: string | null;
   errors: string[];
   matchId: string | null;
   action: "create" | "update" | "skip";
@@ -105,9 +112,11 @@ function ImportAthletes() {
     primaryPosition: "",
     bats: "",
     throws: "",
+    parentEmail: "",
   });
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [importing, setImporting] = useState(false);
+  const [sendFamilyInvites, setSendFamilyInvites] = useState(true);
 
   async function onFile(file: File | null) {
     setPreview(null);
@@ -171,6 +180,11 @@ function ImportAthletes() {
       const throws = cell("throws").toUpperCase().slice(0, 1);
       if (throws && !["R", "L"].includes(throws)) errors.push(`throws "${cell("throws")}" must be R or L`);
 
+      const parentEmail = cell("parentEmail").toLowerCase();
+      if (parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(parentEmail)) {
+        errors.push(`unreadable parent email "${cell("parentEmail")}"`);
+      }
+
       return {
         index: i + 2,
         name,
@@ -178,6 +192,7 @@ function ImportAthletes() {
         primaryPosition: cell("primaryPosition") || null,
         bats: bats || null,
         throws: throws || null,
+        parentEmail: parentEmail || null,
         errors,
         matchId: null,
         action: errors.length ? "skip" : "create",
@@ -209,6 +224,7 @@ function ImportAthletes() {
       skip: rows.filter((r) => r.action === "skip").length,
       bad: rows.filter((r) => r.errors.length).length,
       dupes: rows.filter((r) => r.matchId).length,
+      parents: rows.filter((r) => r.action !== "skip" && r.parentEmail).length,
     };
   }, [preview]);
 
@@ -226,16 +242,26 @@ function ImportAthletes() {
               primaryPosition: row.primaryPosition,
               bats: row.bats,
               throws: row.throws,
+              parentEmail: row.parentEmail,
               action: row.action,
               matchId: row.matchId,
             })),
+          sendFamilyInvites,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["org-athletes"] });
       if (result.failures.length) {
         toast.error(`${result.failures.length} row(s) failed: ${result.failures[0]?.message}`);
       } else {
-        toast.success(`Imported ${result.created} new, updated ${result.updated}`);
+        const invited = result.invited
+          ? ` · ${result.invited} family invite(s) sent`
+          : "";
+        toast.success(`Imported ${result.created} new, updated ${result.updated}${invited}`);
+        if (result.inviteFailures.length) {
+          toast.error(
+            `${result.inviteFailures.length} invite(s) failed: ${result.inviteFailures[0]?.message}`,
+          );
+        }
         navigate({ to: "/roster" });
       }
     } catch (error) {
@@ -333,8 +359,26 @@ function ImportAthletes() {
               {counts.dupes} possible duplicate(s) · {counts.bad} row(s) with problems
             </p>
 
+            {counts.parents ? (
+              <label
+                className={`mt-3 flex w-fit cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
+                  sendFamilyInvites
+                    ? "border-org-accent/50 bg-org-accent/15 text-navy-deep"
+                    : "border-border bg-chalk text-steel"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={sendFamilyInvites}
+                  onChange={(event) => setSendFamilyInvites(event.target.checked)}
+                  className="size-4 accent-[var(--org-primary)]"
+                />
+                Email a parent invite to the {counts.parents} mapped address(es)
+              </label>
+            ) : null}
+
             <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm tabular-nums">
+              <table className="w-full min-w-[860px] text-left text-sm tabular-nums">
                 <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
                   <tr>
                     <th className="px-3 py-2">Row</th>
@@ -342,6 +386,7 @@ function ImportAthletes() {
                     <th className="px-3 py-2">Grad</th>
                     <th className="px-3 py-2">Pos</th>
                     <th className="px-3 py-2">B/T</th>
+                    <th className="px-3 py-2">Parent email</th>
                     <th className="px-3 py-2">Status</th>
                     <th className="px-3 py-2">Action</th>
                   </tr>
@@ -358,6 +403,9 @@ function ImportAthletes() {
                       <td className="px-3 py-2">{row.primaryPosition ?? "—"}</td>
                       <td className="px-3 py-2">
                         {row.bats ?? "—"}/{row.throws ?? "—"}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs text-steel">
+                        {row.parentEmail ?? "—"}
                       </td>
                       <td className="px-3 py-2 text-xs">
                         {row.errors.length ? (

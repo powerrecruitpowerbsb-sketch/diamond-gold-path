@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Eye, EyeOff, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { InvitePanel } from "@/components/admin/InvitePanel";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import {
@@ -331,6 +332,18 @@ function AthleteDetail() {
               ))}
             </ul>
           </section>
+
+          <InvitePanel
+            athleteId={id}
+            title="Family access"
+            description={`Invite ${athlete['name']}'s parents or the player themselves. They get an email to set a password, and only see this athlete plus notes marked visible to parent.`}
+            roles={[
+              { value: "parent", label: "Parent", hint: "Parents see this athlete's shortlist and parent-visible notes." },
+              { value: "player", label: "Player", hint: "The athlete gets their own login with the same athlete-scoped view." },
+            ]}
+            peopleLabel="Linked family accounts"
+            emptyPeople="No family accounts linked yet."
+          />
         </>
       )}
     </AppShell>

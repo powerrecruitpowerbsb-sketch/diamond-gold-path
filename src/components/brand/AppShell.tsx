@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Database,
   Home,
+  Mail,
   Menu,
   Palette,
   Search,
@@ -47,8 +48,12 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
   const overflowNav: NavItem[] = [
     ...(isStaff ? [{ to: "/admin/universities", label: "College database", icon: Database }] : []),
+    ...(isOrgManager ? [{ to: "/settings/team", label: "Team & invites", icon: Mail }] : []),
     ...(isOrgAdmin
       ? [{ to: "/settings/branding", label: "Branding settings", icon: Palette }]
+      : []),
+    ...(role === "parent" || role === "player"
+      ? [{ to: "/family", label: "Family portal", icon: Database }]
       : []),
     { to: "/auth", label: "Account", icon: UserRound },
   ];

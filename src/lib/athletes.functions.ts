@@ -1,6 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+/** Where an invited user lands to set their password. */
+function inviteRedirect(): string | undefined {
+  try {
+    return new URL("/reset-password", new URL(getRequest().url).origin).toString();
+  } catch {
+    return undefined;
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* Shared helpers                                                      */
@@ -289,8 +299,16 @@ export const importAthletes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     (input: {
-      rows: (AthleteInput & { action?: "create" | "update" | "skip"; matchId?: string | null })[];
-    }) => ({ rows: Array.isArray(input?.rows) ? input.rows.slice(0, 2000) : [] }),
+      rows: (AthleteInput & {
+        action?: "create" | "update" | "skip";
+        matchId?: string | null;
+        parentEmail?: string | null;
+      })[];
+      sendFamilyInvites?: boolean;
+    }) => ({
+      rows: Array.isArray(input?.rows) ? input.rows.slice(0, 2000) : [],
+      sendFamilyInvites: input?.sendFamilyInvites !== false,
+    }),
   )
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
@@ -300,7 +318,16 @@ export const importAthletes = createServerFn({ method: "POST" })
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    let invited = 0;
     const failures: { row: number; message: string }[] = [];
+    const inviteFailures: { row: number; email: string; message: string }[] = [];
+
+    const wantsInvites =
+      data.sendFamilyInvites &&
+      data.rows.some((row) => row.action !== "skip" && String(row.parentEmail ?? "").trim());
+    const sendInviteCore = wantsInvites
+      ? (await import("./invites.server")).sendInviteCore
+      : null;
 
     for (let i = 0; i < data.rows.length; i += 1) {
       const row = data.rows[i]!;
@@ -308,20 +335,49 @@ export const importAthletes = createServerFn({ method: "POST" })
         skipped += 1;
         continue;
       }
+      let athleteId: string | null = null;
       try {
         const result = await upsertAthlete(context as any, orgId, {
           ...row,
           id: row.action === "update" ? (row.matchId ?? row.id ?? null) : null,
           source: "csv",
         });
+        athleteId = result.id;
         if (result.created) created += 1;
         else updated += 1;
       } catch (error) {
         failures.push({ row: i + 1, message: (error as Error).message });
+        continue;
+      }
+
+      // Same invite path as the athlete page — one service, three entry points.
+      const parentEmail = String(row.parentEmail ?? "").trim().toLowerCase();
+      if (sendInviteCore && athleteId && parentEmail) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(parentEmail)) {
+          inviteFailures.push({ row: i + 1, email: parentEmail, message: "not a valid email" });
+        } else {
+          try {
+            const result = await sendInviteCore({
+              actorUserId: context.userId,
+              orgId,
+              email: parentEmail,
+              role: "parent",
+              athleteId,
+              redirectTo: inviteRedirect(),
+            });
+            if (result.status === "sent") invited += 1;
+          } catch (error) {
+            inviteFailures.push({
+              row: i + 1,
+              email: parentEmail,
+              message: (error as Error).message,
+            });
+          }
+        }
       }
     }
 
-    return { created, updated, skipped, failures };
+    return { created, updated, skipped, invited, failures, inviteFailures };
   });
 
 /* ------------------------------------------------------------------ */
