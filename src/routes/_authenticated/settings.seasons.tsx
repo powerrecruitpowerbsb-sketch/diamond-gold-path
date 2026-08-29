@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
+import { ATHLETE_STATUS_LABEL, type AthleteStatus } from "@/lib/season-constants";
 import {
-  ATHLETE_STATUS_LABEL,
   activateSeason,
   assignAthleteToTeam,
   deleteSeason,
@@ -21,8 +21,8 @@ import {
   saveTeam,
   setSeasonArchived,
   setTeamCoach,
-  type AthleteStatus,
 } from "@/lib/seasons.functions";
+
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings/seasons")({
