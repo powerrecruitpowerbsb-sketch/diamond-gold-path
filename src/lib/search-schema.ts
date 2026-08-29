@@ -51,6 +51,7 @@ export const searchParamsSchema = z.object({
   rosterMin: fallback(z.number(), 0).default(0),
   rosterMax: fallback(z.number(), 0).default(0),
   more: fallback(z.boolean(), false).default(false),
+  athleteId: fallback(z.string(), "").default(""),
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;
@@ -83,6 +84,7 @@ export const SEARCH_DEFAULTS = {
   acceptanceMax: 0,
   rosterMin: 0,
   rosterMax: 0,
+  athleteId: "",
   more: false,
 } as const;
 

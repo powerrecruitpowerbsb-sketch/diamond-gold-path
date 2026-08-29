@@ -212,7 +212,7 @@ export const getOrgAthlete = createServerFn({ method: "GET" })
     if (savedRows.length) {
       const { data: progs } = await context.supabase
         .from("programs")
-        .select("id, sport, division, governing_body, conference, universities(name, state)")
+        .select("id, sport, division, governing_body, conference, universities(name, state, region)")
         .in(
           "id",
           savedRows.map((r) => r.program_id),
@@ -354,6 +354,22 @@ export const deleteAthleteNote = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await requireOrgActor(context as any);
     const { error } = await context.supabase.from("org_player_notes").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const setNoteVisibility = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; visibleToParent: boolean }) => ({
+    id: str(input?.id),
+    visibleToParent: Boolean(input?.visibleToParent),
+  }))
+  .handler(async ({ context, data }) => {
+    await requireOrgActor(context as any);
+    const { error } = await context.supabase
+      .from("org_player_notes")
+      .update({ visible_to_parent: data.visibleToParent })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

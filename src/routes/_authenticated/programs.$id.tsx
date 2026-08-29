@@ -6,12 +6,18 @@ import { ArrowLeft, MapPin } from "lucide-react";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { StitchDivider, VerifiedStat } from "@/components/brand/VerifiedStat";
+import { ShortlistSaveButton } from "@/components/brand/ShortlistSaveButton";
 import { getProgramProfile } from "@/lib/search.functions";
+import { listAthletePicker } from "@/lib/shortlist.functions";
 import { INTEL_FIELD_LABELS } from "@/lib/search-schema";
 import { titleCase } from "@/lib/admin-schemas";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/programs/$id")({
+  validateSearch: (search: Record<string, unknown>): { athleteId?: string } =>
+    typeof search['athleteId'] === "string" && search['athleteId']
+      ? { athleteId: search['athleteId'] }
+      : {},
   head: () => ({
     meta: [
       { title: "Program profile — Power Recruit" },
@@ -70,7 +76,19 @@ const dateLabel = (value: unknown) =>
 
 function ProgramProfile() {
   const { id } = Route.useParams();
+  const { athleteId } = Route.useSearch();
   const profileFn = useServerFn(getProgramProfile);
+  const pickerFn = useServerFn(listAthletePicker);
+  const picker = useQuery({
+    queryKey: ["athlete-picker"],
+    queryFn: () => pickerFn(),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const contextAthlete = athleteId
+    ? ((picker.data?.athletes ?? []) as Record<string, any>[]).find((row) => row['id'] === athleteId) ??
+      null
+    : null;
   const { data, isPending, isError, error } = useQuery({
     queryKey: ["program-profile", id],
     queryFn: () => profileFn({ data: { programId: id } }),
@@ -191,9 +209,16 @@ function ProgramProfile() {
               {titleCase(program.sport)}
             </p>
           </div>
-          <span className="rounded-md bg-org-accent px-3 py-1.5 text-sm font-bold text-navy-deep">
-            {[program.governing_body, program.division].filter(Boolean).join(" ") || "—"}
-          </span>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <span className="rounded-md bg-org-accent px-3 py-1.5 text-sm font-bold text-navy-deep">
+              {[program.governing_body, program.division].filter(Boolean).join(" ") || "—"}
+            </span>
+            <ShortlistSaveButton
+              programId={id}
+              athleteId={athleteId || undefined}
+              athleteName={(contextAthlete?.['name'] as string | undefined) ?? undefined}
+            />
+          </div>
         </div>
 
         <dl className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/12 pt-5 text-sm text-white/75">
