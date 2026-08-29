@@ -175,20 +175,47 @@ export const removeShortlistEntry = createServerFn({ method: "POST" })
 
 export const getOrgDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input: { seasonId?: string; teamId?: string } | undefined) => ({
+    seasonId: str(input?.seasonId),
+    teamId: str(input?.teamId),
+  }))
+  .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
 
     let athleteQuery = context.supabase
       .from("org_athletes")
-      .select("id, name, grad_year, primary_position, organization_id")
+      .select("id, name, grad_year, primary_position, status, organization_id")
       .order("grad_year", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true });
     if (actor.organizationId) athleteQuery = athleteQuery.eq("organization_id", actor.organizationId);
 
     const { data: athleteRows, error } = await athleteQuery;
     if (error) throw new Error(error.message);
-    const athletes = (athleteRows ?? []) as Record<string, any>[];
+    let athletes = (athleteRows ?? []) as Record<string, any>[];
+
+    // Season scoping is an assignment lookup, so an athlete's own record and
+    // shortlist stay intact across every season they're in the program.
+    let teamNameByAthlete = new Map<string, string>();
+    if (data.seasonId) {
+      const { data: assignments, error: assignError } = await context.supabase
+        .from("team_athletes")
+        .select("org_athlete_id, team_id, teams(name)")
+        .eq("season_id", data.seasonId);
+      if (assignError) throw new Error(assignError.message);
+      const rows = (assignments ?? []) as Record<string, any>[];
+      const allowed = new Set(
+        rows
+          .filter((r) => !data.teamId || r['team_id'] === data.teamId)
+          .map((r) => r['org_athlete_id'] as string),
+      );
+      teamNameByAthlete = new Map(
+        rows.map((r) => [r['org_athlete_id'] as string, (r['teams']?.name ?? "") as string]),
+      );
+      athletes = athletes.filter((a) => allowed.has(a['id'] as string));
+    }
+
     const ids = athletes.map((a) => a['id'] as string);
+
 
     let orgName: string | null = null;
     if (actor.organizationId) {
