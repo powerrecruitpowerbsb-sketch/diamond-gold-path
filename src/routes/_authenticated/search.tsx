@@ -3,11 +3,12 @@ import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ChevronDown, MapPin, Search as SearchIcon, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, Columns3, MapPin, Search as SearchIcon, SlidersHorizontal } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { VerifiedChip } from "@/components/brand/DataSignals";
+import { useCompare } from "@/components/compare/compare-selection";
 import { getSearchFacets, searchPrograms } from "@/lib/search.functions";
 import {
   ACADEMIC_BUCKETS,
@@ -63,6 +64,7 @@ function SearchScreen() {
   const params = Route.useSearch();
   const navigate = useNavigate({ from: "/search" });
   const [moreOpen, setMoreOpen] = useState(params.more);
+  const compare = useCompare();
 
   const facetsFn = useServerFn(getSearchFacets);
   const searchFn = useServerFn(searchPrograms);
@@ -337,12 +339,17 @@ function SearchScreen() {
         </div>
       ) : (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((row: any) => (
-            <Link
+          {rows.map((row: any) => {
+            const selected = compare.isSelected(row.id);
+            return (
+            <div
               key={row.id}
+              className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
+            >
+            <Link
               to="/programs/$id"
               params={{ id: row.id }}
-              className="group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
+              className="group flex flex-1 flex-col"
             >
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-display text-lg leading-snug font-bold text-org-primary group-hover:underline">
@@ -370,7 +377,32 @@ function SearchScreen() {
                 <span className="meta">Accept. {pct(row.university?.acceptance_rate)}</span>
               </div>
             </Link>
-          ))}
+
+              <button
+                type="button"
+                aria-pressed={selected}
+                disabled={!selected && compare.isFull}
+                onClick={() =>
+                  compare.toggle({
+                    id: row.id,
+                    name: row.university?.name ?? "Program",
+                    badge: [row.governing_body, row.division].filter(Boolean).join(" "),
+                  })
+                }
+                className={cn(
+                  "touch-target mt-4 flex w-full items-center justify-center gap-2 rounded-lg border text-sm font-semibold transition-colors",
+                  selected
+                    ? "border-org-primary bg-org-primary text-white"
+                    : "border-border bg-card text-org-primary hover:bg-muted",
+                  !selected && compare.isFull && "cursor-not-allowed opacity-50",
+                )}
+              >
+                <Columns3 className="size-4" aria-hidden />
+                {selected ? "Selected for compare" : compare.isFull ? "Compare list full" : "Compare"}
+              </button>
+            </div>
+            );
+          })}
         </div>
       )}
     </AppShell>

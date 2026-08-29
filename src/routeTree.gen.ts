@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
@@ -23,11 +24,12 @@ import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
 import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
+import { Route as AuthenticatedAdminProgramsIdRouteImport } from './routes/_authenticated/admin.programs.$id'
 import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_authenticated/admin.programs.new'
 import { Route as AuthenticatedAdminSchoolsNewRouteImport } from './routes/_authenticated/admin.schools.new'
 import { Route as AuthenticatedAdminUniversitiesIndexRouteImport } from './routes/_authenticated/admin.universities.index'
 import { Route as AuthenticatedAdminUniversitiesIdRouteImport } from './routes/_authenticated/admin.universities.$id'
-import { Route as AuthenticatedAdminProgramsIdEditRouteImport } from './routes/_authenticated/admin.programs.$id.edit'
+import { Route as AuthenticatedAdminProgramsIdEditRouteImport } from './routes/_authenticated/admin.programs.$id_.edit'
 import { Route as AuthenticatedAdminUniversitiesIdEditRouteImport } from './routes/_authenticated/admin.universities.$id_.edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -57,6 +59,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCompareRoute = AuthenticatedCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -101,6 +108,12 @@ const AuthenticatedAdminProgramsIndexRoute =
     path: '/programs/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminProgramsIdRoute =
+  AuthenticatedAdminProgramsIdRouteImport.update({
+    id: '/programs/$id',
+    path: '/programs/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminProgramsNewRoute =
   AuthenticatedAdminProgramsNewRouteImport.update({
     id: '/programs/new',
@@ -127,7 +140,7 @@ const AuthenticatedAdminUniversitiesIdRoute =
   } as any)
 const AuthenticatedAdminProgramsIdEditRoute =
   AuthenticatedAdminProgramsIdEditRouteImport.update({
-    id: '/programs/$id/edit',
+    id: '/programs/$id_/edit',
     path: '/programs/$id/edit',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
@@ -144,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/search': typeof AuthenticatedSearchRoute
@@ -151,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
@@ -164,6 +179,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/search': typeof AuthenticatedSearchRoute
@@ -171,6 +187,7 @@ export interface FileRoutesByTo {
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
@@ -187,6 +204,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
@@ -194,12 +212,13 @@ export interface FileRoutesById {
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/_authenticated/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/_authenticated/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/_authenticated/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
   '/_authenticated/admin/programs/': typeof AuthenticatedAdminProgramsIndexRoute
   '/_authenticated/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
-  '/_authenticated/admin/programs/$id/edit': typeof AuthenticatedAdminProgramsIdEditRoute
+  '/_authenticated/admin/programs/$id_/edit': typeof AuthenticatedAdminProgramsIdEditRoute
   '/_authenticated/admin/universities/$id_/edit': typeof AuthenticatedAdminUniversitiesIdEditRoute
 }
 export interface FileRouteTypes {
@@ -210,6 +229,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/admin'
+    | '/compare'
     | '/dashboard'
     | '/family'
     | '/search'
@@ -217,6 +237,7 @@ export interface FileRouteTypes {
     | '/admin/majors'
     | '/programs/$id'
     | '/admin/'
+    | '/admin/programs/$id'
     | '/admin/programs/new'
     | '/admin/schools/new'
     | '/admin/universities/$id'
@@ -230,6 +251,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/forgot-password'
     | '/reset-password'
+    | '/compare'
     | '/dashboard'
     | '/family'
     | '/search'
@@ -237,6 +259,7 @@ export interface FileRouteTypes {
     | '/admin/majors'
     | '/programs/$id'
     | '/admin'
+    | '/admin/programs/$id'
     | '/admin/programs/new'
     | '/admin/schools/new'
     | '/admin/universities/$id'
@@ -252,6 +275,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/_authenticated/admin'
+    | '/_authenticated/compare'
     | '/_authenticated/dashboard'
     | '/_authenticated/family'
     | '/_authenticated/search'
@@ -259,12 +283,13 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/majors'
     | '/_authenticated/programs/$id'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/programs/$id'
     | '/_authenticated/admin/programs/new'
     | '/_authenticated/admin/schools/new'
     | '/_authenticated/admin/universities/$id'
     | '/_authenticated/admin/programs/'
     | '/_authenticated/admin/universities/'
-    | '/_authenticated/admin/programs/$id/edit'
+    | '/_authenticated/admin/programs/$id_/edit'
     | '/_authenticated/admin/universities/$id_/edit'
   fileRoutesById: FileRoutesById
 }
@@ -318,6 +343,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/compare': {
+      id: '/_authenticated/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof AuthenticatedCompareRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -376,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminProgramsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/programs/$id': {
+      id: '/_authenticated/admin/programs/$id'
+      path: '/programs/$id'
+      fullPath: '/admin/programs/$id'
+      preLoaderRoute: typeof AuthenticatedAdminProgramsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/programs/new': {
       id: '/_authenticated/admin/programs/new'
       path: '/programs/new'
@@ -404,8 +443,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUniversitiesIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/programs/$id/edit': {
-      id: '/_authenticated/admin/programs/$id/edit'
+    '/_authenticated/admin/programs/$id_/edit': {
+      id: '/_authenticated/admin/programs/$id_/edit'
       path: '/programs/$id/edit'
       fullPath: '/admin/programs/$id/edit'
       preLoaderRoute: typeof AuthenticatedAdminProgramsIdEditRouteImport
@@ -425,6 +464,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminProgramsIdRoute: typeof AuthenticatedAdminProgramsIdRoute
   AuthenticatedAdminProgramsNewRoute: typeof AuthenticatedAdminProgramsNewRoute
   AuthenticatedAdminSchoolsNewRoute: typeof AuthenticatedAdminSchoolsNewRoute
   AuthenticatedAdminUniversitiesIdRoute: typeof AuthenticatedAdminUniversitiesIdRoute
@@ -438,6 +478,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminProgramsIdRoute: AuthenticatedAdminProgramsIdRoute,
   AuthenticatedAdminProgramsNewRoute: AuthenticatedAdminProgramsNewRoute,
   AuthenticatedAdminSchoolsNewRoute: AuthenticatedAdminSchoolsNewRoute,
   AuthenticatedAdminUniversitiesIdRoute: AuthenticatedAdminUniversitiesIdRoute,
@@ -454,6 +495,7 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
@@ -462,6 +504,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
