@@ -121,6 +121,8 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           </Link>
         ))}
       </nav>
+
+      <CompareTray />
     </div>
   );
 }
