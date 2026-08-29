@@ -271,12 +271,15 @@ export const getOrgDashboard = createServerFn({ method: "GET" })
         name: athlete['name'],
         gradYear: athlete['grad_year'],
         position: athlete['primary_position'],
+        status: (athlete['status'] ?? "active") as string,
+        teamName: teamNameByAthlete.get(athlete['id'] as string) ?? null,
         counts: byAthlete.get(athlete['id'] as string) ?? emptyCounts(),
         total: Object.values(byAthlete.get(athlete['id'] as string) ?? emptyCounts()).reduce(
           (sum, n) => sum + n,
           0,
         ),
       })),
+
       totals: {
         athletes: athletes.length,
         savedSchools: saved.length,
