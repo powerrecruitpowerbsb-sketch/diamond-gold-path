@@ -14,6 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      athlete_saved_schools: {
+        Row: {
+          added_by_user_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          org_athlete_id: string
+          program_id: string
+          status: Database["public"]["Enums"]["saved_school_status"]
+          updated_at: string
+        }
+        Insert: {
+          added_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_athlete_id: string
+          program_id: string
+          status?: Database["public"]["Enums"]["saved_school_status"]
+          updated_at?: string
+        }
+        Update: {
+          added_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_athlete_id?: string
+          program_id?: string
+          status?: Database["public"]["Enums"]["saved_school_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_saved_schools_added_by_user_id_fkey"
+            columns: ["added_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_saved_schools_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_saved_schools_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: Database["public"]["Enums"]["audit_action"]
@@ -238,6 +293,66 @@ export type Database = {
         }
         Relationships: []
       }
+      org_athletes: {
+        Row: {
+          athlete_data_source: Database["public"]["Enums"]["athlete_data_source"]
+          bats: Database["public"]["Enums"]["bats_hand"] | null
+          created_at: string
+          grad_year: number | null
+          id: string
+          linked_handled_profile_id: string | null
+          linked_parent_user_id: string | null
+          name: string
+          organization_id: string
+          primary_position: string | null
+          throws: Database["public"]["Enums"]["throws_hand"] | null
+          updated_at: string
+        }
+        Insert: {
+          athlete_data_source?: Database["public"]["Enums"]["athlete_data_source"]
+          bats?: Database["public"]["Enums"]["bats_hand"] | null
+          created_at?: string
+          grad_year?: number | null
+          id?: string
+          linked_handled_profile_id?: string | null
+          linked_parent_user_id?: string | null
+          name: string
+          organization_id: string
+          primary_position?: string | null
+          throws?: Database["public"]["Enums"]["throws_hand"] | null
+          updated_at?: string
+        }
+        Update: {
+          athlete_data_source?: Database["public"]["Enums"]["athlete_data_source"]
+          bats?: Database["public"]["Enums"]["bats_hand"] | null
+          created_at?: string
+          grad_year?: number | null
+          id?: string
+          linked_handled_profile_id?: string | null
+          linked_parent_user_id?: string | null
+          name?: string
+          organization_id?: string
+          primary_position?: string | null
+          throws?: Database["public"]["Enums"]["throws_hand"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_athletes_linked_parent_user_id_fkey"
+            columns: ["linked_parent_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_athletes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_invites: {
         Row: {
           code_hash: string
@@ -294,6 +409,48 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_player_notes: {
+        Row: {
+          author_user_id: string | null
+          created_at: string
+          id: string
+          note: string
+          org_athlete_id: string
+          visible_to_parent: boolean
+        }
+        Insert: {
+          author_user_id?: string | null
+          created_at?: string
+          id?: string
+          note: string
+          org_athlete_id: string
+          visible_to_parent?: boolean
+        }
+        Update: {
+          author_user_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          org_athlete_id?: string
+          visible_to_parent?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_player_notes_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_player_notes_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
             referencedColumns: ["id"]
           },
         ]
@@ -828,6 +985,7 @@ export type Database = {
       }
     }
     Enums: {
+      athlete_data_source: "manual" | "csv" | "handled" | "curve_testing"
       audit_action: "create" | "update" | "override"
       bats_hand: "R" | "L" | "S"
       billing_status:
@@ -867,6 +1025,12 @@ export type Database = {
         | "LHP"
         | "TWO_WAY"
       public_private: "public" | "private"
+      saved_school_status:
+        | "researching"
+        | "contacted"
+        | "offered"
+        | "committed"
+        | "eliminated"
       school_size_bucket: "small" | "medium" | "large"
       source_type: "official" | "aggregator" | "manual"
       sport: "baseball" | "softball"
@@ -999,6 +1163,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      athlete_data_source: ["manual", "csv", "handled", "curve_testing"],
       audit_action: ["create", "update", "override"],
       bats_hand: ["R", "L", "S"],
       billing_status: [
@@ -1042,6 +1207,13 @@ export const Constants = {
         "TWO_WAY",
       ],
       public_private: ["public", "private"],
+      saved_school_status: [
+        "researching",
+        "contacted",
+        "offered",
+        "committed",
+        "eliminated",
+      ],
       school_size_bucket: ["small", "medium", "large"],
       source_type: ["official", "aggregator", "manual"],
       sport: ["baseball", "softball"],
