@@ -224,6 +224,7 @@ function ImportAthletes() {
       skip: rows.filter((r) => r.action === "skip").length,
       bad: rows.filter((r) => r.errors.length).length,
       dupes: rows.filter((r) => r.matchId).length,
+      parents: rows.filter((r) => r.action !== "skip" && r.parentEmail).length,
     };
   }, [preview]);
 
