@@ -97,7 +97,7 @@ export const saveOrgBranding = createServerFn({ method: "POST" })
 
     const { error } = await context.supabase
       .from("organizations")
-      .update(patch)
+      .update(patch as never)
       .eq("id", me.organizationId);
     if (error) throw new Error(error.message);
 

@@ -105,7 +105,7 @@ function BrandingSettings() {
       const path = `${branding.organizationId}/logo-${Date.now()}.${ext}`;
       const { error } = await supabase.storage
         .from(BRANDING_BUCKET)
-        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+        .upload(path, file, { upsert: true, ...(file.type ? { contentType: file.type } : {}) });
       if (error) throw new Error(error.message);
       const { data: signed } = await supabase.storage
         .from(BRANDING_BUCKET)
