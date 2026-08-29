@@ -337,12 +337,17 @@ function SearchScreen() {
         </div>
       ) : (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((row: any) => (
-            <Link
+          {rows.map((row: any) => {
+            const selected = compare.isSelected(row.id);
+            return (
+            <div
               key={row.id}
+              className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
+            >
+            <Link
               to="/programs/$id"
               params={{ id: row.id }}
-              className="group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
+              className="group flex flex-1 flex-col"
             >
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-display text-lg leading-snug font-bold text-org-primary group-hover:underline">
