@@ -35,12 +35,23 @@ Parents land on the existing family portal, scoped to their linked athlete(s):
 
 Same mechanism, kept explicit: the invite panel lets staff choose whether the address is a **Parent** or the **Player**, so an older athlete can have their own login with the same athlete-scoped view.
 
+## 5. Staff invites — same path, same UI
+
+A "Team members" panel on the organization settings screen, using the exact same invite component and email flow, just without an athlete attached:
+
+- `org_admin` enters an email and picks **Admin** or **Staff**, then sends the invite.
+- Same states per row: Invited (sent date), Accepted, Expired — with resend and revoke.
+- Existing members are listed alongside pending invites, with their role.
+- Only `org_admin` can invite or revoke staff; `org_staff` can invite families but not other staff. Nobody can invite a superadmin from this screen.
+- Superadmins get the same panel per organization inside the admin console, so Power Recruit staff can seat a new club's first admin.
+
 ## Technical notes
 
-- New `athlete_family_invites` table: organization_id, org_athlete_id, email, invited_role (`parent` | `player`), status, invited_by, accepted_user_id, timestamps; unique on (org_athlete_id, lower(email)). GRANTs plus org-scoped RLS for staff, superadmin full access, no anon.
+- One `org_member_invites` table serves both flows: organization_id, email, invited_role (`org_admin` | `org_staff` | `parent` | `player`), org_athlete_id (null for staff), status, invited_by, accepted_user_id, timestamps; unique on (organization_id, lower(email), coalesce(org_athlete_id, ...)). GRANTs plus org-scoped RLS for staff, superadmin full access, no anon. `superadmin` is rejected by a check constraint.
 - New `athlete_family_links` table (many-to-many athlete ↔ user) so multiple guardians can be linked; replaces sole reliance on `org_athletes.linked_parent_user_id`, which stays populated for the first parent for backward compatibility.
-- Sending uses the Auth Admin invite API from a server function that first verifies the caller is `org_admin`/`org_staff` in the athlete's organization. Role assignment and the athlete link happen in trusted server code on acceptance — never from client metadata, so no self-granted roles.
-- One shared `inviteFamilyMember` server function is called by both the athlete page and the CSV import path, mirroring the existing single-`upsertAthlete` pattern.
-- CSV import calls it per new email inside the existing import server function, collecting per-row outcomes for the summary; a failed invite never aborts the athlete import.
-- Acceptance handled on the existing public reset/set-password route, extended to complete the invite (consume the row, grant role, link athlete) before redirecting by role.
+- Sending uses the Auth Admin invite API from one `sendOrgInvite` server function that verifies the caller's role server-side: `org_admin` for staff invites, `org_admin`/`org_staff` for family invites, plus organization match. Role assignment and athlete linking happen in trusted server code on acceptance — never from client metadata, so no self-granted roles.
+- One shared `InvitePanel` component and one `sendOrgInvite` function back the athlete page, the settings screen, and the CSV import path, mirroring the existing single-`upsertAthlete` pattern.
+- CSV import calls it per new parent email inside the existing import server function, collecting per-row outcomes for the summary; a failed invite never aborts the athlete import.
+- Acceptance handled on the existing public reset/set-password route, extended to complete the invite (consume the row, grant role, link athlete when present) before redirecting by role.
+
 - Family reads go through new athlete-scoped server functions with `requireSupabaseAuth`; RLS policies allow a parent/player to read only athletes linked to them and only notes with `visible_to_parent = true`.
