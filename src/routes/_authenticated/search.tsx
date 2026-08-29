@@ -375,7 +375,32 @@ function SearchScreen() {
                 <span className="meta">Accept. {pct(row.university?.acceptance_rate)}</span>
               </div>
             </Link>
-          ))}
+
+              <button
+                type="button"
+                aria-pressed={selected}
+                disabled={!selected && compare.isFull}
+                onClick={() =>
+                  compare.toggle({
+                    id: row.id,
+                    name: row.university?.name ?? "Program",
+                    badge: [row.governing_body, row.division].filter(Boolean).join(" "),
+                  })
+                }
+                className={cn(
+                  "touch-target mt-4 flex w-full items-center justify-center gap-2 rounded-lg border text-sm font-semibold transition-colors",
+                  selected
+                    ? "border-org-primary bg-org-primary text-white"
+                    : "border-border bg-card text-org-primary hover:bg-muted",
+                  !selected && compare.isFull && "cursor-not-allowed opacity-50",
+                )}
+              >
+                <Columns3 className="size-4" aria-hidden />
+                {selected ? "Selected for compare" : compare.isFull ? "Compare list full" : "Compare"}
+              </button>
+            </div>
+            );
+          })}
         </div>
       )}
     </AppShell>
