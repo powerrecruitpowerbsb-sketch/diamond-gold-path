@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/roster/import")({
   component: ImportAthletes,
 });
 
-type Field = "name" | "gradYear" | "primaryPosition" | "bats" | "throws";
+type Field = "name" | "gradYear" | "primaryPosition" | "bats" | "throws" | "parentEmail";
 
 const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[] = [
   { key: "name", label: "Name", required: true, hints: ["name", "athlete", "player", "full name"] },
@@ -37,6 +37,12 @@ const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[
   { key: "primaryPosition", label: "Primary position", required: false, hints: ["position", "pos"] },
   { key: "bats", label: "Bats", required: false, hints: ["bats", "b"] },
   { key: "throws", label: "Throws", required: false, hints: ["throws", "t"] },
+  {
+    key: "parentEmail",
+    label: "Parent email",
+    required: false,
+    hints: ["parent email", "parent", "guardian", "email"],
+  },
 ];
 
 /** Minimal RFC4180-ish CSV parser: handles quoted fields, commas and CRLF. */
