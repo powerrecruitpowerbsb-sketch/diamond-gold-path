@@ -359,8 +359,26 @@ function ImportAthletes() {
               {counts.dupes} possible duplicate(s) · {counts.bad} row(s) with problems
             </p>
 
+            {counts.parents ? (
+              <label
+                className={`mt-3 flex w-fit cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
+                  sendFamilyInvites
+                    ? "border-org-accent/50 bg-org-accent/15 text-navy-deep"
+                    : "border-border bg-chalk text-steel"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={sendFamilyInvites}
+                  onChange={(event) => setSendFamilyInvites(event.target.checked)}
+                  className="size-4 accent-[var(--org-primary)]"
+                />
+                Email a parent invite to the {counts.parents} mapped address(es)
+              </label>
+            ) : null}
+
             <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm tabular-nums">
+              <table className="w-full min-w-[860px] text-left text-sm tabular-nums">
                 <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
                   <tr>
                     <th className="px-3 py-2">Row</th>
@@ -368,6 +386,7 @@ function ImportAthletes() {
                     <th className="px-3 py-2">Grad</th>
                     <th className="px-3 py-2">Pos</th>
                     <th className="px-3 py-2">B/T</th>
+                    <th className="px-3 py-2">Parent email</th>
                     <th className="px-3 py-2">Status</th>
                     <th className="px-3 py-2">Action</th>
                   </tr>
