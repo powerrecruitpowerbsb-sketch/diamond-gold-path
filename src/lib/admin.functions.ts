@@ -163,12 +163,12 @@ export const saveUniversity = createServerFn({ method: "POST" })
 
     let id = data.id ?? null;
     if (id) {
-      const { error } = await context.supabase.from("universities").update(values).eq("id", id);
+      const { error } = await context.supabase.from("universities").update(values as any).eq("id", id);
       if (error) throw new Error(error.message);
     } else {
       const { data: inserted, error } = await context.supabase
         .from("universities")
-        .insert(values)
+        .insert(values as any)
         .select("id")
         .single();
       if (error) throw new Error(error.message);
@@ -238,13 +238,13 @@ export const saveProgram = createServerFn({ method: "POST" })
     if (!values["sport"]) throw new Error("Pick a sport");
 
     if (data.id) {
-      const { error } = await context.supabase.from("programs").update(values).eq("id", data.id);
+      const { error } = await context.supabase.from("programs").update(values as any).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
     const { data: inserted, error } = await context.supabase
       .from("programs")
-      .insert(values)
+      .insert(values as any)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -261,7 +261,7 @@ export const createSchool = createServerFn({ method: "POST" })
 
     const { data: inserted, error } = await context.supabase
       .from("universities")
-      .insert(data.university)
+      .insert(data.university as any)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -279,7 +279,7 @@ export const createSchool = createServerFn({ method: "POST" })
         .filter((p) => p && p["sport"])
         .map((p) => ({ ...p, university_id: universityId }));
       if (programRows.length) {
-        const { error: programError } = await context.supabase.from("programs").insert(programRows);
+        const { error: programError } = await context.supabase.from("programs").insert(programRows as any);
         if (programError) throw new Error(programError.message);
       }
     } catch (failure) {
@@ -407,7 +407,7 @@ export const saveClassification = createServerFn({ method: "POST" })
     const scope = context.supabase
       .from("classifications")
       .select("id")
-      .eq("classification_type", data.classificationType);
+      .eq("classification_type", data.classificationType as any);
     const existing = data.universityId
       ? await scope.eq("university_id", data.universityId).maybeSingle()
       : await scope.eq("program_id", data.programId!).maybeSingle();
@@ -429,14 +429,14 @@ export const saveClassification = createServerFn({ method: "POST" })
     if (existing.data?.id) {
       const { error } = await context.supabase
         .from("classifications")
-        .update(row)
+        .update(row as any)
         .eq("id", existing.data.id);
       if (error) throw new Error(error.message);
       return { id: existing.data.id };
     }
     const { data: inserted, error } = await context.supabase
       .from("classifications")
-      .insert(row)
+      .insert(row as any)
       .select("id")
       .single();
     if (error) throw new Error(error.message);

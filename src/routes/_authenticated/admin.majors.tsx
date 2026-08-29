@@ -96,7 +96,7 @@ function MajorsScreen() {
                 {editing?.id === major.id ? (
                   <>
                     <Input
-                      value={editing.name}
+                      value={editing?.name ?? ""}
                       onChange={(event) => setEditing({ id: major.id, name: event.target.value })}
                       aria-label={`Rename ${major.name}`}
                       className="max-w-xs"
@@ -104,7 +104,7 @@ function MajorsScreen() {
                     <Button
                       className="touch-target bg-org-primary text-white hover:bg-org-primary/90"
                       disabled={saveMutation.isPending}
-                      onClick={() => saveMutation.mutate({ id: major.id, name: editing.name })}
+                      onClick={() => saveMutation.mutate({ id: major.id, name: editing?.name ?? "" })}
                     >
                       Save
                     </Button>

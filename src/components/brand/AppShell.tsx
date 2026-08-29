@@ -8,11 +8,11 @@ type NavItem = { to: string; label: string; icon: typeof Home };
 
 const PRIMARY_NAV: NavItem[] = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/admin/data", label: "Data", icon: Table2 },
+  { to: "/admin", label: "Console", icon: Table2 },
 ];
 
 const OVERFLOW_NAV: NavItem[] = [
-  { to: "/admin/data", label: "College database", icon: Database },
+  { to: "/admin/universities", label: "College database", icon: Database },
   { to: "/auth", label: "Account", icon: UserRound },
 ];
 
@@ -91,8 +91,8 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       >
         {[
           { to: "/", label: "Home", icon: Home, exact: true },
-          { to: "/admin/data", label: "Data", icon: Table2, exact: false },
-          { to: "/admin/data", label: "Colleges", icon: Database, exact: false },
+          { to: "/admin", label: "Console", icon: Table2, exact: true },
+          { to: "/admin/universities", label: "Colleges", icon: Database, exact: false },
           { to: "/auth", label: "Account", icon: UserRound, exact: false },
         ].map((item, index) => (
           <Link

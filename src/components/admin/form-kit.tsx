@@ -24,9 +24,9 @@ export function SectionCard({
   aside,
 }: {
   title: string;
-  blurb?: string;
+  blurb?: string | undefined;
   children: ReactNode;
-  aside?: ReactNode;
+  aside?: ReactNode | undefined;
 }) {
   return (
     <section className="rounded-xl border border-border bg-card p-5 shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)] sm:p-6">
@@ -114,8 +114,8 @@ export function FieldControl({
   field: FieldDef;
   value: any;
   onChange: (next: any) => void;
-  source?: Partial<SourceEntry>;
-  onSourceChange?: (next: Partial<SourceEntry>) => void;
+  source?: Partial<SourceEntry> | undefined;
+  onSourceChange?: ((next: Partial<SourceEntry>) => void) | undefined;
 }) {
   const id = `field-${field.name}`;
 
@@ -183,8 +183,8 @@ export function SectionedFields({
   sections: SectionDef[];
   values: Values;
   setValues: (next: Values) => void;
-  sources?: Sources;
-  setSources?: (next: Sources) => void;
+  sources?: Sources | undefined;
+  setSources?: ((next: Sources) => void) | undefined;
 }) {
   return (
     <div className="grid gap-5">
