@@ -143,9 +143,9 @@ export const updateShortlistEntry = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     await requireOrgActor(context as any);
-    const patch: Record<string, unknown> = {};
-    if (data.status) patch['status'] = data.status;
-    if (data.touchNotes) patch['notes'] = data.notes;
+    const patch: { status?: ShortlistStatus; notes?: string | null } = {};
+    if (data.status) patch.status = data.status;
+    if (data.touchNotes) patch.notes = data.notes;
     if (!Object.keys(patch).length) return { ok: true };
 
     const { error } = await context.supabase

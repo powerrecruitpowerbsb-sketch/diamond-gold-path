@@ -14,9 +14,10 @@ import { titleCase } from "@/lib/admin-schemas";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/programs/$id")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    athleteId: typeof search['athleteId'] === "string" ? search['athleteId'] : "",
-  }),
+  validateSearch: (search: Record<string, unknown>): { athleteId?: string } =>
+    typeof search['athleteId'] === "string" && search['athleteId']
+      ? { athleteId: search['athleteId'] }
+      : {},
   head: () => ({
     meta: [
       { title: "Program profile — Power Recruit" },
