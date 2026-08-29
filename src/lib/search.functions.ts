@@ -32,17 +32,14 @@ export const getSearchFacets = createServerFn({ method: "GET" })
 /** Filtered program search. RLS applies as the signed-in user. */
 export const searchPrograms = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: Partial<SearchFilters>) => normalizeSearchInput(input))
+  .inputValidator((input: unknown): SearchFilters => normalizeSearchInput(input))
   .handler(async ({ context, data: f }) => {
-    const supabase = context.supabase;
+    const supabase = context.supabase as any;
 
     // Pre-resolve university-id restrictions that need a join table.
-    let restrictUniversityIds: string[] | null = null;
+    const restrict: { ids: string[] | null } = { ids: null };
     const intersect = (ids: string[]) => {
-      restrictUniversityIds =
-        restrictUniversityIds === null
-          ? ids
-          : restrictUniversityIds.filter((id) => ids.includes(id));
+      restrict.ids = restrict.ids === null ? ids : restrict.ids.filter((id) => ids.includes(id));
     };
 
     if (f.majorId) {
