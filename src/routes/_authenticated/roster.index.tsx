@@ -2,11 +2,15 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Search as SearchIcon, Upload } from "lucide-react";
+import { CalendarRange, Plus, Search as SearchIcon, Upload } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
+import { useSeasonContext } from "@/hooks/use-season-context";
 import { listOrgAthletes } from "@/lib/athletes.functions";
+import { ATHLETE_STATUS_LABEL } from "@/lib/season-constants";
+
 
 export const Route = createFileRoute("/_authenticated/roster/")({
   head: () => ({
