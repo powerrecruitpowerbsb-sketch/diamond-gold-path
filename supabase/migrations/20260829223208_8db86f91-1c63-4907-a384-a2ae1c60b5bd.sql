@@ -1,0 +1,1 @@
+DELETE FROM public.org_athletes WHERE name = 'QA Test Player';
