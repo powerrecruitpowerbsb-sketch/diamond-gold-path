@@ -358,11 +358,14 @@ export const importAthletes = createServerFn({ method: "POST" })
         action?: "create" | "update" | "skip";
         matchId?: string | null;
         parentEmail?: string | null;
+        team?: string | null;
       })[];
       sendFamilyInvites?: boolean;
+      seasonId?: string | null;
     }) => ({
       rows: Array.isArray(input?.rows) ? input.rows.slice(0, 2000) : [],
       sendFamilyInvites: input?.sendFamilyInvites !== false,
+      seasonId: nullable(input?.seasonId),
     }),
   )
   .handler(async ({ context, data }) => {
@@ -374,8 +377,10 @@ export const importAthletes = createServerFn({ method: "POST" })
     let updated = 0;
     let skipped = 0;
     let invited = 0;
+    let assigned = 0;
     const failures: { row: number; message: string }[] = [];
     const inviteFailures: { row: number; email: string; message: string }[] = [];
+    const unknownTeams = new Set<string>();
 
     const wantsInvites =
       data.sendFamilyInvites &&
@@ -383,6 +388,19 @@ export const importAthletes = createServerFn({ method: "POST" })
     const sendInviteCore = wantsInvites
       ? (await import("./invites.server")).sendInviteCore
       : null;
+
+    // Team names in the CSV are matched to existing teams in the chosen season.
+    const teamsByName = new Map<string, string>();
+    if (data.seasonId) {
+      const { data: teams } = await context.supabase
+        .from("teams")
+        .select("id, name")
+        .eq("season_id", data.seasonId);
+      for (const team of (teams ?? []) as { id: string; name: string }[]) {
+        teamsByName.set(team.name.trim().toLowerCase(), team.id);
+      }
+    }
+
 
     for (let i = 0; i < data.rows.length; i += 1) {
       const row = data.rows[i]!;
