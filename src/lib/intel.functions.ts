@@ -230,14 +230,14 @@ export const addProgramInteraction = createServerFn({ method: "POST" })
     await assertSuperadmin(context as any);
     if (!data.notes.trim()) throw new Error("Add a note before saving");
 
-    let relationshipId: string | null = null;
+    let relationshipId: string;
     const { data: existing } = await context.supabase
       .from("program_relationships")
       .select("id")
       .eq("program_id", data.programId)
       .maybeSingle();
     if (existing) {
-      relationshipId = (existing as any).id;
+      relationshipId = (existing as any).id as string;
     } else {
       const { data: inserted, error } = await context.supabase
         .from("program_relationships")
