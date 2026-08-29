@@ -88,6 +88,7 @@ type PreviewRow = {
   primaryPosition: string | null;
   bats: string | null;
   throws: string | null;
+  parentEmail: string | null;
   errors: string[];
   matchId: string | null;
   action: "create" | "update" | "skip";
