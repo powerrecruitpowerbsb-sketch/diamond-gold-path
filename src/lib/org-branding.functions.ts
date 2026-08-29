@@ -95,11 +95,17 @@ export const saveOrgBranding = createServerFn({ method: "POST" })
     };
     if (data.logoPath !== "") patch['logo_url'] = data.logoPath || null;
 
-    const { error } = await context.supabase
+    const { data: updated, error } = await context.supabase
       .from("organizations")
       .update(patch as never)
-      .eq("id", me.organizationId);
+      .eq("id", me.organizationId)
+      .select("id");
     if (error) throw new Error(error.message);
+    // A row-level policy mismatch returns success with zero rows — never let
+    // that read as a saved change.
+    if (!updated || (updated as unknown[]).length === 0) {
+      throw new Error("Branding could not be saved for this organization");
+    }
 
     return { ok: true };
   });
