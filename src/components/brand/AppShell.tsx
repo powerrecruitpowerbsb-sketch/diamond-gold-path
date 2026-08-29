@@ -22,8 +22,7 @@ const OVERFLOW_NAV: NavItem[] = [
 
 export function AppShell({ children, right }: { children: ReactNode; right?: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const accountFn = useServerFn(getMyAccount);
-  const { data: account } = useQuery({ queryKey: ["my-account"], queryFn: () => accountFn() });
+  const { account } = useMyAccount();
   const isStaff = Boolean(account?.isSuperadmin);
 
   const primaryNav = PRIMARY_NAV.filter((item) => isStaff || item.to !== "/admin");

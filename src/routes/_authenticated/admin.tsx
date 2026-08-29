@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldAlert } from "lucide-react";
 
-import { getMyAccount } from "@/lib/admin.functions";
+import { useMyAccount } from "@/hooks/use-my-account";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 
@@ -37,8 +37,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminLayout() {
-  const account = useServerFn(getMyAccount);
-  const { data, isPending } = useQuery({ queryKey: ["my-account"], queryFn: () => account() });
+  const { account: data, isPending } = useMyAccount();
 
   if (isPending) {
     return (
