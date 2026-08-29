@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { ATHLETE_STATUSES, type AthleteStatus } from "@/lib/season-constants";
 
 const str = (value: unknown) => String(value ?? "").trim();
 const nullable = (value: unknown) => {
@@ -8,14 +9,8 @@ const nullable = (value: unknown) => {
   return out === "" ? null : out;
 };
 
-export const ATHLETE_STATUSES = ["active", "graduated", "departed"] as const;
-export type AthleteStatus = (typeof ATHLETE_STATUSES)[number];
+export type { AthleteStatus };
 
-export const ATHLETE_STATUS_LABEL: Record<AthleteStatus, string> = {
-  active: "Active",
-  graduated: "Graduated",
-  departed: "Departed",
-};
 
 type Ctx = { supabase: any; userId: string };
 
