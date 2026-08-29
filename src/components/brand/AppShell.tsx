@@ -92,8 +92,8 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       >
         {[
           { to: "/", label: "Home", icon: Home, exact: true },
+          { to: "/search", label: "Search", icon: Search, exact: false },
           { to: "/admin", label: "Console", icon: Table2, exact: true },
-          { to: "/admin/universities", label: "Colleges", icon: Database, exact: false },
           { to: "/auth", label: "Account", icon: UserRound, exact: false },
         ].map((item, index) => (
           <Link
