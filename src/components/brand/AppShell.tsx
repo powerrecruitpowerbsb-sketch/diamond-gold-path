@@ -1,10 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { Database, Home, Menu, Search, Table2, UserRound, X } from "lucide-react";
 
-import { getMyAccount } from "@/lib/admin.functions";
+import { useMyAccount } from "@/hooks/use-my-account";
 import { cn } from "@/lib/utils";
 
 type NavItem = { to: string; label: string; icon: typeof Home };
