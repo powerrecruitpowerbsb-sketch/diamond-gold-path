@@ -28,7 +28,7 @@ import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminSchoolsNewRouteImport } from './routes/_authenticated/admin.schools.new'
 import { Route as AuthenticatedAdminUniversitiesIndexRouteImport } from './routes/_authenticated/admin.universities.index'
 import { Route as AuthenticatedAdminUniversitiesIdRouteImport } from './routes/_authenticated/admin.universities.$id'
-import { Route as AuthenticatedAdminProgramsIdEditRouteImport } from './routes/_authenticated/admin.programs.$id.edit'
+import { Route as AuthenticatedAdminProgramsIdEditRouteImport } from './routes/_authenticated/admin.programs.$id_.edit'
 import { Route as AuthenticatedAdminUniversitiesIdEditRouteImport } from './routes/_authenticated/admin.universities.$id_.edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -133,7 +133,7 @@ const AuthenticatedAdminUniversitiesIdRoute =
   } as any)
 const AuthenticatedAdminProgramsIdEditRoute =
   AuthenticatedAdminProgramsIdEditRouteImport.update({
-    id: '/programs/$id/edit',
+    id: '/programs/$id_/edit',
     path: '/programs/$id/edit',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
@@ -208,7 +208,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
   '/_authenticated/admin/programs/': typeof AuthenticatedAdminProgramsIndexRoute
   '/_authenticated/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
-  '/_authenticated/admin/programs/$id/edit': typeof AuthenticatedAdminProgramsIdEditRoute
+  '/_authenticated/admin/programs/$id_/edit': typeof AuthenticatedAdminProgramsIdEditRoute
   '/_authenticated/admin/universities/$id_/edit': typeof AuthenticatedAdminUniversitiesIdEditRoute
 }
 export interface FileRouteTypes {
@@ -276,7 +276,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/universities/$id'
     | '/_authenticated/admin/programs/'
     | '/_authenticated/admin/universities/'
-    | '/_authenticated/admin/programs/$id/edit'
+    | '/_authenticated/admin/programs/$id_/edit'
     | '/_authenticated/admin/universities/$id_/edit'
   fileRoutesById: FileRoutesById
 }
@@ -423,8 +423,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUniversitiesIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/programs/$id/edit': {
-      id: '/_authenticated/admin/programs/$id/edit'
+    '/_authenticated/admin/programs/$id_/edit': {
+      id: '/_authenticated/admin/programs/$id_/edit'
       path: '/programs/$id/edit'
       fullPath: '/admin/programs/$id/edit'
       preLoaderRoute: typeof AuthenticatedAdminProgramsIdEditRouteImport
