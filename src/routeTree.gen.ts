@@ -23,6 +23,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
+import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenticated/roster.index'
 import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
 import { Route as AuthenticatedAdminProgramsIdRouteImport } from './routes/_authenticated/admin.programs.$id'
 import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_authenticated/admin.programs.new'
@@ -102,6 +103,12 @@ const AuthenticatedProgramsIdRoute = AuthenticatedProgramsIdRouteImport.update({
   path: '/programs/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRosterIndexRoute =
+  AuthenticatedRosterIndexRouteImport.update({
+    id: '/roster/',
+    path: '/roster/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminProgramsIndexRoute =
   AuthenticatedAdminProgramsIndexRouteImport.update({
     id: '/programs/',
@@ -165,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/roster/': typeof AuthenticatedRosterIndexRoute
   '/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -187,6 +195,7 @@ export interface FileRoutesByTo {
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/roster': typeof AuthenticatedRosterIndexRoute
   '/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -212,6 +221,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/roster/': typeof AuthenticatedRosterIndexRoute
   '/_authenticated/admin/programs/$id': typeof AuthenticatedAdminProgramsIdRoute
   '/_authenticated/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/_authenticated/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/admin/majors'
     | '/programs/$id'
     | '/admin/'
+    | '/roster/'
     | '/admin/programs/$id'
     | '/admin/programs/new'
     | '/admin/schools/new'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/admin/majors'
     | '/programs/$id'
     | '/admin'
+    | '/roster'
     | '/admin/programs/$id'
     | '/admin/programs/new'
     | '/admin/schools/new'
@@ -283,6 +295,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/majors'
     | '/_authenticated/programs/$id'
     | '/_authenticated/admin/'
+    | '/_authenticated/roster/'
     | '/_authenticated/admin/programs/$id'
     | '/_authenticated/admin/programs/new'
     | '/_authenticated/admin/schools/new'
@@ -401,6 +414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProgramsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/roster/': {
+      id: '/_authenticated/roster/'
+      path: '/roster'
+      fullPath: '/roster/'
+      preLoaderRoute: typeof AuthenticatedRosterIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/programs/': {
       id: '/_authenticated/admin/programs/'
       path: '/programs'
@@ -500,6 +520,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedProgramsIdRoute: typeof AuthenticatedProgramsIdRoute
+  AuthenticatedRosterIndexRoute: typeof AuthenticatedRosterIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -509,6 +530,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedProgramsIdRoute: AuthenticatedProgramsIdRoute,
+  AuthenticatedRosterIndexRoute: AuthenticatedRosterIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
