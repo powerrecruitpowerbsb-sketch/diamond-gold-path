@@ -9,7 +9,9 @@ import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useOrgBranding } from "@/hooks/use-org-branding";
 import { supabase } from "@/integrations/supabase/client";
-import { BRANDING_BUCKET, saveOrgBranding } from "@/lib/org-branding.functions";
+import { saveOrgBranding } from "@/lib/org-branding.functions";
+
+const BRANDING_BUCKET = "org-branding";
 
 export const Route = createFileRoute("/_authenticated/settings/branding")({
   head: () => ({
