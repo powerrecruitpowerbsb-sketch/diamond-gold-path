@@ -19,7 +19,6 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
-import { Route as AuthenticatedAdminDataRouteImport } from './routes/_authenticated/admin.data'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
 import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_authenticated/admin.programs.new'
@@ -76,11 +75,6 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
 const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminDataRoute = AuthenticatedAdminDataRouteImport.update({
-  id: '/data',
-  path: '/data',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
 const AuthenticatedAdminMajorsRoute =
@@ -141,7 +135,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
@@ -160,7 +153,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
@@ -182,7 +174,6 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/_authenticated/admin/data': typeof AuthenticatedAdminDataRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
@@ -204,7 +195,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/family'
     | '/admin/audit'
-    | '/admin/data'
     | '/admin/majors'
     | '/admin/'
     | '/admin/programs/new'
@@ -223,7 +213,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/family'
     | '/admin/audit'
-    | '/admin/data'
     | '/admin/majors'
     | '/admin'
     | '/admin/programs/new'
@@ -244,7 +233,6 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/family'
     | '/_authenticated/admin/audit'
-    | '/_authenticated/admin/data'
     | '/_authenticated/admin/majors'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/programs/new'
@@ -336,13 +324,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/data': {
-      id: '/_authenticated/admin/data'
-      path: '/data'
-      fullPath: '/admin/data'
-      preLoaderRoute: typeof AuthenticatedAdminDataRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/majors': {
       id: '/_authenticated/admin/majors'
       path: '/majors'
@@ -419,7 +400,6 @@ const AuthenticatedAdminUniversitiesIdRouteWithChildren =
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
-  AuthenticatedAdminDataRoute: typeof AuthenticatedAdminDataRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminProgramsNewRoute: typeof AuthenticatedAdminProgramsNewRoute
@@ -432,7 +412,6 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
-  AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
   AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminProgramsNewRoute: AuthenticatedAdminProgramsNewRoute,
