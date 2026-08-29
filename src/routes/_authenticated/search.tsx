@@ -64,6 +64,7 @@ function SearchScreen() {
   const params = Route.useSearch();
   const navigate = useNavigate({ from: "/search" });
   const [moreOpen, setMoreOpen] = useState(params.more);
+  const compare = useCompare();
 
   const facetsFn = useServerFn(getSearchFacets);
   const searchFn = useServerFn(searchPrograms);
