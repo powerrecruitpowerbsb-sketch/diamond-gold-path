@@ -20,7 +20,7 @@ export const INVITE_ROLE_LABEL: Record<string, string> = {
 };
 
 const FAMILY_ROLES: string[] = ["parent", "player"];
-const STAFF_ROLES: string[] = ["org_admin", "org_staff"];
+const STAFF_ROLES = ["org_admin", "org_staff"] as const;
 
 type Ctx = { supabase: any; userId: string };
 
