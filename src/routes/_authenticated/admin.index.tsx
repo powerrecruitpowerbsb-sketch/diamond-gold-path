@@ -6,6 +6,7 @@ import { Building2, GraduationCap, PlusCircle, Trophy, Users } from "lucide-reac
 import { getAdminStats } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/admin/form-kit";
+import { ActivityFeed } from "@/components/admin/ActivityFeed";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminHome,
