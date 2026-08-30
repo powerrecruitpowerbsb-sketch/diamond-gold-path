@@ -17,8 +17,10 @@ type Outcome = {
   status: "success" | "partial" | "failed";
   urlResults: UrlResult[];
   proposalsCreated: number;
+  autoApplied: number;
   snapshotWritten: boolean;
   rosterPlayers: number;
+  rosterWarning: string | null;
   errorMessage: string | null;
 };
 
@@ -60,7 +62,13 @@ export function IngestPanel({ programId }: { programId: string }) {
       setOutcome(next);
       if (next.status === "failed") toast.error(next.errorMessage ?? "The data pull failed");
       else if (next.status === "partial") toast.warning("Data pull finished with some errors");
-      else toast.success(`Proposed ${next.proposalsCreated} field change(s)`);
+      else if (next.rosterWarning) toast.warning(next.rosterWarning);
+      else
+        toast.success(
+          next.autoApplied
+            ? `${next.autoApplied} verified update(s) applied, ${next.proposalsCreated} awaiting review`
+            : `${next.proposalsCreated} change(s) awaiting review`,
+        );
       await queryClient.invalidateQueries({ queryKey: ["ingest-runs", programId] });
       await queryClient.invalidateQueries({ queryKey: ["pending-changes"] });
       await queryClient.invalidateQueries({ queryKey: ["pending-changes-count"] });
@@ -78,7 +86,9 @@ export function IngestPanel({ programId }: { programId: string }) {
           <h2 className="font-display text-xl font-bold text-graphite">Data pull</h2>
           <p className="mt-1 max-w-xl text-sm text-steel">
             Scrapes the school and athletics URLs on file, extracts fields with AI, and files
-            everything into the review queue. Nothing reaches live records until you approve it.
+            everything into the review queue. Blank fields backed by an official source at high
+            confidence fill in automatically; anything that overwrites existing data, disagrees
+            between sources, or looks shaky waits for your approval.
           </p>
         </div>
         <Button
@@ -120,8 +130,18 @@ export function IngestPanel({ programId }: { programId: string }) {
             )}
             {outcome.status === "failed"
               ? "Pull failed"
-              : `Proposed ${outcome.proposalsCreated} change${outcome.proposalsCreated === 1 ? "" : "s"}`}
+              : `${outcome.proposalsCreated} change${outcome.proposalsCreated === 1 ? "" : "s"} awaiting review`}
           </p>
+          {outcome.autoApplied > 0 ? (
+            <p className="mt-1 text-sm text-graphite tabular-nums">
+              {outcome.autoApplied} high-confidence blank field
+              {outcome.autoApplied === 1 ? " was" : "s were"} filled in automatically from official
+              sources — see the activity log.
+            </p>
+          ) : null}
+          {outcome.rosterWarning ? (
+            <p className="mt-1 text-sm font-semibold text-seam-red">{outcome.rosterWarning}</p>
+          ) : null}
           {outcome.errorMessage ? (
             <p className="mt-1 text-sm text-graphite">{outcome.errorMessage}</p>
           ) : null}

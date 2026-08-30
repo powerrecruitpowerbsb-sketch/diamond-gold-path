@@ -23,8 +23,10 @@ export type IngestOutcome = {
   status: "success" | "partial" | "failed";
   urlResults: UrlResult[];
   proposalsCreated: number;
+  autoApplied: number;
   snapshotWritten: boolean;
   rosterPlayers: number;
+  rosterWarning: string | null;
   errorMessage: string | null;
 };
 
@@ -198,26 +200,87 @@ export type ExtractedPlayer = {
   is_juco_transfer?: boolean;
 };
 
-async function extractRoster(markdown: string): Promise<{ players: ExtractedPlayer[]; season_year: number | null }> {
-  const prompt = [
-    "You extract a college baseball/softball roster from an official roster page.",
-    "Return ONLY a single JSON object. No prose, no markdown fences.",
-    'Shape: { "season_year": number|null, "players": [ { "name", "position", "class_year", "bats", "throws", "hometown", "home_state", "is_transfer", "is_juco_transfer" } ] }',
-    "Include every player listed. name is required; omit any other key you cannot read for that player.",
-    "position must be one of C, 1B, 2B, 3B, SS, OF, UTIL, RHP, LHP, TWO_WAY. Map 'INF' to UTIL, 'P' with no handedness to RHP only if the page states right-handed, otherwise omit.",
-    "class_year must be one of FR, SO, JR, SR, GR (map Freshman/Redshirt Freshman to FR, Sophomore SO, Junior JR, Senior SR, Graduate GR).",
-    "bats is R, L or S. throws is R or L. If the page shows 'R/R' that means bats R, throws R.",
-    "home_state is the 2-letter US state abbreviation when the hometown is in the US.",
-    "is_juco_transfer is true only when a junior/community college is named as a previous school. is_transfer is true for any named previous four-year school.",
-    "season_year is the roster's season (e.g. 2026) if the page states it, otherwise null.",
-  ].join("\n");
-  const parsed = await extractJson(prompt, markdown);
-  const players = Array.isArray(parsed?.players) ? parsed.players : [];
-  return {
-    players: players.filter((p: any) => p && typeof p.name === "string" && p.name.trim()),
-    season_year: typeof parsed?.season_year === "number" ? parsed.season_year : null,
-  };
+const ROSTER_PROMPT = [
+  "You extract a college baseball/softball roster from an official roster page.",
+  "Return ONLY a single JSON object. No prose, no markdown fences.",
+  'Shape: { "season_year": number|null, "players": [ { "name", "position", "class_year", "bats", "throws", "hometown", "home_state", "is_transfer", "is_juco_transfer" } ] }',
+  "Include EVERY player listed in the text you are given — a full roster is usually 30-45 players. Do not stop early, do not summarize, do not sample.",
+  "name is required; omit any other key you cannot read for that player.",
+  "position must be one of C, 1B, 2B, 3B, SS, OF, UTIL, RHP, LHP, TWO_WAY. Map 'INF' to UTIL, 'P' with no handedness to RHP only if the page states right-handed, otherwise omit.",
+  "class_year must be one of FR, SO, JR, SR, GR (map Freshman/Redshirt Freshman to FR, Sophomore SO, Junior JR, Senior SR, Graduate GR).",
+  "bats is R, L or S. throws is R or L. If the page shows 'R/R' that means bats R, throws R.",
+  "home_state is the 2-letter US state abbreviation when the hometown is in the US.",
+  "is_juco_transfer is true only when a junior/community college is named as a previous school. is_transfer is true for any named previous four-year school.",
+  "season_year is the roster's season (e.g. 2026) if the page states it, otherwise null.",
+].join("\n");
+
+/** Split long roster markdown so a single reply size limit can't truncate the roster. */
+function chunkMarkdown(markdown: string, size = 14000): string[] {
+  if (markdown.length <= size) return [markdown];
+  const chunks: string[] = [];
+  const lines = markdown.split("\n");
+  let current = "";
+  for (const line of lines) {
+    if (current.length + line.length + 1 > size && current.trim()) {
+      chunks.push(current);
+      current = "";
+    }
+    current += `${line}\n`;
+  }
+  if (current.trim()) chunks.push(current);
+  return chunks;
 }
+
+/**
+ * Rough count of "looks like a roster entry" lines, used only to tell whether the
+ * AI dropped players that the page clearly listed.
+ */
+function countLikelyPlayerRows(markdown: string): number {
+  const matches = markdown.match(/^\s*\|?\s*#?\s*\d{1,2}\s*[|\t]/gm);
+  return matches ? matches.length : 0;
+}
+
+async function extractRoster(markdown: string): Promise<{
+  players: ExtractedPlayer[];
+  season_year: number | null;
+  diagnostics: { characters: number; chunks: number; likelyRows: number };
+}> {
+  const chunks = chunkMarkdown(markdown);
+  const byName = new Map<string, ExtractedPlayer>();
+  let seasonYear: number | null = null;
+  let lastError: Error | null = null;
+
+  for (const chunk of chunks) {
+    try {
+      const parsed = await extractJson(ROSTER_PROMPT, chunk);
+      if (seasonYear === null && typeof parsed?.season_year === "number") {
+        seasonYear = parsed.season_year;
+      }
+      const players = Array.isArray(parsed?.players) ? parsed.players : [];
+      for (const player of players) {
+        if (!player || typeof player.name !== "string" || !player.name.trim()) continue;
+        const key = player.name.trim().toLowerCase();
+        if (!byName.has(key)) byName.set(key, player as ExtractedPlayer);
+      }
+    } catch (failure) {
+      lastError = failure as Error;
+    }
+  }
+
+  if (!byName.size && lastError) throw lastError;
+
+  const diagnostics = {
+    characters: markdown.length,
+    chunks: chunks.length,
+    likelyRows: countLikelyPlayerRows(markdown),
+  };
+  console.log(
+    `Roster extraction: ${byName.size} players from ${diagnostics.characters} chars in ${diagnostics.chunks} chunk(s); ~${diagnostics.likelyRows} roster-looking rows on the page`,
+  );
+
+  return { players: [...byName.values()], season_year: seasonYear, diagnostics };
+}
+
 
 /** Coerce an AI value into something the column will accept, or null to skip. */
 function coerce(field: string, raw: unknown): unknown {
@@ -258,6 +321,16 @@ type ProposalRow = {
   source_url: string;
   source_type: "official";
   ai_confidence: number | null;
+  /** True when the live field is empty — filling a gap, not overwriting a value. */
+  gap_fill?: boolean;
+};
+
+/** Trust policy, in one place so it can be tuned without hunting through the pipeline. */
+export const INGEST_POLICY = {
+  /** Gap-fills from an official source at or above this confidence apply without review. */
+  autoApplyConfidence: 0.9,
+  /** A four-year roster smaller than this almost certainly means an incomplete scrape. */
+  minCredibleRoster: 15,
 };
 
 function buildFieldProposals(
@@ -282,6 +355,7 @@ function buildFieldProposals(
     const value = coerce(key, rawValue);
     if (value === null) continue;
     if (!differs(liveRecord[key], value)) continue;
+    const current = liveRecord[key];
     const score = Number(confidence[key]);
     rows.push({
       table_name: table,
@@ -291,10 +365,71 @@ function buildFieldProposals(
       source_url: sourceUrl,
       source_type: "official",
       ai_confidence: Number.isFinite(score) ? Math.min(Math.max(score, 0), 1) : null,
+      gap_fill: current === null || current === undefined || current === "",
     });
   }
   return rows;
 }
+
+/**
+ * Collapse proposals that describe the same field of the same record — two source
+ * pages routinely state the same fact. Highest confidence wins; a genuine
+ * disagreement is kept as one item that carries both candidate values.
+ */
+function mergeFieldProposals(rows: ProposalRow[]): ProposalRow[] {
+  const merged = new Map<string, ProposalRow>();
+
+  for (const row of rows) {
+    if (!row.field_name) continue;
+    const key = `${row.table_name}:${row.record_id}:${row.field_name}`;
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, { ...row });
+      continue;
+    }
+
+    const field = row.field_name;
+    const existingValue = existing.proposed_value?.[field];
+    const incomingValue = row.proposed_value?.[field];
+    const sameValue = String(existingValue).trim().toLowerCase() === String(incomingValue).trim().toLowerCase();
+
+    const winner =
+      (row.ai_confidence ?? -1) > (existing.ai_confidence ?? -1) ? { ...row } : { ...existing };
+
+    if (sameValue) {
+      // Two pages agreeing is corroboration, not a second review item.
+      winner.ai_confidence = Math.max(existing.ai_confidence ?? 0, row.ai_confidence ?? 0);
+    } else {
+      const alternates = [
+        ...((existing.proposed_value?.["_alternates"] as any[] | undefined) ?? []),
+        { value: existingValue, source_url: existing.source_url, confidence: existing.ai_confidence },
+        { value: incomingValue, source_url: row.source_url, confidence: row.ai_confidence },
+      ].filter(
+        (entry, index, all) =>
+          all.findIndex((other) => String(other.value) === String(entry.value)) === index,
+      );
+      winner.proposed_value = { ...winner.proposed_value, _alternates: alternates };
+      // A conflict always gets human eyes, whatever the model claimed.
+      winner.gap_fill = false;
+      winner.ai_confidence = Math.min(winner.ai_confidence ?? 0.5, 0.6);
+    }
+
+    merged.set(key, winner);
+  }
+
+  return [...merged.values()];
+}
+
+/** Gap-fill + official + high confidence = trusted enough to skip the queue. */
+function isAutoApplicable(row: ProposalRow): boolean {
+  return Boolean(
+    row.field_name &&
+      row.gap_fill &&
+      row.source_type === "official" &&
+      (row.ai_confidence ?? 0) >= INGEST_POLICY.autoApplyConfidence,
+  );
+}
+
 
 const POSITIONS = ["C", "1B", "2B", "3B", "SS", "OF", "UTIL", "RHP", "LHP", "TWO_WAY"];
 const CLASS_YEARS = ["FR", "SO", "JR", "SR", "GR"];
@@ -374,8 +509,10 @@ export async function ingestProgram(
       status: "failed",
       urlResults: [],
       proposalsCreated: 0,
+      autoApplied: 0,
       snapshotWritten: false,
       rosterPlayers: 0,
+      rosterWarning: null,
       errorMessage:
         "No source URLs on this program yet. Add a school website, admissions, athletics or roster URL first.",
     };
@@ -393,6 +530,8 @@ export async function ingestProgram(
   const proposals: ProposalRow[] = [];
   let snapshotWritten = false;
   let rosterPlayers = 0;
+  let rosterWarning: string | null = null;
+
 
   for (const target of targets) {
     let markdown: string;
@@ -444,20 +583,24 @@ export async function ingestProgram(
           detail: rows.length ? `${rows.length} field(s) proposed` : "nothing new found on this page",
         });
       } else {
-        const { players, season_year } = await extractRoster(markdown);
+        const { players, season_year, diagnostics } = await extractRoster(markdown);
         rosterPlayers = players.length;
         if (!players.length) {
           urlResults.push({
             url: target.url,
             purpose: target.purpose,
             status: "empty",
-            detail: "no players could be read from this page",
+            detail: `no players could be read from this page (${diagnostics.characters} characters scraped)`,
           });
           continue;
         }
 
         const summary = summarizeRoster(players);
         const seasonYear = season_year ?? new Date().getFullYear();
+        const suspicious = players.length < INGEST_POLICY.minCredibleRoster;
+        if (suspicious) {
+          rosterWarning = `Only ${players.length} players were read from the roster page — a full four-year roster is usually 30+. This looks like an incomplete scrape, so it is flagged for scrutiny instead of being trusted.`;
+        }
 
         const { error: snapshotError } = await supabase.from("roster_snapshots").insert({
           program_id: programId,
@@ -477,17 +620,25 @@ export async function ingestProgram(
           table_name: "roster_players",
           record_id: programId,
           field_name: null,
-          proposed_value: { program_id: programId, season_year: seasonYear, players } as any,
+          proposed_value: {
+            program_id: programId,
+            season_year: seasonYear,
+            players,
+            incomplete_scrape: suspicious,
+            scrape_diagnostics: diagnostics,
+          } as any,
           source_url: target.url,
           source_type: "official",
-          ai_confidence: 0.7,
+          ai_confidence: suspicious ? 0.3 : 0.7,
         });
 
         urlResults.push({
           url: target.url,
           purpose: target.purpose,
           status: "scraped",
-          detail: `${players.length} players read; snapshot saved for ${seasonYear}`,
+          detail: suspicious
+            ? `only ${players.length} players read from ${diagnostics.characters} characters — likely incomplete; snapshot saved for ${seasonYear}`
+            : `${players.length} players read; snapshot saved for ${seasonYear}`,
         });
       }
     } catch (failure) {
@@ -500,10 +651,95 @@ export async function ingestProgram(
     }
   }
 
-  if (proposals.length) {
-    const { error: insertError } = await supabase.from("pending_data_changes").insert(proposals);
-    if (insertError) throw new Error(insertError.message);
+  // --- Dedupe, then split by trust tier -------------------------------------
+  const fieldProposals = mergeFieldProposals(proposals.filter((row) => row.field_name));
+  const recordProposals = proposals.filter((row) => !row.field_name);
+
+  // Never queue the same field twice: an untouched pending item already covers it.
+  const recordIds = [...new Set(proposals.map((row) => row.record_id))];
+  const { data: existingPending } = await supabase
+    .from("pending_data_changes")
+    .select("id, table_name, record_id, field_name")
+    .eq("status", "pending")
+    .in("record_id", recordIds.length ? recordIds : ["00000000-0000-0000-0000-000000000000"]);
+
+  const alreadyPending = new Set(
+    ((existingPending ?? []) as any[])
+      .filter((row) => row.field_name)
+      .map((row) => `${row.table_name}:${row.record_id}:${row.field_name}`),
+  );
+
+  const freshFieldProposals = fieldProposals.filter(
+    (row) => !alreadyPending.has(`${row.table_name}:${row.record_id}:${row.field_name}`),
+  );
+
+  // A newer whole-record proposal supersedes an unreviewed older one.
+  const supersede = ((existingPending ?? []) as any[]).filter(
+    (row) =>
+      !row.field_name &&
+      recordProposals.some(
+        (fresh) => fresh.table_name === row.table_name && fresh.record_id === row.record_id,
+      ),
+  );
+  if (supersede.length) {
+    await supabase
+      .from("pending_data_changes")
+      .update({ status: "rejected", reviewed_by: userId, reviewed_at: new Date().toISOString() })
+      .in(
+        "id",
+        supersede.map((row) => row.id),
+      );
   }
+
+  const autoRows = freshFieldProposals.filter(isAutoApplicable);
+  const reviewRows = [
+    ...freshFieldProposals.filter((row) => !isAutoApplicable(row)),
+    ...recordProposals,
+  ];
+
+  const toInsert = [
+    ...autoRows.map((row) => ({ row, decided_via: "auto" as const })),
+    ...reviewRows.map((row) => ({ row, decided_via: "human" as const })),
+  ].map(({ row, decided_via }) => {
+    const { gap_fill: _gapFill, ...rest } = row;
+    return { ...rest, decided_via };
+  });
+
+
+  let inserted: any[] = [];
+  if (toInsert.length) {
+    const { data: insertedRows, error: insertError } = await supabase
+      .from("pending_data_changes")
+      .insert(toInsert)
+      .select(
+        "id, table_name, record_id, field_name, proposed_value, source_url, source_type, ai_confidence, status, created_at",
+      );
+    if (insertError) throw new Error(insertError.message);
+    inserted = (insertedRows ?? []) as any[];
+  }
+
+  // Trusted gap-fills apply immediately through the same writer a human approval uses,
+  // so live values, source citations and the activity log all stay on one path.
+  let autoApplied = 0;
+  if (autoRows.length && inserted.length) {
+    const { approvePending } = await import("@/lib/review.server");
+    const autoKeys = new Set(
+      autoRows.map((row) => `${row.table_name}:${row.record_id}:${row.field_name}`),
+    );
+    for (const row of inserted) {
+      if (!row.field_name) continue;
+      if (!autoKeys.has(`${row.table_name}:${row.record_id}:${row.field_name}`)) continue;
+      try {
+        await approvePending(supabase, userId, row);
+        autoApplied += 1;
+      } catch (failure) {
+        console.error(`Auto-apply failed for ${row.field_name}: ${(failure as Error).message}`);
+      }
+    }
+  }
+
+  const queuedForReview = Math.max(inserted.length - autoApplied, 0);
+
 
   const anySuccess = urlResults.some((r) => r.status === "scraped" || r.status === "empty");
   const anyFailure = urlResults.some((r) => r.status === "scrape_failed" || r.status === "extract_failed");
@@ -521,7 +757,7 @@ export async function ingestProgram(
     .update({
       status,
       url_results: urlResults,
-      proposals_created: proposals.length,
+      proposals_created: queuedForReview,
       snapshot_written: snapshotWritten,
       error_message: errorMessage,
       finished_at: new Date().toISOString(),
@@ -540,9 +776,12 @@ export async function ingestProgram(
     programLabel,
     status,
     urlResults,
-    proposalsCreated: proposals.length,
+    proposalsCreated: queuedForReview,
+    autoApplied,
     snapshotWritten,
     rosterPlayers,
+    rosterWarning,
     errorMessage,
   };
 }
+
