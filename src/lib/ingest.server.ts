@@ -91,7 +91,9 @@ function requireEnv(name: string): string {
 /** Scrape a single page to markdown. Throws with a readable reason on failure. */
 async function scrape(url: string): Promise<string> {
   const lovableKey = requireEnv("LOVABLE_API_KEY");
-  const firecrawlKey = requireEnv("FIRECRAWL_API_KEY");
+  // Power's own Firecrawl account — scrape credits bill to that plan, not the
+  // Lovable-managed allowance. Auth still rides the connector gateway.
+  const firecrawlKey = requireEnv("FIRECRAWL_API_KEY_1");
 
   const response = await fetch(`${GATEWAY_FIRECRAWL}/scrape`, {
     method: "POST",
@@ -106,6 +108,11 @@ async function scrape(url: string): Promise<string> {
   if (!response.ok) {
     const body = await response.text();
     console.error(`Firecrawl scrape failed [${response.status}] ${url}: ${body}`);
+    if (response.status === 402 || /credit limit reached|not enough credits/i.test(body)) {
+      throw new Error(
+        "the Firecrawl scraping account is out of credits — top it up before running more pulls",
+      );
+    }
     throw new Error(`scrape returned ${response.status}: ${body.slice(0, 300)}`);
   }
 
