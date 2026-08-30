@@ -143,6 +143,16 @@ export const runFederalBatch = createServerFn({ method: "POST" })
         results.push(outcome);
       } catch (failure) {
         const message = failure instanceof Error ? failure.message : "Federal sync failed";
+        const rateLimited = /rate limit/i.test(message);
+        if (rateLimited) {
+          // Not this school's fault — hand the job straight back and stop the run.
+          await context.supabase
+            .from("ingest_queue")
+            .update({ status: "pending", attempts: Math.max(item.attempts - 1, 0), leased_at: null })
+            .eq("id", item.id);
+          rateLimitHit = message;
+          break;
+        }
         await failQueueItem(context.supabase, item.id, message);
         results.push({
           universityId: item.university_id,
