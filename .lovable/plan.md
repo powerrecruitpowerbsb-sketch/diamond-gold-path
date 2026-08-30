@@ -17,6 +17,19 @@ The fix is language, not structure. Everywhere staff and families see it:
 
 No table or column renames — the schema stays as is.
 
+## Should both programs be assumed for every school?
+
+Mostly yes, so the UI should behave that way — but "both always exist" isn't safe as a hard rule: plenty of schools carry one sport and not the other (baseball-only at some NAIA/JUCO schools, softball-only at women's colleges, and D3 programs get cut or added). Collapsing to one row per school would then force us to invent divisions, conferences, and coaches that don't exist, and later force a painful un-merge.
+
+The workable middle ground, which also sets up the crawler cleanly:
+
+- When a school is added, the system **creates both a baseball and a softball program shell automatically**, each starting in an `unverified` state with no fabricated data. Staff never hand-create programs.
+- Each program carries a **sport-offered state**: `verified` (confirmed the school sponsors it), `not_offered` (confirmed it doesn't), or `unverified` (nobody has checked yet). Search shows verified programs; `not_offered` is hidden from families but visible in the admin console.
+- The school page shows **both sports side by side** — one tab/column each — so staff see the pair as one school, not two disconnected records. Families searching softball simply never see baseball rows.
+- **Crawler-ready:** the crawler is handed a list of program shells with `unverified` status and fills in governing body, division, conference, coaches, and roster URL, or flips the program to `not_offered` — no row creation, no de-duplication guessing, and every field it writes lands next to a source URL and verified date in the existing `data_field_sources` table.
+
+This is a small addition to the current schema (one status column on `programs`, plus auto-creating the pair on school creation), and it makes the language honest: a school always *has* both slots, but only the verified ones are real programs.
+
 ## Second: the Recent activity panel
 
 The current panel prints raw database rows: table names in monospace (`org_athletes`, `athlete_saved_schools`), the vague word "changed", no indication of *which* athlete or *which* school, and no person. It's a debug dump wearing a card.
