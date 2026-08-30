@@ -206,7 +206,7 @@ export const setSeasonArchived = createServerFn({ method: "POST" })
     await requireOrgActor(context as any, { adminOnly: true });
     const patch: Record<string, unknown> = { is_archived: data.archived };
     if (data.archived) patch['is_active'] = false;
-    const { error } = await context.supabase.from("seasons").update(patch).eq("id", data.id);
+    const { error } = await context.supabase.from("seasons").update(patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -697,7 +697,7 @@ export const runRollover = createServerFn({ method: "POST" })
       if (assignmentRows.length) {
         const { error: assignError } = await context.supabase
           .from("team_athletes")
-          .insert(assignmentRows);
+          .insert(assignmentRows as never);
         if (assignError) throw new Error(assignError.message);
       }
 
