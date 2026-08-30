@@ -46,6 +46,16 @@ const NCAA_SLICES = [
   { division: "III", sport: "softball", label: "D3 softball" },
 ] as const;
 
+/** Keys must match WIKI_SLICES on the server. */
+const OTHER_SLICES = [
+  { key: "naia", label: "NAIA" },
+  { key: "njcaa-d1", label: "NJCAA D1" },
+  { key: "njcaa-d2", label: "NJCAA D2" },
+  { key: "njcaa-d3", label: "NJCAA D3" },
+  { key: "cccaa", label: "CCCAA (California)" },
+  { key: "nwac", label: "NWAC (Northwest)" },
+] as const;
+
 const STAGE_LABELS: Record<string, string> = {
   federal_data: "School facts (federal data)",
   url_discovery: "Find athletics links",
@@ -55,6 +65,7 @@ const STAGE_LABELS: Record<string, string> = {
 function Pipeline() {
   const statusFn = useServerFn(getPipelineStatus);
   const importFn = useServerFn(importNcaaSlice);
+  const wikiImportFn = useServerFn(importWikiSlice);
   const federalFn = useServerFn(runFederalBatch);
   const rebuildFn = useServerFn(rebuildQueue);
   const blockedFn = useServerFn(listFederalBlocked);
