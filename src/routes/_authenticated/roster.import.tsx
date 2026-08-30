@@ -303,6 +303,11 @@ function ImportAthletes() {
         <p className="mt-1 text-sm text-steel">
           Upload, map your columns, review the preview, then import. Nothing is saved until you confirm.
         </p>
+        {ctx.hasSeasons ? (
+          <p className="mt-2 font-mono text-xs text-steel">
+            Team names are matched against teams in {ctx.season?.name ?? "the selected season"}.
+          </p>
+        ) : null}
 
         <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
           <h2 className="font-display text-lg font-bold text-graphite">1 · Upload</h2>
