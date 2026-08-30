@@ -753,7 +753,7 @@ export async function ingestProgram(
     .update({
       status,
       url_results: urlResults,
-      proposals_created: proposals.length,
+      proposals_created: queuedForReview,
       snapshot_written: snapshotWritten,
       error_message: errorMessage,
       finished_at: new Date().toISOString(),
@@ -772,9 +772,12 @@ export async function ingestProgram(
     programLabel,
     status,
     urlResults,
-    proposalsCreated: proposals.length,
+    proposalsCreated: queuedForReview,
+    autoApplied,
     snapshotWritten,
     rosterPlayers,
+    rosterWarning,
     errorMessage,
   };
 }
+
