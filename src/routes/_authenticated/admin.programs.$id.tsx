@@ -82,6 +82,7 @@ function AdminProgramDetail() {
 
       <IntelSection programId={id} />
       <RelationshipSection programId={id} />
+      <RosterHistory programId={id} />
     </div>
   );
 }
