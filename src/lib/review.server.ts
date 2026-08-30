@@ -228,19 +228,19 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
   const labels = new Map<string, string>();
 
   for (const [table, ids] of byTable) {
-    if (!REVIEW_TABLES.includes(table as ReviewTable)) continue;
-    const select =
-      table === "programs" ? "*, universities(name, state)" : "*";
-    const { data } = await supabase.from(table).select(select).in("id", [...ids]);
+    // Roster proposals point at a program, not a roster_players row.
+    const lookupTable = table === "roster_players" ? "programs" : table;
+    if (!FIELD_TABLES.includes(lookupTable as (typeof FIELD_TABLES)[number])) continue;
+    const select = lookupTable === "programs" ? "*, universities(name, state)" : "*";
+    const { data } = await supabase.from(lookupTable).select(select).in("id", [...ids]);
     for (const record of (data ?? []) as Record<string, any>[]) {
       const key = `${table}:${record["id"]}`;
-      live.set(key, record);
-      labels.set(
-        key,
-        table === "programs"
+      const label =
+        lookupTable === "programs"
           ? `${record["universities"]?.name ?? "Program"} — ${String(record["sport"] ?? "")}`
-          : String(record["name"] ?? "School"),
-      );
+          : String(record["name"] ?? "School");
+      live.set(key, record);
+      labels.set(key, table === "roster_players" ? `${label} roster` : label);
     }
   }
 
