@@ -278,17 +278,48 @@ export const createSchool = createServerFn({ method: "POST" })
       );
       // A school always gets both sport slots. Sports entered in the wizard are
       // verified; the other sport becomes an unverified shell for the crawler to fill.
-      const entered: Json[] = (data.programs ?? [])
-        .filter((p) => p && p["sport"])
-        .map((p) => ({ ...p, university_id: universityId, offering_status: "verified" }));
+      // Both go through the same shared upsert the bulk seed importer uses.
+      const { upsertUniversityAndProgram } = await import("@/lib/seed-import.server");
+      const entered = (data.programs ?? []).filter((p) => p && p["sport"]);
       const enteredSports = new Set(entered.map((p) => String(p["sport"])));
-      const shells: Json[] = (["baseball", "softball"] as const)
-        .filter((sport) => !enteredSports.has(sport))
-        .map((sport) => ({ university_id: universityId, sport, offering_status: "unverified" }));
-      const programRows: Json[] = [...entered, ...shells];
-      if (programRows.length) {
-        const { error: programError } = await context.supabase.from("programs").insert(programRows as any);
-        if (programError) throw new Error(programError.message);
+
+      for (const program of entered) {
+        await upsertUniversityAndProgram(context.supabase, {
+          universityId,
+          universityName: String(data.university["name"] ?? ""),
+          state: (data.university["state"] as string | null) ?? null,
+          sport: String(program["sport"]),
+          governingBody: (program["governing_body"] as string | null) ?? null,
+          division: (program["division"] as string | null) ?? null,
+          conference: (program["conference"] as string | null) ?? null,
+          offeringStatus: "verified",
+        });
+        // Fields the wizard collects beyond the shared seed shape.
+        const extra = Object.fromEntries(
+          Object.entries(program).filter(
+            ([field]) =>
+              !["sport", "governing_body", "division", "conference", "university_id"].includes(field),
+          ),
+        );
+        if (Object.keys(extra).length) {
+          const { error: extraError } = await context.supabase
+            .from("programs")
+            .update(extra as any)
+            .eq("university_id", universityId)
+            .eq("sport", String(program["sport"]));
+          if (extraError) throw new Error(extraError.message);
+        }
+      }
+
+      for (const sport of ["baseball", "softball"] as const) {
+        if (enteredSports.has(sport)) continue;
+        await upsertUniversityAndProgram(context.supabase, {
+          universityId,
+          universityName: String(data.university["name"] ?? ""),
+          state: (data.university["state"] as string | null) ?? null,
+          sport,
+          offeringStatus: "unverified",
+        });
       }
     } catch (failure) {
       // Compensate so a partial save never leaves an orphan school behind.
