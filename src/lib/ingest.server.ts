@@ -319,6 +319,16 @@ type ProposalRow = {
   source_url: string;
   source_type: "official";
   ai_confidence: number | null;
+  /** True when the live field is empty — filling a gap, not overwriting a value. */
+  gap_fill?: boolean;
+};
+
+/** Trust policy, in one place so it can be tuned without hunting through the pipeline. */
+export const INGEST_POLICY = {
+  /** Gap-fills from an official source at or above this confidence apply without review. */
+  autoApplyConfidence: 0.9,
+  /** A four-year roster smaller than this almost certainly means an incomplete scrape. */
+  minCredibleRoster: 15,
 };
 
 function buildFieldProposals(
@@ -343,6 +353,7 @@ function buildFieldProposals(
     const value = coerce(key, rawValue);
     if (value === null) continue;
     if (!differs(liveRecord[key], value)) continue;
+    const current = liveRecord[key];
     const score = Number(confidence[key]);
     rows.push({
       table_name: table,
@@ -352,10 +363,71 @@ function buildFieldProposals(
       source_url: sourceUrl,
       source_type: "official",
       ai_confidence: Number.isFinite(score) ? Math.min(Math.max(score, 0), 1) : null,
+      gap_fill: current === null || current === undefined || current === "",
     });
   }
   return rows;
 }
+
+/**
+ * Collapse proposals that describe the same field of the same record — two source
+ * pages routinely state the same fact. Highest confidence wins; a genuine
+ * disagreement is kept as one item that carries both candidate values.
+ */
+function mergeFieldProposals(rows: ProposalRow[]): ProposalRow[] {
+  const merged = new Map<string, ProposalRow>();
+
+  for (const row of rows) {
+    if (!row.field_name) continue;
+    const key = `${row.table_name}:${row.record_id}:${row.field_name}`;
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, { ...row });
+      continue;
+    }
+
+    const field = row.field_name;
+    const existingValue = existing.proposed_value?.[field];
+    const incomingValue = row.proposed_value?.[field];
+    const sameValue = String(existingValue).trim().toLowerCase() === String(incomingValue).trim().toLowerCase();
+
+    const winner =
+      (row.ai_confidence ?? -1) > (existing.ai_confidence ?? -1) ? { ...row } : { ...existing };
+
+    if (sameValue) {
+      // Two pages agreeing is corroboration, not a second review item.
+      winner.ai_confidence = Math.max(existing.ai_confidence ?? 0, row.ai_confidence ?? 0);
+    } else {
+      const alternates = [
+        ...((existing.proposed_value?.["_alternates"] as any[] | undefined) ?? []),
+        { value: existingValue, source_url: existing.source_url, confidence: existing.ai_confidence },
+        { value: incomingValue, source_url: row.source_url, confidence: row.ai_confidence },
+      ].filter(
+        (entry, index, all) =>
+          all.findIndex((other) => String(other.value) === String(entry.value)) === index,
+      );
+      winner.proposed_value = { ...winner.proposed_value, _alternates: alternates };
+      // A conflict always gets human eyes, whatever the model claimed.
+      winner.gap_fill = false;
+      winner.ai_confidence = Math.min(winner.ai_confidence ?? 0.5, 0.6);
+    }
+
+    merged.set(key, winner);
+  }
+
+  return [...merged.values()];
+}
+
+/** Gap-fill + official + high confidence = trusted enough to skip the queue. */
+function isAutoApplicable(row: ProposalRow): boolean {
+  return Boolean(
+    row.field_name &&
+      row.gap_fill &&
+      row.source_type === "official" &&
+      (row.ai_confidence ?? 0) >= INGEST_POLICY.autoApplyConfidence,
+  );
+}
+
 
 const POSITIONS = ["C", "1B", "2B", "3B", "SS", "OF", "UTIL", "RHP", "LHP", "TWO_WAY"];
 const CLASS_YEARS = ["FR", "SO", "JR", "SR", "GR"];
