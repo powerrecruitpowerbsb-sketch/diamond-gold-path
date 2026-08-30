@@ -278,14 +278,14 @@ export const createSchool = createServerFn({ method: "POST" })
       );
       // A school always gets both sport slots. Sports entered in the wizard are
       // verified; the other sport becomes an unverified shell for the crawler to fill.
-      const entered = (data.programs ?? [])
+      const entered: Json[] = (data.programs ?? [])
         .filter((p) => p && p["sport"])
         .map((p) => ({ ...p, university_id: universityId, offering_status: "verified" }));
       const enteredSports = new Set(entered.map((p) => String(p["sport"])));
-      const shells = (["baseball", "softball"] as const)
+      const shells: Json[] = (["baseball", "softball"] as const)
         .filter((sport) => !enteredSports.has(sport))
         .map((sport) => ({ university_id: universityId, sport, offering_status: "unverified" }));
-      const programRows = [...entered, ...shells];
+      const programRows: Json[] = [...entered, ...shells];
       if (programRows.length) {
         const { error: programError } = await context.supabase.from("programs").insert(programRows as any);
         if (programError) throw new Error(programError.message);
