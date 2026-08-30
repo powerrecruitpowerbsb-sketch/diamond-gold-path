@@ -111,8 +111,8 @@ function UniversityDetail() {
       ))}
 
       <SectionCard
-        title="Programs"
-        blurb="Baseball and softball programs attached to this school."
+        title="Programs (Baseball / Softball)"
+        blurb="Every school carries both sport slots. A slot stays unverified until staff confirm the school sponsors that sport."
         aside={
           <Button asChild variant="outline" className="touch-target">
             <Link to="/admin/programs/new" search={{ universityId: id }}>
@@ -122,15 +122,45 @@ function UniversityDetail() {
           </Button>
         }
       >
-        {data.programs.length === 0 ? (
-          <p className="text-sm text-steel">No programs yet.</p>
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {(data.programs as any[]).map((p) => (
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {(["baseball", "softball"] as const).map((sport) => {
+            const p = (data.programs as any[]).find((row) => row.sport === sport);
+            if (!p) {
+              return (
+                <li
+                  key={sport}
+                  className="rounded-lg border border-dashed border-border p-4 text-sm text-steel"
+                >
+                  <h3 className="font-display text-base font-bold text-graphite">
+                    {titleCase(sport)}
+                  </h3>
+                  <p className="mt-1">No slot yet for this sport.</p>
+                  <Link
+                    to="/admin/programs/new"
+                    search={{ universityId: id }}
+                    className="mt-2 inline-block text-xs font-semibold text-org-primary hover:underline"
+                  >
+                    Create {sport} program
+                  </Link>
+                </li>
+              );
+            }
+            return (
               <li key={p.id} className="rounded-lg border border-border p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-display text-base font-bold text-graphite">
                     {titleCase(p.sport)}
+                    <span
+                      className={`ml-2 rounded-md px-1.5 py-0.5 align-middle text-[11px] font-semibold ${
+                        (p.offering_status ?? "unverified") === "verified"
+                          ? "bg-diamond-green-tint text-diamond-green"
+                          : (p.offering_status ?? "unverified") === "not_offered"
+                            ? "bg-seam-red-tint text-seam-red"
+                            : "bg-muted text-steel"
+                      }`}
+                    >
+                      {OFFERING_STATUS_LABEL[p.offering_status ?? "unverified"]}
+                    </span>
                   </h3>
                   <Link
                     to="/admin/programs/$id"
@@ -148,9 +178,9 @@ function UniversityDetail() {
                 </p>
                 <SourceLine sourceUrl={p.coaching_staff_url} lastVerifiedAt={p.last_verified_at} />
               </li>
-            ))}
-          </ul>
-        )}
+            );
+          })}
+        </ul>
       </SectionCard>
 
       <SectionCard title="Majors offered" blurb="Assign majors from the shared catalog.">
