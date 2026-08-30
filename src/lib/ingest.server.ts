@@ -526,6 +526,8 @@ export async function ingestProgram(
   const proposals: ProposalRow[] = [];
   let snapshotWritten = false;
   let rosterPlayers = 0;
+  let rosterWarning: string | null = null;
+
 
   for (const target of targets) {
     let markdown: string;
