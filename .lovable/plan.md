@@ -49,6 +49,25 @@ That leaves the genuinely school-specific material for the existing Firecrawl pi
 
 Directory imports and federal data are free and involve no AI. The scraping layer is the only cost: roughly 3-4 pages per program plus AI extraction — which, at the rates measured on the Coastal Carolina run, is on the order of a dollar or two of AI credits for a full national pass, plus Firecrawl scrapes billed to your own account.
 
+## What you have to gather yourself: essentially none of it
+
+The lists are produced by the system, not by you. To be specific:
+
+- **The school and program lists** — produced automatically. Each governing body publishes its own member and sport-sponsorship lists on its own site, and the importers read them directly. You don't visit them or assemble spreadsheets.
+- **Division and conference** — comes with those same lists.
+- **Cost, admissions, enrollment, majors** — pulled from the federal dataset by ID. Nothing typed.
+- **Athletics site, roster page, coaching page** — found by the discovery step already built.
+- **Coaches and rosters** — scraped from each program's own pages.
+
+What actually needs you is judgment, not data entry:
+
+- Reviewing the low-confidence discovered links (the queue already surfaces those first).
+- Deciding on schools the federal match couldn't resolve confidently — a short list, not thousands.
+- Spot-checking a sample per governing body before we run wide, so we catch a parser reading a directory wrong early.
+- Anything Power knows that no public source publishes: recruiting intelligence, relationship notes, coach tendencies.
+
+One caveat worth naming up front: I can't verify from here exactly how each of the five bodies exposes its member list — some are clean pages, some may be behind a search form or an interactive widget. If one turns out to be genuinely unreadable, the fallback for that body is a one-time list from a reputable aggregate source or a single CSV, then the automated refresh takes over from there. I'll confirm each source as I build its importer rather than assume.
+
 ## Suggested order of work
 
 1. NCAA directory importer, run for baseball and softball across all three divisions — the largest single chunk of the universe.
