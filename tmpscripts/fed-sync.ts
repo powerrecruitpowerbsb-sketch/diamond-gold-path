@@ -27,6 +27,7 @@ console.log("enqueued missing work:", created);
 let done = 0;
 let failed = 0;
 let needsHelp = 0;
+let rateLimited = false;
 
 // api.data.gov allows 1,000 requests an hour per key, so requests are paced to
 // stay just under that instead of burning the budget and failing the rest.
@@ -58,6 +59,14 @@ async function work(item: any) {
       );
     }
   } catch (error) {
+    if (/rate limiting/i.test((error as Error).message)) {
+      await supabase
+        .from("ingest_queue")
+        .update({ status: "pending", attempts: 0, leased_at: null, updated_at: new Date().toISOString() })
+        .eq("id", item.id);
+      rateLimited = true;
+      return;
+    }
     failed += 1;
     await failQueueItem(supabase, item.id, (error as Error).message);
     console.error("fail", item.university_id, (error as Error).message.slice(0, 120));
@@ -78,6 +87,11 @@ for (;;) {
     }),
   );
   console.log(`progress: confirmed=${done} needsHelp=${needsHelp} errors=${failed}`);
+  if (rateLimited) {
+    rateLimited = false;
+    console.log("rate limited — waiting 10 minutes for the hourly window to roll over");
+    await new Promise((resolve) => setTimeout(resolve, 10 * 60_000));
+  }
 }
 console.log(`FINISHED confirmed=${done} needsHelp=${needsHelp} errors=${failed}`);
 
