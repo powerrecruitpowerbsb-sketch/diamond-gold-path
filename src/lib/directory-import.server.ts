@@ -130,7 +130,7 @@ export async function importDirectoryRows(
           governingBody: row.governingBody,
           division: row.division,
           conference: row.conference,
-          offeringStatus: "verified",
+          offeringStatus: row.offeringStatus ?? "verified",
         },
         schools,
       );
