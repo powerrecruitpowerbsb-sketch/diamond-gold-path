@@ -116,7 +116,11 @@ type MemberRow = {
 function tableRows(wikitext: string): string[][] {
   const start = wikitext.indexOf('{|');
   if (start < 0) return [];
-  const table = wikitext.slice(start);
+  // Only the first table: pages usually follow the member list with unrelated
+  // tables (sports sponsored, championship history).
+  const rest = wikitext.slice(start);
+  const end = rest.search(/\n\|\}/);
+  const table = end >= 0 ? rest.slice(0, end) : rest;
   return table
     .split(/\n\|-/)
     .slice(1)
