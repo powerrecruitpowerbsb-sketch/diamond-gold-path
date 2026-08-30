@@ -306,7 +306,7 @@ export const createSchool = createServerFn({ method: "POST" })
             .from("programs")
             .update(extra as any)
             .eq("university_id", universityId)
-            .eq("sport", String(program["sport"]));
+            .eq("sport", String(program["sport"]) as any);
           if (extraError) throw new Error(extraError.message);
         }
       }
