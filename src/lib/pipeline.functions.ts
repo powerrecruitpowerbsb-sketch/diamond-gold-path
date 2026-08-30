@@ -26,7 +26,7 @@ export const getPipelineStatus = createServerFn({ method: "GET" })
     // Counts come from the database rather than from fetched rows: a full-table
     // read caps at 1,000 rows, which would understate a national universe.
     const count = (table: string, apply: (q: any) => any = (q) => q) =>
-      apply(context.supabase.from(table).select("id", { count: "exact", head: true })).then(
+      apply((context.supabase as any).from(table).select("id", { count: "exact", head: true })).then(
         ({ count: value, error }: any) => {
           if (error) throw new Error(error.message);
           return value ?? 0;
