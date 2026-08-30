@@ -461,19 +461,8 @@ export const listAuditLog = createServerFn({ method: "GET" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
-    const actorIds = [...new Set(((rows ?? []) as any[]).map((r) => r.actor_id).filter(Boolean))];
-    const actorMap = new Map<string, string>();
-    if (actorIds.length) {
-      const { data: actors } = await context.supabase
-        .from("users")
-        .select("id, name, email")
-        .in("id", actorIds);
-      for (const a of (actors ?? []) as any[]) actorMap.set(a.id, a.name || a.email || a.id);
-    }
-    return ((rows ?? []) as any[]).map((r) => ({
-      ...r,
-      actorLabel: r.actor_id ? (actorMap.get(r.actor_id) ?? "Unknown user") : "System",
-    }));
+    const { enrichAuditRows } = await import("@/lib/audit-enrich.server");
+    return await enrichAuditRows(context.supabase, (rows ?? []) as any[]);
   });
 
 export const listInvites = createServerFn({ method: "GET" })
