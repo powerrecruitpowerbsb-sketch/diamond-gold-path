@@ -1,0 +1,415 @@
+/**
+ * Server-only URL discovery: find a school's official athletics site with a real
+ * web search (never model recall), then map that site for sport-specific roster
+ * and coaching pages. Everything lands in url_discovery_queue for staff review —
+ * live records are never written here.
+ */
+
+const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
+
+export type DiscoveryType = "athletic_website" | "roster_page" | "coaching_staff_page";
+export type Confidence = "high" | "low" | "failed";
+
+export type DiscoveryResult = {
+  discoveryType: DiscoveryType;
+  programId: string | null;
+  sport: string | null;
+  url: string | null;
+  confidence: Confidence;
+  notes: string;
+};
+
+export type DiscoveryOutcome = {
+  universityId: string;
+  universityName: string;
+  results: DiscoveryResult[];
+  errorMessage: string | null;
+};
+
+/** Never propose one of these as a school's own athletics site. */
+const NON_OFFICIAL = [
+  "wikipedia.org",
+  "ncaa.com",
+  "ncaa.org",
+  "naia.org",
+  "njcaa.org",
+  "facebook.com",
+  "instagram.com",
+  "x.com",
+  "twitter.com",
+  "youtube.com",
+  "linkedin.com",
+  "maxpreps.com",
+  "rivals.com",
+  "247sports.com",
+  "hudl.com",
+  "prepbaseballreport.com",
+  "perfectgame.org",
+  "collegefactual.com",
+  "niche.com",
+  "usnews.com",
+  "athleticnet.com",
+  "eab.com",
+  "indeed.com",
+];
+
+const NAME_STOPWORDS = new Set([
+  "university",
+  "college",
+  "of",
+  "the",
+  "at",
+  "and",
+  "community",
+  "school",
+  "institute",
+  "campus",
+]);
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not configured`);
+  return value;
+}
+
+async function firecrawl(path: string, body: unknown): Promise<any> {
+  const lovableKey = requireEnv("LOVABLE_API_KEY");
+  // Power's own Firecrawl account — search/map credits bill to that plan.
+  const firecrawlKey = requireEnv("FIRECRAWL_API_KEY_1");
+
+  const response = await fetch(`${GATEWAY_FIRECRAWL}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": firecrawlKey,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`Firecrawl ${path} failed [${response.status}]: ${text}`);
+    if (response.status === 402 || /credit limit reached|not enough credits/i.test(text)) {
+      throw new Error(
+        "the Firecrawl scraping account is out of credits — top it up before running more discovery",
+      );
+    }
+    throw new Error(`Firecrawl ${path} returned ${response.status}: ${text.slice(0, 200)}`);
+  }
+  return response.json();
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function nameTokens(name: string): string[] {
+  return String(name ?? "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !NAME_STOPWORDS.has(token));
+}
+
+/** 0-1: how much of the school's name shows up in the host name. */
+export function nameMatchScore(name: string, url: string): number {
+  const host = hostOf(url).replace(/\.[a-z.]+$/i, "");
+  if (!host) return 0;
+  const tokens = nameTokens(name);
+  if (!tokens.length) return 0;
+  const flat = host.replace(/[^a-z0-9]/g, "");
+  let hits = 0;
+  for (const token of tokens) {
+    const stem = token.slice(0, Math.max(4, Math.min(token.length, 6)));
+    if (flat.includes(stem)) hits += 1;
+  }
+  // Initialisms: "goutsa.com" for "University of Texas at San Antonio".
+  const initials = tokens.map((t) => t[0]).join("");
+  if (initials.length >= 2 && flat.includes(initials)) hits = Math.max(hits, tokens.length - 1);
+  return hits / tokens.length;
+}
+
+function looksLikeAthletics(url: string, title: string): boolean {
+  const host = hostOf(url);
+  const path = (() => {
+    try {
+      return new URL(url).pathname.toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
+  return (
+    /athletic|sports|gogriz|^go[a-z]/.test(host) ||
+    /athletic|sports/.test(host) ||
+    /^\/athletics?/.test(path) ||
+    /athletics/i.test(title)
+  );
+}
+
+export function isNonOfficial(url: string): boolean {
+  const host = hostOf(url);
+  return NON_OFFICIAL.some((bad) => host === bad || host.endsWith(`.${bad}`));
+}
+
+type Candidate = { url: string; title: string };
+
+function readSearchResults(payload: any): Candidate[] {
+  const raw = Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload?.data?.web)
+      ? payload.data.web
+      : Array.isArray(payload?.web)
+        ? payload.web
+        : [];
+  return raw
+    .map((row: any) => ({ url: String(row?.url ?? ""), title: String(row?.title ?? "") }))
+    .filter((row: Candidate) => /^https?:\/\//i.test(row.url));
+}
+
+/** Search the web for the school's athletics site and score the best candidate. */
+export async function discoverAthleticWebsite(
+  name: string,
+  state: string | null,
+): Promise<DiscoveryResult> {
+  const query = `${name}${state ? ` ${state}` : ""} official athletics website`;
+  const payload = await firecrawl("/search", { query, limit: 8 });
+  const candidates = readSearchResults(payload).filter((row) => !isNonOfficial(row.url));
+
+  if (!candidates.length) {
+    return {
+      discoveryType: "athletic_website",
+      programId: null,
+      sport: null,
+      url: null,
+      confidence: "failed",
+      notes: "Web search returned no plausible official athletics site.",
+    };
+  }
+
+  const scored = candidates
+    .map((row) => {
+      const score = nameMatchScore(name, row.url);
+      const athletics = looksLikeAthletics(row.url, row.title);
+      return { ...row, score, athletics };
+    })
+    .sort((a, b) => Number(b.athletics) - Number(a.athletics) || b.score - a.score);
+
+  const best = scored[0]!;
+  const origin = (() => {
+    try {
+      return new URL(best.url).origin;
+    } catch {
+      return best.url;
+    }
+  })();
+
+  const rivals = scored.filter(
+    (row) => row !== best && row.athletics && row.score >= best.score - 0.15,
+  );
+
+  const reasons: string[] = [];
+  if (!best.athletics) reasons.push("domain doesn't look like an athletics site");
+  if (best.score < 0.5) reasons.push("school name only loosely matches the domain");
+  if (rivals.length) reasons.push(`${rivals.length} other similar candidate(s) came back`);
+
+  return {
+    discoveryType: "athletic_website",
+    programId: null,
+    sport: null,
+    url: origin,
+    confidence: reasons.length ? "low" : "high",
+    notes: reasons.length
+      ? `Needs a look: ${reasons.join("; ")}.`
+      : `Athletics domain matches the school name (${Math.round(best.score * 100)}% of name words).`,
+  };
+}
+
+const ROSTER_PATTERN = /roster/i;
+const COACH_PATTERN = /coach|staff|directory/i;
+
+function sportPattern(sport: string): RegExp {
+  return sport === "softball" ? /softball|sball/i : /baseball|bsb/i;
+}
+
+function readMapLinks(payload: any): string[] {
+  const raw = Array.isArray(payload?.links)
+    ? payload.links
+    : Array.isArray(payload?.data?.links)
+      ? payload.data.links
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+  return raw
+    .map((row: any) => (typeof row === "string" ? row : String(row?.url ?? "")))
+    .filter((url: string) => /^https?:\/\//i.test(url));
+}
+
+function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
+  const sportRe = sportPattern(sport);
+  const kindRe = kind === "roster" ? ROSTER_PATTERN : COACH_PATTERN;
+  const matches = links.filter((url) => sportRe.test(url) && kindRe.test(url));
+  if (matches.length) {
+    // Shortest path wins: "/sports/baseball/roster" over a year-archive variant.
+    matches.sort((a, b) => a.length - b.length);
+    return { url: matches[0]!, confidence: "high" as Confidence, note: "Sport-specific page found in the site map." };
+  }
+  const loose = links.filter((url) => kindRe.test(url) && /sports|athletic/i.test(url));
+  if (loose.length) {
+    loose.sort((a, b) => a.length - b.length);
+    return {
+      url: loose[0]!,
+      confidence: "low" as Confidence,
+      note: "Page matched the link pattern but isn't clearly sport-specific.",
+    };
+  }
+  return null;
+}
+
+/** Map the athletics site and pick roster + coaching pages per sport program. */
+export async function discoverProgramPages(
+  athleticSite: string,
+  programs: { id: string; sport: string }[],
+): Promise<DiscoveryResult[]> {
+  const results: DiscoveryResult[] = [];
+  const links = new Set<string>();
+
+  for (const term of ["roster", "coaches"]) {
+    try {
+      const payload = await firecrawl("/map", { url: athleticSite, search: term, limit: 300 });
+      for (const link of readMapLinks(payload)) links.add(link);
+    } catch (failure) {
+      console.error("Firecrawl map failed", failure);
+    }
+  }
+
+  const all = [...links];
+
+  for (const program of programs) {
+    for (const kind of ["roster", "coach"] as const) {
+      const discoveryType: DiscoveryType = kind === "roster" ? "roster_page" : "coaching_staff_page";
+      const pick = all.length ? pickPageUrl(all, program.sport, kind) : null;
+      results.push({
+        discoveryType,
+        programId: program.id,
+        sport: program.sport,
+        url: pick?.url ?? null,
+        confidence: pick?.confidence ?? "failed",
+        notes:
+          pick?.note ??
+          (all.length
+            ? `No ${kind === "roster" ? "roster" : "coaching staff"} page found for ${program.sport}.`
+            : "The athletics site returned no mappable links."),
+      });
+    }
+  }
+
+  return results;
+}
+
+/** One school end to end: search, map, then stage every result for review. */
+export async function discoverUniversityUrls(
+  supabase: any,
+  universityId: string,
+): Promise<DiscoveryOutcome> {
+  const { data: school, error } = await supabase
+    .from("universities")
+    .select("id, name, state, athletic_site:website_url")
+    .eq("id", universityId)
+    .single();
+  if (error) throw new Error(error.message);
+
+  const name = String((school as any).name ?? "");
+  const state = ((school as any).state ?? null) as string | null;
+
+  const { data: programs, error: programError } = await supabase
+    .from("programs")
+    .select("id, sport")
+    .eq("university_id", universityId);
+  if (programError) throw new Error(programError.message);
+
+  const results: DiscoveryResult[] = [];
+  let errorMessage: string | null = null;
+
+  try {
+    const site = await discoverAthleticWebsite(name, state);
+    results.push(site);
+    if (site.url) {
+      const pageResults = await discoverProgramPages(
+        site.url,
+        (programs ?? []) as { id: string; sport: string }[],
+      );
+      results.push(...pageResults);
+    }
+  } catch (failure) {
+    errorMessage = failure instanceof Error ? failure.message : "Discovery failed";
+  }
+
+  for (const result of results) {
+    // Refresh the open proposal for this school/program/link kind rather than
+    // stacking duplicates in the queue on a re-run.
+    await supabase
+      .from("url_discovery_queue")
+      .delete()
+      .eq("university_id", universityId)
+      .eq("discovery_type", result.discoveryType)
+      .eq("status", "pending_review")
+      .filter("program_id", result.programId ? "eq" : "is", result.programId ?? null);
+
+    const { error: insertError } = await supabase.from("url_discovery_queue").insert({
+      university_id: universityId,
+      program_id: result.programId,
+      discovery_type: result.discoveryType,
+      discovered_url: result.url,
+      confidence: result.confidence,
+      notes: result.notes,
+    });
+    if (insertError) console.error("Could not queue discovered URL", insertError.message);
+  }
+
+  return { universityId, universityName: name, results, errorMessage };
+}
+
+/** Write a confirmed URL into the live field it belongs to. */
+export async function applyDiscoveredUrl(
+  supabase: any,
+  row: {
+    id: string;
+    university_id: string;
+    program_id: string | null;
+    discovery_type: DiscoveryType;
+    discovered_url: string | null;
+  },
+) {
+  if (!row.discovered_url) throw new Error("There's no URL on this item to confirm");
+
+  if (row.discovery_type === "athletic_website") {
+    const { error } = await supabase
+      .from("universities")
+      .update({ website_url: row.discovered_url })
+      .eq("id", row.university_id);
+    if (error) throw new Error(error.message);
+
+    // The school's athletics site is also the program-level athletics link.
+    const { error: programError } = await supabase
+      .from("programs")
+      .update({ athletic_website: row.discovered_url })
+      .eq("university_id", row.university_id)
+      .is("athletic_website", null);
+    if (programError) throw new Error(programError.message);
+    return;
+  }
+
+  if (!row.program_id) throw new Error("This item isn't linked to a program");
+  const field = row.discovery_type === "roster_page" ? "roster_url" : "coaching_staff_url";
+  const { error } = await supabase
+    .from("programs")
+    .update({ [field]: row.discovered_url })
+    .eq("id", row.program_id);
+  if (error) throw new Error(error.message);
+}
