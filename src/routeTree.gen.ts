@@ -21,6 +21,7 @@ import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
+import { Route as AuthenticatedAdminDiscoveryRouteImport } from './routes/_authenticated/admin.discovery'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedAdminReviewRouteImport } from './routes/_authenticated/admin.review'
 import { Route as AuthenticatedAdminSeedImportRouteImport } from './routes/_authenticated/admin.seed-import'
@@ -100,6 +101,12 @@ const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminDiscoveryRoute =
+  AuthenticatedAdminDiscoveryRouteImport.update({
+    id: '/discovery',
+    path: '/discovery',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminMajorsRoute =
   AuthenticatedAdminMajorsRouteImport.update({
     id: '/majors',
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/family': typeof AuthenticatedFamilyRoute
   '/search': typeof AuthenticatedSearchRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
@@ -254,6 +262,7 @@ export interface FileRoutesByTo {
   '/family': typeof AuthenticatedFamilyRoute
   '/search': typeof AuthenticatedSearchRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
@@ -288,6 +297,7 @@ export interface FileRoutesById {
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/admin/review': typeof AuthenticatedAdminReviewRoute
   '/_authenticated/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/search'
     | '/admin/audit'
+    | '/admin/discovery'
     | '/admin/majors'
     | '/admin/review'
     | '/admin/seed-import'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/search'
     | '/admin/audit'
+    | '/admin/discovery'
     | '/admin/majors'
     | '/admin/review'
     | '/admin/seed-import'
@@ -386,6 +398,7 @@ export interface FileRouteTypes {
     | '/_authenticated/family'
     | '/_authenticated/search'
     | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/discovery'
     | '/_authenticated/admin/majors'
     | '/_authenticated/admin/review'
     | '/_authenticated/admin/seed-import'
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/admin/audit'
       preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/discovery': {
+      id: '/_authenticated/admin/discovery'
+      path: '/discovery'
+      fullPath: '/admin/discovery'
+      preLoaderRoute: typeof AuthenticatedAdminDiscoveryRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/majors': {
@@ -640,6 +660,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminDiscoveryRoute: typeof AuthenticatedAdminDiscoveryRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
   AuthenticatedAdminReviewRoute: typeof AuthenticatedAdminReviewRoute
   AuthenticatedAdminSeedImportRoute: typeof AuthenticatedAdminSeedImportRoute
@@ -656,6 +677,7 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminDiscoveryRoute: AuthenticatedAdminDiscoveryRoute,
   AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
   AuthenticatedAdminReviewRoute: AuthenticatedAdminReviewRoute,
   AuthenticatedAdminSeedImportRoute: AuthenticatedAdminSeedImportRoute,
