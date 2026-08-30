@@ -266,7 +266,11 @@ export async function searchScorecard(name: string, state: string | null): Promi
     per_page: "20",
     "school.operating": "1",
   });
-  params.set("school.name", name);
+  // A comma in the name is read by the federal API as a list separator and
+  // makes the whole request fail, so "University of California, Berkeley"
+  // is searched as "University of California Berkeley".
+  params.set("school.name", name.replace(/,/g, " ").replace(/\s+/g, " ").trim());
+
   if (state) params.set("school.state", state);
 
   return scorecardFetch(params);
