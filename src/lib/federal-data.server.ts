@@ -334,6 +334,20 @@ export async function syncUniversityFromFederal(
   let fieldsQueued = 0;
 
   if (proposals.length) {
+    // A field can only have one open proposal at a time; the freshest federal
+    // read replaces whatever an earlier run left waiting.
+    const { error: clearError } = await supabase
+      .from("pending_data_changes")
+      .delete()
+      .eq("table_name", "universities")
+      .eq("record_id", universityId)
+      .eq("status", "pending")
+      .in(
+        "field_name",
+        proposals.map((p) => p.field_name),
+      );
+    if (clearError) throw new Error(clearError.message);
+
     const { data: inserted, error: insertError } = await supabase
       .from("pending_data_changes")
       .insert(proposals.map(({ _gapFill: _ignored, ...rest }) => rest))
