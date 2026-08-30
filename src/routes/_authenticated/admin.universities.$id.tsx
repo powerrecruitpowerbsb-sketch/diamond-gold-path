@@ -79,6 +79,15 @@ function UniversityDetail() {
               </a>
             </Button>
           ) : null}
+          <Button
+            variant="outline"
+            className="touch-target border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            disabled={discover.isPending}
+            onClick={() => discover.mutate()}
+          >
+            <Radar className="size-4" aria-hidden />
+            {discover.isPending ? "Finding links…" : "Find links"}
+          </Button>
         </div>
       </div>
 
