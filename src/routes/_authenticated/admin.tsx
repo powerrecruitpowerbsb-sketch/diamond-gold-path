@@ -77,6 +77,11 @@ function AdminLayout() {
           </Link>
         ))}
       </nav>
+      <p className="mb-6 -mt-4 text-xs text-steel">
+        <strong className="font-semibold text-graphite">Schools</strong> hold academics and cost.{" "}
+        <strong className="font-semibold text-graphite">Programs</strong> are the baseball or softball
+        team at a school — division, conference, coaches, roster, and our intelligence.
+      </p>
       <Outlet />
     </AppShell>
   );
