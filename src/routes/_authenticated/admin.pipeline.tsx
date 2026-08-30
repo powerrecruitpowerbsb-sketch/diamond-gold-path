@@ -98,7 +98,12 @@ function Pipeline() {
       note(
         `Federal data: ${result.processed} school(s) · ${result.fieldsApplied} field(s) filled · ${result.fieldsQueued} queued for review · ${result.needsHelp} need your help`,
       );
-      toast.success(`${result.processed} school(s) processed`);
+      if (result.rateLimitHit) {
+        note("Stopped early: the federal data service is rate limiting us. Add an api.data.gov key.");
+        toast.warning("Paused — federal data rate limit reached");
+      } else {
+        toast.success(`${result.processed} school(s) processed`);
+      }
       await refresh();
     } catch (failure) {
       toast.error(failure instanceof Error ? failure.message : "Federal sync failed");
