@@ -253,7 +253,9 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
       ...row,
       recordLabel: key ? (labels.get(key) ?? null) : null,
       currentValue: (currentValue ?? null) as Json,
-      currentRecord: (row.field_name ? null : (record ?? null)) as Json,
+      currentRecord: (row.field_name || row.table_name === "roster_players"
+        ? null
+        : (record ?? null)) as Json,
     };
   });
 }
