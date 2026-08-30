@@ -73,6 +73,11 @@ function display(value: unknown): string {
   return String(value);
 }
 
+function rosterPlayers(value: unknown): Record<string, unknown>[] {
+  const players = (value as { players?: unknown } | null)?.players;
+  return Array.isArray(players) ? (players as Record<string, unknown>[]) : [];
+}
+
 function fieldLabel(name: string) {
   return name.replace(/_/g, " ").replace(/\burl\b/i, "URL");
 }
