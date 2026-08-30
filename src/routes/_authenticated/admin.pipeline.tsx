@@ -75,13 +75,33 @@ function Pipeline() {
     await queryClient.invalidateQueries({ queryKey: ["federal-blocked"] });
   }
 
+  /** Walk one slice in windows until the whole division/sport list is loaded. */
+  async function importSliceFully(division: string, sport: string, label: string) {
+    let offset = 0;
+    let schoolsCreated = 0;
+    let programsCreated = 0;
+    let programsUpdated = 0;
+    let total = 0;
+    for (let guard = 0; guard < 40; guard += 1) {
+      const result = (await importFn({ data: { division, sport, offset, limit: 60 } })) as any;
+      schoolsCreated += result.schoolsCreated;
+      programsCreated += result.programsCreated;
+      programsUpdated += result.programsUpdated;
+      total = result.total;
+      offset = result.nextOffset;
+      note(`${label}: ${offset}/${total} processed…`);
+      if (result.done) break;
+    }
+    note(
+      `${label}: ${total} listed · ${schoolsCreated} new schools · ${programsCreated} new programs · ${programsUpdated} updated`,
+    );
+    return { total, schoolsCreated, programsCreated, programsUpdated };
+  }
+
   async function onImportSlice(division: string, sport: string, label: string) {
     setBusy(label);
     try {
-      const result = (await importFn({ data: { division, sport } })) as any;
-      note(
-        `${label}: ${result.fetched} listed · ${result.schoolsCreated} new schools · ${result.programsCreated} new programs · ${result.programsUpdated} updated`,
-      );
+      await importSliceFully(division, sport, label);
       toast.success(`${label} imported`);
       await refresh();
     } catch (failure) {
@@ -90,6 +110,23 @@ function Pipeline() {
       setBusy(null);
     }
   }
+
+  /** The whole NCAA universe, unattended. */
+  async function onImportAllNcaa() {
+    setBusy("all-ncaa");
+    try {
+      for (const slice of NCAA_SLICES) {
+        await importSliceFully(slice.division, slice.sport, slice.label);
+      }
+      toast.success("Full NCAA membership list imported");
+      await refresh();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Import failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
 
   async function onFederalBatch(limit: number) {
     setBusy("federal");
