@@ -259,3 +259,128 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
     };
   });
 }
+
+// --- Grouping -------------------------------------------------------------
+// At quarterly scale the queue is thousands of items, so it is presented as one
+// group per school (its own details plus every program under it) rather than a
+// flat list of fields.
+
+export type DecoratedRow = Awaited<ReturnType<typeof decoratePending>>[number];
+
+export type PendingGroup = {
+  key: string;
+  schoolId: string | null;
+  schoolName: string;
+  /** Programs represented in this group, e.g. ["Baseball", "Softball"]. */
+  programs: string[];
+  items: DecoratedRow[];
+  conflicts: number;
+  lowConfidence: number;
+  hasRoster: boolean;
+  hasNewRecord: boolean;
+  /** Highest risk first: conflicts, then unscored/low confidence. */
+  riskScore: number;
+};
+
+function hasConflict(row: DecoratedRow): boolean {
+  const value = row.proposed_value as Record<string, unknown> | null;
+  return Boolean(
+    value && typeof value === "object" && Array.isArray((value as any)["_alternates"]),
+  );
+}
+
+/** Build school-level groups out of decorated pending rows. */
+export async function groupPending(supabase: any, rows: DecoratedRow[]): Promise<PendingGroup[]> {
+  const programIds = [
+    ...new Set(
+      rows
+        .filter((row) => row.table_name === "programs" || row.table_name === "roster_players")
+        .map((row) => row.record_id)
+        .filter(Boolean) as string[],
+    ),
+  ];
+
+  const programToSchool = new Map<string, { schoolId: string; schoolName: string; sport: string }>();
+  if (programIds.length) {
+    const { data } = await supabase
+      .from("programs")
+      .select("id, sport, university_id, universities(name)")
+      .in("id", programIds);
+    for (const program of (data ?? []) as any[]) {
+      programToSchool.set(program.id, {
+        schoolId: program.university_id,
+        schoolName: program.universities?.name ?? "School",
+        sport: String(program.sport ?? ""),
+      });
+    }
+  }
+
+  const schoolIds = [
+    ...new Set(
+      rows
+        .filter((row) => row.table_name === "universities")
+        .map((row) => row.record_id)
+        .filter(Boolean) as string[],
+    ),
+  ];
+  const schoolNames = new Map<string, string>();
+  if (schoolIds.length) {
+    const { data } = await supabase.from("universities").select("id, name").in("id", schoolIds);
+    for (const school of (data ?? []) as any[]) schoolNames.set(school.id, school.name);
+  }
+
+  const groups = new Map<string, PendingGroup>();
+
+  for (const row of rows) {
+    let schoolId: string | null = null;
+    let schoolName = "New submission";
+    let sport = "";
+
+    if (row.table_name === "universities" && row.record_id) {
+      schoolId = row.record_id;
+      schoolName = schoolNames.get(row.record_id) ?? "School";
+    } else if (row.record_id) {
+      const program = programToSchool.get(row.record_id);
+      if (program) {
+        schoolId = program.schoolId;
+        schoolName = program.schoolName;
+        sport = program.sport;
+      }
+    }
+
+    const key = schoolId ?? `unassigned:${row.table_name}:${row.id}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        schoolId,
+        schoolName,
+        programs: [],
+        items: [],
+        conflicts: 0,
+        lowConfidence: 0,
+        hasRoster: false,
+        hasNewRecord: false,
+        riskScore: 0,
+      });
+    }
+
+    const group = groups.get(key)!;
+    group.items.push(row);
+    if (sport && !group.programs.includes(sport)) group.programs.push(sport);
+    if (hasConflict(row)) group.conflicts += 1;
+    if ((row.ai_confidence ?? -1) < 0.7) group.lowConfidence += 1;
+    if (row.table_name === "roster_players") group.hasRoster = true;
+    if (!row.record_id) group.hasNewRecord = true;
+  }
+
+  const list = [...groups.values()].map((group) => ({
+    ...group,
+    riskScore: group.conflicts * 100 + group.lowConfidence * 10 + (group.hasNewRecord ? 5 : 0),
+  }));
+
+  list.sort((a, b) => b.riskScore - a.riskScore || a.schoolName.localeCompare(b.schoolName));
+  for (const group of list) {
+    group.items.sort((a, b) => (a.ai_confidence ?? -1) - (b.ai_confidence ?? -1));
+  }
+  return list;
+}
