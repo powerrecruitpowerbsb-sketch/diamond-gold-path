@@ -82,6 +82,17 @@ export async function approvePending(supabase: any, userId: string, row: Pending
   assertReviewable(row.table_name);
   if (row.status !== "pending") throw new Error("Already reviewed");
 
+  if (row.table_name === "roster_players") {
+    await applyRosterProposal(supabase, row);
+    const { error: rosterStatusError } = await supabase
+      .from("pending_data_changes")
+      .update({ status: "approved", reviewed_by: userId, reviewed_at: new Date().toISOString() })
+      .eq("id", row.id)
+      .eq("status", "pending");
+    if (rosterStatusError) throw new Error(rosterStatusError.message);
+    return { id: row.id, recordId: row.record_id };
+  }
+
   const allowed = new Set(allowedFields(row.table_name));
   let recordId = row.record_id;
 
