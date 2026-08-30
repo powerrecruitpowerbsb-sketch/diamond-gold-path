@@ -394,7 +394,7 @@ function SearchScreen() {
             >
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-display text-lg leading-snug font-bold text-org-primary group-hover:underline">
-                  {row.university?.name}
+                  {row.university?.name} — {titleCase(row.sport)}
                 </h3>
                 <span className="shrink-0 rounded-md bg-org-primary px-2 py-1 text-[11px] font-bold text-white">
                   {[row.governing_body, row.division].filter(Boolean).join(" ") || "—"}
