@@ -205,7 +205,6 @@ function RosterScreen() {
               ))
             )}
 
-            )}
           </tbody>
         </table>
       </div>

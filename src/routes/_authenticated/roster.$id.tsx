@@ -21,6 +21,13 @@ import {
   updateShortlistEntry,
   type ShortlistStatus,
 } from "@/lib/shortlist.functions";
+import { ATHLETE_STATUS_LABEL, type AthleteStatus } from "@/lib/season-constants";
+import {
+  assignAthleteToTeam,
+  getAthleteSeasonHistory,
+  setAthleteStatus,
+} from "@/lib/seasons.functions";
+import { useSeasonContext } from "@/hooks/use-season-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/roster/$id")({
@@ -56,6 +63,10 @@ function AthleteDetail() {
   const visibilityFn = useServerFn(setNoteVisibility);
   const updateEntryFn = useServerFn(updateShortlistEntry);
   const removeEntryFn = useServerFn(removeShortlistEntry);
+  const historyFn = useServerFn(getAthleteSeasonHistory);
+  const statusFn = useServerFn(setAthleteStatus);
+  const assignFn = useServerFn(assignAthleteToTeam);
+  const ctx = useSeasonContext();
   const queryClient = useQueryClient();
   const [note, setNote] = useState("");
   const [visibleToParent, setVisibleToParent] = useState(false);
@@ -66,8 +77,17 @@ function AthleteDetail() {
     retry: false,
   });
 
+  const { data: history } = useQuery({
+    queryKey: ["athlete-season-history", id],
+    queryFn: () => historyFn({ data: { athleteId: id } }),
+    retry: false,
+  });
+
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ["org-athlete", id] });
+    await queryClient.invalidateQueries({ queryKey: ["athlete-season-history", id] });
+    await queryClient.invalidateQueries({ queryKey: ["season-detail"] });
+    await queryClient.invalidateQueries({ queryKey: ["org-athletes"] });
     await queryClient.invalidateQueries({ queryKey: ["athlete-picker"] });
     await queryClient.invalidateQueries({ queryKey: ["org-dashboard"] });
   };
@@ -162,6 +182,110 @@ function AthleteDetail() {
               ))}
             </dl>
           </div>
+
+          {/* Season assignment + program status. Assignments are per season;
+              status is athlete-level and outlives every season. */}
+          <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+            <h2 className="font-display text-xl font-bold text-graphite">Seasons &amp; teams</h2>
+            <div className="mt-4 grid gap-5 md:grid-cols-2">
+              <div>
+                <p className="font-mono text-[11px] tracking-wide text-steel uppercase">
+                  {ctx.season?.name ?? "Current season"} team
+                </p>
+                {ctx.hasSeasons ? (
+                  <select
+                    value={
+                      (history ?? []).find((row) => row.seasonId === ctx.seasonId)?.teamId ?? ""
+                    }
+                    disabled={ctx.season?.isArchived}
+                    onChange={async (event) => {
+                      try {
+                        await assignFn({
+                          data: {
+                            athleteId: id,
+                            seasonId: ctx.seasonId,
+                            teamId: event.target.value || null,
+                          },
+                        });
+                        await invalidate();
+                        toast.success("Team assignment updated");
+                      } catch (err) {
+                        toast.error((err as Error).message);
+                      }
+                    }}
+                    className="touch-target mt-1 w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite disabled:opacity-60"
+                  >
+                    <option value="">Unassigned</option>
+                    {ctx.teams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                        {team.ageGroup ? ` · ${team.ageGroup}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="mt-1 text-sm text-steel">No seasons set up yet.</p>
+                )}
+
+                <p className="mt-4 font-mono text-[11px] tracking-wide text-steel uppercase">
+                  Program status
+                </p>
+                <select
+                  value={(athlete['status'] ?? "active") as string}
+                  onChange={async (event) => {
+                    try {
+                      await statusFn({
+                        data: { athleteId: id, status: event.target.value as AthleteStatus },
+                      });
+                      await invalidate();
+                      toast.success("Status updated");
+                    } catch (err) {
+                      toast.error((err as Error).message);
+                    }
+                  }}
+                  className="touch-target mt-1 w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite"
+                >
+                  {Object.entries(ATHLETE_STATUS_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-steel">
+                  Graduated and departed players keep their full shortlist and note history.
+                </p>
+              </div>
+
+              <div>
+                <p className="font-mono text-[11px] tracking-wide text-steel uppercase">
+                  Season history
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {(history ?? []).length === 0 ? (
+                    <li className="text-sm text-steel">No team assignments yet.</li>
+                  ) : null}
+                  {(history ?? []).map((row) => (
+                    <li
+                      key={row.assignmentId}
+                      className="flex items-center justify-between gap-2 rounded-md bg-chalk px-3 py-2 text-sm"
+                    >
+                      <span className="font-mono text-xs text-steel tabular-nums">
+                        {row.seasonName}
+                      </span>
+                      <span className="font-semibold text-graphite">
+                        {row.teamName ?? "Unassigned"}
+                        {row.jersey ? (
+                          <span className="ml-2 font-mono text-xs font-normal text-steel tabular-nums">
+                            #{row.jersey}
+                          </span>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
 
           {/* Shortlist status board */}
           <section className="mt-6">

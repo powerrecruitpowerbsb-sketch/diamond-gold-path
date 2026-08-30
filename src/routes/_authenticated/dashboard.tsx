@@ -6,6 +6,8 @@ import { ArrowUpRight, Search } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
+import { useSeasonContext } from "@/hooks/use-season-context";
 import {
   DIVISION_BUCKETS,
   SHORTLIST_STATUSES,
@@ -46,9 +48,10 @@ const STATUS_DOT: Record<ShortlistStatus, string> = {
 
 function Dashboard() {
   const dashboardFn = useServerFn(getOrgDashboard);
+  const ctx = useSeasonContext();
   const { data, isPending, error } = useQuery({
-    queryKey: ["org-dashboard"],
-    queryFn: () => dashboardFn(),
+    queryKey: ["org-dashboard", ctx.seasonId, ctx.teamId],
+    queryFn: () => dashboardFn({ data: { seasonId: ctx.seasonId, teamId: ctx.teamId } }),
     retry: false,
   });
 
@@ -109,6 +112,10 @@ function Dashboard() {
           ))}
         </dl>
       </section>
+
+      <div className="mt-6">
+        <SeasonTeamPicker ctx={ctx} />
+      </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <BarCard

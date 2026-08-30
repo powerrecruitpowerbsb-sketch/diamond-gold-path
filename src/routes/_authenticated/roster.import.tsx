@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { useSeasonContext } from "@/hooks/use-season-context";
 import { importAthletes, matchAthletes } from "@/lib/athletes.functions";
 
 export const Route = createFileRoute("/_authenticated/roster/import")({
@@ -111,6 +112,7 @@ function ImportAthletes() {
   const importFn = useServerFn(importAthletes);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const ctx = useSeasonContext();
 
   const [fileError, setFileError] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -259,9 +261,16 @@ function ImportAthletes() {
               matchId: row.matchId,
             })),
           sendFamilyInvites,
+          seasonId: ctx.seasonId || null,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["org-athletes"] });
+      await queryClient.invalidateQueries({ queryKey: ["season-detail"] });
+      if (result.unknownTeams.length) {
+        toast.error(
+          `No team named ${result.unknownTeams.join(", ")} in ${ctx.season?.name ?? "this season"} — create it first, then re-import those rows.`,
+        );
+      }
       if (result.failures.length) {
         toast.error(`${result.failures.length} row(s) failed: ${result.failures[0]?.message}`);
       } else {
@@ -294,6 +303,11 @@ function ImportAthletes() {
         <p className="mt-1 text-sm text-steel">
           Upload, map your columns, review the preview, then import. Nothing is saved until you confirm.
         </p>
+        {ctx.hasSeasons ? (
+          <p className="mt-2 font-mono text-xs text-steel">
+            Team names are matched against teams in {ctx.season?.name ?? "the selected season"}.
+          </p>
+        ) : null}
 
         <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
           <h2 className="font-display text-lg font-bold text-graphite">1 · Upload</h2>
