@@ -168,7 +168,11 @@ function ReviewQueue() {
             <span className="font-semibold">{items[0]?.recordLabel ?? "this program"}</span> and its
             school.
           </p>
-          <Link to="/admin/review" className="meta underline hover:text-graphite">
+          <Link
+            to="/admin/review"
+            search={{ program: undefined }}
+            className="meta underline hover:text-graphite"
+          >
             SHOW EVERYTHING
           </Link>
         </div>
