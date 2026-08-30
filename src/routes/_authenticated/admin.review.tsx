@@ -1,17 +1,27 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, Check, ExternalLink, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   approvePendingChanges,
+  countPendingChanges,
   listPendingChanges,
   rejectPendingChanges,
 } from "@/lib/review.functions";
+import { dataFieldLabel, dataValueLabel, recordKindLabel, sourceTypeLabel } from "@/lib/data-labels";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/review")({
@@ -43,7 +53,7 @@ type PendingItem = {
   table_name: string;
   record_id: string | null;
   field_name: string | null;
-  proposed_value: unknown;
+  proposed_value: any;
   source_url: string | null;
   source_type: string;
   ai_confidence: number | null;
@@ -53,66 +63,96 @@ type PendingItem = {
   currentRecord: Record<string, unknown> | null;
 };
 
-const TABLE_LABEL: Record<string, string> = {
-  universities: "School",
-  programs: "Program",
-  roster_players: "Roster",
+type Group = {
+  key: string;
+  schoolId: string | null;
+  schoolName: string;
+  programs: string[];
+  items: PendingItem[];
+  conflicts: number;
+  lowConfidence: number;
+  hasRoster: boolean;
+  hasNewRecord: boolean;
 };
 
-function band(confidence: number | null) {
-  if (confidence == null) return "none";
-  if (confidence < 0.7) return "low";
-  if (confidence < 0.9) return "medium";
-  return "high";
+type QueuePage = {
+  groups: Group[];
+  totalGroups: number;
+  totalItems: number;
+  filteredItems: number;
+  conflicts: number;
+  page: number;
+  pageSize: number;
+};
+
+function isLowTrust(item: PendingItem) {
+  return item.ai_confidence == null || item.ai_confidence < 0.7;
 }
 
-function display(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "object") return JSON.stringify(value, null, 2);
-  return String(value);
+function alternates(item: PendingItem): { value: unknown; source_url?: string }[] {
+  const list = item.proposed_value?.["_alternates"];
+  return Array.isArray(list) ? list : [];
 }
 
-function rosterPlayers(value: unknown): Record<string, unknown>[] {
-  const players = (value as { players?: unknown } | null)?.players;
+function rosterPlayers(value: any): Record<string, unknown>[] {
+  const players = value?.players;
   return Array.isArray(players) ? (players as Record<string, unknown>[]) : [];
 }
 
-function fieldLabel(name: string) {
-  return name.replace(/_/g, " ").replace(/\burl\b/i, "URL");
+function proposedScalar(item: PendingItem) {
+  const value = item.proposed_value;
+  if (item.field_name && value && typeof value === "object" && item.field_name in value) {
+    return value[item.field_name];
+  }
+  return value;
+}
+
+function sportLabel(sport: string) {
+  return sport ? sport.charAt(0).toUpperCase() + sport.slice(1) : sport;
 }
 
 function ReviewQueue() {
   const queryClient = useQueryClient();
   const listFn = useServerFn(listPendingChanges);
+  const countFn = useServerFn(countPendingChanges);
   const approveFn = useServerFn(approvePendingChanges);
   const rejectFn = useServerFn(rejectPendingChanges);
 
-  const [tableFilter, setTableFilter] = useState("all");
-  const [confidenceFilter, setConfidenceFilter] = useState("all");
-  const [scopeFilter, setScopeFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [confidence, setConfidence] = useState("all");
+  const [kind, setKind] = useState("all");
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [openItems, setOpenItems] = useState<Set<string>>(new Set());
 
   const { program: programFilter } = Route.useSearch();
 
-  const { data = [], isPending } = useQuery({
-    queryKey: ["pending-changes", programFilter ?? "all"],
-    queryFn: () => listFn({ data: { status: "pending", programId: programFilter ?? null } }),
-  });
-  const items = data as unknown as PendingItem[];
+  useEffect(() => setPage(1), [search, confidence, kind, programFilter]);
 
-  const filtered = useMemo(
-    () =>
-      items.filter((item) => {
-        if (tableFilter !== "all" && item.table_name !== tableFilter) return false;
-        if (confidenceFilter !== "all" && band(item.ai_confidence) !== confidenceFilter) return false;
-        if (scopeFilter === "new" && item.record_id) return false;
-        if (scopeFilter === "field" && !item.field_name) return false;
-        return true;
+  const { data, isPending } = useQuery({
+    queryKey: ["pending-changes", programFilter ?? "all", search, confidence, kind, page],
+    queryFn: () =>
+      listFn({
+        data: {
+          status: "pending",
+          programId: programFilter ?? null,
+          search,
+          confidence,
+          kind,
+          page,
+          pageSize: 25,
+        },
       }),
-    [items, tableFilter, confidenceFilter, scopeFilter],
-  );
+  });
+  const queue = data as unknown as QueuePage | undefined;
+  const groups = queue?.groups ?? [];
+
+  const { data: counts } = useQuery({
+    queryKey: ["pending-changes-count"],
+    queryFn: () => countFn({}),
+  });
+  const autoApplied = (counts as any)?.autoAppliedLast7Days ?? 0;
 
   const invalidate = async () => {
     setSelected(new Set());
@@ -125,7 +165,8 @@ function ReviewQueue() {
   const approve = useMutation({
     mutationFn: (ids: string[]) => approveFn({ data: { ids } }),
     onSuccess: async (result: { applied: number; failures: { message: string }[] }) => {
-      if (result.applied) toast.success(`Applied ${result.applied} change${result.applied === 1 ? "" : "s"} to live data`);
+      if (result.applied)
+        toast.success(`Applied ${result.applied} change${result.applied === 1 ? "" : "s"} to live data`);
       for (const failure of result.failures) toast.error(failure.message);
       await invalidate();
     },
@@ -135,7 +176,9 @@ function ReviewQueue() {
   const reject = useMutation({
     mutationFn: (ids: string[]) => rejectFn({ data: { ids } }),
     onSuccess: async (result: { rejected: number }) => {
-      toast.success(`Rejected ${result.rejected} item${result.rejected === 1 ? "" : "s"} — live data untouched`);
+      toast.success(
+        `Rejected ${result.rejected} item${result.rejected === 1 ? "" : "s"} — live data untouched`,
+      );
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -144,29 +187,42 @@ function ReviewQueue() {
   const busy = approve.isPending || reject.isPending;
   const toggle = (set: Set<string>, id: string) => {
     const next = new Set(set);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     return next;
   };
+
+  const totalPages = Math.max(Math.ceil((queue?.totalGroups ?? 0) / (queue?.pageSize ?? 25)), 1);
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold text-graphite">Review queue</h1>
-          <p className="mt-1 text-sm text-steel">
-            Proposed changes from the ingestion pipeline land here first. Nothing touches live school
-            or program records until you approve it.
+          <p className="mt-1 max-w-2xl text-sm text-steel">
+            Only changes that need a human land here — anything that would overwrite existing data,
+            where two sources disagree, or where the extraction looked shaky. Blank fields confirmed
+            by an official source fill in on their own.
           </p>
         </div>
-        <p className="meta tabular-nums">{items.length} PENDING</p>
+        <div className="text-right">
+          <p className="meta tabular-nums">
+            {queue?.totalGroups ?? 0} SCHOOLS · {queue?.filteredItems ?? 0} ITEMS
+          </p>
+          {autoApplied ? (
+            <p className="mt-1 inline-flex items-center gap-1 text-sm text-diamond-green tabular-nums">
+              <ShieldCheck className="size-4" aria-hidden />
+              {autoApplied} applied automatically this week
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {programFilter ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-org-primary/30 bg-org-primary/5 p-4">
           <p className="text-sm text-graphite">
             Showing only items proposed for{" "}
-            <span className="font-semibold">{items[0]?.recordLabel ?? "this program"}</span> and its
-            school.
+            <span className="font-semibold">{groups[0]?.schoolName ?? "this program"}</span>.
           </p>
           <Link
             to="/admin/review"
@@ -178,61 +234,44 @@ function ReviewQueue() {
         </div>
       ) : null}
 
-
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
         <label className="block">
-          <span className="meta mb-1.5 block">RECORD TYPE</span>
+          <span className="meta mb-1.5 block">SCHOOL</span>
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by school name"
+            className="h-11 w-56 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
+          />
+        </label>
+        <label className="block">
+          <span className="meta mb-1.5 block">NEEDS ATTENTION</span>
           <select
-            value={tableFilter}
-            onChange={(event) => setTableFilter(event.target.value)}
+            value={kind}
+            onChange={(event) => setKind(event.target.value)}
             className="h-11 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
           >
-            <option value="all">All</option>
-            <option value="universities">Schools</option>
-            <option value="programs">Programs</option>
-            <option value="roster_players">Rosters</option>
+            <option value="all">Everything</option>
+            <option value="conflict">Sources disagree</option>
+            <option value="roster">Rosters</option>
+            <option value="new">New records</option>
           </select>
         </label>
         <label className="block">
           <span className="meta mb-1.5 block">CONFIDENCE</span>
           <select
-            value={confidenceFilter}
-            onChange={(event) => setConfidenceFilter(event.target.value)}
+            value={confidence}
+            onChange={(event) => setConfidence(event.target.value)}
             className="h-11 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
           >
             <option value="all">Any</option>
-            <option value="low">Low (&lt; 70%)</option>
+            <option value="low">Low (under 70%)</option>
             <option value="medium">Medium (70–89%)</option>
             <option value="high">High (90%+)</option>
-            <option value="none">No score</option>
-          </select>
-        </label>
-        <label className="block">
-          <span className="meta mb-1.5 block">SCOPE</span>
-          <select
-            value={scopeFilter}
-            onChange={(event) => setScopeFilter(event.target.value)}
-            className="h-11 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
-          >
-            <option value="all">Everything</option>
-            <option value="field">Field changes</option>
-            <option value="new">New records</option>
           </select>
         </label>
 
         <div className="ml-auto flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            className="touch-target"
-            disabled={busy || !filtered.length}
-            onClick={() =>
-              setSelected(
-                new Set(filtered.filter((i) => band(i.ai_confidence) === "high").map((i) => i.id)),
-              )
-            }
-          >
-            Select high confidence
-          </Button>
           <Button
             className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
             disabled={busy || selected.size === 0}
@@ -255,210 +294,333 @@ function ReviewQueue() {
 
       {isPending ? (
         <div className="h-48 animate-pulse rounded-xl bg-muted" />
-      ) : filtered.length === 0 ? (
+      ) : groups.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-10 text-center shadow-card">
           <p className="font-display text-lg font-bold text-graphite">Nothing to review</p>
           <p className="mt-1 text-sm text-steel">
-            Proposed changes appear here once the data-ingestion pipeline runs.
+            Either every recent pull was confident enough to apply on its own, or no pull has run yet.
           </p>
         </div>
       ) : (
         <ul className="space-y-3">
-          {filtered.map((item) => {
-            const isLow = band(item.ai_confidence) === "low" || item.ai_confidence == null;
-            const open = expanded.has(item.id);
+          {groups.map((group) => {
+            const open = openGroups.has(group.key);
+            const ids = group.items.map((item) => item.id);
+            const allSelected = ids.every((id) => selected.has(id));
             return (
-              <li
-                key={item.id}
-                className={cn(
-                  "rounded-xl border bg-card shadow-card",
-                  isLow ? "border-seam-red/50" : "border-border",
-                )}
-              >
-                <div className="flex flex-wrap items-start gap-3 p-4">
+              <li key={group.key} className="rounded-xl border border-border bg-card shadow-card">
+                <div className="flex flex-wrap items-center gap-3 p-4">
                   <Checkbox
-                    checked={selected.has(item.id)}
-                    onCheckedChange={() => setSelected((prev) => toggle(prev, item.id))}
-                    aria-label="Select proposal"
-                    className="mt-1"
+                    checked={allSelected}
+                    onCheckedChange={() =>
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        for (const id of ids) allSelected ? next.delete(id) : next.add(id);
+                        return next;
+                      })
+                    }
+                    aria-label={`Select all items for ${group.schoolName}`}
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="meta">{TABLE_LABEL[item.table_name] ?? item.table_name}</span>
-                      {item.record_id ? null : (
-                        <span className="rounded-md bg-org-primary/10 px-2 py-0.5 text-xs font-semibold text-org-primary">
-                          New record
-                        </span>
-                      )}
-                      {isLow ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-seam-red-tint px-2 py-0.5 text-xs font-semibold text-seam-red">
-                          <AlertTriangle className="size-3" aria-hidden />
-                          Needs scrutiny
-                        </span>
-                      ) : null}
-                      <span className="meta tabular-nums">
-                        {item.ai_confidence == null
-                          ? "NO SCORE"
-                          : `${Math.round(item.ai_confidence * 100)}% CONFIDENCE`}
-                      </span>
-                    </div>
-
-                    <p className="mt-1 font-semibold text-graphite">
-                      {item.recordLabel ?? "New submission"}
-                      {item.field_name ? (
-                        <span className="font-normal text-steel"> · {fieldLabel(item.field_name)}</span>
-                      ) : null}
-                    </p>
-
-                    {item.field_name ? (
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-lg border border-border bg-muted/40 p-3">
-                          <p className="meta">CURRENT</p>
-                          <p className="mt-1 break-words text-sm tabular-nums text-graphite">
-                            {display(item.currentValue)}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-diamond-green/40 bg-diamond-green-tint p-3">
-                          <p className="meta">PROPOSED</p>
-                          <p className="mt-1 break-words text-sm font-semibold tabular-nums text-graphite">
-                            {display(
-                              typeof item.proposed_value === "object" &&
-                                item.proposed_value !== null &&
-                                item.field_name in (item.proposed_value as Record<string, unknown>)
-                                ? (item.proposed_value as Record<string, unknown>)[item.field_name]
-                                : item.proposed_value,
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                    ) : item.table_name === "roster_players" ? (
-                      <div className="mt-3">
-                        <p className="text-sm text-steel">
-                          Full roster replacement —{" "}
-                          <span className="font-semibold tabular-nums text-graphite">
-                            {rosterPlayers(item.proposed_value).length} players
-                          </span>{" "}
-                          scraped for season{" "}
-                          <span className="tabular-nums">
-                            {String(
-                              (item.proposed_value as Record<string, unknown> | null)?.[
-                                "season_year"
-                              ] ?? "—",
-                            )}
-                          </span>
-                          . Approving replaces the stored roster for that season.
-                        </p>
-                        <button
-                          type="button"
-                          className="meta mt-2 hover:text-graphite"
-                          onClick={() => setExpanded((prev) => toggle(prev, item.id))}
-                        >
-                          {open ? "HIDE PLAYERS" : "SHOW PLAYERS"}
-                        </button>
-                        {open ? (
-                          <table className="mt-2 w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border">
-                                <th className="py-1.5 pr-3 text-left text-steel">Name</th>
-                                <th className="py-1.5 pr-3 text-left text-steel">Pos</th>
-                                <th className="py-1.5 pr-3 text-left text-steel">Class</th>
-                                <th className="py-1.5 text-left text-steel">Hometown</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {rosterPlayers(item.proposed_value).map((player, index) => (
-                                <tr key={index} className="border-b border-border/60">
-                                  <td className="py-1.5 pr-3 text-graphite">
-                                    {display(player["name"])}
-                                  </td>
-                                  <td className="py-1.5 pr-3 text-graphite">
-                                    {display(player["position"])}
-                                  </td>
-                                  <td className="py-1.5 pr-3 text-graphite">
-                                    {display(player["class_year"])}
-                                  </td>
-                                  <td className="py-1.5 text-steel">
-                                    {display(player["hometown"])}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : null}
-                      </div>
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    onClick={() => setOpenGroups((prev) => toggle(prev, group.key))}
+                  >
+                    {open ? (
+                      <ChevronDown className="size-4 text-steel" aria-hidden />
                     ) : (
-                      <div className="mt-3">
-                        <button
-                          type="button"
-                          className="meta hover:text-graphite"
-                          onClick={() => setExpanded((prev) => toggle(prev, item.id))}
-                        >
-                          {open ? "HIDE PROPOSED RECORD" : "SHOW PROPOSED RECORD"}
-                        </button>
-                        {open ? (
-                          <table className="mt-2 w-full text-sm">
-                            <tbody>
-                              {Object.entries(
-                                (item.proposed_value ?? {}) as Record<string, unknown>,
-                              ).map(([key, value]) => (
-                                <tr key={key} className="border-b border-border/60">
-                                  <td className="py-1.5 pr-3 text-steel">{fieldLabel(key)}</td>
-                                  <td className="py-1.5 pr-3 tabular-nums text-graphite">
-                                    {display(value)}
-                                  </td>
-                                  <td className="py-1.5 tabular-nums text-steel">
-                                    {item.currentRecord ? display(item.currentRecord[key]) : ""}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : null}
-                      </div>
+                      <ChevronRight className="size-4 text-steel" aria-hidden />
                     )}
+                    <span className="min-w-0">
+                      <span className="block truncate font-display text-lg font-bold text-graphite">
+                        {group.schoolName}
+                      </span>
+                      <span className="meta tabular-nums">
+                        {group.items.length} ITEM{group.items.length === 1 ? "" : "S"}
+                        {group.programs.length
+                          ? ` · ${group.programs.map(sportLabel).join(" · ")}`
+                          : ""}
+                      </span>
+                    </span>
+                  </button>
 
-                    <p className="meta mt-3 flex flex-wrap items-center gap-2">
-                      <span>{item.source_type.toUpperCase()}</span>
-                      {item.source_url ? (
-                        <a
-                          href={item.source_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 underline hover:text-graphite"
-                        >
-                          Source
-                          <ExternalLink className="size-3" aria-hidden />
-                        </a>
-                      ) : (
-                        <span>NO SOURCE URL</span>
-                      )}
-                      <span>· PROPOSED {new Date(item.created_at).toLocaleString()}</span>
-                    </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {group.conflicts ? (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-seam-red-tint px-2 py-0.5 text-xs font-semibold text-seam-red tabular-nums">
+                        <AlertTriangle className="size-3" aria-hidden />
+                        {group.conflicts} source conflict{group.conflicts === 1 ? "" : "s"}
+                      </span>
+                    ) : null}
+                    {group.lowConfidence ? (
+                      <span className="rounded-md bg-org-accent/15 px-2 py-0.5 text-xs font-semibold text-graphite tabular-nums">
+                        {group.lowConfidence} needs a look
+                      </span>
+                    ) : null}
+                    {group.hasRoster ? (
+                      <span className="rounded-md bg-org-primary/10 px-2 py-0.5 text-xs font-semibold text-org-primary">
+                        Roster
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="flex gap-2">
                     <Button
                       className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
                       disabled={busy}
-                      onClick={() => approve.mutate([item.id])}
+                      onClick={() => approve.mutate(ids)}
                     >
-                      Approve
+                      Approve all
                     </Button>
                     <Button
                       variant="outline"
                       className="touch-target"
                       disabled={busy}
-                      onClick={() => reject.mutate([item.id])}
+                      onClick={() => reject.mutate(ids)}
                     >
-                      Reject
+                      Reject all
                     </Button>
                   </div>
                 </div>
+
+                {open ? (
+                  <ul className="border-t border-border">
+                    {group.items.map((item) => {
+                      const low = isLowTrust(item);
+                      const itemOpen = openItems.has(item.id);
+                      const others = alternates(item);
+                      return (
+                        <li
+                          key={item.id}
+                          className={cn(
+                            "flex flex-wrap items-start gap-3 border-b border-border/60 p-4 last:border-b-0",
+                            low ? "bg-seam-red-tint/40" : null,
+                          )}
+                        >
+                          <Checkbox
+                            checked={selected.has(item.id)}
+                            onCheckedChange={() => setSelected((prev) => toggle(prev, item.id))}
+                            aria-label="Select proposal"
+                            className="mt-1"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="meta">{recordKindLabel(item.table_name)}</span>
+                              {item.record_id ? null : (
+                                <span className="rounded-md bg-org-primary/10 px-2 py-0.5 text-xs font-semibold text-org-primary">
+                                  New record
+                                </span>
+                              )}
+                              {others.length ? (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-seam-red-tint px-2 py-0.5 text-xs font-semibold text-seam-red">
+                                  <AlertTriangle className="size-3" aria-hidden />
+                                  Sources disagree
+                                </span>
+                              ) : null}
+                              <span className="meta tabular-nums">
+                                {item.ai_confidence == null
+                                  ? "NO SCORE"
+                                  : `${Math.round(item.ai_confidence * 100)}% CONFIDENCE`}
+                              </span>
+                            </div>
+
+                            <p className="mt-1 font-semibold text-graphite">
+                              {item.field_name
+                                ? dataFieldLabel(item.field_name)
+                                : item.table_name === "roster_players"
+                                  ? "Roster replacement"
+                                  : "Full record"}
+                            </p>
+
+                            {item.field_name ? (
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-lg border border-border bg-muted/40 p-3">
+                                  <p className="meta">CURRENTLY</p>
+                                  <p className="mt-1 break-words text-sm tabular-nums text-graphite">
+                                    {dataValueLabel(item.currentValue)}
+                                  </p>
+                                </div>
+                                <div className="rounded-lg border border-diamond-green/40 bg-diamond-green-tint p-3">
+                                  <p className="meta">PROPOSED</p>
+                                  <p className="mt-1 break-words text-sm font-semibold tabular-nums text-graphite">
+                                    {dataValueLabel(proposedScalar(item))}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : item.table_name === "roster_players" ? (
+                              <div className="mt-2">
+                                <p className="text-sm text-steel">
+                                  Replaces the stored{" "}
+                                  <span className="tabular-nums">
+                                    {String(item.proposed_value?.["season_year"] ?? "—")}
+                                  </span>{" "}
+                                  roster with{" "}
+                                  <span className="font-semibold tabular-nums text-graphite">
+                                    {rosterPlayers(item.proposed_value).length} players
+                                  </span>
+                                  .
+                                  {item.proposed_value?.["incomplete_scrape"] ? (
+                                    <span className="font-semibold text-seam-red">
+                                      {" "}
+                                      That is smaller than a real four-year roster, so this looks
+                                      like a partial read — check the source page before approving.
+                                    </span>
+                                  ) : null}
+                                </p>
+                                <button
+                                  type="button"
+                                  className="meta mt-2 hover:text-graphite"
+                                  onClick={() => setOpenItems((prev) => toggle(prev, item.id))}
+                                >
+                                  {itemOpen ? "HIDE PLAYERS" : "SHOW PLAYERS"}
+                                </button>
+                                {itemOpen ? (
+                                  <table className="mt-2 w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b border-border">
+                                        <th className="py-1.5 pr-3 text-left text-steel">Name</th>
+                                        <th className="py-1.5 pr-3 text-left text-steel">Pos</th>
+                                        <th className="py-1.5 pr-3 text-left text-steel">Class</th>
+                                        <th className="py-1.5 text-left text-steel">Hometown</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {rosterPlayers(item.proposed_value).map((player, index) => (
+                                        <tr key={index} className="border-b border-border/60">
+                                          <td className="py-1.5 pr-3 text-graphite">
+                                            {dataValueLabel(player["name"])}
+                                          </td>
+                                          <td className="py-1.5 pr-3 text-graphite">
+                                            {dataValueLabel(player["position"])}
+                                          </td>
+                                          <td className="py-1.5 pr-3 text-graphite">
+                                            {dataValueLabel(player["class_year"])}
+                                          </td>
+                                          <td className="py-1.5 text-steel">
+                                            {dataValueLabel(player["hometown"])}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <div className="mt-2">
+                                <button
+                                  type="button"
+                                  className="meta hover:text-graphite"
+                                  onClick={() => setOpenItems((prev) => toggle(prev, item.id))}
+                                >
+                                  {itemOpen ? "HIDE DETAILS" : "SHOW DETAILS"}
+                                </button>
+                                {itemOpen ? (
+                                  <table className="mt-2 w-full text-sm">
+                                    <tbody>
+                                      {Object.entries(
+                                        (item.proposed_value ?? {}) as Record<string, unknown>,
+                                      )
+                                        .filter(([key]) => !key.startsWith("_"))
+                                        .map(([key, value]) => (
+                                          <tr key={key} className="border-b border-border/60">
+                                            <td className="py-1.5 pr-3 text-steel">
+                                              {dataFieldLabel(key)}
+                                            </td>
+                                            <td className="py-1.5 pr-3 tabular-nums text-graphite">
+                                              {dataValueLabel(value)}
+                                            </td>
+                                            <td className="py-1.5 tabular-nums text-steel">
+                                              {item.currentRecord
+                                                ? dataValueLabel(item.currentRecord[key])
+                                                : ""}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                    </tbody>
+                                  </table>
+                                ) : null}
+                              </div>
+                            )}
+
+                            {others.length ? (
+                              <p className="mt-2 text-sm text-graphite">
+                                Another page said{" "}
+                                {others
+                                  .map((alternate) => dataValueLabel(alternate.value))
+                                  .join(", ")}
+                                .
+                              </p>
+                            ) : null}
+
+                            <p className="meta mt-3 flex flex-wrap items-center gap-2">
+                              <span>{sourceTypeLabel(item.source_type)}</span>
+                              {item.source_url ? (
+                                <a
+                                  href={item.source_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 underline hover:text-graphite"
+                                >
+                                  Source page
+                                  <ExternalLink className="size-3" aria-hidden />
+                                </a>
+                              ) : (
+                                <span>NO SOURCE LINK</span>
+                              )}
+                              <span>· FOUND {new Date(item.created_at).toLocaleDateString()}</span>
+                            </p>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
+                              disabled={busy}
+                              onClick={() => approve.mutate([item.id])}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="touch-target"
+                              disabled={busy}
+                              onClick={() => reject.mutate([item.id])}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
               </li>
             );
           })}
         </ul>
       )}
+
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="outline"
+            className="touch-target"
+            disabled={page <= 1}
+            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+          >
+            Previous
+          </Button>
+          <p className="meta tabular-nums">
+            PAGE {page} OF {totalPages}
+          </p>
+          <Button
+            variant="outline"
+            className="touch-target"
+            disabled={page >= totalPages}
+            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+          >
+            Next
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
