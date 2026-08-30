@@ -49,7 +49,60 @@ const FIELDS = [
   "latest.cost.avg_net_price.private",
 ].join(",");
 
+/**
+ * The 38 federal degree-field flags (bachelor's level). A 1 means the school
+ * awards degrees in that field, which is how we build a real majors catalog
+ * without scraping a single course catalog.
+ */
+export const FEDERAL_MAJOR_FIELDS: Record<string, string> = {
+  agriculture: "Agriculture",
+  resources: "Natural Resources & Conservation",
+  architecture: "Architecture",
+  ethnic_cultural_gender: "Ethnic, Cultural & Gender Studies",
+  communication: "Communication & Journalism",
+  communications_technology: "Communications Technology",
+  computer: "Computer & Information Sciences",
+  personal_culinary: "Culinary & Personal Services",
+  education: "Education",
+  engineering: "Engineering",
+  engineering_technology: "Engineering Technology",
+  language: "Foreign Languages & Linguistics",
+  family_consumer_science: "Family & Consumer Sciences",
+  legal: "Legal Studies",
+  english: "English Language & Literature",
+  humanities: "Liberal Arts & Humanities",
+  library: "Library Science",
+  biological: "Biological & Biomedical Sciences",
+  mathematics: "Mathematics & Statistics",
+  military: "Military Science",
+  multidiscipline: "Multi/Interdisciplinary Studies",
+  parks_recreation_fitness: "Parks, Recreation & Fitness (incl. Sport Management)",
+  philosophy_religious: "Philosophy & Religious Studies",
+  theology_religious_vocation: "Theology & Religious Vocations",
+  physical_science: "Physical Sciences",
+  science_technology: "Science Technologies",
+  psychology: "Psychology",
+  security_law_enforcement: "Criminal Justice & Law Enforcement",
+  public_administration_social_service: "Public Administration & Social Services",
+  social_science: "Social Sciences",
+  construction: "Construction Trades",
+  mechanic_repair_technology: "Mechanic & Repair Technologies",
+  precision_production: "Precision Production",
+  transportation: "Transportation",
+  visual_performing: "Visual & Performing Arts",
+  health: "Health Professions & Nursing",
+  business_marketing: "Business, Management & Marketing",
+  history: "History",
+};
+
+const MAJOR_FIELD_KEYS = Object.keys(FEDERAL_MAJOR_FIELDS).map(
+  (key) => `latest.academics.program.bachelors.${key}`,
+);
+
+const FIELDS_WITH_MAJORS = [FIELDS, ...MAJOR_FIELD_KEYS].join(",");
+
 export type ScorecardRow = Record<string, unknown>;
+
 
 export type MatchStatus = "confirmed" | "ambiguous" | "unmatched";
 
@@ -177,7 +230,7 @@ function normalizeUrl(value: unknown): string | null {
 export async function searchScorecard(name: string, state: string | null): Promise<ScorecardRow[]> {
   const params = new URLSearchParams({
     api_key: apiKey(),
-    fields: FIELDS,
+    fields: FIELDS_WITH_MAJORS,
     per_page: "20",
     "school.operating": "1",
   });
@@ -251,8 +304,57 @@ export type FederalSyncResult = {
   matchedName: string | null;
   fieldsApplied: number;
   fieldsQueued: number;
+  majorsLinked: number;
   candidates: MatchResult["candidates"];
 };
+
+/**
+ * Build the majors catalog from the federal degree-field flags and link the
+ * school to every field it awards bachelor's degrees in. Idempotent: re-running
+ * adds new fields and leaves existing links alone.
+ */
+export async function syncFederalMajors(
+  supabase: any,
+  universityId: string,
+  row: ScorecardRow,
+): Promise<number> {
+  const names: string[] = [];
+  for (const [key, label] of Object.entries(FEDERAL_MAJOR_FIELDS)) {
+    if (Number(row[`latest.academics.program.bachelors.${key}`]) === 1) names.push(label);
+  }
+  if (!names.length) return 0;
+
+  const { data: existing, error: readError } = await supabase
+    .from("majors")
+    .select("id, name")
+    .in("name", names);
+  if (readError) throw new Error(readError.message);
+
+  const byName = new Map<string, string>(
+    ((existing ?? []) as { id: string; name: string }[]).map((m) => [m.name, m.id]),
+  );
+  const missing = names.filter((name) => !byName.has(name));
+  if (missing.length) {
+    const { data: created, error: createError } = await supabase
+      .from("majors")
+      .insert(missing.map((name) => ({ name })))
+      .select("id, name");
+    if (createError) throw new Error(createError.message);
+    for (const m of (created ?? []) as { id: string; name: string }[]) byName.set(m.name, m.id);
+  }
+
+  const links = names
+    .map((name) => byName.get(name))
+    .filter((id): id is string => Boolean(id))
+    .map((major_id) => ({ university_id: universityId, major_id }));
+
+  const { error: linkError } = await supabase
+    .from("university_majors")
+    .upsert(links, { onConflict: "university_id,major_id", ignoreDuplicates: true });
+  if (linkError) throw new Error(linkError.message);
+  return links.length;
+}
+
 
 /**
  * Match one school to its federal record and write the facts. Gap-fills land
@@ -299,6 +401,8 @@ export async function syncUniversityFromFederal(
       unitid: null,
       matchedName: null,
       fieldsApplied: 0,
+      majorsLinked: 0,
+
       fieldsQueued: 0,
       candidates: match.candidates,
     };
@@ -372,6 +476,15 @@ export async function syncUniversityFromFederal(
     }
   }
 
+  // Degree fields are federal facts too, so they land directly rather than
+  // waiting in the review queue.
+  let majorsLinked = 0;
+  try {
+    majorsLinked = await syncFederalMajors(supabase, universityId, match.row);
+  } catch (failure) {
+    console.error(`Majors sync failed for ${schoolName}: ${(failure as Error).message}`);
+  }
+
   const { error: stampError } = await supabase
     .from("universities")
     .update({
@@ -391,12 +504,14 @@ export async function syncUniversityFromFederal(
     matchedName,
     fieldsApplied,
     fieldsQueued,
+    majorsLinked,
     candidates: [],
   };
+
 }
 
 async function searchScorecardById(unitid: number): Promise<ScorecardRow[]> {
-  const params = new URLSearchParams({ api_key: apiKey(), fields: FIELDS, id: String(unitid) });
+  const params = new URLSearchParams({ api_key: apiKey(), fields: FIELDS_WITH_MAJORS, id: String(unitid) });
   const response = await fetch(`${SCORECARD_URL}?${params.toString()}`);
   if (!response.ok) {
     throw new Error(`Federal data request failed [${response.status}]`);

@@ -98,12 +98,27 @@ export function validateSeedRow(raw: Partial<SeedRowInput> & { index: number }):
   };
 }
 
-/** Load every school once so a large batch doesn't query per row. */
+/**
+ * Load every school once so a large batch doesn't query per row. Paged, because
+ * the Data API caps one response at 1,000 rows and a truncated index would
+ * happily create a second copy of a school we already have.
+ */
 export async function loadSchoolIndex(supabase: any): Promise<SchoolIndexEntry[]> {
-  const { data, error } = await supabase.from("universities").select("id, name, state");
-  if (error) throw new Error(error.message);
-  return (data ?? []) as SchoolIndexEntry[];
+  const page = 1000;
+  const out: SchoolIndexEntry[] = [];
+  for (let from = 0; ; from += page) {
+    const { data, error } = await supabase
+      .from("universities")
+      .select("id, name, state")
+      .order("id", { ascending: true })
+      .range(from, from + page - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as SchoolIndexEntry[];
+    out.push(...rows);
+    if (rows.length < page) return out;
+  }
 }
+
 
 export function findSchool(
   index: SchoolIndexEntry[],
