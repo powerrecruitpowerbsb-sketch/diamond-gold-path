@@ -269,6 +269,63 @@ export type Database = {
           },
         ]
       }
+      ingest_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          last_success_at: string | null
+          leased_at: string | null
+          program_id: string | null
+          stage: string
+          status: string
+          university_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_success_at?: string | null
+          leased_at?: string | null
+          program_id?: string | null
+          stage: string
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_success_at?: string | null
+          leased_at?: string | null
+          program_id?: string | null
+          stage?: string
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingest_queue_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingest_queue_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingestion_runs: {
         Row: {
           created_at: string
@@ -1248,9 +1305,13 @@ export type Database = {
           distance_to_airport_miles: number | null
           est_cost_of_attendance: number | null
           est_net_price: number | null
+          federal_match_name: string | null
+          federal_match_status: string
+          federal_synced_at: string | null
           financial_aid_url: string | null
           graduation_rate: number | null
           id: string
+          ipeds_unitid: number | null
           name: string
           nearest_airport: string | null
           public_private: Database["public"]["Enums"]["public_private"] | null
@@ -1284,9 +1345,13 @@ export type Database = {
           distance_to_airport_miles?: number | null
           est_cost_of_attendance?: number | null
           est_net_price?: number | null
+          federal_match_name?: string | null
+          federal_match_status?: string
+          federal_synced_at?: string | null
           financial_aid_url?: string | null
           graduation_rate?: number | null
           id?: string
+          ipeds_unitid?: number | null
           name: string
           nearest_airport?: string | null
           public_private?: Database["public"]["Enums"]["public_private"] | null
@@ -1320,9 +1385,13 @@ export type Database = {
           distance_to_airport_miles?: number | null
           est_cost_of_attendance?: number | null
           est_net_price?: number | null
+          federal_match_name?: string | null
+          federal_match_status?: string
+          federal_synced_at?: string | null
           financial_aid_url?: string | null
           graduation_rate?: number | null
           id?: string
+          ipeds_unitid?: number | null
           name?: string
           nearest_airport?: string | null
           public_private?: Database["public"]["Enums"]["public_private"] | null
