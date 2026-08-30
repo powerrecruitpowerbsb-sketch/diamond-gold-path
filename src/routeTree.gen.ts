@@ -23,6 +23,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedAdminReviewRouteImport } from './routes/_authenticated/admin.review'
+import { Route as AuthenticatedAdminSeedImportRouteImport } from './routes/_authenticated/admin.seed-import'
 import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
 import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenticated/roster.index'
 import { Route as AuthenticatedRosterIdRouteImport } from './routes/_authenticated/roster.$id'
@@ -109,6 +110,12 @@ const AuthenticatedAdminReviewRoute =
   AuthenticatedAdminReviewRouteImport.update({
     id: '/review',
     path: '/review',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSeedImportRoute =
+  AuthenticatedAdminSeedImportRouteImport.update({
+    id: '/seed-import',
+    path: '/seed-import',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedProgramsIdRoute = AuthenticatedProgramsIdRouteImport.update({
@@ -218,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
+  '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
@@ -248,6 +256,7 @@ export interface FileRoutesByTo {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
+  '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
@@ -281,6 +290,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/admin/review': typeof AuthenticatedAdminReviewRoute
+  '/_authenticated/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/_authenticated/roster/$id': typeof AuthenticatedRosterIdRoute
   '/_authenticated/roster/import': typeof AuthenticatedRosterImportRoute
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/majors'
     | '/admin/review'
+    | '/admin/seed-import'
     | '/programs/$id'
     | '/roster/$id'
     | '/roster/import'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/majors'
     | '/admin/review'
+    | '/admin/seed-import'
     | '/programs/$id'
     | '/roster/$id'
     | '/roster/import'
@@ -376,6 +388,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/majors'
     | '/_authenticated/admin/review'
+    | '/_authenticated/admin/seed-import'
     | '/_authenticated/programs/$id'
     | '/_authenticated/roster/$id'
     | '/_authenticated/roster/import'
@@ -503,6 +516,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/seed-import': {
+      id: '/_authenticated/admin/seed-import'
+      path: '/seed-import'
+      fullPath: '/admin/seed-import'
+      preLoaderRoute: typeof AuthenticatedAdminSeedImportRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/programs/$id': {
       id: '/_authenticated/programs/$id'
       path: '/programs/$id'
@@ -622,6 +642,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
   AuthenticatedAdminReviewRoute: typeof AuthenticatedAdminReviewRoute
+  AuthenticatedAdminSeedImportRoute: typeof AuthenticatedAdminSeedImportRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminProgramsIdRoute: typeof AuthenticatedAdminProgramsIdRoute
   AuthenticatedAdminProgramsNewRoute: typeof AuthenticatedAdminProgramsNewRoute
@@ -637,6 +658,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
   AuthenticatedAdminReviewRoute: AuthenticatedAdminReviewRoute,
+  AuthenticatedAdminSeedImportRoute: AuthenticatedAdminSeedImportRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminProgramsIdRoute: AuthenticatedAdminProgramsIdRoute,
   AuthenticatedAdminProgramsNewRoute: AuthenticatedAdminProgramsNewRoute,
