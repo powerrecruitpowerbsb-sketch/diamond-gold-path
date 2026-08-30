@@ -13,8 +13,8 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 });
 
 const STAT_META = [
-  { key: "universities", label: "Universities", icon: Building2 },
-  { key: "programs", label: "Programs", icon: Trophy },
+  { key: "universities", label: "Schools", icon: Building2 },
+  { key: "programs", label: "Programs (baseball + softball)", icon: Trophy },
   { key: "majors", label: "Majors", icon: GraduationCap },
   { key: "rosterPlayers", label: "Roster players", icon: Users },
 ] as const;
