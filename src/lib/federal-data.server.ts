@@ -226,6 +226,38 @@ function normalizeUrl(value: unknown): string | null {
   return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 }
 
+/**
+ * One federal API call. The service returns intermittent 5xx errors under load,
+ * which would otherwise fail a school that is perfectly matchable, so transient
+ * failures are retried with a short backoff.
+ */
+async function scorecardFetch(params: URLSearchParams): Promise<ScorecardRow[]> {
+  let lastError = "";
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (attempt) await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+    let response: Response;
+    try {
+      response = await fetch(`${SCORECARD_URL}?${params.toString()}`);
+    } catch (failure) {
+      lastError = (failure as Error).message;
+      continue;
+    }
+    if (response.ok) {
+      const payload = (await response.json()) as { results?: ScorecardRow[] };
+      return Array.isArray(payload.results) ? payload.results : [];
+    }
+    const body = await response.text();
+    if (response.status === 429) {
+      throw new Error(
+        "The federal data API is rate limiting us. Add a free api.data.gov key to raise the limit.",
+      );
+    }
+    lastError = `[${response.status}] ${body.slice(0, 200)}`;
+    if (response.status < 500) break;
+  }
+  throw new Error(`Federal data request failed ${lastError}`);
+}
+
 /** Ask the federal API for candidate records for one school name. */
 export async function searchScorecard(name: string, state: string | null): Promise<ScorecardRow[]> {
   const params = new URLSearchParams({
@@ -237,19 +269,9 @@ export async function searchScorecard(name: string, state: string | null): Promi
   params.set("school.name", name);
   if (state) params.set("school.state", state);
 
-  const response = await fetch(`${SCORECARD_URL}?${params.toString()}`);
-  if (!response.ok) {
-    const body = await response.text();
-    if (response.status === 429) {
-      throw new Error(
-        "The federal data API is rate limiting us. Add a free api.data.gov key to raise the limit.",
-      );
-    }
-    throw new Error(`Federal data request failed [${response.status}]: ${body.slice(0, 300)}`);
-  }
-  const payload = (await response.json()) as { results?: ScorecardRow[] };
-  return Array.isArray(payload.results) ? payload.results : [];
+  return scorecardFetch(params);
 }
+
 
 /** Same-name-same-state is a confirmed match; anything looser needs a human. */
 export function matchScorecard(
@@ -512,13 +534,9 @@ export async function syncUniversityFromFederal(
 
 async function searchScorecardById(unitid: number): Promise<ScorecardRow[]> {
   const params = new URLSearchParams({ api_key: apiKey(), fields: FIELDS_WITH_MAJORS, id: String(unitid) });
-  const response = await fetch(`${SCORECARD_URL}?${params.toString()}`);
-  if (!response.ok) {
-    throw new Error(`Federal data request failed [${response.status}]`);
-  }
-  const payload = (await response.json()) as { results?: ScorecardRow[] };
-  return Array.isArray(payload.results) ? payload.results : [];
+  return scorecardFetch(params);
 }
+
 
 function sameValue(current: unknown, next: unknown): boolean {
   if (current === null || current === undefined) return false;
