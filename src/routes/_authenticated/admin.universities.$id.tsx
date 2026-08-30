@@ -7,6 +7,7 @@ import { ExternalLink, Pencil, PlusCircle } from "lucide-react";
 
 import { getUniversity, setUniversityMajors } from "@/lib/admin.functions";
 import { UNIVERSITY_SECTIONS, titleCase } from "@/lib/admin-schemas";
+import { OFFERING_STATUS_LABEL } from "@/lib/program-label";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/admin/form-kit";
 import { ClassificationsPanel } from "@/components/admin/ClassificationsPanel";
