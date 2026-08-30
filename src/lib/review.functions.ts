@@ -18,8 +18,9 @@ async function assertSuperadmin(context: { supabase: any; userId: string }) {
 
 export const listPendingChanges = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input?: { status?: string | null }) => ({
+  .inputValidator((input?: { status?: string | null; programId?: string | null }) => ({
     status: input?.status ?? "pending",
+    programId: input?.programId ? String(input.programId) : null,
   }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
@@ -29,6 +30,18 @@ export const listPendingChanges = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(300);
     if (data.status && data.status !== "all") query = query.eq("status", data.status as any);
+
+    if (data.programId) {
+      // A program's items live under the program id and its school's id.
+      const { data: program } = await context.supabase
+        .from("programs")
+        .select("id, university_id")
+        .eq("id", data.programId)
+        .maybeSingle();
+      const ids = [data.programId, (program as any)?.university_id].filter(Boolean) as string[];
+      query = query.in("record_id", ids);
+    }
+
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
