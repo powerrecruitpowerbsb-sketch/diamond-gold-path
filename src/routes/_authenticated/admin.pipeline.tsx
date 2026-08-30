@@ -127,6 +127,58 @@ function Pipeline() {
     }
   }
 
+  /** Same windowed walk, for a non-NCAA membership list. */
+  async function importWikiFully(key: string, label: string) {
+    let offset = 0;
+    let schoolsCreated = 0;
+    let programsCreated = 0;
+    let programsUpdated = 0;
+    let total = 0;
+    for (let guard = 0; guard < 40; guard += 1) {
+      const result = (await wikiImportFn({ data: { slice: key, offset, limit: 60 } })) as any;
+      schoolsCreated += result.schoolsCreated;
+      programsCreated += result.programsCreated;
+      programsUpdated += result.programsUpdated;
+      total = result.total;
+      offset = result.nextOffset;
+      note(`${label}: ${offset}/${total} processed…`);
+      if (result.done) break;
+    }
+    note(
+      `${label}: ${total} listed · ${schoolsCreated} new schools · ${programsCreated} new programs · ${programsUpdated} updated`,
+    );
+  }
+
+  async function onImportWikiSlice(key: string, label: string) {
+    setBusy(label);
+    try {
+      await importWikiFully(key, label);
+      toast.success(`${label} imported`);
+      await refresh();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Import failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /** NAIA + NJCAA D1-D3 + CCCAA + NWAC in one unattended pass. */
+  async function onImportAllOther() {
+    setBusy("all-other");
+    try {
+      for (const slice of OTHER_SLICES) {
+        await importWikiFully(slice.key, slice.label);
+      }
+      toast.success("NAIA, NJCAA, CCCAA and NWAC imported");
+      await refresh();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Import failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
 
   async function onFederalBatch(limit: number) {
     setBusy("federal");
