@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/admin/discovery")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: DiscoveryQueue;
+  component: DiscoveryQueue,
 });
 
 type Row = {

@@ -79,7 +79,7 @@ const BOOLEAN_FIELDS = new Set(["test_optional", "scholarships_available"]);
 const ENUM_FIELDS: Record<string, readonly string[]> = {
   campus_setting: ["urban", "suburban", "rural"],
   public_private: ["public", "private"],
-  governing_body: ["NCAA", "NAIA", "NJCAA"],
+  governing_body: ["NCAA", "NAIA", "NJCAA", "CCCAA", "NWAC"],
 };
 
 function requireEnv(name: string): string {
@@ -188,7 +188,7 @@ async function extractProgramFields(markdown: string) {
     "You extract college athletics program data from an official athletics web page.",
     STRICT_RULES,
     `Allowed fields: ${PROGRAM_EXTRACTABLE.join(", ")}.`,
-    "governing_body must be NCAA, NAIA or NJCAA. division is a short string like 'D1', 'D2', 'D3' or 'NAIA'.",
+    "governing_body must be NCAA, NAIA, NJCAA, CCCAA or NWAC. division is a short string like 'D1', 'D2', 'D3' or 'NAIA' — leave it out for bodies that don't use divisions.",
     "head_coach_name is the head coach of THIS sport only. recruiting_coordinator_name is whoever is titled recruiting coordinator.",
     'Shape: { "fields": { ... }, "confidence": { ... } }',
   ].join("\n");

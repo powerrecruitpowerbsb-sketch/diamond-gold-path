@@ -13,6 +13,8 @@ const ADMIN_NAV = [
   { to: "/admin/universities", label: "Schools", exact: false },
   { to: "/admin/programs", label: "Programs (Baseball / Softball)", exact: false },
   { to: "/admin/review", label: "Review queue", exact: false },
+  { to: "/admin/discovery", label: "Discovered links", exact: false },
+  { to: "/admin/seed-import", label: "Bulk import", exact: false },
   { to: "/admin/majors", label: "Majors", exact: false },
   { to: "/admin/audit", label: "Audit log", exact: false },
 ];
