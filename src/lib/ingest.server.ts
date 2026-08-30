@@ -110,8 +110,9 @@ async function scrape(url: string): Promise<string> {
   const payload = (await response.json()) as any;
   const markdown: string | undefined = payload?.markdown ?? payload?.data?.markdown;
   if (!markdown || !markdown.trim()) throw new Error("page returned no readable content");
-  // Keep prompt size sane; the useful facts sit near the top of these pages.
-  return markdown.slice(0, 24000);
+  // Roster tables sit at the BOTTOM of sidearm-style pages, so keep the window
+  // wide enough that a 40-player roster is never silently truncated away.
+  return markdown.slice(0, 90000);
 }
 
 /** Call the AI Gateway and parse a strict-JSON object out of the reply. */
