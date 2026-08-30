@@ -15,6 +15,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/review")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    program: typeof search["program"] === "string" ? (search["program"] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Data review queue — Power Recruit" },
