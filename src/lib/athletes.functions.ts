@@ -176,7 +176,7 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
     if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
     if (data.q) query = query.ilike("name", `%${data.q}%`);
     if (data.gradYear) query = query.eq("grad_year", Number(data.gradYear));
-    if (data.status) query = query.eq("status", data.status);
+    if (data.status) query = query.eq("status", data.status as never);
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
@@ -196,7 +196,7 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
       assignments.map((row) => [row['org_athlete_id'] as string, row]),
     );
 
-    let athletes = ((rows ?? []) as Record<string, any>[]).map((athlete) => {
+    let athletes: Record<string, any>[] = ((rows ?? []) as Record<string, any>[]).map((athlete) => {
       const assignment = assignmentByAthlete.get(athlete['id'] as string);
       return {
         ...athlete,
