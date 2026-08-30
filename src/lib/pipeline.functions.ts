@@ -25,7 +25,9 @@ export const getPipelineStatus = createServerFn({ method: "GET" })
 
     const [coverage, schools, programs] = await Promise.all([
       queueCoverage(context.supabase),
-      context.supabase.from("universities").select("id, federal_match_status, tuition_in_state"),
+      context.supabase
+        .from("universities")
+        .select("id, federal_match_status, federal_synced_at, tuition_in_state"),
       context.supabase.from("programs").select("id, sport, roster_url, head_coach_name, offering_status"),
     ]);
     if (schools.error) throw new Error(schools.error.message);
