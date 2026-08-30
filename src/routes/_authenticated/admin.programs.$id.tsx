@@ -80,6 +80,7 @@ function AdminProgramDetail() {
         </div>
       </div>
 
+      <IngestPanel programId={id} />
       <IntelSection programId={id} />
       <RelationshipSection programId={id} />
       <RosterHistory programId={id} />
