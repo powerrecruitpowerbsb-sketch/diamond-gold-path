@@ -18,17 +18,32 @@ async function assertSuperadmin(context: { supabase: any; userId: string }) {
 
 export const listPendingChanges = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input?: { status?: string | null; programId?: string | null }) => ({
-    status: input?.status ?? "pending",
-    programId: input?.programId ? String(input.programId) : null,
-  }))
+  .inputValidator(
+    (input?: {
+      status?: string | null;
+      programId?: string | null;
+      search?: string | null;
+      confidence?: string | null;
+      kind?: string | null;
+      page?: number | null;
+      pageSize?: number | null;
+    }) => ({
+      status: input?.status ?? "pending",
+      programId: input?.programId ? String(input.programId) : null,
+      search: input?.search ? String(input.search).trim() : "",
+      confidence: input?.confidence ?? "all",
+      kind: input?.kind ?? "all",
+      page: Math.max(Number(input?.page ?? 1) || 1, 1),
+      pageSize: Math.min(Math.max(Number(input?.pageSize ?? 25) || 25, 5), 100),
+    }),
+  )
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
     let query = context.supabase
       .from("pending_data_changes")
       .select(PENDING_COLUMNS)
       .order("created_at", { ascending: false })
-      .limit(300);
+      .limit(3000);
     if (data.status && data.status !== "all") query = query.eq("status", data.status as any);
 
     if (data.programId) {
@@ -45,12 +60,56 @@ export const listPendingChanges = createServerFn({ method: "GET" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
-    const { decoratePending } = await import("@/lib/review.server");
+    const { decoratePending, groupPending } = await import("@/lib/review.server");
     const decorated = await decoratePending(context.supabase, (rows ?? []) as any[]);
-    // Lowest confidence first: those need the most scrutiny. Unscored items rank with the low band.
-    decorated.sort((a: any, b: any) => (a.ai_confidence ?? -1) - (b.ai_confidence ?? -1));
-    return decorated;
+    let groups = await groupPending(context.supabase, decorated as any[]);
+
+    const totalItems = decorated.length;
+
+    if (data.confidence !== "all" || data.kind !== "all") {
+      groups = groups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item: any) => {
+            const score = item.ai_confidence;
+            if (data.confidence === "low" && !(score == null || score < 0.7)) return false;
+            if (data.confidence === "medium" && !(score != null && score >= 0.7 && score < 0.9))
+              return false;
+            if (data.confidence === "high" && !(score != null && score >= 0.9)) return false;
+            if (data.kind === "roster" && item.table_name !== "roster_players") return false;
+            if (data.kind === "new" && item.record_id) return false;
+            if (data.kind === "conflict") {
+              const value = item.proposed_value;
+              if (!value || typeof value !== "object" || !Array.isArray(value["_alternates"]))
+                return false;
+            }
+            return true;
+          }),
+        }))
+        .filter((group) => group.items.length > 0);
+    }
+
+    if (data.search) {
+      const needle = data.search.toLowerCase();
+      groups = groups.filter((group) => group.schoolName.toLowerCase().includes(needle));
+    }
+
+    const filteredItems = groups.reduce((sum, group) => sum + group.items.length, 0);
+    const totalGroups = groups.length;
+    const start = (data.page - 1) * data.pageSize;
+    const page = groups.slice(start, start + data.pageSize);
+
+    return {
+      groups: page,
+      totalGroups,
+      totalItems,
+      filteredItems,
+      conflicts: groups.reduce((sum, group) => sum + group.conflicts, 0),
+      page: data.page,
+      pageSize: data.pageSize,
+    };
   });
+
 
 export const countPendingChanges = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
