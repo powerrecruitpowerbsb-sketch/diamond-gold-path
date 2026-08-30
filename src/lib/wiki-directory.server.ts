@@ -170,25 +170,29 @@ async function njcaaMembers(division: string): Promise<MemberRow[]> {
 /** CCCAA: conference headings over bullet lists; every member is in California. */
 async function cccaaMembers(): Promise<MemberRow[]> {
   const text = await fetchWikitext("California Community College Athletic Association");
-  const conferencesAt = text.search(/^==\s*Conferences\s*==/m);
-  const body = conferencesAt >= 0 ? text.slice(conferencesAt) : text;
+  const lines = text.split("\n");
+  const startAt = lines.findIndex((line) => /^==\s*Conferences\s*==\s*$/.test(line));
+  if (startAt < 0) throw new Error("The CCCAA conference list has moved");
+
   const rows: MemberRow[] = [];
   let conference: string | null = null;
   let subdivision: string | null = null;
 
-  for (const line of body.split("\n")) {
-    const top = /^===\s*([^=]+?)\s*===$/.exec(line);
-    if (top) {
-      conference = plain(top[1]!);
-      subdivision = null;
+  for (const raw of lines.slice(startAt + 1)) {
+    // Some headings carry an anchor <span>, so strip markup before matching.
+    const line = raw.replace(/<[^>]+>/g, "").trim();
+    const heading = /^(={2,4})\s*(.+?)\s*\1$/.exec(line);
+    if (heading) {
+      const depth = heading[1]!.length;
+      if (depth === 2) break; // left the Conferences section
+      if (depth === 3) {
+        conference = plain(heading[2]!);
+        subdivision = null;
+      } else {
+        subdivision = plain(heading[2]!);
+      }
       continue;
     }
-    const sub = /^====\s*([^=]+?)\s*====$/.exec(line);
-    if (sub) {
-      subdivision = plain(sub[1]!);
-      continue;
-    }
-    if (/^==\s*[^=]/.test(line)) break; // left the Conferences section
     if (!/^\*\s*\[\[/.test(line)) continue;
     const name = firstLinkLabel(line);
     if (!name || !conference) continue;
@@ -211,13 +215,17 @@ async function nwacMembers(): Promise<MemberRow[]> {
 
   for (const cells of tableRows(text.slice(membersAt))) {
     const name = firstLinkLabel(cells[0] ?? "");
-    if (!name) continue;
     const location = plain(cells[1] ?? "");
+    // The sports-sponsorship table further down the page has no "City, State"
+    // column, which is how a member row is told apart from it.
+    if (!name || !location.includes(",")) continue;
     const region = plain(cells[cells.length - 1] ?? "");
     rows.push({
       name,
       state: stateCode(location.split(",").pop()?.trim() ?? ""),
-      conference: region ? `NWAC ${region}` : "NWAC",
+      conference: /^(Northern|Southern|Eastern|Western|North|South|East|West)$/i.test(region)
+        ? `NWAC ${region}`
+        : "NWAC",
       division: null,
     });
   }
