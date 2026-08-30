@@ -100,6 +100,11 @@ function AdminLayout() {
                 {pendingCount}
               </span>
             ) : null}
+            {item.to === "/admin/discovery" && discoveryCount > 0 ? (
+              <span className="rounded-full bg-seam-red px-1.5 text-xs font-semibold tabular-nums text-white">
+                {discoveryCount}
+              </span>
+            ) : null}
           </Link>
         ))}
       </nav>
