@@ -7,8 +7,8 @@ import { AuthButton } from "@/components/brand/AuthButton";
 
 const ADMIN_NAV = [
   { to: "/admin", label: "Console", exact: true },
-  { to: "/admin/universities", label: "Universities", exact: false },
-  { to: "/admin/programs", label: "Programs", exact: false },
+  { to: "/admin/universities", label: "Schools", exact: false },
+  { to: "/admin/programs", label: "Programs (Baseball / Softball)", exact: false },
   { to: "/admin/majors", label: "Majors", exact: false },
   { to: "/admin/audit", label: "Audit log", exact: false },
 ];
