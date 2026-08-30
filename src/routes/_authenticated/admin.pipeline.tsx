@@ -9,6 +9,7 @@ import { SectionCard } from "@/components/admin/form-kit";
 import {
   getPipelineStatus,
   importNcaaSlice,
+  importWikiSlice,
   listFederalBlocked,
   listFederalCandidates,
   rebuildQueue,
