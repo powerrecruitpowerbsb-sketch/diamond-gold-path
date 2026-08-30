@@ -73,15 +73,16 @@ export const getAdminStats = createServerFn({ method: "GET" })
     ]);
     const { data: recent } = await context.supabase
       .from("audit_log")
-      .select("id, table_name, record_id, field_name, old_value, new_value, action, created_at")
+      .select("id, actor_id, table_name, record_id, field_name, old_value, new_value, action, created_at")
       .order("created_at", { ascending: false })
-      .limit(8);
+      .limit(24);
+    const { enrichAuditRows } = await import("@/lib/audit-enrich.server");
     return {
       universities: counts[0].count ?? 0,
       programs: counts[1].count ?? 0,
       majors: counts[2].count ?? 0,
       rosterPlayers: counts[3].count ?? 0,
-      recent: recent ?? [],
+      recent: await enrichAuditRows(context.supabase, (recent ?? []) as any[]),
     };
   });
 
