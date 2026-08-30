@@ -42,6 +42,28 @@ function UniversityDetail() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const discoveryFn = useServerFn(runUrlDiscovery);
+  const discover = useMutation({
+    mutationFn: () => discoveryFn({ data: { universityId: id } }) as Promise<any>,
+    onSuccess: (outcome: any) => {
+      if (outcome?.errorMessage) {
+        toast.error(outcome.errorMessage);
+        return;
+      }
+      const found = (outcome?.results ?? []).filter((r: any) => r.url).length;
+      toast.success(
+        found
+          ? `${found} link${found === 1 ? "" : "s"} queued for your review`
+          : "No links found for this school",
+      );
+      queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] });
+      queryClient.invalidateQueries({ queryKey: ["discovered-urls"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+
+
   if (isPending || !data) {
     return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
   }
