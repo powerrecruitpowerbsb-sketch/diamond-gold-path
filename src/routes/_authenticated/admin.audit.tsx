@@ -14,6 +14,14 @@ const TABLES = [
   "majors",
   "university_majors",
   "roster_players",
+  "org_athletes",
+  "athlete_saved_schools",
+  "org_player_notes",
+  "recruiting_intelligence",
+  "teams",
+  "team_athletes",
+  "seasons",
+  "org_member_invites",
 ];
 
 export const Route = createFileRoute("/_authenticated/admin/audit")({

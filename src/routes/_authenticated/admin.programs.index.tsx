@@ -9,6 +9,7 @@ import { SPORTS, GOVERNING_BODIES, titleCase } from "@/lib/admin-schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SourceLine } from "@/components/brand/DataSignals";
+import { OFFERING_STATUS_LABEL } from "@/lib/program-label";
 
 export const Route = createFileRoute("/_authenticated/admin/programs/")({
   component: ProgramsList,
@@ -24,6 +25,7 @@ function ProgramsList() {
   const [search, setSearch] = useState("");
   const [sport, setSport] = useState("");
   const [body, setBody] = useState("");
+  const [offering, setOffering] = useState("");
 
   const rows = ((data ?? []) as any[]).filter((p) => {
     const name = p.universities?.name ?? "";
@@ -31,6 +33,7 @@ function ProgramsList() {
       return false;
     if (sport && p.sport !== sport) return false;
     if (body && p.governing_body !== body) return false;
+    if (offering && (p.offering_status ?? "unverified") !== offering) return false;
     return true;
   });
 
@@ -38,8 +41,13 @@ function ProgramsList() {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-graphite">Programs</h1>
-          <p className="mt-1 text-sm text-steel">{rows.length} programs</p>
+          <h1 className="font-display text-3xl font-bold text-graphite">
+            Programs (Baseball / Softball)
+          </h1>
+          <p className="mt-1 text-sm text-steel">
+            {rows.length} programs — one per sport at a school. Every school carries both slots;
+            unverified slots are waiting on confirmation that the school sponsors that sport.
+          </p>
         </div>
         <Button asChild className="touch-target bg-seam-red text-white hover:bg-seam-red/90">
           <Link to="/admin/programs/new">
@@ -49,7 +57,7 @@ function ProgramsList() {
         </Button>
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-border bg-card p-4 shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)] sm:grid-cols-[1fr_auto_auto]">
+      <div className="grid gap-3 rounded-xl border border-border bg-card p-4 shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)] sm:grid-cols-[1fr_auto_auto_auto]">
         <div className="relative">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-steel" aria-hidden />
           <Input
@@ -70,6 +78,19 @@ function ProgramsList() {
           {SPORTS.map((s) => (
             <option key={s} value={s}>
               {titleCase(s)}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Sport offered"
+          value={offering}
+          onChange={(event) => setOffering(event.target.value)}
+          className="h-10 rounded-md border border-input bg-background px-2.5 text-sm"
+        >
+          <option value="">Offered: any</option>
+          {Object.entries(OFFERING_STATUS_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
             </option>
           ))}
         </select>
@@ -95,7 +116,7 @@ function ProgramsList() {
           <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                {["School", "Sport", "Level", "Conference", "Head coach", "Source", ""].map((h) => (
+                {["School", "Sport", "Offered", "Level", "Conference", "Head coach", "Source", ""].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-[10px] font-semibold tracking-wide text-steel uppercase"
@@ -119,6 +140,9 @@ function ProgramsList() {
                     <span className="meta ml-2">{p.universities?.state ?? ""}</span>
                   </td>
                   <td className="px-4 py-3 text-graphite">{titleCase(p.sport)}</td>
+                  <td className="px-4 py-3">
+                    <OfferingBadge status={p.offering_status ?? "unverified"} />
+                  </td>
                   <td className="px-4 py-3 tabular text-graphite">
                     {[p.governing_body, p.division].filter(Boolean).join(" ") || "—"}
                   </td>
@@ -143,5 +167,19 @@ function ProgramsList() {
         </div>
       )}
     </div>
+  );
+}
+
+function OfferingBadge({ status }: { status: string }) {
+  const styles =
+    status === "verified"
+      ? "bg-diamond-green-tint text-diamond-green"
+      : status === "not_offered"
+        ? "bg-seam-red-tint text-seam-red"
+        : "bg-muted text-steel";
+  return (
+    <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${styles}`}>
+      {OFFERING_STATUS_LABEL[status] ?? status}
+    </span>
   );
 }
