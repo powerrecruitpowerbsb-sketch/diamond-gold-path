@@ -53,7 +53,11 @@ type PendingItem = {
   currentRecord: Record<string, unknown> | null;
 };
 
-const TABLE_LABEL: Record<string, string> = { universities: "School", programs: "Program" };
+const TABLE_LABEL: Record<string, string> = {
+  universities: "School",
+  programs: "Program",
+  roster_players: "Roster",
+};
 
 function band(confidence: number | null) {
   if (confidence == null) return "none";
