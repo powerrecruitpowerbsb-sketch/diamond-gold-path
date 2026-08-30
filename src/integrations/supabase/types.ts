@@ -269,6 +269,66 @@ export type Database = {
           },
         ]
       }
+      ingestion_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          program_id: string
+          proposals_created: number
+          snapshot_written: boolean
+          started_at: string
+          started_by: string | null
+          status: string
+          updated_at: string
+          url_results: Json
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          program_id: string
+          proposals_created?: number
+          snapshot_written?: boolean
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+          url_results?: Json
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          program_id?: string
+          proposals_created?: number
+          snapshot_written?: boolean
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+          url_results?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_runs_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_runs_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interaction_log: {
         Row: {
           created_at: string
