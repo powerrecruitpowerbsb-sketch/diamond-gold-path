@@ -703,6 +703,7 @@ export type Database = {
         Row: {
           ai_confidence: number | null
           created_at: string
+          decided_via: string
           field_name: string | null
           id: string
           proposed_value: Json
@@ -718,6 +719,7 @@ export type Database = {
         Insert: {
           ai_confidence?: number | null
           created_at?: string
+          decided_via?: string
           field_name?: string | null
           id?: string
           proposed_value: Json
@@ -733,6 +735,7 @@ export type Database = {
         Update: {
           ai_confidence?: number | null
           created_at?: string
+          decided_via?: string
           field_name?: string | null
           id?: string
           proposed_value?: Json
