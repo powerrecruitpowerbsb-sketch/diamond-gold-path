@@ -577,20 +577,24 @@ export async function ingestProgram(
           detail: rows.length ? `${rows.length} field(s) proposed` : "nothing new found on this page",
         });
       } else {
-        const { players, season_year } = await extractRoster(markdown);
+        const { players, season_year, diagnostics } = await extractRoster(markdown);
         rosterPlayers = players.length;
         if (!players.length) {
           urlResults.push({
             url: target.url,
             purpose: target.purpose,
             status: "empty",
-            detail: "no players could be read from this page",
+            detail: `no players could be read from this page (${diagnostics.characters} characters scraped)`,
           });
           continue;
         }
 
         const summary = summarizeRoster(players);
         const seasonYear = season_year ?? new Date().getFullYear();
+        const suspicious = players.length < INGEST_POLICY.minCredibleRoster;
+        if (suspicious) {
+          rosterWarning = `Only ${players.length} players were read from the roster page — a full four-year roster is usually 30+. This looks like an incomplete scrape, so it is flagged for scrutiny instead of being trusted.`;
+        }
 
         const { error: snapshotError } = await supabase.from("roster_snapshots").insert({
           program_id: programId,
@@ -610,17 +614,25 @@ export async function ingestProgram(
           table_name: "roster_players",
           record_id: programId,
           field_name: null,
-          proposed_value: { program_id: programId, season_year: seasonYear, players } as any,
+          proposed_value: {
+            program_id: programId,
+            season_year: seasonYear,
+            players,
+            incomplete_scrape: suspicious,
+            scrape_diagnostics: diagnostics,
+          } as any,
           source_url: target.url,
           source_type: "official",
-          ai_confidence: 0.7,
+          ai_confidence: suspicious ? 0.3 : 0.7,
         });
 
         urlResults.push({
           url: target.url,
           purpose: target.purpose,
           status: "scraped",
-          detail: `${players.length} players read; snapshot saved for ${seasonYear}`,
+          detail: suspicious
+            ? `only ${players.length} players read from ${diagnostics.characters} characters — likely incomplete; snapshot saved for ${seasonYear}`
+            : `${players.length} players read; snapshot saved for ${seasonYear}`,
         });
       }
     } catch (failure) {
@@ -633,10 +645,91 @@ export async function ingestProgram(
     }
   }
 
-  if (proposals.length) {
-    const { error: insertError } = await supabase.from("pending_data_changes").insert(proposals);
-    if (insertError) throw new Error(insertError.message);
+  // --- Dedupe, then split by trust tier -------------------------------------
+  const fieldProposals = mergeFieldProposals(proposals.filter((row) => row.field_name));
+  const recordProposals = proposals.filter((row) => !row.field_name);
+
+  // Never queue the same field twice: an untouched pending item already covers it.
+  const recordIds = [...new Set(proposals.map((row) => row.record_id))];
+  const { data: existingPending } = await supabase
+    .from("pending_data_changes")
+    .select("id, table_name, record_id, field_name")
+    .eq("status", "pending")
+    .in("record_id", recordIds.length ? recordIds : ["00000000-0000-0000-0000-000000000000"]);
+
+  const alreadyPending = new Set(
+    ((existingPending ?? []) as any[])
+      .filter((row) => row.field_name)
+      .map((row) => `${row.table_name}:${row.record_id}:${row.field_name}`),
+  );
+
+  const freshFieldProposals = fieldProposals.filter(
+    (row) => !alreadyPending.has(`${row.table_name}:${row.record_id}:${row.field_name}`),
+  );
+
+  // A newer whole-record proposal supersedes an unreviewed older one.
+  const supersede = ((existingPending ?? []) as any[]).filter(
+    (row) =>
+      !row.field_name &&
+      recordProposals.some(
+        (fresh) => fresh.table_name === row.table_name && fresh.record_id === row.record_id,
+      ),
+  );
+  if (supersede.length) {
+    await supabase
+      .from("pending_data_changes")
+      .update({ status: "rejected", reviewed_by: userId, reviewed_at: new Date().toISOString() })
+      .in(
+        "id",
+        supersede.map((row) => row.id),
+      );
   }
+
+  const autoRows = freshFieldProposals.filter(isAutoApplicable);
+  const reviewRows = [
+    ...freshFieldProposals.filter((row) => !isAutoApplicable(row)),
+    ...recordProposals,
+  ];
+
+  const toInsert = [...autoRows, ...reviewRows].map(({ gap_fill: _gapFill, ...row }) => ({
+    ...row,
+    decided_via: autoRows.includes(row as any) ? "auto" : "human",
+  }));
+
+  let inserted: any[] = [];
+  if (toInsert.length) {
+    const { data: insertedRows, error: insertError } = await supabase
+      .from("pending_data_changes")
+      .insert(toInsert)
+      .select(
+        "id, table_name, record_id, field_name, proposed_value, source_url, source_type, ai_confidence, status, created_at",
+      );
+    if (insertError) throw new Error(insertError.message);
+    inserted = (insertedRows ?? []) as any[];
+  }
+
+  // Trusted gap-fills apply immediately through the same writer a human approval uses,
+  // so live values, source citations and the activity log all stay on one path.
+  let autoApplied = 0;
+  if (autoRows.length && inserted.length) {
+    const { approvePending } = await import("@/lib/review.server");
+    const autoKeys = new Set(
+      autoRows.map((row) => `${row.table_name}:${row.record_id}:${row.field_name}`),
+    );
+    for (const row of inserted) {
+      if (!row.field_name) continue;
+      if (!autoKeys.has(`${row.table_name}:${row.record_id}:${row.field_name}`)) continue;
+      try {
+        await approvePending(supabase, userId, row);
+        autoApplied += 1;
+      } catch (failure) {
+        console.error(`Auto-apply failed for ${row.field_name}: ${(failure as Error).message}`);
+      }
+    }
+  }
+
+  const queuedForReview = Math.max(inserted.length - autoApplied, 0);
+
 
   const anySuccess = urlResults.some((r) => r.status === "scraped" || r.status === "empty");
   const anyFailure = urlResults.some((r) => r.status === "scrape_failed" || r.status === "extract_failed");
