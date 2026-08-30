@@ -23,8 +23,10 @@ export type IngestOutcome = {
   status: "success" | "partial" | "failed";
   urlResults: UrlResult[];
   proposalsCreated: number;
+  autoApplied: number;
   snapshotWritten: boolean;
   rosterPlayers: number;
+  rosterWarning: string | null;
   errorMessage: string | null;
 };
 
@@ -507,8 +509,10 @@ export async function ingestProgram(
       status: "failed",
       urlResults: [],
       proposalsCreated: 0,
+      autoApplied: 0,
       snapshotWritten: false,
       rosterPlayers: 0,
+      rosterWarning: null,
       errorMessage:
         "No source URLs on this program yet. Add a school website, admissions, athletics or roster URL first.",
     };
