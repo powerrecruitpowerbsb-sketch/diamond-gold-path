@@ -1,0 +1,2 @@
+UPDATE public.universities SET acceptance_rate = acceptance_rate * 100 WHERE acceptance_rate IS NOT NULL AND acceptance_rate <= 1;
+UPDATE public.universities SET graduation_rate = graduation_rate * 100 WHERE graduation_rate IS NOT NULL AND graduation_rate <= 1;
