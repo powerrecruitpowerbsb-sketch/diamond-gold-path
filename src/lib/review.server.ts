@@ -30,12 +30,14 @@ export function unwrapFieldValue(fieldName: string, proposed: unknown): unknown 
   return proposed;
 }
 
+export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+
 export type PendingRow = {
   id: string;
   table_name: string;
   record_id: string | null;
   field_name: string | null;
-  proposed_value: unknown;
+  proposed_value: Json;
   source_url: string | null;
   source_type: string;
   ai_confidence: number | null;
@@ -188,8 +190,8 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
     return {
       ...row,
       recordLabel: key ? (labels.get(key) ?? null) : null,
-      currentValue,
-      currentRecord: row.field_name ? null : (record ?? null),
+      currentValue: (currentValue ?? null) as Json,
+      currentRecord: (row.field_name ? null : (record ?? null)) as Json,
     };
   });
 }
