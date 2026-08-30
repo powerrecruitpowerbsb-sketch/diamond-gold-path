@@ -6,14 +6,15 @@ import { Building2, GraduationCap, PlusCircle, Trophy, Users } from "lucide-reac
 import { getAdminStats } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/admin/form-kit";
+import { ActivityFeed } from "@/components/admin/ActivityFeed";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminHome,
 });
 
 const STAT_META = [
-  { key: "universities", label: "Universities", icon: Building2 },
-  { key: "programs", label: "Programs", icon: Trophy },
+  { key: "universities", label: "Schools", icon: Building2 },
+  { key: "programs", label: "Programs (baseball + softball)", icon: Trophy },
   { key: "majors", label: "Majors", icon: GraduationCap },
   { key: "rosterPlayers", label: "Roster players", icon: Users },
 ] as const;
@@ -61,42 +62,15 @@ function AdminHome() {
 
       <SectionCard
         title="Recent activity"
-        blurb="Straight from the audit log — every write is recorded automatically."
+        blurb="Who changed what, in plain English. Every write is recorded automatically."
         aside={
           <Button asChild variant="outline" className="touch-target">
             <Link to="/admin/audit">View full log</Link>
           </Button>
         }
       >
-        {data?.recent?.length ? (
-          <ul className="divide-y divide-border">
-            {data.recent.map((row: any) => (
-              <li key={row.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-2.5">
-                <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-graphite">
-                  {row.table_name}
-                </span>
-                <span className="text-sm text-graphite">
-                  {row.action === "create" ? "created" : "changed"}
-                  {row.field_name ? ` ${row.field_name}` : ""}
-                </span>
-                {row.field_name ? (
-                  <span className="meta">
-                    {truncate(row.old_value)} → {truncate(row.new_value)}
-                  </span>
-                ) : null}
-                <span className="meta ml-auto">{new Date(row.created_at).toLocaleString()}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-steel">No changes recorded yet.</p>
-        )}
+        <ActivityFeed rows={((data?.recent ?? []) as any[]).slice(0, 24)} />
       </SectionCard>
     </div>
   );
-}
-
-function truncate(value: string | null) {
-  if (value == null || value === "") return "—";
-  return value.length > 40 ? `${value.slice(0, 40)}…` : value;
 }

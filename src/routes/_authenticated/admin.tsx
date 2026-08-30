@@ -7,8 +7,8 @@ import { AuthButton } from "@/components/brand/AuthButton";
 
 const ADMIN_NAV = [
   { to: "/admin", label: "Console", exact: true },
-  { to: "/admin/universities", label: "Universities", exact: false },
-  { to: "/admin/programs", label: "Programs", exact: false },
+  { to: "/admin/universities", label: "Schools", exact: false },
+  { to: "/admin/programs", label: "Programs (Baseball / Softball)", exact: false },
   { to: "/admin/majors", label: "Majors", exact: false },
   { to: "/admin/audit", label: "Audit log", exact: false },
 ];
@@ -77,6 +77,11 @@ function AdminLayout() {
           </Link>
         ))}
       </nav>
+      <p className="mb-6 -mt-4 text-xs text-steel">
+        <strong className="font-semibold text-graphite">Schools</strong> hold academics and cost.{" "}
+        <strong className="font-semibold text-graphite">Programs</strong> are the baseball or softball
+        team at a school — division, conference, coaches, roster, and our intelligence.
+      </p>
       <Outlet />
     </AppShell>
   );

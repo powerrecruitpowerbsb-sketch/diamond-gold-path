@@ -73,15 +73,16 @@ export const getAdminStats = createServerFn({ method: "GET" })
     ]);
     const { data: recent } = await context.supabase
       .from("audit_log")
-      .select("id, table_name, record_id, field_name, old_value, new_value, action, created_at")
+      .select("id, actor_id, table_name, record_id, field_name, old_value, new_value, action, created_at")
       .order("created_at", { ascending: false })
-      .limit(8);
+      .limit(24);
+    const { enrichAuditRows } = await import("@/lib/audit-enrich.server");
     return {
       universities: counts[0].count ?? 0,
       programs: counts[1].count ?? 0,
       majors: counts[2].count ?? 0,
       rosterPlayers: counts[3].count ?? 0,
-      recent: recent ?? [],
+      recent: await enrichAuditRows(context.supabase, (recent ?? []) as any[]),
     };
   });
 
@@ -191,7 +192,7 @@ export const listPrograms = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("programs")
       .select(
-        "id, university_id, sport, governing_body, division, conference, head_coach_name, recruiting_coordinator_name, scholarships_available, last_verified_at, universities(name, state)",
+        "id, university_id, sport, governing_body, division, conference, head_coach_name, recruiting_coordinator_name, scholarships_available, offering_status, last_verified_at, universities(name, state)",
       )
       .order("sport");
     if (error) throw new Error(error.message);
@@ -275,9 +276,16 @@ export const createSchool = createServerFn({ method: "POST" })
         (data.sources ?? {}) as any,
         context.userId,
       );
-      const programRows = (data.programs ?? [])
+      // A school always gets both sport slots. Sports entered in the wizard are
+      // verified; the other sport becomes an unverified shell for the crawler to fill.
+      const entered: Json[] = (data.programs ?? [])
         .filter((p) => p && p["sport"])
-        .map((p) => ({ ...p, university_id: universityId }));
+        .map((p) => ({ ...p, university_id: universityId, offering_status: "verified" }));
+      const enteredSports = new Set(entered.map((p) => String(p["sport"])));
+      const shells: Json[] = (["baseball", "softball"] as const)
+        .filter((sport) => !enteredSports.has(sport))
+        .map((sport) => ({ university_id: universityId, sport, offering_status: "unverified" }));
+      const programRows: Json[] = [...entered, ...shells];
       if (programRows.length) {
         const { error: programError } = await context.supabase.from("programs").insert(programRows as any);
         if (programError) throw new Error(programError.message);
@@ -460,19 +468,8 @@ export const listAuditLog = createServerFn({ method: "GET" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
-    const actorIds = [...new Set(((rows ?? []) as any[]).map((r) => r.actor_id).filter(Boolean))];
-    const actorMap = new Map<string, string>();
-    if (actorIds.length) {
-      const { data: actors } = await context.supabase
-        .from("users")
-        .select("id, name, email")
-        .in("id", actorIds);
-      for (const a of (actors ?? []) as any[]) actorMap.set(a.id, a.name || a.email || a.id);
-    }
-    return ((rows ?? []) as any[]).map((r) => ({
-      ...r,
-      actorLabel: r.actor_id ? (actorMap.get(r.actor_id) ?? "Unknown user") : "System",
-    }));
+    const { enrichAuditRows } = await import("@/lib/audit-enrich.server");
+    return await enrichAuditRows(context.supabase, (rows ?? []) as any[]);
   });
 
 export const listInvites = createServerFn({ method: "GET" })

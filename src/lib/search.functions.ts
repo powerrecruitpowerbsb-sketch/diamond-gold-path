@@ -72,7 +72,8 @@ export const searchPrograms = createServerFn({ method: "POST" })
          athletic_website, roster_url, coaching_staff_url, head_coach_name, last_verified_at,
          universities!inner(${UNIVERSITY_COLS})`,
       )
-      .eq("sport", f.sport);
+      .eq("sport", f.sport)
+      .eq("offering_status", "verified");
 
     if (f.governingBody) query = query.eq("governing_body", f.governingBody);
     if (f.division) query = query.eq("division", f.division);

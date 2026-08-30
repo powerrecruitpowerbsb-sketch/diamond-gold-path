@@ -90,6 +90,13 @@ export const PROGRAM_SECTIONS: SectionDef[] = [
   {
     title: "Program Identity",
     fields: [
+      {
+        name: "offering_status",
+        label: "Sport offered?",
+        kind: "select",
+        options: ["unverified", "verified", "not_offered"],
+        hint: "Verified = the school sponsors this sport. Not offered = confirmed it doesn't.",
+      },
       { name: "governing_body", label: "Governing body", kind: "select", options: GOVERNING_BODIES },
       { name: "division", label: "Division", kind: "text", hint: "e.g. D1, D2, D3, NAIA" },
       { name: "conference", label: "Conference", kind: "text" },

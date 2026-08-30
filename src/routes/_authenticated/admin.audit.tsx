@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { listAuditLog } from "@/lib/admin.functions";
+import { fieldLabel, initials, tableLabel, valueLabel } from "@/lib/audit-format";
 
 const TABLES = [
   "universities",
@@ -13,6 +14,14 @@ const TABLES = [
   "majors",
   "university_majors",
   "roster_players",
+  "org_athletes",
+  "athlete_saved_schools",
+  "org_player_notes",
+  "recruiting_intelligence",
+  "teams",
+  "team_athletes",
+  "seasons",
+  "org_member_invites",
 ];
 
 export const Route = createFileRoute("/_authenticated/admin/audit")({
@@ -46,7 +55,7 @@ function AuditScreen() {
           <option value="">All records</option>
           {TABLES.map((table) => (
             <option key={table} value={table}>
-              {table.replace(/_/g, " ")}
+              {tableLabel(table)}
             </option>
           ))}
         </select>
@@ -79,11 +88,22 @@ function AuditScreen() {
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="meta">{new Date(row.created_at).toLocaleString()}</span>
                   </td>
-                  <td className="px-4 py-3 text-graphite">{row.actorLabel}</td>
-                  <td className="px-4 py-3">
-                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-graphite">
-                      {row.table_name}
+                  <td className="px-4 py-3 text-graphite">
+                    <span className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className="flex size-7 shrink-0 items-center justify-center rounded-[9px] bg-org-primary/10 text-[10px] font-bold text-org-primary"
+                      >
+                        {initials(row.actorLabel ?? "System")}
+                      </span>
+                      {row.actorLabel}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="block font-semibold text-graphite">
+                      {row.recordLabel ?? "—"}
+                    </span>
+                    <span className="meta capitalize">{tableLabel(row.table_name)}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -98,12 +118,14 @@ function AuditScreen() {
                       {row.action}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-graphite">{row.field_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-graphite capitalize">
+                    {row.field_name ? fieldLabel(row.field_name) : "—"}
+                  </td>
                   <td className="max-w-[220px] truncate px-4 py-3 tabular text-steel">
-                    {row.old_value ?? "—"}
+                    {valueLabel(row.old_value)}
                   </td>
                   <td className="max-w-[220px] truncate px-4 py-3 tabular text-graphite">
-                    {row.new_value ?? "—"}
+                    {valueLabel(row.new_value)}
                   </td>
                 </tr>
               ))}
