@@ -639,62 +639,6 @@ export type Database = {
           },
         ]
       }
-      pending_data_changes: {
-        Row: {
-          ai_confidence: number | null
-          created_at: string
-          field_name: string | null
-          id: string
-          proposed_value: Json
-          record_id: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          source_type: Database["public"]["Enums"]["source_type"]
-          source_url: string | null
-          status: Database["public"]["Enums"]["pending_change_status"]
-          table_name: string
-          updated_at: string
-        }
-        Insert: {
-          ai_confidence?: number | null
-          created_at?: string
-          field_name?: string | null
-          id?: string
-          proposed_value: Json
-          record_id?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          source_type?: Database["public"]["Enums"]["source_type"]
-          source_url?: string | null
-          status?: Database["public"]["Enums"]["pending_change_status"]
-          table_name: string
-          updated_at?: string
-        }
-        Update: {
-          ai_confidence?: number | null
-          created_at?: string
-          field_name?: string | null
-          id?: string
-          proposed_value?: Json
-          record_id?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          source_type?: Database["public"]["Enums"]["source_type"]
-          source_url?: string | null
-          status?: Database["public"]["Enums"]["pending_change_status"]
-          table_name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pending_data_changes_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       program_relationships: {
         Row: {
           created_at: string
@@ -927,53 +871,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "roster_players_program_id_fkey"
-            columns: ["program_id"]
-            isOneToOne: false
-            referencedRelation: "programs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      roster_snapshots: {
-        Row: {
-          class_year_counts: Json
-          created_at: string
-          id: string
-          juco_transfer_count: number
-          position_counts: Json
-          program_id: string
-          pulled_at: string
-          season_year: number | null
-          source_url: string | null
-          transfer_count: number
-        }
-        Insert: {
-          class_year_counts?: Json
-          created_at?: string
-          id?: string
-          juco_transfer_count?: number
-          position_counts?: Json
-          program_id: string
-          pulled_at?: string
-          season_year?: number | null
-          source_url?: string | null
-          transfer_count?: number
-        }
-        Update: {
-          class_year_counts?: Json
-          created_at?: string
-          id?: string
-          juco_transfer_count?: number
-          position_counts?: Json
-          program_id?: string
-          pulled_at?: string
-          season_year?: number | null
-          source_url?: string | null
-          transfer_count?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "roster_snapshots_program_id_fkey"
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
@@ -1434,7 +1331,6 @@ export type Database = {
         | "geographic_tendencies"
         | "recruiting_timeline"
         | "roster_construction_tendencies"
-      pending_change_status: "pending" | "approved" | "rejected"
       player_position:
         | "C"
         | "1B"
@@ -1618,7 +1514,6 @@ export const Constants = {
         "recruiting_timeline",
         "roster_construction_tendencies",
       ],
-      pending_change_status: ["pending", "approved", "rejected"],
       player_position: [
         "C",
         "1B",
