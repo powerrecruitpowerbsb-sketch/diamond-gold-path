@@ -89,9 +89,11 @@ function ReviewQueue() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  const { program: programFilter } = Route.useSearch();
+
   const { data = [], isPending } = useQuery({
-    queryKey: ["pending-changes"],
-    queryFn: () => listFn({ data: { status: "pending" } }),
+    queryKey: ["pending-changes", programFilter ?? "all"],
+    queryFn: () => listFn({ data: { status: "pending", programId: programFilter ?? null } }),
   });
   const items = data as unknown as PendingItem[];
 
