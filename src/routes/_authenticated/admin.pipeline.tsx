@@ -9,6 +9,7 @@ import { SectionCard } from "@/components/admin/form-kit";
 import {
   getPipelineStatus,
   importNcaaSlice,
+  importWikiSlice,
   listFederalBlocked,
   listFederalCandidates,
   rebuildQueue,
@@ -46,6 +47,16 @@ const NCAA_SLICES = [
   { division: "III", sport: "softball", label: "D3 softball" },
 ] as const;
 
+/** Keys must match WIKI_SLICES on the server. */
+const OTHER_SLICES = [
+  { key: "naia", label: "NAIA" },
+  { key: "njcaa-d1", label: "NJCAA D1" },
+  { key: "njcaa-d2", label: "NJCAA D2" },
+  { key: "njcaa-d3", label: "NJCAA D3" },
+  { key: "cccaa", label: "CCCAA (California)" },
+  { key: "nwac", label: "NWAC (Northwest)" },
+] as const;
+
 const STAGE_LABELS: Record<string, string> = {
   federal_data: "School facts (federal data)",
   url_discovery: "Find athletics links",
@@ -55,6 +66,7 @@ const STAGE_LABELS: Record<string, string> = {
 function Pipeline() {
   const statusFn = useServerFn(getPipelineStatus);
   const importFn = useServerFn(importNcaaSlice);
+  const wikiImportFn = useServerFn(importWikiSlice);
   const federalFn = useServerFn(runFederalBatch);
   const rebuildFn = useServerFn(rebuildQueue);
   const blockedFn = useServerFn(listFederalBlocked);
@@ -126,6 +138,58 @@ function Pipeline() {
       setBusy(null);
     }
   }
+
+  /** Same windowed walk, for a non-NCAA membership list. */
+  async function importWikiFully(key: string, label: string) {
+    let offset = 0;
+    let schoolsCreated = 0;
+    let programsCreated = 0;
+    let programsUpdated = 0;
+    let total = 0;
+    for (let guard = 0; guard < 40; guard += 1) {
+      const result = (await wikiImportFn({ data: { slice: key, offset, limit: 60 } })) as any;
+      schoolsCreated += result.schoolsCreated;
+      programsCreated += result.programsCreated;
+      programsUpdated += result.programsUpdated;
+      total = result.total;
+      offset = result.nextOffset;
+      note(`${label}: ${offset}/${total} processed…`);
+      if (result.done) break;
+    }
+    note(
+      `${label}: ${total} listed · ${schoolsCreated} new schools · ${programsCreated} new programs · ${programsUpdated} updated`,
+    );
+  }
+
+  async function onImportWikiSlice(key: string, label: string) {
+    setBusy(label);
+    try {
+      await importWikiFully(key, label);
+      toast.success(`${label} imported`);
+      await refresh();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Import failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /** NAIA + NJCAA D1-D3 + CCCAA + NWAC in one unattended pass. */
+  async function onImportAllOther() {
+    setBusy("all-other");
+    try {
+      for (const slice of OTHER_SLICES) {
+        await importWikiFully(slice.key, slice.label);
+      }
+      toast.success("NAIA, NJCAA, CCCAA and NWAC imported");
+      await refresh();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Import failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
 
 
   async function onFederalBatch(limit: number) {
@@ -268,11 +332,39 @@ function Pipeline() {
             </button>
           ))}
         </div>
-        <p className="meta mt-3">
-          NAIA, NJCAA, CCCAA and NWAC block plain requests, so those directories come through the
-          scraper instead — next step after NCAA is covered.
-        </p>
       </SectionCard>
+
+      <SectionCard
+        title="Step 1b — Pull the other governing bodies"
+        blurb="NAIA, NJCAA, CCCAA and NWAC block automated access to their own sites, so their member lists come from maintained public directories. Those lists prove membership, not which sport each school sponsors, so the programs land unverified until the roster scrape confirms them."
+        aside={
+          <button
+            type="button"
+            onClick={onImportAllOther}
+            disabled={busy !== null}
+            className="touch-target inline-flex items-center gap-2 rounded-lg bg-diamond-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            <Download className="size-4" aria-hidden />
+            {busy === "all-other" ? "Importing all…" : "Import all others"}
+          </button>
+        }
+      >
+        <div className="flex flex-wrap gap-2">
+          {OTHER_SLICES.map((slice) => (
+            <button
+              key={slice.key}
+              type="button"
+              onClick={() => onImportWikiSlice(slice.key, slice.label)}
+              disabled={busy !== null}
+              className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              <Download className="size-4" aria-hidden />
+              {busy === slice.label ? "Pulling…" : slice.label}
+            </button>
+          ))}
+        </div>
+      </SectionCard>
+
 
       <SectionCard
         title="Step 2 — Federal school facts"
