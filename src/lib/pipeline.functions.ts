@@ -113,6 +113,39 @@ export const importNcaaSlice = createServerFn({ method: "POST" })
     return clean({ ...result, total: all.length, nextOffset, done, queued });
   });
 
+/**
+ * Pull one non-NCAA membership slice (NAIA, NJCAA D1-D3, CCCAA, NWAC). Those
+ * bodies block automated access to their own sites, so the member tables come
+ * from Wikipedia's maintained lists over the free MediaWiki API.
+ */
+export const importWikiSlice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { slice: string; offset?: number; limit?: number }) => ({
+    slice: String(input?.slice ?? ""),
+    offset: Math.max(Number(input?.offset ?? 0) || 0, 0),
+    limit: Math.min(Math.max(Number(input?.limit ?? 60) || 60, 1), 120),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { importDirectoryRows } = await import("@/lib/directory-import.server");
+    const { fetchWikiDirectory, WIKI_SLICES } = await import("@/lib/wiki-directory.server");
+    const { enqueueMissingWork } = await import("@/lib/ingest-queue.server");
+
+    const slice = WIKI_SLICES.find((candidate) => candidate.key === data.slice);
+    if (!slice) throw new Error("Unknown membership list");
+
+    const all = await fetchWikiDirectory(slice.key);
+    const rows = all.slice(data.offset, data.offset + data.limit);
+    const result = await importDirectoryRows(context.supabase, rows, slice.label);
+    const nextOffset = data.offset + rows.length;
+    const done = nextOffset >= all.length;
+    const queued = done ? await enqueueMissingWork(context.supabase) : {};
+
+    return clean({ ...result, total: all.length, nextOffset, done, queued });
+  });
+
+
+
 
 /**
  * Work the federal-data stage: claim a batch of schools, match each to its
