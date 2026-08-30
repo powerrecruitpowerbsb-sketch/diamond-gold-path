@@ -321,6 +321,61 @@ function ReviewQueue() {
                           </p>
                         </div>
                       </div>
+                    ) : item.table_name === "roster_players" ? (
+                      <div className="mt-3">
+                        <p className="text-sm text-steel">
+                          Full roster replacement —{" "}
+                          <span className="font-semibold tabular-nums text-graphite">
+                            {rosterPlayers(item.proposed_value).length} players
+                          </span>{" "}
+                          scraped for season{" "}
+                          <span className="tabular-nums">
+                            {String(
+                              (item.proposed_value as Record<string, unknown> | null)?.[
+                                "season_year"
+                              ] ?? "—",
+                            )}
+                          </span>
+                          . Approving replaces the stored roster for that season.
+                        </p>
+                        <button
+                          type="button"
+                          className="meta mt-2 hover:text-graphite"
+                          onClick={() => setExpanded((prev) => toggle(prev, item.id))}
+                        >
+                          {open ? "HIDE PLAYERS" : "SHOW PLAYERS"}
+                        </button>
+                        {open ? (
+                          <table className="mt-2 w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border">
+                                <th className="py-1.5 pr-3 text-left text-steel">Name</th>
+                                <th className="py-1.5 pr-3 text-left text-steel">Pos</th>
+                                <th className="py-1.5 pr-3 text-left text-steel">Class</th>
+                                <th className="py-1.5 text-left text-steel">Hometown</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rosterPlayers(item.proposed_value).map((player, index) => (
+                                <tr key={index} className="border-b border-border/60">
+                                  <td className="py-1.5 pr-3 text-graphite">
+                                    {display(player["name"])}
+                                  </td>
+                                  <td className="py-1.5 pr-3 text-graphite">
+                                    {display(player["position"])}
+                                  </td>
+                                  <td className="py-1.5 pr-3 text-graphite">
+                                    {display(player["class_year"])}
+                                  </td>
+                                  <td className="py-1.5 text-steel">
+                                    {display(player["hometown"])}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : null}
+                      </div>
                     ) : (
                       <div className="mt-3">
                         <button
