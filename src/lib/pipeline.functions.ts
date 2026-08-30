@@ -174,6 +174,7 @@ export const runFederalBatch = createServerFn({ method: "POST" })
       needsHelp: results.filter((r) => r.status !== "confirmed").length,
       fieldsApplied: results.reduce((sum, r) => sum + (r.fieldsApplied ?? 0), 0),
       fieldsQueued: results.reduce((sum, r) => sum + (r.fieldsQueued ?? 0), 0),
+      rateLimitHit,
       results,
     });
   });
