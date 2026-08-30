@@ -186,6 +186,7 @@ function ReviewQueue() {
             <option value="all">All</option>
             <option value="universities">Schools</option>
             <option value="programs">Programs</option>
+            <option value="roster_players">Rosters</option>
           </select>
         </label>
         <label className="block">
