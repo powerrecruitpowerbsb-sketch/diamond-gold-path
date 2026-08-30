@@ -192,7 +192,7 @@ export const listPrograms = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("programs")
       .select(
-        "id, university_id, sport, governing_body, division, conference, head_coach_name, recruiting_coordinator_name, scholarships_available, last_verified_at, universities(name, state)",
+        "id, university_id, sport, governing_body, division, conference, head_coach_name, recruiting_coordinator_name, scholarships_available, offering_status, last_verified_at, universities(name, state)",
       )
       .order("sport");
     if (error) throw new Error(error.message);
