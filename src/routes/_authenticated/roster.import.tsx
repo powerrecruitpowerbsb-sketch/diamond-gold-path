@@ -9,6 +9,7 @@ import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
 import { importAthletes, matchAthletes } from "@/lib/athletes.functions";
+import { parseCsv } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/roster/import")({
   head: () => ({
@@ -54,41 +55,6 @@ const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[
   { key: "team", label: "Team", required: false, hints: ["team", "roster", "squad"] },
 ];
 
-/** Minimal RFC4180-ish CSV parser: handles quoted fields, commas and CRLF. */
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let value = "";
-  let quoted = false;
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i];
-    if (quoted) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          value += '"';
-          i += 1;
-        } else quoted = false;
-      } else value += char;
-      continue;
-    }
-    if (char === '"') quoted = true;
-    else if (char === ",") {
-      row.push(value);
-      value = "";
-    } else if (char === "\n") {
-      row.push(value);
-      rows.push(row);
-      row = [];
-      value = "";
-    } else if (char !== "\r") value += char;
-  }
-  if (value !== "" || row.length) {
-    row.push(value);
-    rows.push(row);
-  }
-  return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
-}
 
 type PreviewRow = {
   index: number;
