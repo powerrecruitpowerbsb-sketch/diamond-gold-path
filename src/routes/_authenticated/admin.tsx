@@ -36,6 +36,13 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminLayout() {
   const { account: data, isPending } = useMyAccount();
+  const countFn = useServerFn(countPendingChanges);
+  const { data: pending } = useQuery({
+    queryKey: ["pending-changes-count"],
+    queryFn: () => countFn(),
+    enabled: Boolean(data?.isSuperadmin),
+  });
+  const pendingCount = pending?.pending ?? 0;
 
   if (isPending) {
     return (
