@@ -1,7 +1,10 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ShieldAlert } from "lucide-react";
 
 import { useMyAccount } from "@/hooks/use-my-account";
+import { countPendingChanges } from "@/lib/review.functions";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 
@@ -9,6 +12,7 @@ const ADMIN_NAV = [
   { to: "/admin", label: "Console", exact: true },
   { to: "/admin/universities", label: "Schools", exact: false },
   { to: "/admin/programs", label: "Programs (Baseball / Softball)", exact: false },
+  { to: "/admin/review", label: "Review queue", exact: false },
   { to: "/admin/majors", label: "Majors", exact: false },
   { to: "/admin/audit", label: "Audit log", exact: false },
 ];
