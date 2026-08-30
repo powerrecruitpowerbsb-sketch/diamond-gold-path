@@ -358,7 +358,7 @@ export async function syncUniversityFromFederal(
     }
   }
 
-  await supabase
+  const { error: stampError } = await supabase
     .from("universities")
     .update({
       ipeds_unitid: unitid,
@@ -367,6 +367,7 @@ export async function syncUniversityFromFederal(
       federal_synced_at: new Date().toISOString(),
     })
     .eq("id", universityId);
+  if (stampError) throw new Error(`Could not stamp the federal match: ${stampError.message}`);
 
   return {
     universityId,
