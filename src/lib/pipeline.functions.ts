@@ -42,8 +42,12 @@ export const getPipelineStatus = createServerFn({ method: "GET" })
       schools: {
         total: schoolRows.length,
         federalConfirmed: schoolRows.filter((r) => r.federal_match_status === "confirmed").length,
+        // Only schools we actually looked up count as needing a decision — an
+        // untouched school is simply not collected yet.
         federalNeedsHelp: schoolRows.filter(
-          (r) => r.federal_match_status === "ambiguous" || r.federal_match_status === "unmatched",
+          (r) =>
+            r.federal_synced_at &&
+            (r.federal_match_status === "ambiguous" || r.federal_match_status === "unmatched"),
         ).length,
         withCost: schoolRows.filter((r) => r.tuition_in_state !== null).length,
       },
@@ -171,6 +175,7 @@ export const listFederalBlocked = createServerFn({ method: "GET" })
       .from("universities")
       .select("id, name, state, city, federal_match_status")
       .in("federal_match_status", ["ambiguous", "unmatched"])
+      .not("federal_synced_at", "is", null)
       .order("name")
       .limit(200);
     if (error) throw new Error(error.message);
