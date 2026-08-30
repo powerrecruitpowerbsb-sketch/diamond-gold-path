@@ -116,6 +116,8 @@ export const runFederalBatch = createServerFn({ method: "POST" })
 
     const items = await leaseQueueItems(context.supabase, "federal_data", data.limit);
     const results: any[] = [];
+    let rateLimitHit: string | null = null;
+
 
     for (const item of items) {
       if (!item.university_id) {
