@@ -2,8 +2,11 @@
 
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
 
-export const REVIEW_TABLES = ["universities", "programs"] as const;
+export const REVIEW_TABLES = ["universities", "programs", "roster_players"] as const;
 export type ReviewTable = (typeof REVIEW_TABLES)[number];
+
+/** Tables whose live records are edited field-by-field. */
+const FIELD_TABLES = ["universities", "programs"] as const;
 
 const EXTRA_UNIVERSITY_FIELDS = ["last_verified_at"];
 const EXTRA_PROGRAM_FIELDS = ["university_id", "sport", "last_roster_pull_at", "last_verified_at"];
