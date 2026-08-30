@@ -3,9 +3,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ExternalLink, Pencil, PlusCircle } from "lucide-react";
+import { ExternalLink, Pencil, PlusCircle, Radar } from "lucide-react";
 
 import { getUniversity, setUniversityMajors } from "@/lib/admin.functions";
+import { runUrlDiscovery } from "@/lib/discovery.functions";
 import { UNIVERSITY_SECTIONS, titleCase } from "@/lib/admin-schemas";
 import { OFFERING_STATUS_LABEL } from "@/lib/program-label";
 import { Button } from "@/components/ui/button";
