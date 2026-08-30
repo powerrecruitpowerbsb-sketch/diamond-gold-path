@@ -198,26 +198,87 @@ export type ExtractedPlayer = {
   is_juco_transfer?: boolean;
 };
 
-async function extractRoster(markdown: string): Promise<{ players: ExtractedPlayer[]; season_year: number | null }> {
-  const prompt = [
-    "You extract a college baseball/softball roster from an official roster page.",
-    "Return ONLY a single JSON object. No prose, no markdown fences.",
-    'Shape: { "season_year": number|null, "players": [ { "name", "position", "class_year", "bats", "throws", "hometown", "home_state", "is_transfer", "is_juco_transfer" } ] }',
-    "Include every player listed. name is required; omit any other key you cannot read for that player.",
-    "position must be one of C, 1B, 2B, 3B, SS, OF, UTIL, RHP, LHP, TWO_WAY. Map 'INF' to UTIL, 'P' with no handedness to RHP only if the page states right-handed, otherwise omit.",
-    "class_year must be one of FR, SO, JR, SR, GR (map Freshman/Redshirt Freshman to FR, Sophomore SO, Junior JR, Senior SR, Graduate GR).",
-    "bats is R, L or S. throws is R or L. If the page shows 'R/R' that means bats R, throws R.",
-    "home_state is the 2-letter US state abbreviation when the hometown is in the US.",
-    "is_juco_transfer is true only when a junior/community college is named as a previous school. is_transfer is true for any named previous four-year school.",
-    "season_year is the roster's season (e.g. 2026) if the page states it, otherwise null.",
-  ].join("\n");
-  const parsed = await extractJson(prompt, markdown);
-  const players = Array.isArray(parsed?.players) ? parsed.players : [];
-  return {
-    players: players.filter((p: any) => p && typeof p.name === "string" && p.name.trim()),
-    season_year: typeof parsed?.season_year === "number" ? parsed.season_year : null,
-  };
+const ROSTER_PROMPT = [
+  "You extract a college baseball/softball roster from an official roster page.",
+  "Return ONLY a single JSON object. No prose, no markdown fences.",
+  'Shape: { "season_year": number|null, "players": [ { "name", "position", "class_year", "bats", "throws", "hometown", "home_state", "is_transfer", "is_juco_transfer" } ] }',
+  "Include EVERY player listed in the text you are given — a full roster is usually 30-45 players. Do not stop early, do not summarize, do not sample.",
+  "name is required; omit any other key you cannot read for that player.",
+  "position must be one of C, 1B, 2B, 3B, SS, OF, UTIL, RHP, LHP, TWO_WAY. Map 'INF' to UTIL, 'P' with no handedness to RHP only if the page states right-handed, otherwise omit.",
+  "class_year must be one of FR, SO, JR, SR, GR (map Freshman/Redshirt Freshman to FR, Sophomore SO, Junior JR, Senior SR, Graduate GR).",
+  "bats is R, L or S. throws is R or L. If the page shows 'R/R' that means bats R, throws R.",
+  "home_state is the 2-letter US state abbreviation when the hometown is in the US.",
+  "is_juco_transfer is true only when a junior/community college is named as a previous school. is_transfer is true for any named previous four-year school.",
+  "season_year is the roster's season (e.g. 2026) if the page states it, otherwise null.",
+].join("\n");
+
+/** Split long roster markdown so a single reply size limit can't truncate the roster. */
+function chunkMarkdown(markdown: string, size = 14000): string[] {
+  if (markdown.length <= size) return [markdown];
+  const chunks: string[] = [];
+  const lines = markdown.split("\n");
+  let current = "";
+  for (const line of lines) {
+    if (current.length + line.length + 1 > size && current.trim()) {
+      chunks.push(current);
+      current = "";
+    }
+    current += `${line}\n`;
+  }
+  if (current.trim()) chunks.push(current);
+  return chunks;
 }
+
+/**
+ * Rough count of "looks like a roster entry" lines, used only to tell whether the
+ * AI dropped players that the page clearly listed.
+ */
+function countLikelyPlayerRows(markdown: string): number {
+  const matches = markdown.match(/^\s*\|?\s*#?\s*\d{1,2}\s*[|\t]/gm);
+  return matches ? matches.length : 0;
+}
+
+async function extractRoster(markdown: string): Promise<{
+  players: ExtractedPlayer[];
+  season_year: number | null;
+  diagnostics: { characters: number; chunks: number; likelyRows: number };
+}> {
+  const chunks = chunkMarkdown(markdown);
+  const byName = new Map<string, ExtractedPlayer>();
+  let seasonYear: number | null = null;
+  let lastError: Error | null = null;
+
+  for (const chunk of chunks) {
+    try {
+      const parsed = await extractJson(ROSTER_PROMPT, chunk);
+      if (seasonYear === null && typeof parsed?.season_year === "number") {
+        seasonYear = parsed.season_year;
+      }
+      const players = Array.isArray(parsed?.players) ? parsed.players : [];
+      for (const player of players) {
+        if (!player || typeof player.name !== "string" || !player.name.trim()) continue;
+        const key = player.name.trim().toLowerCase();
+        if (!byName.has(key)) byName.set(key, player as ExtractedPlayer);
+      }
+    } catch (failure) {
+      lastError = failure as Error;
+    }
+  }
+
+  if (!byName.size && lastError) throw lastError;
+
+  const diagnostics = {
+    characters: markdown.length,
+    chunks: chunks.length,
+    likelyRows: countLikelyPlayerRows(markdown),
+  };
+  console.log(
+    `Roster extraction: ${byName.size} players from ${diagnostics.characters} chars in ${diagnostics.chunks} chunk(s); ~${diagnostics.likelyRows} roster-looking rows on the page`,
+  );
+
+  return { players: [...byName.values()], season_year: seasonYear, diagnostics };
+}
+
 
 /** Coerce an AI value into something the column will accept, or null to skip. */
 function coerce(field: string, raw: unknown): unknown {
