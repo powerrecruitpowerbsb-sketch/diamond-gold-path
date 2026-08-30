@@ -240,9 +240,21 @@ function Pipeline() {
 
       <SectionCard
         title="Step 1 — Pull the NCAA membership list"
-        blurb="The NCAA publishes exactly which schools sponsor baseball and softball, with state, division and conference. Nothing to upload: pull a slice and it becomes verified programs."
+        blurb="The NCAA publishes exactly which schools sponsor baseball and softball, with state, division and conference. Nothing to upload: pull the whole list and it becomes verified programs."
+        aside={
+          <button
+            type="button"
+            onClick={onImportAllNcaa}
+            disabled={busy !== null}
+            className="touch-target inline-flex items-center gap-2 rounded-lg bg-diamond-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            <Download className="size-4" aria-hidden />
+            {busy === "all-ncaa" ? "Importing all…" : "Import all NCAA"}
+          </button>
+        }
       >
         <div className="flex flex-wrap gap-2">
+
           {NCAA_SLICES.map((slice) => (
             <button
               key={slice.label}
