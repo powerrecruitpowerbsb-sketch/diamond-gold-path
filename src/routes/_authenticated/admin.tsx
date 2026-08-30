@@ -1,7 +1,10 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ShieldAlert } from "lucide-react";
 
 import { useMyAccount } from "@/hooks/use-my-account";
+import { countPendingChanges } from "@/lib/review.functions";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 
@@ -9,6 +12,7 @@ const ADMIN_NAV = [
   { to: "/admin", label: "Console", exact: true },
   { to: "/admin/universities", label: "Schools", exact: false },
   { to: "/admin/programs", label: "Programs (Baseball / Softball)", exact: false },
+  { to: "/admin/review", label: "Review queue", exact: false },
   { to: "/admin/majors", label: "Majors", exact: false },
   { to: "/admin/audit", label: "Audit log", exact: false },
 ];
@@ -36,6 +40,13 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminLayout() {
   const { account: data, isPending } = useMyAccount();
+  const countFn = useServerFn(countPendingChanges);
+  const { data: pending } = useQuery({
+    queryKey: ["pending-changes-count"],
+    queryFn: () => countFn(),
+    enabled: Boolean(data?.isSuperadmin),
+  });
+  const pendingCount = pending?.pending ?? 0;
 
   if (isPending) {
     return (
@@ -70,10 +81,15 @@ function AdminLayout() {
             key={item.to}
             to={item.to}
             activeOptions={{ exact: item.exact }}
-            className="touch-target flex shrink-0 items-center rounded-md px-3.5 text-sm font-semibold text-steel transition-colors hover:bg-muted hover:text-graphite"
+            className="touch-target flex shrink-0 items-center gap-2 rounded-md px-3.5 text-sm font-semibold text-steel transition-colors hover:bg-muted hover:text-graphite"
             activeProps={{ className: "bg-org-primary text-white hover:bg-org-primary hover:text-white" }}
           >
             {item.label}
+            {item.to === "/admin/review" && pendingCount > 0 ? (
+              <span className="rounded-full bg-seam-red px-1.5 text-xs font-semibold tabular-nums text-white">
+                {pendingCount}
+              </span>
+            ) : null}
           </Link>
         ))}
       </nav>
