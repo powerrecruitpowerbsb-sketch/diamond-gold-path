@@ -697,6 +697,7 @@ export type Database = {
           id: string
           last_roster_pull_at: string | null
           last_verified_at: string | null
+          offering_status: Database["public"]["Enums"]["program_offering_status"]
           recruiting_coordinator_name: string | null
           roster_url: string | null
           scholarship_details: string | null
@@ -717,6 +718,7 @@ export type Database = {
           id?: string
           last_roster_pull_at?: string | null
           last_verified_at?: string | null
+          offering_status?: Database["public"]["Enums"]["program_offering_status"]
           recruiting_coordinator_name?: string | null
           roster_url?: string | null
           scholarship_details?: string | null
@@ -737,6 +739,7 @@ export type Database = {
           id?: string
           last_roster_pull_at?: string | null
           last_verified_at?: string | null
+          offering_status?: Database["public"]["Enums"]["program_offering_status"]
           recruiting_coordinator_name?: string | null
           roster_url?: string | null
           scholarship_details?: string | null
@@ -1339,6 +1342,7 @@ export type Database = {
         | "RHP"
         | "LHP"
         | "TWO_WAY"
+      program_offering_status: "unverified" | "verified" | "not_offered"
       public_private: "public" | "private"
       saved_school_status:
         | "researching"
@@ -1522,6 +1526,7 @@ export const Constants = {
         "LHP",
         "TWO_WAY",
       ],
+      program_offering_status: ["unverified", "verified", "not_offered"],
       public_private: ["public", "private"],
       saved_school_status: [
         "researching",
