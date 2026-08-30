@@ -120,7 +120,16 @@ export const countPendingChanges = createServerFn({ method: "GET" })
       .select("id", { count: "exact", head: true })
       .eq("status", "pending");
     if (error) throw new Error(error.message);
-    return { pending: count ?? 0 };
+
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { count: autoCount } = await context.supabase
+      .from("pending_data_changes")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved")
+      .eq("decided_via", "auto")
+      .gte("reviewed_at", since);
+
+    return { pending: count ?? 0, autoAppliedLast7Days: autoCount ?? 0 };
   });
 
 export const approvePendingChanges = createServerFn({ method: "POST" })
