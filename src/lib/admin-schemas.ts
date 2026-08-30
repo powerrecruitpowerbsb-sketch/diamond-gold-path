@@ -1,7 +1,7 @@
 /** Client-safe field metadata + option lists shared by every admin form. */
 
 export const SPORTS = ["baseball", "softball"] as const;
-export const GOVERNING_BODIES = ["NCAA", "NAIA", "NJCAA"] as const;
+export const GOVERNING_BODIES = ["NCAA", "NAIA", "NJCAA", "CCCAA", "NWAC"] as const;
 export const PUBLIC_PRIVATE = ["public", "private"] as const;
 export const CAMPUS_SETTINGS = ["urban", "suburban", "rural"] as const;
 export const SCHOOL_SIZE_BUCKETS = ["small", "medium", "large"] as const;

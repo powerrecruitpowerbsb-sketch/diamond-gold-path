@@ -5,6 +5,7 @@ import { ShieldAlert } from "lucide-react";
 
 import { useMyAccount } from "@/hooks/use-my-account";
 import { countPendingChanges } from "@/lib/review.functions";
+import { countPendingDiscoveries } from "@/lib/discovery.functions";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 
@@ -13,6 +14,8 @@ const ADMIN_NAV = [
   { to: "/admin/universities", label: "Schools", exact: false },
   { to: "/admin/programs", label: "Programs (Baseball / Softball)", exact: false },
   { to: "/admin/review", label: "Review queue", exact: false },
+  { to: "/admin/discovery", label: "Discovered links", exact: false },
+  { to: "/admin/seed-import", label: "Bulk import", exact: false },
   { to: "/admin/majors", label: "Majors", exact: false },
   { to: "/admin/audit", label: "Audit log", exact: false },
 ];
@@ -41,12 +44,19 @@ export const Route = createFileRoute("/_authenticated/admin")({
 function AdminLayout() {
   const { account: data, isPending } = useMyAccount();
   const countFn = useServerFn(countPendingChanges);
+  const discoveryCountFn = useServerFn(countPendingDiscoveries);
   const { data: pending } = useQuery({
     queryKey: ["pending-changes-count"],
     queryFn: () => countFn(),
     enabled: Boolean(data?.isSuperadmin),
   });
+  const { data: pendingDiscoveries } = useQuery({
+    queryKey: ["pending-discoveries-count"],
+    queryFn: () => discoveryCountFn(),
+    enabled: Boolean(data?.isSuperadmin),
+  });
   const pendingCount = pending?.pending ?? 0;
+  const discoveryCount = pendingDiscoveries?.pending ?? 0;
 
   if (isPending) {
     return (
@@ -88,6 +98,11 @@ function AdminLayout() {
             {item.to === "/admin/review" && pendingCount > 0 ? (
               <span className="rounded-full bg-seam-red px-1.5 text-xs font-semibold tabular-nums text-white">
                 {pendingCount}
+              </span>
+            ) : null}
+            {item.to === "/admin/discovery" && discoveryCount > 0 ? (
+              <span className="rounded-full bg-seam-red px-1.5 text-xs font-semibold tabular-nums text-white">
+                {discoveryCount}
               </span>
             ) : null}
           </Link>

@@ -1375,6 +1375,73 @@ export type Database = {
           },
         ]
       }
+      url_discovery_queue: {
+        Row: {
+          confidence: Database["public"]["Enums"]["url_discovery_confidence"]
+          created_at: string
+          discovered_url: string | null
+          discovery_type: Database["public"]["Enums"]["url_discovery_type"]
+          id: string
+          notes: string | null
+          program_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["url_discovery_status"]
+          university_id: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: Database["public"]["Enums"]["url_discovery_confidence"]
+          created_at?: string
+          discovered_url?: string | null
+          discovery_type: Database["public"]["Enums"]["url_discovery_type"]
+          id?: string
+          notes?: string | null
+          program_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["url_discovery_status"]
+          university_id: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: Database["public"]["Enums"]["url_discovery_confidence"]
+          created_at?: string
+          discovered_url?: string | null
+          discovery_type?: Database["public"]["Enums"]["url_discovery_type"]
+          id?: string
+          notes?: string | null
+          program_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["url_discovery_status"]
+          university_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "url_discovery_queue_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "url_discovery_queue_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "url_discovery_queue_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1486,7 +1553,7 @@ export type Database = {
         | "school_size"
         | "geographic_region"
         | "campus_setting"
-      governing_body: "NCAA" | "NAIA" | "NJCAA"
+      governing_body: "NCAA" | "NAIA" | "NJCAA" | "CCCAA" | "NWAC"
       intel_field_type:
         | "style_of_play"
         | "recruiting_philosophy"
@@ -1521,6 +1588,12 @@ export type Database = {
       source_type: "official" | "aggregator" | "manual"
       sport: "baseball" | "softball"
       throws_hand: "R" | "L"
+      url_discovery_confidence: "high" | "low" | "failed"
+      url_discovery_status: "pending_review" | "confirmed" | "rejected"
+      url_discovery_type:
+        | "athletic_website"
+        | "roster_page"
+        | "coaching_staff_page"
       user_type: "superadmin" | "org_admin" | "org_staff" | "parent" | "player"
     }
     CompositeTypes: {
@@ -1669,7 +1742,7 @@ export const Constants = {
         "geographic_region",
         "campus_setting",
       ],
-      governing_body: ["NCAA", "NAIA", "NJCAA"],
+      governing_body: ["NCAA", "NAIA", "NJCAA", "CCCAA", "NWAC"],
       intel_field_type: [
         "style_of_play",
         "recruiting_philosophy",
@@ -1707,6 +1780,13 @@ export const Constants = {
       source_type: ["official", "aggregator", "manual"],
       sport: ["baseball", "softball"],
       throws_hand: ["R", "L"],
+      url_discovery_confidence: ["high", "low", "failed"],
+      url_discovery_status: ["pending_review", "confirmed", "rejected"],
+      url_discovery_type: [
+        "athletic_website",
+        "roster_page",
+        "coaching_staff_page",
+      ],
       user_type: ["superadmin", "org_admin", "org_staff", "parent", "player"],
     },
   },

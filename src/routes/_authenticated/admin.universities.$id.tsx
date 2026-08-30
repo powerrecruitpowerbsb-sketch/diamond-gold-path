@@ -3,9 +3,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ExternalLink, Pencil, PlusCircle } from "lucide-react";
+import { ExternalLink, Pencil, PlusCircle, Radar } from "lucide-react";
 
 import { getUniversity, setUniversityMajors } from "@/lib/admin.functions";
+import { runUrlDiscovery } from "@/lib/discovery.functions";
 import { UNIVERSITY_SECTIONS, titleCase } from "@/lib/admin-schemas";
 import { OFFERING_STATUS_LABEL } from "@/lib/program-label";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,28 @@ function UniversityDetail() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const discoveryFn = useServerFn(runUrlDiscovery);
+  const discover = useMutation({
+    mutationFn: () => discoveryFn({ data: { universityId: id } }) as Promise<any>,
+    onSuccess: (outcome: any) => {
+      if (outcome?.errorMessage) {
+        toast.error(outcome.errorMessage);
+        return;
+      }
+      const found = (outcome?.results ?? []).filter((r: any) => r.url).length;
+      toast.success(
+        found
+          ? `${found} link${found === 1 ? "" : "s"} queued for your review`
+          : "No links found for this school",
+      );
+      queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] });
+      queryClient.invalidateQueries({ queryKey: ["discovered-urls"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+
 
   if (isPending || !data) {
     return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
@@ -79,6 +102,15 @@ function UniversityDetail() {
               </a>
             </Button>
           ) : null}
+          <Button
+            variant="outline"
+            className="touch-target border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            disabled={discover.isPending}
+            onClick={() => discover.mutate()}
+          >
+            <Radar className="size-4" aria-hidden />
+            {discover.isPending ? "Finding links…" : "Find links"}
+          </Button>
         </div>
       </div>
 
