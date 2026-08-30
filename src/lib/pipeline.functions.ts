@@ -73,9 +73,11 @@ export const rebuildQueue = createServerFn({ method: "POST" })
 /** Pull one division + sport slice of the NCAA's own membership directory. */
 export const importNcaaSlice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { division: string; sport: string }) => ({
+  .inputValidator((input: { division: string; sport: string; offset?: number; limit?: number }) => ({
     division: String(input?.division ?? "I"),
     sport: String(input?.sport ?? "baseball"),
+    offset: Math.max(Number(input?.offset ?? 0) || 0, 0),
+    limit: Math.min(Math.max(Number(input?.limit ?? 60) || 60, 1), 120),
   }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
@@ -90,12 +92,18 @@ export const importNcaaSlice = createServerFn({ method: "POST" })
     const sport = data.sport === "softball" ? "softball" : "baseball";
     const label = `NCAA D${division === "I" ? 1 : division === "II" ? 2 : 3} ${sport}`;
 
-    const rows = await fetchNcaaDirectory(division, sport);
+    const all = await fetchNcaaDirectory(division, sport);
+    // Chunked so a 400-school slice never runs past the request budget: the
+    // caller keeps asking for the next window until `done` comes back true.
+    const rows = all.slice(data.offset, data.offset + data.limit);
     const result = await importDirectoryRows(context.supabase, rows, label);
-    const queued = await enqueueMissingWork(context.supabase);
+    const nextOffset = data.offset + rows.length;
+    const done = nextOffset >= all.length;
+    const queued = done ? await enqueueMissingWork(context.supabase) : {};
 
-    return clean({ ...result, queued });
+    return clean({ ...result, total: all.length, nextOffset, done, queued });
   });
+
 
 /**
  * Work the federal-data stage: claim a batch of schools, match each to its

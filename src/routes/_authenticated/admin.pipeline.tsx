@@ -75,13 +75,33 @@ function Pipeline() {
     await queryClient.invalidateQueries({ queryKey: ["federal-blocked"] });
   }
 
+  /** Walk one slice in windows until the whole division/sport list is loaded. */
+  async function importSliceFully(division: string, sport: string, label: string) {
+    let offset = 0;
+    let schoolsCreated = 0;
+    let programsCreated = 0;
+    let programsUpdated = 0;
+    let total = 0;
+    for (let guard = 0; guard < 40; guard += 1) {
+      const result = (await importFn({ data: { division, sport, offset, limit: 60 } })) as any;
+      schoolsCreated += result.schoolsCreated;
+      programsCreated += result.programsCreated;
+      programsUpdated += result.programsUpdated;
+      total = result.total;
+      offset = result.nextOffset;
+      note(`${label}: ${offset}/${total} processed…`);
+      if (result.done) break;
+    }
+    note(
+      `${label}: ${total} listed · ${schoolsCreated} new schools · ${programsCreated} new programs · ${programsUpdated} updated`,
+    );
+    return { total, schoolsCreated, programsCreated, programsUpdated };
+  }
+
   async function onImportSlice(division: string, sport: string, label: string) {
     setBusy(label);
     try {
-      const result = (await importFn({ data: { division, sport } })) as any;
-      note(
-        `${label}: ${result.fetched} listed · ${result.schoolsCreated} new schools · ${result.programsCreated} new programs · ${result.programsUpdated} updated`,
-      );
+      await importSliceFully(division, sport, label);
       toast.success(`${label} imported`);
       await refresh();
     } catch (failure) {
@@ -90,6 +110,23 @@ function Pipeline() {
       setBusy(null);
     }
   }
+
+  /** The whole NCAA universe, unattended. */
+  async function onImportAllNcaa() {
+    setBusy("all-ncaa");
+    try {
+      for (const slice of NCAA_SLICES) {
+        await importSliceFully(slice.division, slice.sport, slice.label);
+      }
+      toast.success("Full NCAA membership list imported");
+      await refresh();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Import failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
 
   async function onFederalBatch(limit: number) {
     setBusy("federal");
@@ -203,9 +240,21 @@ function Pipeline() {
 
       <SectionCard
         title="Step 1 — Pull the NCAA membership list"
-        blurb="The NCAA publishes exactly which schools sponsor baseball and softball, with state, division and conference. Nothing to upload: pull a slice and it becomes verified programs."
+        blurb="The NCAA publishes exactly which schools sponsor baseball and softball, with state, division and conference. Nothing to upload: pull the whole list and it becomes verified programs."
+        aside={
+          <button
+            type="button"
+            onClick={onImportAllNcaa}
+            disabled={busy !== null}
+            className="touch-target inline-flex items-center gap-2 rounded-lg bg-diamond-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            <Download className="size-4" aria-hidden />
+            {busy === "all-ncaa" ? "Importing all…" : "Import all NCAA"}
+          </button>
+        }
       >
         <div className="flex flex-wrap gap-2">
+
           {NCAA_SLICES.map((slice) => (
             <button
               key={slice.label}
