@@ -35,6 +35,27 @@ export type QueueItem = {
 };
 
 /**
+ * Read every row of a table/selection. The Data API caps a single response at
+ * 1,000 rows, which silently truncates once the universe passes a thousand
+ * schools — so every full-table read here pages explicitly.
+ */
+async function fetchAll(supabase: any, table: string, columns: string): Promise<any[]> {
+  const page = 1000;
+  const out: any[] = [];
+  for (let from = 0; ; from += page) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(columns)
+      .order("id", { ascending: true })
+      .range(from, from + page - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as any[];
+    out.push(...rows);
+    if (rows.length < page) return out;
+  }
+}
+
+/**
  * Make sure every school and program has the queue rows it needs. Safe to run
  * repeatedly — existing rows are left alone, so this is how a fresh import
  * batch joins the pipeline.
@@ -46,30 +67,22 @@ export async function enqueueMissingWork(supabase: any): Promise<Record<QueueSta
     program_scrape: 0,
   };
 
-  const { data: existing, error: existingError } = await supabase
-    .from("ingest_queue")
-    .select("university_id, program_id, stage");
-  if (existingError) throw new Error(existingError.message);
+  const existing = await fetchAll(supabase, "ingest_queue", "id, university_id, program_id, stage");
 
   const have = new Set(
-    ((existing ?? []) as any[]).map(
-      (row) => `${row.stage}:${row.university_id ?? ""}:${row.program_id ?? ""}`,
-    ),
+    existing.map((row) => `${row.stage}:${row.university_id ?? ""}:${row.program_id ?? ""}`),
   );
 
-  const { data: schools, error: schoolError } = await supabase
-    .from("universities")
-    .select("id, federal_match_status");
-  if (schoolError) throw new Error(schoolError.message);
-
-  const { data: programs, error: programError } = await supabase
-    .from("programs")
-    .select("id, university_id, roster_url, athletic_website, offering_status");
-  if (programError) throw new Error(programError.message);
+  const schools = await fetchAll(supabase, "universities", "id, federal_match_status");
+  const programs = await fetchAll(
+    supabase,
+    "programs",
+    "id, university_id, roster_url, athletic_website, offering_status",
+  );
 
   const rows: any[] = [];
 
-  for (const school of (schools ?? []) as any[]) {
+  for (const school of schools) {
     const key = `federal_data:${school.id}:`;
     if (!have.has(key)) {
       rows.push({ university_id: school.id, stage: "federal_data" });
@@ -77,7 +90,7 @@ export async function enqueueMissingWork(supabase: any): Promise<Record<QueueSta
     }
   }
 
-  for (const program of (programs ?? []) as any[]) {
+  for (const program of programs) {
     if (program.offering_status === "not_offered") continue;
 
     const discoveryKey = `url_discovery:${program.university_id}:${program.id}`;
@@ -102,12 +115,22 @@ export async function enqueueMissingWork(supabase: any): Promise<Record<QueueSta
   }
 
   for (let i = 0; i < rows.length; i += 500) {
-    const { error } = await supabase.from("ingest_queue").insert(rows.slice(i, i + 500));
-    if (error) throw new Error(error.message);
+    const chunk = rows.slice(i, i + 500);
+    const { error } = await supabase.from("ingest_queue").insert(chunk);
+    if (!error) continue;
+    // The stage keys are partial unique indexes, so a duplicate can't be
+    // upserted away. A race (or a row created since the read) is simply
+    // already-queued work: retry one at a time and skip those.
+    if (!/duplicate key/i.test(error.message)) throw new Error(error.message);
+    for (const row of chunk) {
+      const { error: rowError } = await supabase.from("ingest_queue").insert(row);
+      if (rowError && !/duplicate key/i.test(rowError.message)) throw new Error(rowError.message);
+    }
   }
 
   return created;
 }
+
 
 /**
  * Claim up to `limit` items for one stage. Leasing is best-effort optimistic:
@@ -183,8 +206,8 @@ export type CoverageRow = { stage: QueueStage; pending: number; running: number;
 
 /** Counts per stage for the coverage dashboard. */
 export async function queueCoverage(supabase: any): Promise<CoverageRow[]> {
-  const { data, error } = await supabase.from("ingest_queue").select("stage, status");
-  if (error) throw new Error(error.message);
+  const data = await fetchAll(supabase, "ingest_queue", "id, stage, status");
+
 
   const base = () => ({ pending: 0, running: 0, done: 0, failed: 0, blocked: 0 });
   const byStage = new Map<QueueStage, ReturnType<typeof base>>();

@@ -23,42 +23,51 @@ export const getPipelineStatus = createServerFn({ method: "GET" })
     const { queueCoverage } = await import("@/lib/ingest-queue.server");
     const { usingDemoKey } = await import("@/lib/federal-data.server");
 
-    const [coverage, schools, programs] = await Promise.all([
-      queueCoverage(context.supabase),
-      context.supabase
-        .from("universities")
-        .select("id, federal_match_status, federal_synced_at, tuition_in_state"),
-      context.supabase.from("programs").select("id, sport, roster_url, head_coach_name, offering_status"),
-    ]);
-    if (schools.error) throw new Error(schools.error.message);
-    if (programs.error) throw new Error(programs.error.message);
+    // Counts come from the database rather than from fetched rows: a full-table
+    // read caps at 1,000 rows, which would understate a national universe.
+    const count = (table: string, apply: (q: any) => any = (q) => q) =>
+      apply((context.supabase as any).from(table).select("id", { count: "exact", head: true })).then(
+        ({ count: value, error }: any) => {
+          if (error) throw new Error(error.message);
+          return value ?? 0;
+        },
+      );
 
-    const schoolRows = (schools.data ?? []) as any[];
-    const programRows = (programs.data ?? []) as any[];
+    const [
+      coverage,
+      schoolsTotal,
+      federalConfirmed,
+      federalNeedsHelp,
+      withCost,
+      programsTotal,
+      baseball,
+      softball,
+      withRosterUrl,
+      withCoach,
+    ] = await Promise.all([
+      queueCoverage(context.supabase),
+      count("universities"),
+      count("universities", (q) => q.eq("federal_match_status", "confirmed")),
+      // Only schools we actually looked up count as needing a decision — an
+      // untouched school is simply not collected yet.
+      count("universities", (q) =>
+        q.not("federal_synced_at", "is", null).in("federal_match_status", ["ambiguous", "unmatched"]),
+      ),
+      count("universities", (q) => q.not("tuition_in_state", "is", null)),
+      count("programs"),
+      count("programs", (q) => q.eq("sport", "baseball")),
+      count("programs", (q) => q.eq("sport", "softball")),
+      count("programs", (q) => q.not("roster_url", "is", null)),
+      count("programs", (q) => q.not("head_coach_name", "is", null)),
+    ]);
 
     return clean({
       usingDemoKey: usingDemoKey(),
       coverage,
-      schools: {
-        total: schoolRows.length,
-        federalConfirmed: schoolRows.filter((r) => r.federal_match_status === "confirmed").length,
-        // Only schools we actually looked up count as needing a decision — an
-        // untouched school is simply not collected yet.
-        federalNeedsHelp: schoolRows.filter(
-          (r) =>
-            r.federal_synced_at &&
-            (r.federal_match_status === "ambiguous" || r.federal_match_status === "unmatched"),
-        ).length,
-        withCost: schoolRows.filter((r) => r.tuition_in_state !== null).length,
-      },
-      programs: {
-        total: programRows.length,
-        baseball: programRows.filter((r) => r.sport === "baseball").length,
-        softball: programRows.filter((r) => r.sport === "softball").length,
-        withRosterUrl: programRows.filter((r) => Boolean(r.roster_url)).length,
-        withCoach: programRows.filter((r) => Boolean(r.head_coach_name)).length,
-      },
+      schools: { total: schoolsTotal, federalConfirmed, federalNeedsHelp, withCost },
+      programs: { total: programsTotal, baseball, softball, withRosterUrl, withCoach },
     });
+
   });
 
 /** Add queue rows for anything new, so a fresh import joins the pipeline. */
