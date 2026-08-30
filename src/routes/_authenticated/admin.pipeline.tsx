@@ -268,11 +268,39 @@ function Pipeline() {
             </button>
           ))}
         </div>
-        <p className="meta mt-3">
-          NAIA, NJCAA, CCCAA and NWAC block plain requests, so those directories come through the
-          scraper instead — next step after NCAA is covered.
-        </p>
       </SectionCard>
+
+      <SectionCard
+        title="Step 1b — Pull the other governing bodies"
+        blurb="NAIA, NJCAA, CCCAA and NWAC block automated access to their own sites, so their member lists come from maintained public directories. Those lists prove membership, not which sport each school sponsors, so the programs land unverified until the roster scrape confirms them."
+        aside={
+          <button
+            type="button"
+            onClick={onImportAllOther}
+            disabled={busy !== null}
+            className="touch-target inline-flex items-center gap-2 rounded-lg bg-diamond-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            <Download className="size-4" aria-hidden />
+            {busy === "all-other" ? "Importing all…" : "Import all others"}
+          </button>
+        }
+      >
+        <div className="flex flex-wrap gap-2">
+          {OTHER_SLICES.map((slice) => (
+            <button
+              key={slice.key}
+              type="button"
+              onClick={() => onImportWikiSlice(slice.key, slice.label)}
+              disabled={busy !== null}
+              className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              <Download className="size-4" aria-hidden />
+              {busy === slice.label ? "Pulling…" : slice.label}
+            </button>
+          ))}
+        </div>
+      </SectionCard>
+
 
       <SectionCard
         title="Step 2 — Federal school facts"
