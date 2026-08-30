@@ -113,6 +113,10 @@ function Dashboard() {
         </dl>
       </section>
 
+      <div className="mt-6">
+        <SeasonTeamPicker ctx={ctx} />
+      </div>
+
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <BarCard
           title="Targets by division"
