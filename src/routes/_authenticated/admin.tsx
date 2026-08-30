@@ -70,10 +70,15 @@ function AdminLayout() {
             key={item.to}
             to={item.to}
             activeOptions={{ exact: item.exact }}
-            className="touch-target flex shrink-0 items-center rounded-md px-3.5 text-sm font-semibold text-steel transition-colors hover:bg-muted hover:text-graphite"
+            className="touch-target flex shrink-0 items-center gap-2 rounded-md px-3.5 text-sm font-semibold text-steel transition-colors hover:bg-muted hover:text-graphite"
             activeProps={{ className: "bg-org-primary text-white hover:bg-org-primary hover:text-white" }}
           >
             {item.label}
+            {item.to === "/admin/review" && pendingCount > 0 ? (
+              <span className="rounded-full bg-seam-red px-1.5 text-xs font-semibold tabular-nums text-white">
+                {pendingCount}
+              </span>
+            ) : null}
           </Link>
         ))}
       </nav>
