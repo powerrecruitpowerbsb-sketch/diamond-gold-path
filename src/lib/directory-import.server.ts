@@ -30,11 +30,17 @@ export type DirectoryRow = {
   name: string;
   state: string | null;
   sport: "baseball" | "softball";
-  governingBody: "NCAA";
+  governingBody: "NCAA" | "NAIA" | "NJCAA" | "CCCAA" | "NWAC";
   division: string;
   conference: string | null;
   websiteUrl: string | null;
   athleticWebsite: string | null;
+  /**
+   * The NCAA list is sport-filtered, so membership proves sponsorship and the
+   * program lands verified. Member-only lists (NAIA/NJCAA/CCCAA/NWAC) say
+   * nothing about a specific sport, so those rows ask for "unverified".
+   */
+  offeringStatus?: "unverified" | "verified" | "not_offered";
 };
 
 function url(value: unknown): string | null {
