@@ -156,6 +156,20 @@ function ReviewQueue() {
         <p className="meta tabular-nums">{items.length} PENDING</p>
       </div>
 
+      {programFilter ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-org-primary/30 bg-org-primary/5 p-4">
+          <p className="text-sm text-graphite">
+            Showing only items proposed for{" "}
+            <span className="font-semibold">{items[0]?.recordLabel ?? "this program"}</span> and its
+            school.
+          </p>
+          <Link to="/admin/review" className="meta underline hover:text-graphite">
+            SHOW EVERYTHING
+          </Link>
+        </div>
+      ) : null}
+
+
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
         <label className="block">
           <span className="meta mb-1.5 block">RECORD TYPE</span>
