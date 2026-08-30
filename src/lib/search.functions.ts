@@ -102,8 +102,8 @@ export const searchPrograms = createServerFn({ method: "POST" })
     range("universities.avg_gpa", f.gpaMin, f.gpaMax);
     range("universities.avg_sat", f.satMin, f.satMax);
     range("universities.avg_act", f.actMin, f.actMax);
-    // acceptance_rate is stored 0-1; the UI works in percent.
-    range("universities.acceptance_rate", f.acceptanceMin, f.acceptanceMax, 0.01);
+    // Acceptance rate is stored 0-100, the same scale the filter uses.
+    range("universities.acceptance_rate", f.acceptanceMin, f.acceptanceMax);
 
     const { data, error } = await query.limit(400);
     if (error) throw new Error(error.message);
