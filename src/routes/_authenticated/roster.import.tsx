@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { useSeasonContext } from "@/hooks/use-season-context";
 import { importAthletes, matchAthletes } from "@/lib/athletes.functions";
 
 export const Route = createFileRoute("/_authenticated/roster/import")({
@@ -111,6 +112,7 @@ function ImportAthletes() {
   const importFn = useServerFn(importAthletes);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const ctx = useSeasonContext();
 
   const [fileError, setFileError] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -259,9 +261,16 @@ function ImportAthletes() {
               matchId: row.matchId,
             })),
           sendFamilyInvites,
+          seasonId: ctx.seasonId || null,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["org-athletes"] });
+      await queryClient.invalidateQueries({ queryKey: ["season-detail"] });
+      if (result.unknownTeams.length) {
+        toast.error(
+          `No team named ${result.unknownTeams.join(", ")} in ${ctx.season?.name ?? "this season"} — create it first, then re-import those rows.`,
+        );
+      }
       if (result.failures.length) {
         toast.error(`${result.failures.length} row(s) failed: ${result.failures[0]?.message}`);
       } else {
