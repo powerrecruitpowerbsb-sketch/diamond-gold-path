@@ -25,7 +25,9 @@ export const getPipelineStatus = createServerFn({ method: "GET" })
 
     const [coverage, schools, programs] = await Promise.all([
       queueCoverage(context.supabase),
-      context.supabase.from("universities").select("id, federal_match_status, tuition_in_state"),
+      context.supabase
+        .from("universities")
+        .select("id, federal_match_status, federal_synced_at, tuition_in_state"),
       context.supabase.from("programs").select("id, sport, roster_url, head_coach_name, offering_status"),
     ]);
     if (schools.error) throw new Error(schools.error.message);
@@ -40,8 +42,12 @@ export const getPipelineStatus = createServerFn({ method: "GET" })
       schools: {
         total: schoolRows.length,
         federalConfirmed: schoolRows.filter((r) => r.federal_match_status === "confirmed").length,
+        // Only schools we actually looked up count as needing a decision — an
+        // untouched school is simply not collected yet.
         federalNeedsHelp: schoolRows.filter(
-          (r) => r.federal_match_status === "ambiguous" || r.federal_match_status === "unmatched",
+          (r) =>
+            r.federal_synced_at &&
+            (r.federal_match_status === "ambiguous" || r.federal_match_status === "unmatched"),
         ).length,
         withCost: schoolRows.filter((r) => r.tuition_in_state !== null).length,
       },
@@ -110,6 +116,8 @@ export const runFederalBatch = createServerFn({ method: "POST" })
 
     const items = await leaseQueueItems(context.supabase, "federal_data", data.limit);
     const results: any[] = [];
+    let rateLimitHit: string | null = null;
+
 
     for (const item of items) {
       if (!item.university_id) {
@@ -137,6 +145,16 @@ export const runFederalBatch = createServerFn({ method: "POST" })
         results.push(outcome);
       } catch (failure) {
         const message = failure instanceof Error ? failure.message : "Federal sync failed";
+        const rateLimited = /rate limit/i.test(message);
+        if (rateLimited) {
+          // Not this school's fault — hand the job straight back and stop the run.
+          await context.supabase
+            .from("ingest_queue")
+            .update({ status: "pending", attempts: Math.max(item.attempts - 1, 0), leased_at: null })
+            .eq("id", item.id);
+          rateLimitHit = message;
+          break;
+        }
         await failQueueItem(context.supabase, item.id, message);
         results.push({
           universityId: item.university_id,
@@ -156,6 +174,7 @@ export const runFederalBatch = createServerFn({ method: "POST" })
       needsHelp: results.filter((r) => r.status !== "confirmed").length,
       fieldsApplied: results.reduce((sum, r) => sum + (r.fieldsApplied ?? 0), 0),
       fieldsQueued: results.reduce((sum, r) => sum + (r.fieldsQueued ?? 0), 0),
+      rateLimitHit,
       results,
     });
   });
@@ -169,6 +188,7 @@ export const listFederalBlocked = createServerFn({ method: "GET" })
       .from("universities")
       .select("id, name, state, city, federal_match_status")
       .in("federal_match_status", ["ambiguous", "unmatched"])
+      .not("federal_synced_at", "is", null)
       .order("name")
       .limit(200);
     if (error) throw new Error(error.message);
