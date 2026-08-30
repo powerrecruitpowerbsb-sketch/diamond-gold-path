@@ -2,8 +2,11 @@
 
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
 
-export const REVIEW_TABLES = ["universities", "programs"] as const;
+export const REVIEW_TABLES = ["universities", "programs", "roster_players"] as const;
 export type ReviewTable = (typeof REVIEW_TABLES)[number];
+
+/** Tables whose live records are edited field-by-field. */
+const FIELD_TABLES = ["universities", "programs"] as const;
 
 const EXTRA_UNIVERSITY_FIELDS = ["last_verified_at"];
 const EXTRA_PROGRAM_FIELDS = ["university_id", "sport", "last_roster_pull_at", "last_verified_at"];
@@ -71,6 +74,54 @@ async function upsertSource(
   if (error) throw new Error(error.message);
 }
 
+const POSITIONS = ["C", "1B", "2B", "3B", "SS", "OF", "UTIL", "RHP", "LHP", "TWO_WAY"];
+const CLASS_YEARS = ["FR", "SO", "JR", "SR", "GR"];
+
+function pickEnum(value: unknown, options: string[]): string | null {
+  const text = String(value ?? "").trim().toUpperCase();
+  return options.includes(text) ? text : null;
+}
+
+/**
+ * A roster proposal replaces the stored roster for one program + season in a
+ * single reviewed step, rather than one queue item per player.
+ */
+async function applyRosterProposal(supabase: any, row: PendingRow) {
+  const payload = row.proposed_value as any;
+  const players = Array.isArray(payload?.players) ? payload.players : null;
+  const programId = payload?.program_id ?? row.record_id;
+  if (!players || !players.length) throw new Error("Roster proposal contains no players");
+  if (!programId) throw new Error("Roster proposal is missing its program");
+  const seasonYear = Number(payload?.season_year) || new Date().getFullYear();
+
+  const rows = players.map((player: any) => ({
+    program_id: programId,
+    season_year: seasonYear,
+    name: String(player?.name ?? "").trim(),
+    position: pickEnum(player?.position, POSITIONS),
+    class_year: pickEnum(player?.class_year, CLASS_YEARS),
+    bats: pickEnum(player?.bats, ["R", "L", "S"]),
+    throws: pickEnum(player?.throws, ["R", "L"]),
+    hometown: player?.hometown ? String(player.hometown) : null,
+    home_state: player?.home_state ? String(player.home_state).toUpperCase().slice(0, 2) : null,
+    is_transfer: Boolean(player?.is_transfer),
+    is_juco_transfer: Boolean(player?.is_juco_transfer),
+    two_way: pickEnum(player?.position, POSITIONS) === "TWO_WAY",
+  })).filter((r: { name: string }) => r.name);
+
+  if (!rows.length) throw new Error("Roster proposal contains no named players");
+
+  const { error: clearError } = await supabase
+    .from("roster_players")
+    .delete()
+    .eq("program_id", programId)
+    .eq("season_year", seasonYear);
+  if (clearError) throw new Error(clearError.message);
+
+  const { error: insertError } = await supabase.from("roster_players").insert(rows);
+  if (insertError) throw new Error(insertError.message);
+}
+
 /**
  * Apply one pending proposal to live data, then mark it approved.
  * Throws on any validation/write failure — the caller reports per-item results.
@@ -78,6 +129,17 @@ async function upsertSource(
 export async function approvePending(supabase: any, userId: string, row: PendingRow) {
   assertReviewable(row.table_name);
   if (row.status !== "pending") throw new Error("Already reviewed");
+
+  if (row.table_name === "roster_players") {
+    await applyRosterProposal(supabase, row);
+    const { error: rosterStatusError } = await supabase
+      .from("pending_data_changes")
+      .update({ status: "approved", reviewed_by: userId, reviewed_at: new Date().toISOString() })
+      .eq("id", row.id)
+      .eq("status", "pending");
+    if (rosterStatusError) throw new Error(rosterStatusError.message);
+    return { id: row.id, recordId: row.record_id };
+  }
 
   const allowed = new Set(allowedFields(row.table_name));
   let recordId = row.record_id;
@@ -166,19 +228,19 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
   const labels = new Map<string, string>();
 
   for (const [table, ids] of byTable) {
-    if (!REVIEW_TABLES.includes(table as ReviewTable)) continue;
-    const select =
-      table === "programs" ? "*, universities(name, state)" : "*";
-    const { data } = await supabase.from(table).select(select).in("id", [...ids]);
+    // Roster proposals point at a program, not a roster_players row.
+    const lookupTable = table === "roster_players" ? "programs" : table;
+    if (!FIELD_TABLES.includes(lookupTable as (typeof FIELD_TABLES)[number])) continue;
+    const select = lookupTable === "programs" ? "*, universities(name, state)" : "*";
+    const { data } = await supabase.from(lookupTable).select(select).in("id", [...ids]);
     for (const record of (data ?? []) as Record<string, any>[]) {
       const key = `${table}:${record["id"]}`;
-      live.set(key, record);
-      labels.set(
-        key,
-        table === "programs"
+      const label =
+        lookupTable === "programs"
           ? `${record["universities"]?.name ?? "Program"} — ${String(record["sport"] ?? "")}`
-          : String(record["name"] ?? "School"),
-      );
+          : String(record["name"] ?? "School");
+      live.set(key, record);
+      labels.set(key, table === "roster_players" ? `${label} roster` : label);
     }
   }
 
@@ -191,7 +253,9 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
       ...row,
       recordLabel: key ? (labels.get(key) ?? null) : null,
       currentValue: (currentValue ?? null) as Json,
-      currentRecord: (row.field_name ? null : (record ?? null)) as Json,
+      currentRecord: (row.field_name || row.table_name === "roster_players"
+        ? null
+        : (record ?? null)) as Json,
     };
   });
 }

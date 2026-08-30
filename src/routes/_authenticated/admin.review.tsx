@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -15,6 +15,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/review")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    program: typeof search["program"] === "string" ? (search["program"] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Data review queue — Power Recruit" },
@@ -50,7 +53,11 @@ type PendingItem = {
   currentRecord: Record<string, unknown> | null;
 };
 
-const TABLE_LABEL: Record<string, string> = { universities: "School", programs: "Program" };
+const TABLE_LABEL: Record<string, string> = {
+  universities: "School",
+  programs: "Program",
+  roster_players: "Roster",
+};
 
 function band(confidence: number | null) {
   if (confidence == null) return "none";
@@ -64,6 +71,11 @@ function display(value: unknown): string {
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
+}
+
+function rosterPlayers(value: unknown): Record<string, unknown>[] {
+  const players = (value as { players?: unknown } | null)?.players;
+  return Array.isArray(players) ? (players as Record<string, unknown>[]) : [];
 }
 
 function fieldLabel(name: string) {
@@ -82,9 +94,11 @@ function ReviewQueue() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  const { program: programFilter } = Route.useSearch();
+
   const { data = [], isPending } = useQuery({
-    queryKey: ["pending-changes"],
-    queryFn: () => listFn({ data: { status: "pending" } }),
+    queryKey: ["pending-changes", programFilter ?? "all"],
+    queryFn: () => listFn({ data: { status: "pending", programId: programFilter ?? null } }),
   });
   const items = data as unknown as PendingItem[];
 
@@ -147,6 +161,24 @@ function ReviewQueue() {
         <p className="meta tabular-nums">{items.length} PENDING</p>
       </div>
 
+      {programFilter ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-org-primary/30 bg-org-primary/5 p-4">
+          <p className="text-sm text-graphite">
+            Showing only items proposed for{" "}
+            <span className="font-semibold">{items[0]?.recordLabel ?? "this program"}</span> and its
+            school.
+          </p>
+          <Link
+            to="/admin/review"
+            search={{ program: undefined }}
+            className="meta underline hover:text-graphite"
+          >
+            SHOW EVERYTHING
+          </Link>
+        </div>
+      ) : null}
+
+
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
         <label className="block">
           <span className="meta mb-1.5 block">RECORD TYPE</span>
@@ -158,6 +190,7 @@ function ReviewQueue() {
             <option value="all">All</option>
             <option value="universities">Schools</option>
             <option value="programs">Programs</option>
+            <option value="roster_players">Rosters</option>
           </select>
         </label>
         <label className="block">
@@ -297,6 +330,61 @@ function ReviewQueue() {
                             )}
                           </p>
                         </div>
+                      </div>
+                    ) : item.table_name === "roster_players" ? (
+                      <div className="mt-3">
+                        <p className="text-sm text-steel">
+                          Full roster replacement —{" "}
+                          <span className="font-semibold tabular-nums text-graphite">
+                            {rosterPlayers(item.proposed_value).length} players
+                          </span>{" "}
+                          scraped for season{" "}
+                          <span className="tabular-nums">
+                            {String(
+                              (item.proposed_value as Record<string, unknown> | null)?.[
+                                "season_year"
+                              ] ?? "—",
+                            )}
+                          </span>
+                          . Approving replaces the stored roster for that season.
+                        </p>
+                        <button
+                          type="button"
+                          className="meta mt-2 hover:text-graphite"
+                          onClick={() => setExpanded((prev) => toggle(prev, item.id))}
+                        >
+                          {open ? "HIDE PLAYERS" : "SHOW PLAYERS"}
+                        </button>
+                        {open ? (
+                          <table className="mt-2 w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border">
+                                <th className="py-1.5 pr-3 text-left text-steel">Name</th>
+                                <th className="py-1.5 pr-3 text-left text-steel">Pos</th>
+                                <th className="py-1.5 pr-3 text-left text-steel">Class</th>
+                                <th className="py-1.5 text-left text-steel">Hometown</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rosterPlayers(item.proposed_value).map((player, index) => (
+                                <tr key={index} className="border-b border-border/60">
+                                  <td className="py-1.5 pr-3 text-graphite">
+                                    {display(player["name"])}
+                                  </td>
+                                  <td className="py-1.5 pr-3 text-graphite">
+                                    {display(player["position"])}
+                                  </td>
+                                  <td className="py-1.5 pr-3 text-graphite">
+                                    {display(player["class_year"])}
+                                  </td>
+                                  <td className="py-1.5 text-steel">
+                                    {display(player["hometown"])}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : null}
                       </div>
                     ) : (
                       <div className="mt-3">
