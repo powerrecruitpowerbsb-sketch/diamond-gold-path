@@ -28,9 +28,21 @@ let done = 0;
 let failed = 0;
 let needsHelp = 0;
 
+// api.data.gov allows 1,000 requests an hour per key, so requests are paced to
+// stay just under that instead of burning the budget and failing the rest.
+const MIN_GAP_MS = 3900;
+let nextSlot = 0;
+async function paced<T>(run: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const slot = Math.max(now, nextSlot);
+  nextSlot = slot + MIN_GAP_MS;
+  if (slot > now) await new Promise((resolve) => setTimeout(resolve, slot - now));
+  return run();
+}
+
 async function work(item: any) {
   try {
-    const result = await syncUniversityFromFederal(supabase, userId, item.university_id!);
+    const result = await paced(() => syncUniversityFromFederal(supabase, userId, item.university_id!));
     if (result.status === "confirmed") {
       await completeQueueItem(supabase, item.id);
       done += 1;
