@@ -19,6 +19,7 @@ import {
   saveProgramIntel,
   saveProgramRelationship,
 } from "@/lib/intel.functions";
+import { RosterHistory } from "@/components/admin/RosterHistory";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/programs/$id")({
