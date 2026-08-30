@@ -691,10 +691,14 @@ export async function ingestProgram(
     ...recordProposals,
   ];
 
-  const toInsert = [...autoRows, ...reviewRows].map(({ gap_fill: _gapFill, ...row }) => ({
-    ...row,
-    decided_via: autoRows.includes(row as any) ? "auto" : "human",
-  }));
+  const toInsert = [
+    ...autoRows.map((row) => ({ row, decided_via: "auto" as const })),
+    ...reviewRows.map((row) => ({ row, decided_via: "human" as const })),
+  ].map(({ row, decided_via }) => {
+    const { gap_fill: _gapFill, ...rest } = row;
+    return { ...rest, decided_via };
+  });
+
 
   let inserted: any[] = [];
   if (toInsert.length) {
