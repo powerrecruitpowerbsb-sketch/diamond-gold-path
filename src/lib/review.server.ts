@@ -74,6 +74,54 @@ async function upsertSource(
   if (error) throw new Error(error.message);
 }
 
+const POSITIONS = ["C", "1B", "2B", "3B", "SS", "OF", "UTIL", "RHP", "LHP", "TWO_WAY"];
+const CLASS_YEARS = ["FR", "SO", "JR", "SR", "GR"];
+
+function pickEnum(value: unknown, options: string[]): string | null {
+  const text = String(value ?? "").trim().toUpperCase();
+  return options.includes(text) ? text : null;
+}
+
+/**
+ * A roster proposal replaces the stored roster for one program + season in a
+ * single reviewed step, rather than one queue item per player.
+ */
+async function applyRosterProposal(supabase: any, row: PendingRow) {
+  const payload = row.proposed_value as any;
+  const players = Array.isArray(payload?.players) ? payload.players : null;
+  const programId = payload?.program_id ?? row.record_id;
+  if (!players || !players.length) throw new Error("Roster proposal contains no players");
+  if (!programId) throw new Error("Roster proposal is missing its program");
+  const seasonYear = Number(payload?.season_year) || new Date().getFullYear();
+
+  const rows = players.map((player: any) => ({
+    program_id: programId,
+    season_year: seasonYear,
+    name: String(player?.name ?? "").trim(),
+    position: pickEnum(player?.position, POSITIONS),
+    class_year: pickEnum(player?.class_year, CLASS_YEARS),
+    bats: pickEnum(player?.bats, ["R", "L", "S"]),
+    throws: pickEnum(player?.throws, ["R", "L"]),
+    hometown: player?.hometown ? String(player.hometown) : null,
+    home_state: player?.home_state ? String(player.home_state).toUpperCase().slice(0, 2) : null,
+    is_transfer: Boolean(player?.is_transfer),
+    is_juco_transfer: Boolean(player?.is_juco_transfer),
+    two_way: pickEnum(player?.position, POSITIONS) === "TWO_WAY",
+  })).filter((r: { name: string }) => r.name);
+
+  if (!rows.length) throw new Error("Roster proposal contains no named players");
+
+  const { error: clearError } = await supabase
+    .from("roster_players")
+    .delete()
+    .eq("program_id", programId)
+    .eq("season_year", seasonYear);
+  if (clearError) throw new Error(clearError.message);
+
+  const { error: insertError } = await supabase.from("roster_players").insert(rows);
+  if (insertError) throw new Error(insertError.message);
+}
+
 /**
  * Apply one pending proposal to live data, then mark it approved.
  * Throws on any validation/write failure — the caller reports per-item results.
