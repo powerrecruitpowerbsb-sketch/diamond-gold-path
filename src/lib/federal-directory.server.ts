@@ -170,7 +170,36 @@ export async function sweepUnresolvedSchools(
           .eq("stage", "federal_data");
         outcome.applied = true;
       } catch (failure) {
-        outcome.errorMessage = failure instanceof Error ? failure.message : "Could not save this match";
+        const message = failure instanceof Error ? failure.message : "Could not save this match";
+        if (/unique constraint/i.test(message) && /ipeds_unitid/i.test(message)) {
+          // A campus of a school we already hold: the federal list keeps one
+          // record for the whole institution, so this campus has no record of
+          // its own. Park it against its parent instead of failing.
+          const { data: owner } = await supabase
+            .from("universities")
+            .select("name")
+            .eq("ipeds_unitid", match.unitid)
+            .maybeSingle();
+          const parentName = (owner as { name?: string } | null)?.name ?? match.matchedName;
+          await supabase
+            .from("universities")
+            .update({
+              federal_match_status: "not_in_federal",
+              federal_match_name: `Shares a national record with ${parentName}`,
+              federal_synced_at: new Date().toISOString(),
+            })
+            .eq("id", school.id);
+          await supabase
+            .from("ingest_queue")
+            .update({ status: "done", last_error: null, attempts: 0, updated_at: new Date().toISOString() })
+            .eq("university_id", school.id)
+            .eq("stage", "federal_data");
+          outcome.status = "unmatched";
+          outcome.matchedName = `Shares a national record with ${parentName}`;
+          outcome.applied = true;
+        } else {
+          outcome.errorMessage = message;
+        }
       }
     }
     results.push(outcome);
