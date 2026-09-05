@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Building2, Database, Download, Landmark, RefreshCw } from "lucide-react";
@@ -11,11 +11,8 @@ import {
   importNcaaSlice,
   importWikiSlice,
   listFederalBlocked,
-  listFederalCandidates,
   listFederalParked,
-  markNotInFederal,
   rebuildQueue,
-  resolveFederalMatch,
   retryFederalUnresolved,
   runDirectorySweep,
   runFederalBatch,
@@ -596,24 +593,25 @@ function Pipeline() {
           </p>
         ) : null}
         {blocked?.length ? (
-          <div className="mt-4 grid gap-2">
+          <div className="mt-4 grid gap-3">
             <p className="text-sm font-semibold text-graphite">
               {blocked.length} school(s) need a match decision
             </p>
-            {blocked.slice(0, 25).map((school) => (
-              <MatchResolver
-                key={school.id}
-                school={school}
-                onResolved={async (message) => {
-                  note(message);
-                  await refresh();
-                }}
-              />
-            ))}
+            <p className="text-sm text-steel">
+              The decision screen shows each school beside the closest record in the national list, so
+              most take one click.
+            </p>
+            <Link
+              to="/admin/federal-decisions"
+              className="touch-target inline-flex w-fit items-center gap-2 rounded-lg bg-org-primary px-3.5 text-sm font-semibold text-white"
+            >
+              Decide the last schools
+            </Link>
           </div>
         ) : (
           <p className="mt-4 text-sm text-steel">No unresolved federal matches.</p>
         )}
+
       </SectionCard>
 
       {parked?.length ? (
@@ -700,152 +698,3 @@ function Stat({
   );
 }
 
-type BlockedSchool = { id: string; name: string; state: string | null; city: string | null; federal_match_status: string };
-
-function MatchResolver({
-  school,
-  onResolved,
-}: {
-  school: BlockedSchool;
-  onResolved: (message: string) => Promise<void>;
-}) {
-  const candidatesFn = useServerFn(listFederalCandidates);
-  const resolveFn = useServerFn(resolveFederalMatch);
-  const notInFederalFn = useServerFn(markNotInFederal);
-
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [candidates, setCandidates] = useState<any[] | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function load(searchTerm: string) {
-    setBusy(true);
-    try {
-      const rows = (await candidatesFn({
-        data: { universityId: school.id, query: searchTerm },
-      })) as any[];
-      setCandidates(rows);
-    } catch (failure) {
-      toast.error(friendly(failure, "Could not load candidates"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function pick(unitid: number, name: string) {
-    setBusy(true);
-    try {
-      const outcome = (await resolveFn({ data: { universityId: school.id, unitid } })) as any;
-      toast.success(`${school.name} matched to ${name}`);
-      await onResolved(
-        `${school.name} → ${name}: ${outcome.fieldsApplied} field(s) filled, ${outcome.fieldsQueued} queued`,
-      );
-      setOpen(false);
-    } catch (failure) {
-      toast.error(friendly(failure, "Could not save the match"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function markMissing() {
-    setBusy(true);
-    try {
-      await notInFederalFn({ data: { universityId: school.id } });
-      toast.success(`${school.name} parked — you can undo this from the parked list below`);
-      await onResolved(`${school.name}: parked as not in the federal data`);
-    } catch (failure) {
-      toast.error(friendly(failure, "Couldn't park this school — please try again"));
-
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="rounded-lg border border-border bg-white p-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-graphite">{school.name}</p>
-          <p className="meta">
-            {[school.city, school.state].filter(Boolean).join(", ") || "Location unknown"} ·{" "}
-            {school.federal_match_status === "unmatched"
-              ? "no federal record found"
-              : "several possible records"}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void markMissing()}
-            disabled={busy}
-            className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel disabled:opacity-60"
-          >
-            Not in the federal data
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setOpen((value) => !value);
-              if (!candidates) void load("");
-            }}
-            className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel"
-          >
-            {open ? "Close" : "Choose record"}
-          </button>
-        </div>
-      </div>
-
-
-      {open ? (
-        <div className="mt-3 grid gap-2">
-          <div className="flex gap-2">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search federal records by name"
-              className="h-10 flex-1 rounded-md border border-input bg-background px-2 text-sm"
-            />
-            <button
-              type="button"
-              onClick={() => void load(query)}
-              disabled={busy}
-              className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel disabled:opacity-60"
-            >
-              Search
-            </button>
-          </div>
-          {busy ? <p className="meta">Looking…</p> : null}
-          {candidates?.length ? (
-            <ul className="grid gap-1.5">
-              {candidates.map((candidate) => (
-                <li
-                  key={candidate.unitid}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 px-3 py-2"
-                >
-                  <span className="text-sm text-graphite">
-                    {candidate.name}
-                    <span className="meta ml-2">
-                      {[candidate.city, candidate.state].filter(Boolean).join(", ")}
-                      {candidate.enrollment ? ` · ${candidate.enrollment.toLocaleString()} undergrads` : ""}
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void pick(candidate.unitid, candidate.name)}
-                    disabled={busy}
-                    className="touch-target rounded-md bg-diamond-green px-3 text-xs font-semibold text-white disabled:opacity-60"
-                  >
-                    This one
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : candidates ? (
-            <p className="meta">No federal records matched. Try a shorter name.</p>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}

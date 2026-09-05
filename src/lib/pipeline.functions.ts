@@ -310,6 +310,21 @@ export const runDirectorySweep = createServerFn({ method: "POST" })
     return clean(outcome);
   });
 
+/**
+ * The whole decision list with likely federal records already attached, so a
+ * person can settle each school in one click.
+ */
+export const listFederalSuggestions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { limit?: number }) => ({ limit: Number(input?.limit) || 200 }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { suggestFederalMatches } = await import("@/lib/federal-directory.server");
+    const rows = await suggestFederalMatches(context.supabase, { limit: data.limit });
+    return clean(rows);
+  });
+
+
 export const retryFederalUnresolved = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

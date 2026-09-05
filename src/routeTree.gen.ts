@@ -22,6 +22,7 @@ import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as AuthenticatedAdminDiscoveryRouteImport } from './routes/_authenticated/admin.discovery'
+import { Route as AuthenticatedAdminFederalDecisionsRouteImport } from './routes/_authenticated/admin.federal-decisions'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated/admin.pipeline'
 import { Route as AuthenticatedAdminReviewRouteImport } from './routes/_authenticated/admin.review'
@@ -107,6 +108,12 @@ const AuthenticatedAdminDiscoveryRoute =
   AuthenticatedAdminDiscoveryRouteImport.update({
     id: '/discovery',
     path: '/discovery',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminFederalDecisionsRoute =
+  AuthenticatedAdminFederalDecisionsRouteImport.update({
+    id: '/federal-decisions',
+    path: '/federal-decisions',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminMajorsRoute =
@@ -244,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof AuthenticatedSearchRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
+  '/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
@@ -278,6 +286,7 @@ export interface FileRoutesByTo {
   '/search': typeof AuthenticatedSearchRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
+  '/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
@@ -315,6 +324,7 @@ export interface FileRoutesById {
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
+  '/_authenticated/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/_authenticated/admin/review': typeof AuthenticatedAdminReviewRoute
@@ -352,6 +362,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/admin/audit'
     | '/admin/discovery'
+    | '/admin/federal-decisions'
     | '/admin/majors'
     | '/admin/pipeline'
     | '/admin/review'
@@ -386,6 +397,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/admin/audit'
     | '/admin/discovery'
+    | '/admin/federal-decisions'
     | '/admin/majors'
     | '/admin/pipeline'
     | '/admin/review'
@@ -422,6 +434,7 @@ export interface FileRouteTypes {
     | '/_authenticated/search'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/discovery'
+    | '/_authenticated/admin/federal-decisions'
     | '/_authenticated/admin/majors'
     | '/_authenticated/admin/pipeline'
     | '/_authenticated/admin/review'
@@ -546,6 +559,13 @@ declare module '@tanstack/react-router' {
       path: '/discovery'
       fullPath: '/admin/discovery'
       preLoaderRoute: typeof AuthenticatedAdminDiscoveryRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/federal-decisions': {
+      id: '/_authenticated/admin/federal-decisions'
+      path: '/federal-decisions'
+      fullPath: '/admin/federal-decisions'
+      preLoaderRoute: typeof AuthenticatedAdminFederalDecisionsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/majors': {
@@ -701,6 +721,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminDiscoveryRoute: typeof AuthenticatedAdminDiscoveryRoute
+  AuthenticatedAdminFederalDecisionsRoute: typeof AuthenticatedAdminFederalDecisionsRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
   AuthenticatedAdminPipelineRoute: typeof AuthenticatedAdminPipelineRoute
   AuthenticatedAdminReviewRoute: typeof AuthenticatedAdminReviewRoute
@@ -719,6 +740,8 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminDiscoveryRoute: AuthenticatedAdminDiscoveryRoute,
+  AuthenticatedAdminFederalDecisionsRoute:
+    AuthenticatedAdminFederalDecisionsRoute,
   AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
   AuthenticatedAdminPipelineRoute: AuthenticatedAdminPipelineRoute,
   AuthenticatedAdminReviewRoute: AuthenticatedAdminReviewRoute,
