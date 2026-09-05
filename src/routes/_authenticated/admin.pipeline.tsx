@@ -539,6 +539,19 @@ function MatchResolver({
     }
   }
 
+  async function markMissing() {
+    setBusy(true);
+    try {
+      await notInFederalFn({ data: { universityId: school.id } });
+      toast.success(`${school.name} marked as not in the federal data`);
+      await onResolved(`${school.name}: marked as not in the federal data`);
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not save that");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="rounded-lg border border-border bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
