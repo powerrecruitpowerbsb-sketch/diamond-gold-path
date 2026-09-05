@@ -225,6 +225,54 @@ export type Database = {
           },
         ]
       }
+      collection_state: {
+        Row: {
+          created_at: string
+          failures: number
+          id: string
+          is_running: boolean
+          last_beat_at: string | null
+          last_message: string | null
+          links_applied: number
+          links_found: number
+          players_found: number
+          programs_scraped: number
+          started_at: string | null
+          stop_requested: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          failures?: number
+          id?: string
+          is_running?: boolean
+          last_beat_at?: string | null
+          last_message?: string | null
+          links_applied?: number
+          links_found?: number
+          players_found?: number
+          programs_scraped?: number
+          started_at?: string | null
+          stop_requested?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          failures?: number
+          id?: string
+          is_running?: boolean
+          last_beat_at?: string | null
+          last_message?: string | null
+          links_applied?: number
+          links_found?: number
+          players_found?: number
+          programs_scraped?: number
+          started_at?: string | null
+          stop_requested?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       data_field_sources: {
         Row: {
           created_at: string

@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Building2, Database, Download, Landmark, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
+import { CollectionRunner } from "@/components/admin/CollectionRunner";
 import { SectionCard } from "@/components/admin/form-kit";
 import {
   getPipelineStatus,
@@ -637,6 +638,10 @@ function Pipeline() {
         )}
 
       </SectionCard>
+
+      <CollectionRunner />
+
+
 
       {parked?.length ? (
         <SectionCard
