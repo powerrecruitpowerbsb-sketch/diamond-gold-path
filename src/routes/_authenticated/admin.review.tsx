@@ -134,6 +134,7 @@ function ReviewQueue() {
   const rejectFn = useServerFn(rejectPendingChanges);
   const sweepFn = useServerFn(sweepReviewQueue);
   const approveMatchingFn = useServerFn(approveMatchingChanges);
+  const correctFn = useServerFn(approveCorrectedChange);
 
   const [search, setSearch] = useState("");
   const [confidence, setConfidence] = useState("all");
@@ -143,6 +144,21 @@ function ReviewQueue() {
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
   const [sweepPreview, setSweepPreview] = useState<SweepResult | null>(null);
+  const [correcting, setCorrecting] = useState<{
+    id: string;
+    value: string;
+    season: string;
+    players: Record<string, unknown>[];
+    note: string;
+  } | null>(null);
+  const [rejecting, setRejecting] = useState<{
+    ids: string[];
+    label: string;
+    reason: string;
+    rescrape: boolean;
+  } | null>(null);
+
+
 
 
   const { program: programFilter } = Route.useSearch();
