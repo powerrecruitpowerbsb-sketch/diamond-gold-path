@@ -596,24 +596,25 @@ function Pipeline() {
           </p>
         ) : null}
         {blocked?.length ? (
-          <div className="mt-4 grid gap-2">
+          <div className="mt-4 grid gap-3">
             <p className="text-sm font-semibold text-graphite">
               {blocked.length} school(s) need a match decision
             </p>
-            {blocked.slice(0, 25).map((school) => (
-              <MatchResolver
-                key={school.id}
-                school={school}
-                onResolved={async (message) => {
-                  note(message);
-                  await refresh();
-                }}
-              />
-            ))}
+            <p className="text-sm text-steel">
+              The decision screen shows each school beside the closest record in the national list, so
+              most take one click.
+            </p>
+            <Link
+              to="/admin/federal-decisions"
+              className="touch-target inline-flex w-fit items-center gap-2 rounded-lg bg-org-primary px-3.5 text-sm font-semibold text-white"
+            >
+              Decide the last schools
+            </Link>
           </div>
         ) : (
           <p className="mt-4 text-sm text-steel">No unresolved federal matches.</p>
         )}
+
       </SectionCard>
 
       {parked?.length ? (
