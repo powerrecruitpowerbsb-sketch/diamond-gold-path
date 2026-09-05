@@ -457,7 +457,7 @@ export async function syncUniversityFromFederal(
       ? { status: "confirmed", row: rows[0]!, candidates: [] }
       : { status: "unmatched", row: null, candidates: [] };
   } else {
-    match = matchScorecard(schoolName, state, await searchScorecard(schoolName, state));
+    match = await findFederalRecord(schoolName, state);
   }
 
   if (match.status !== "confirmed" || !match.row) {
