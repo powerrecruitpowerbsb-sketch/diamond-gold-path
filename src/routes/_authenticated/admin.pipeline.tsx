@@ -79,6 +79,8 @@ function Pipeline() {
 
   const [busy, setBusy] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
+  const stopRef = useRef(false);
+
 
   const { data: status } = useQuery({ queryKey: ["pipeline-status"], queryFn: () => statusFn() });
   const { data: blocked } = useQuery({ queryKey: ["federal-blocked"], queryFn: () => blockedFn() });
