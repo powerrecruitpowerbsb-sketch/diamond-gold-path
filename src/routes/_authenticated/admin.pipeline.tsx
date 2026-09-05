@@ -60,6 +60,18 @@ const OTHER_SLICES = [
   { key: "nwac", label: "NWAC (Northwest)" },
 ] as const;
 
+/**
+ * Database and network errors are unreadable for a human, so only sentences we
+ * wrote ourselves are shown; anything else becomes the plain-English fallback.
+ */
+function friendly(failure: unknown, fallback: string): string {
+  const message = failure instanceof Error ? failure.message.trim() : "";
+  const jargon =
+    /constraint|relation |column |violates|duplicate key|PGRST|syntax error|permission denied|JWT|null value|invalid input|\bSQL\b|Forbidden/i;
+  if (!message || message.length > 160 || jargon.test(message)) return fallback;
+  return message;
+}
+
 const STAGE_LABELS: Record<string, string> = {
   federal_data: "School facts (federal data)",
   url_discovery: "Find athletics links",
@@ -124,7 +136,7 @@ function Pipeline() {
       toast.success(`${label} imported`);
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Import failed");
+      toast.error(friendly(failure, "Import failed"));
     } finally {
       setBusy(null);
     }
@@ -140,7 +152,7 @@ function Pipeline() {
       toast.success("Full NCAA membership list imported");
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Import failed");
+      toast.error(friendly(failure, "Import failed"));
     } finally {
       setBusy(null);
     }
@@ -175,7 +187,7 @@ function Pipeline() {
       toast.success(`${label} imported`);
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Import failed");
+      toast.error(friendly(failure, "Import failed"));
     } finally {
       setBusy(null);
     }
@@ -191,7 +203,7 @@ function Pipeline() {
       toast.success("NAIA, NJCAA, CCCAA and NWAC imported");
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Import failed");
+      toast.error(friendly(failure, "Import failed"));
     } finally {
       setBusy(null);
     }
@@ -214,7 +226,7 @@ function Pipeline() {
       }
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Federal sync failed");
+      toast.error(friendly(failure, "Federal sync failed"));
     } finally {
       setBusy(null);
     }
@@ -248,7 +260,7 @@ function Pipeline() {
       }
       toast.success(`${processed} school(s) processed`);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Federal sync failed");
+      toast.error(friendly(failure, "Federal sync failed"));
     } finally {
       stopRef.current = false;
       setBusy(null);
@@ -269,7 +281,7 @@ function Pipeline() {
       );
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not queue the retry");
+      toast.error(friendly(failure, "Could not queue the retry"));
     } finally {
       setBusy(null);
     }
@@ -286,7 +298,7 @@ function Pipeline() {
       toast.success(total ? `${total} job(s) queued` : "Queue already up to date");
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not refresh the queue");
+      toast.error(friendly(failure, "Could not refresh the queue"));
     } finally {
       setBusy(null);
     }
@@ -577,7 +589,7 @@ function MatchResolver({
       })) as any[];
       setCandidates(rows);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not load candidates");
+      toast.error(friendly(failure, "Could not load candidates"));
     } finally {
       setBusy(false);
     }
@@ -593,7 +605,7 @@ function MatchResolver({
       );
       setOpen(false);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not save the match");
+      toast.error(friendly(failure, "Could not save the match"));
     } finally {
       setBusy(false);
     }
@@ -606,7 +618,7 @@ function MatchResolver({
       toast.success(`${school.name} marked as not in the federal data`);
       await onResolved(`${school.name}: marked as not in the federal data`);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not save that");
+      toast.error(friendly(failure, "Could not save that"));
     } finally {
       setBusy(false);
     }
