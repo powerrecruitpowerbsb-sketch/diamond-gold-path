@@ -27,13 +27,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/pipeline")({
   head: () => ({
     meta: [
-      { title: "Collection pipeline — Power Recruit" },
+      { title: "Data collection — Power Recruit" },
       {
         name: "description",
         content:
           "Build the national program list from governing-body directories, then enrich every school with federal data.",
       },
-      { property: "og:title", content: "Collection pipeline — Power Recruit" },
+      { property: "og:title", content: "Data collection — Power Recruit" },
       {
         property: "og:description",
         content: "Automated collection: governing-body membership lists, federal school facts, and scrape coverage.",
@@ -404,7 +404,7 @@ function Pipeline() {
   return (
     <div className="grid gap-5">
       <SectionCard
-        title="Coverage"
+        title="What we have"
         blurb="Where the national database stands right now."
         aside={
           <button
@@ -445,35 +445,53 @@ function Pipeline() {
           />
         </div>
 
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs tracking-wide text-steel uppercase">
-                <th className="py-2 pr-3">Stage</th>
-                <th className="py-2 pr-3">Waiting</th>
-                <th className="py-2 pr-3">Running</th>
-                <th className="py-2 pr-3">Done</th>
-                <th className="py-2 pr-3">Retrying</th>
-                <th className="py-2">Needs you</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(status?.coverage ?? []).map((row) => (
-                <tr key={row.stage} className="border-t border-border">
-                  <td className="py-2 pr-3 font-semibold text-graphite">
-                    {STAGE_LABELS[row.stage] ?? row.stage}
-                  </td>
-                  <td className="py-2 pr-3 tabular-nums">{row.pending}</td>
-                  <td className="py-2 pr-3 tabular-nums">{row.running}</td>
-                  <td className="py-2 pr-3 tabular-nums text-diamond-green">{row.done}</td>
-                  <td className="py-2 pr-3 tabular-nums">{row.failed}</td>
-                  <td className="py-2 tabular-nums text-seam-red">{row.blocked}</td>
+        <details className="mt-5">
+          <summary className="cursor-pointer text-sm font-semibold text-steel">
+            Show the work list behind these numbers
+          </summary>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs tracking-wide text-steel uppercase">
+                  <th className="py-2 pr-3">Stage</th>
+                  <th className="py-2 pr-3">Waiting</th>
+                  <th className="py-2 pr-3">Running</th>
+                  <th className="py-2 pr-3">Done</th>
+                  <th className="py-2 pr-3">Retrying</th>
+                  <th className="py-2">Needs you</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {(status?.coverage ?? []).map((row) => (
+                  <tr key={row.stage} className="border-t border-border">
+                    <td className="py-2 pr-3 font-semibold text-graphite">
+                      {STAGE_LABELS[row.stage] ?? row.stage}
+                    </td>
+                    <td className="py-2 pr-3 tabular-nums">{row.pending}</td>
+                    <td className="py-2 pr-3 tabular-nums">{row.running}</td>
+                    <td className="py-2 pr-3 tabular-nums text-diamond-green">{row.done}</td>
+                    <td className="py-2 pr-3 tabular-nums">{row.failed}</td>
+                    <td className="py-2 tabular-nums text-seam-red">{row.blocked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
       </SectionCard>
+
+      <NeedsYou
+        decisions={status?.schools.federalNeedsHelp ?? 0}
+        notSchools={nonSchools?.entries?.length ?? 0}
+      />
+
+      <CollectionRunner />
+
+      <details className="rounded-xl border border-border bg-white p-4">
+        <summary className="cursor-pointer font-semibold text-graphite">
+          Hands-on tools — pull lists, fill school facts, clean up
+        </summary>
+        <div className="mt-4 grid gap-5">
 
       <SectionCard
         title="Step 1 — Pull the NCAA membership list"
@@ -639,10 +657,6 @@ function Pipeline() {
 
       </SectionCard>
 
-      <CollectionRunner />
-
-
-
       {parked?.length ? (
         <SectionCard
           title="Parked — not in the federal data"
@@ -735,7 +749,68 @@ function Pipeline() {
           </ul>
         </SectionCard>
       ) : null}
+        </div>
+      </details>
     </div>
+  );
+}
+
+/** The short list of things a person still has to decide. */
+function NeedsYou({ decisions, notSchools }: { decisions: number; notSchools: number }) {
+  const items = [
+    decisions
+      ? {
+          to: "/admin/federal-decisions" as const,
+          label: `${decisions} school${decisions === 1 ? "" : "s"} need a match decision`,
+          hint: "Each one is shown beside its closest national record.",
+          cta: "Decide these schools",
+        }
+      : null,
+    {
+      to: "/admin/review" as const,
+      label: "Proposed changes waiting for a yes or no",
+      hint: "Collected values that would change something already saved.",
+      cta: "Open the review queue",
+    },
+    notSchools
+      ? {
+          to: null,
+          label: `${notSchools} entr${notSchools === 1 ? "y" : "ies"} that aren't schools`,
+          hint: "Listed under the hands-on tools below, ready to remove.",
+          cta: null,
+        }
+      : null,
+  ].filter(Boolean) as {
+    to: "/admin/federal-decisions" | "/admin/review" | null;
+    label: string;
+    hint: string;
+    cta: string | null;
+  }[];
+
+  return (
+    <SectionCard title="What needs you" blurb="Everything else runs on its own.">
+      <div className="grid gap-2">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-white p-3"
+          >
+            <div>
+              <p className="text-sm font-semibold text-graphite">{item.label}</p>
+              <p className="meta">{item.hint}</p>
+            </div>
+            {item.to && item.cta ? (
+              <Link
+                to={item.to}
+                className="touch-target inline-flex items-center rounded-lg bg-org-primary px-3.5 text-sm font-semibold text-white"
+              >
+                {item.cta}
+              </Link>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </SectionCard>
   );
 }
 

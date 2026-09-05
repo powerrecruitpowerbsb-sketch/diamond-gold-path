@@ -59,7 +59,10 @@ const STATE_ID = "singleton";
 export async function readCollectionState(supabase: any): Promise<CollectionState> {
   const { data } = await supabase
     .from("collection_state")
-    .select("*")
+    // Explicit columns: the private runner key is not readable by app users.
+    .select(
+      "id, is_running, stop_requested, started_at, last_beat_at, links_found, links_applied, programs_scraped, players_found, failures, last_message",
+    )
     .eq("id", STATE_ID)
     .maybeSingle();
   const row = (data ?? {}) as Record<string, any>;

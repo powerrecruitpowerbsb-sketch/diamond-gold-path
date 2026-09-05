@@ -24,7 +24,11 @@ export const getCollectionProgress = createServerFn({ method: "GET" })
     return clean(await collectionProgress(context.supabase));
   });
 
-/** Begin collecting: top the queue up, clear the tallies, open the gate. */
+/**
+ * Begin collecting: top the queue up, clear the tallies, open the gate, and ask
+ * the database to nudge the runner every minute so the work continues with no
+ * page open.
+ */
 export const startCollection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -33,10 +37,12 @@ export const startCollection = createServerFn({ method: "POST" })
     const { markCollectionStarted, collectionProgress } = await import("@/lib/collection.server");
     const queued = await enqueueMissingWork(context.supabase);
     await markCollectionStarted(context.supabase);
+    const { error } = await context.supabase.rpc("collection_cron_start");
+    if (error) throw new Error(error.message);
     return clean({ queued, progress: await collectionProgress(context.supabase) });
   });
 
-/** Ask the run to stop after the pass in flight. */
+/** Ask the run to stop, and take the every-minute schedule away. */
 export const stopCollection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -46,6 +52,8 @@ export const stopCollection = createServerFn({ method: "POST" })
     );
     await requestCollectionStop(context.supabase, "Stopped by a superadmin");
     await markCollectionFinished(context.supabase, "Stopped by a superadmin");
+    const { error } = await context.supabase.rpc("collection_cron_stop");
+    if (error) throw new Error(error.message);
     return clean(await collectionProgress(context.supabase));
   });
 
