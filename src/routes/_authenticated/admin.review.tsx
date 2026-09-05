@@ -209,15 +209,31 @@ function ReviewQueue() {
   });
 
   const reject = useMutation({
-    mutationFn: (ids: string[]) => rejectFn({ data: { ids } }),
-    onSuccess: async (result: { rejected: number }) => {
+    mutationFn: (input: { ids: string[]; reason?: string | null; rescrape?: boolean }) =>
+      rejectFn({ data: input }),
+    onSuccess: async (result: { rejected: number; requeued: number }) => {
       toast.success(
-        `Rejected ${result.rejected} item${result.rejected === 1 ? "" : "s"} — live data untouched`,
+        `Declined ${result.rejected} item${result.rejected === 1 ? "" : "s"} — live data untouched${
+          result.requeued ? ` · ${result.requeued} program queued for a fresh pull` : ""
+        }`,
       );
+      setRejecting(null);
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const correct = useMutation({
+    mutationFn: (input: { id: string; value: unknown; note: string | null }) =>
+      correctFn({ data: input }),
+    onSuccess: async () => {
+      toast.success("Saved your corrected value to live data");
+      setCorrecting(null);
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   const sweep = useMutation({
     mutationFn: (apply: boolean) => sweepFn({ data: { apply } }) as Promise<SweepResult>,
