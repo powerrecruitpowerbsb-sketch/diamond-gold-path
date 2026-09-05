@@ -298,6 +298,25 @@ function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
       note: "Sport-specific page found in the site map.",
     };
   }
+  // Site maps often only return deep links ("/roster/2024", "/roster/jane-doe/12").
+  // The index page is that same path trimmed at the roster/coaches segment.
+  for (const url of sportMatches) {
+    const segment = kind === "roster" ? "roster" : "coaches";
+    const path = pathOf(url);
+    const index = path.indexOf(`/${segment}/`);
+    if (index === -1) continue;
+    try {
+      const origin = new URL(url).origin;
+      return {
+        url: `${origin}${path.slice(0, index)}/${segment}`,
+        confidence: "high" as Confidence,
+        note: "Sport-specific page found in the site map.",
+      };
+    } catch {
+      continue;
+    }
+  }
+
   if (sportMatches.length) {
     // Right sport, but only a player page or a season archive was found.
     sportMatches.sort((a, b) => pathOf(a).length - pathOf(b).length);
