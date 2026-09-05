@@ -8,7 +8,14 @@
  */
 
 import { isEmptyValue, valuesEquivalent } from "@/lib/data-quality";
-import { normalizeSchoolName } from "@/lib/seed-import.server";
+import {
+  CONSIDER_SCORE,
+  queryVariants,
+  scoreCandidates,
+  splitStateHint,
+  verdictFor,
+} from "@/lib/federal-match";
+
 
 
 const SCORECARD_URL = "https://api.data.gov/ed/collegescorecard/v1/schools";
