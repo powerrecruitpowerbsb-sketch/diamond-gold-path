@@ -320,9 +320,36 @@ export const listFederalSuggestions = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
     const { suggestFederalMatches } = await import("@/lib/federal-directory.server");
-    const rows = await suggestFederalMatches(context.supabase, { limit: data.limit });
-    return clean(rows);
+    const result = await suggestFederalMatches(context.supabase, { limit: data.limit });
+    return clean(result);
   });
+
+/** Refill our stored copy of the national school list. */
+export const refreshNationalDirectory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { refreshDirectoryTable } = await import("@/lib/federal-directory.server");
+    return clean(await refreshDirectoryTable());
+  });
+
+/** Read the schools' own websites for the ones with no national record. */
+export const runSchoolWebFill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { limit?: number; includeParked?: boolean }) => ({
+    limit: Number(input?.limit) || 10,
+    includeParked: Boolean(input?.includeParked),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { webFillBatch } = await import("@/lib/school-web-fill.server");
+    const outcome = await webFillBatch(context.supabase, context.userId, {
+      limit: data.limit,
+      includeParked: data.includeParked,
+    });
+    return clean(outcome);
+  });
+
 
 
 export const retryFederalUnresolved = createServerFn({ method: "POST" })

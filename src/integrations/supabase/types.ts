@@ -269,6 +269,39 @@ export type Database = {
           },
         ]
       }
+      federal_directory: {
+        Row: {
+          alias: string | null
+          city: string | null
+          enrollment: number | null
+          main_campus: boolean | null
+          name: string
+          state: string | null
+          unitid: number
+          updated_at: string
+        }
+        Insert: {
+          alias?: string | null
+          city?: string | null
+          enrollment?: number | null
+          main_campus?: boolean | null
+          name: string
+          state?: string | null
+          unitid: number
+          updated_at?: string
+        }
+        Update: {
+          alias?: string | null
+          city?: string | null
+          enrollment?: number | null
+          main_campus?: boolean | null
+          name?: string
+          state?: string | null
+          unitid?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingest_queue: {
         Row: {
           attempts: number

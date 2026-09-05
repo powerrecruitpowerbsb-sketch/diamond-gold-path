@@ -41,7 +41,7 @@ export type IngestOutcome = {
 };
 
 /** Fields the AI is allowed to propose, per table. */
-const UNIVERSITY_EXTRACTABLE = [
+export const UNIVERSITY_EXTRACTABLE = [
   "avg_gpa",
   "avg_sat",
   "avg_act",
@@ -99,7 +99,7 @@ function requireEnv(name: string): string {
 }
 
 /** Scrape a single page to markdown. Throws with a readable reason on failure. */
-async function scrape(url: string): Promise<string> {
+export async function scrape(url: string): Promise<string> {
   const lovableKey = requireEnv("LOVABLE_API_KEY");
   // Power's own Firecrawl account — scrape credits bill to that plan, not the
   // Lovable-managed allowance. Auth still rides the connector gateway.
@@ -181,7 +181,7 @@ const STRICT_RULES = [
   'For each field you return, also return a confidence 0-1 in a "confidence" object keyed by the same field name: 0.9+ when the page states it outright, 0.6-0.8 when it needs light interpretation.',
 ].join(" ");
 
-async function extractUniversityFields(markdown: string) {
+export async function extractUniversityFields(markdown: string) {
   const prompt = [
     "You extract college admissions and cost data from an official university web page.",
     STRICT_RULES,
@@ -337,7 +337,7 @@ function differs(field: string, current: unknown, proposed: unknown): boolean {
 }
 
 
-type ProposalRow = {
+export type ProposalRow = {
   table_name: string;
   record_id: string;
   field_name: string | null;
@@ -357,7 +357,7 @@ export const INGEST_POLICY = {
   minCredibleRoster: 15,
 };
 
-function buildFieldProposals(
+export function buildFieldProposals(
   table: "universities" | "programs",
   recordId: string,
   liveRecord: Record<string, unknown>,
@@ -411,7 +411,7 @@ function buildFieldProposals(
  * pages routinely state the same fact. Highest confidence wins; a genuine
  * disagreement is kept as one item that carries both candidate values.
  */
-function mergeFieldProposals(rows: ProposalRow[]): ProposalRow[] {
+export function mergeFieldProposals(rows: ProposalRow[]): ProposalRow[] {
   const merged = new Map<string, ProposalRow>();
 
   for (const row of rows) {
@@ -456,7 +456,7 @@ function mergeFieldProposals(rows: ProposalRow[]): ProposalRow[] {
 }
 
 /** Gap-fill + official + high confidence = trusted enough to skip the queue. */
-function isAutoApplicable(row: ProposalRow): boolean {
+export function isAutoApplicable(row: ProposalRow): boolean {
   return Boolean(
     row.field_name &&
       row.gap_fill &&
