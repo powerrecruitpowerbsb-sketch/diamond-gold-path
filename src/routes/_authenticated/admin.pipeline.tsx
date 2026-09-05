@@ -12,11 +12,14 @@ import {
   importWikiSlice,
   listFederalBlocked,
   listFederalCandidates,
+  listFederalParked,
   markNotInFederal,
   rebuildQueue,
   resolveFederalMatch,
   retryFederalUnresolved,
   runFederalBatch,
+  unparkAllFederalSchools,
+  unparkFederalSchool,
 } from "@/lib/pipeline.functions";
 
 
@@ -86,6 +89,9 @@ function Pipeline() {
   const rebuildFn = useServerFn(rebuildQueue);
   const blockedFn = useServerFn(listFederalBlocked);
   const retryFn = useServerFn(retryFederalUnresolved);
+  const parkedFn = useServerFn(listFederalParked);
+  const unparkFn = useServerFn(unparkFederalSchool);
+  const unparkAllFn = useServerFn(unparkAllFederalSchools);
 
   const queryClient = useQueryClient();
 
@@ -96,6 +102,7 @@ function Pipeline() {
 
   const { data: status } = useQuery({ queryKey: ["pipeline-status"], queryFn: () => statusFn() });
   const { data: blocked } = useQuery({ queryKey: ["federal-blocked"], queryFn: () => blockedFn() });
+  const { data: parked } = useQuery({ queryKey: ["federal-parked"], queryFn: () => parkedFn() });
 
   function note(line: string) {
     setLog((current) => [line, ...current].slice(0, 12));
@@ -104,6 +111,7 @@ function Pipeline() {
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["pipeline-status"] });
     await queryClient.invalidateQueries({ queryKey: ["federal-blocked"] });
+    await queryClient.invalidateQueries({ queryKey: ["federal-parked"] });
   }
 
   /** Walk one slice in windows until the whole division/sport list is loaded. */
@@ -288,6 +296,36 @@ function Pipeline() {
   }
 
 
+
+  async function onUnpark(id: string, name: string) {
+    setBusy(`unpark-${id}`);
+    try {
+      await unparkFn({ data: { universityId: id } });
+      note(`${name}: back in line for another look`);
+      toast.success(`${name} will be looked at again`);
+      await refresh();
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't put that school back in line"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onUnparkAll() {
+    setBusy("unpark-all");
+    try {
+      const result = (await unparkAllFn()) as { schools: number };
+      note(`${result.schools} parked school(s) sent back for another look`);
+      toast.success(
+        result.schools ? `${result.schools} school(s) will be looked at again` : "Nothing parked",
+      );
+      await refresh();
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't put those schools back in line"));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function onRebuild() {
     setBusy("rebuild");
@@ -524,6 +562,52 @@ function Pipeline() {
           <p className="mt-4 text-sm text-steel">No unresolved federal matches.</p>
         )}
       </SectionCard>
+
+      {parked?.length ? (
+        <SectionCard
+          title="Parked — not in the federal data"
+          blurb="Schools you set aside. Their cost and academic details stay blank until federal data or a person fills them."
+          aside={
+            <button
+              type="button"
+              onClick={() => void onUnparkAll()}
+              disabled={busy !== null}
+              className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
+            >
+              <RefreshCw className="size-4" aria-hidden />
+              {busy === "unpark-all" ? "Queueing…" : "Look again at all"}
+            </button>
+          }
+        >
+          <div className="mt-4 grid gap-2">
+            <p className="text-sm font-semibold text-graphite">{parked.length} school(s) parked</p>
+            {parked.map((school: any) => (
+              <div
+                key={school.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-white p-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-graphite">{school.name}</p>
+                  <p className="meta">
+                    {[school.city, school.state].filter(Boolean).join(", ") || "Location unknown"}
+                    {school.federal_synced_at
+                      ? ` · parked ${new Date(school.federal_synced_at).toLocaleDateString()}`
+                      : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void onUnpark(school.id, school.name)}
+                  disabled={busy !== null}
+                  className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel disabled:opacity-60"
+                >
+                  {busy === `unpark-${school.id}` ? "Queueing…" : "Look again"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      ) : null}
 
       {log.length ? (
         <SectionCard title="Recent activity" blurb="What the last few runs did.">
