@@ -5,6 +5,16 @@
  */
 
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
+import {
+  canonicalConference,
+  contradictsGoverningBody,
+  isEmptyValue,
+  isUnknownConference,
+  normalizePosition,
+  plausibleSeasonYear,
+  valuesEquivalent,
+} from "@/lib/data-quality";
+
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -213,12 +223,13 @@ const ROSTER_PROMPT = [
   'Shape: { "season_year": number|null, "players": [ { "name", "position", "class_year", "bats", "throws", "hometown", "home_state", "is_transfer", "is_juco_transfer" } ] }',
   "Include EVERY player listed in the text you are given — a full roster is usually 30-45 players. Do not stop early, do not summarize, do not sample.",
   "name is required; omit any other key you cannot read for that player.",
-  "position must be one of C, 1B, 2B, 3B, SS, OF, UTIL, RHP, LHP, TWO_WAY. Map 'INF' to UTIL, 'P' with no handedness to RHP only if the page states right-handed, otherwise omit.",
+  "position: copy the page's own wording (e.g. 'INF', 'LF', 'RHP', 'Catcher'). Never guess a position the page doesn't state — omit it instead. Do NOT use UTIL as a catch-all.",
   "class_year must be one of FR, SO, JR, SR, GR (map Freshman/Redshirt Freshman to FR, Sophomore SO, Junior JR, Senior SR, Graduate GR).",
   "bats is R, L or S. throws is R or L. If the page shows 'R/R' that means bats R, throws R.",
   "home_state is the 2-letter US state abbreviation when the hometown is in the US.",
   "is_juco_transfer is true only when a junior/community college is named as a previous school. is_transfer is true for any named previous four-year school.",
-  "season_year is the roster's season (e.g. 2026) if the page states it, otherwise null.",
+  "season_year is the roster's SEASON heading (e.g. 2026 or the later year of '2025-26'), never a jersey number, a stat, a birth year or an archive year. Return null unless the page clearly states the season.",
+
 ].join("\n");
 
 /** Split long roster markdown so a single reply size limit can't truncate the roster. */
@@ -260,19 +271,27 @@ async function extractRoster(markdown: string): Promise<{
   for (const chunk of chunks) {
     try {
       const parsed = await extractJson(ROSTER_PROMPT, chunk);
-      if (seasonYear === null && typeof parsed?.season_year === "number") {
-        seasonYear = parsed.season_year;
+      if (seasonYear === null) {
+        // Jersey numbers, career stats and archive years get mistaken for the
+        // season; only a year inside the live recruiting window is believable.
+        seasonYear = plausibleSeasonYear(parsed?.season_year);
       }
       const players = Array.isArray(parsed?.players) ? parsed.players : [];
       for (const player of players) {
         if (!player || typeof player.name !== "string" || !player.name.trim()) continue;
         const key = player.name.trim().toLowerCase();
-        if (!byName.has(key)) byName.set(key, player as ExtractedPlayer);
+        if (byName.has(key)) continue;
+        byName.set(key, {
+          ...(player as ExtractedPlayer),
+          // Unreadable positions stay blank rather than piling into UTIL.
+          position: normalizePosition(player.position),
+        });
       }
     } catch (failure) {
       lastError = failure as Error;
     }
   }
+
 
   if (!byName.size && lastError) throw lastError;
 
@@ -308,17 +327,15 @@ function coerce(field: string, raw: unknown): unknown {
     const match = options.find((o) => o.toLowerCase() === String(raw).trim().toLowerCase());
     return match ?? null;
   }
+  // Conferences arrive as "SEC", "South East Conference", "NWAC"... — store one wording.
+  if (field === "conference") return canonicalConference(raw) || null;
   return String(raw).trim();
 }
 
-function differs(current: unknown, proposed: unknown): boolean {
-  if (current === null || current === undefined || current === "") return true;
-  if (typeof proposed === "number") {
-    const currentNum = Number(current);
-    return !Number.isFinite(currentNum) || Math.abs(currentNum - proposed) > 0.0001;
-  }
-  return String(current).trim().toLowerCase() !== String(proposed).trim().toLowerCase();
+function differs(field: string, current: unknown, proposed: unknown): boolean {
+  return !valuesEquivalent(field, current, proposed);
 }
+
 
 type ProposalRow = {
   table_name: string;
@@ -361,9 +378,19 @@ function buildFieldProposals(
     if (!allowed.includes(key as any) || !writable.has(key)) continue;
     const value = coerce(key, rawValue);
     if (value === null) continue;
-    if (!differs(liveRecord[key], value)) continue;
     const current = liveRecord[key];
+    if (!differs(key, current, value)) continue;
     const score = Number(confidence[key]);
+    let scored = Number.isFinite(score) ? Math.min(Math.max(score, 0), 1) : null;
+
+    // A page that disagrees with the directory about the division or governing
+    // body may not even belong to this school — that always gets human eyes.
+    const contradiction =
+      table === "programs" && contradictsGoverningBody(key, liveRecord["governing_body"], value);
+    // An unfamiliar conference wording is worth a glance rather than a silent write.
+    const unknownConference = key === "conference" && isUnknownConference(value);
+    if (contradiction || unknownConference) scored = Math.min(scored ?? 0.5, 0.5);
+
     rows.push({
       table_name: table,
       record_id: recordId,
@@ -371,10 +398,11 @@ function buildFieldProposals(
       proposed_value: { [key]: value } as any,
       source_url: sourceUrl,
       source_type: "official",
-      ai_confidence: Number.isFinite(score) ? Math.min(Math.max(score, 0), 1) : null,
-      gap_fill: current === null || current === undefined || current === "",
+      ai_confidence: scored,
+      gap_fill: isEmptyValue(key, current) && !contradiction && !unknownConference,
     });
   }
+
   return rows;
 }
 

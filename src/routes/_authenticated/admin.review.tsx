@@ -10,17 +10,21 @@ import {
   ChevronRight,
   ExternalLink,
   ShieldCheck,
+  Sparkles,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  approveMatchingChanges,
   approvePendingChanges,
   countPendingChanges,
   listPendingChanges,
   rejectPendingChanges,
+  sweepReviewQueue,
 } from "@/lib/review.functions";
+
 import { dataFieldLabel, dataValueLabel, recordKindLabel, sourceTypeLabel } from "@/lib/data-labels";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +89,15 @@ type QueuePage = {
   pageSize: number;
 };
 
+type SweepResult = {
+  examined: number;
+  noChange: number;
+  gapFills: number;
+  remaining: number;
+  failures: number;
+  samples: { label: string; field: string; reason: string }[];
+};
+
 function isLowTrust(item: PendingItem) {
   return item.ai_confidence == null || item.ai_confidence < 0.7;
 }
@@ -117,6 +130,8 @@ function ReviewQueue() {
   const countFn = useServerFn(countPendingChanges);
   const approveFn = useServerFn(approvePendingChanges);
   const rejectFn = useServerFn(rejectPendingChanges);
+  const sweepFn = useServerFn(sweepReviewQueue);
+  const approveMatchingFn = useServerFn(approveMatchingChanges);
 
   const [search, setSearch] = useState("");
   const [confidence, setConfidence] = useState("all");
@@ -125,6 +140,8 @@ function ReviewQueue() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
+  const [sweepPreview, setSweepPreview] = useState<SweepResult | null>(null);
+
 
   const { program: programFilter } = Route.useSearch();
 
@@ -184,13 +201,54 @@ function ReviewQueue() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const busy = approve.isPending || reject.isPending;
+  const sweep = useMutation({
+    mutationFn: (apply: boolean) => sweepFn({ data: { apply } }) as Promise<SweepResult>,
+    onSuccess: async (result: SweepResult, apply) => {
+      if (!apply) {
+        if (!result.noChange && !result.gapFills) {
+          toast.success("Nothing to tidy — every open item is a real decision");
+          setSweepPreview(null);
+          return;
+        }
+        setSweepPreview(result);
+        return;
+      }
+      setSweepPreview(null);
+      toast.success(
+        `Cleared ${result.noChange} duplicate item${result.noChange === 1 ? "" : "s"} and applied ${result.gapFills} blank-field fill${result.gapFills === 1 ? "" : "s"}`,
+      );
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const approveMatching = useMutation({
+    mutationFn: () =>
+      approveMatchingFn({ data: { search, minConfidence: 0.9, officialOnly: true } }) as Promise<{
+        applied: number;
+        failureCount: number;
+        failures: { message: string }[];
+      }>,
+    onSuccess: async (result) => {
+      toast.success(
+        result.applied
+          ? `Applied ${result.applied} confident fact${result.applied === 1 ? "" : "s"} from official sources`
+          : "No confident official facts were waiting",
+      );
+      if (result.failureCount) toast.error(`${result.failureCount} could not be applied`);
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const busy = approve.isPending || reject.isPending || sweep.isPending || approveMatching.isPending;
   const toggle = (set: Set<string>, id: string) => {
     const next = new Set(set);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     return next;
   };
+
 
   const totalPages = Math.max(Math.ceil((queue?.totalGroups ?? 0) / (queue?.pageSize ?? 25)), 1);
 
@@ -273,6 +331,24 @@ function ReviewQueue() {
 
         <div className="ml-auto flex flex-wrap gap-2">
           <Button
+            variant="outline"
+            className="touch-target"
+            disabled={busy}
+            onClick={() => sweep.mutate(false)}
+          >
+            <Sparkles className="size-4" aria-hidden />
+            Tidy the queue
+          </Button>
+          <Button
+            variant="outline"
+            className="touch-target"
+            disabled={busy}
+            onClick={() => approveMatching.mutate()}
+          >
+            <ShieldCheck className="size-4" aria-hidden />
+            Approve all confident facts
+          </Button>
+          <Button
             className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
             disabled={busy || selected.size === 0}
             onClick={() => approve.mutate([...selected])}
@@ -291,6 +367,39 @@ function ReviewQueue() {
           </Button>
         </div>
       </div>
+
+      {sweepPreview ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-org-accent/40 bg-org-accent/10 p-4">
+          <div className="min-w-0 text-sm text-graphite">
+            <p className="font-semibold">
+              {sweepPreview.noChange} item{sweepPreview.noChange === 1 ? "" : "s"} already match what
+              we store, and {sweepPreview.gapFills} fill a blank field from an official source.
+            </p>
+            <p className="mt-1 text-steel">
+              Clearing those leaves {sweepPreview.remaining} real decision
+              {sweepPreview.remaining === 1 ? "" : "s"} for you.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
+              disabled={busy}
+              onClick={() => sweep.mutate(true)}
+            >
+              Clear them
+            </Button>
+            <Button
+              variant="outline"
+              className="touch-target"
+              disabled={busy}
+              onClick={() => setSweepPreview(null)}
+            >
+              Not now
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
 
       {isPending ? (
         <div className="h-48 animate-pulse rounded-xl bg-muted" />

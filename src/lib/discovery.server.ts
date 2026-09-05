@@ -5,6 +5,8 @@
  * live records are never written here.
  */
 
+import { mentionsOtherState } from "@/lib/data-quality";
+
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
 export type DiscoveryType = "athletic_website" | "roster_page" | "coaching_staff_page";
@@ -196,9 +198,17 @@ export async function discoverAthleticWebsite(
     .map((row) => {
       const score = nameMatchScore(name, row.url);
       const athletics = looksLikeAthletics(row.url, row.title);
-      return { ...row, score, athletics };
+      // "Southeastern University" (FL) must not be matched to "Southeastern
+      // Oklahoma State" just because the domain shares a word.
+      const wrongState = mentionsOtherState(`${row.title} ${row.url}`, state);
+      return { ...row, score, athletics, wrongState };
     })
-    .sort((a, b) => Number(b.athletics) - Number(a.athletics) || b.score - a.score);
+    .sort(
+      (a, b) =>
+        Number(a.wrongState) - Number(b.wrongState) ||
+        Number(b.athletics) - Number(a.athletics) ||
+        b.score - a.score,
+    );
 
   const best = scored[0]!;
   const origin = (() => {
@@ -215,7 +225,9 @@ export async function discoverAthleticWebsite(
 
   const reasons: string[] = [];
   if (!best.athletics) reasons.push("domain doesn't look like an athletics site");
-  if (best.score < 0.5) reasons.push("school name only loosely matches the domain");
+  if (best.score < 0.7) reasons.push("school name only loosely matches the domain");
+  if (best.wrongState)
+    reasons.push("the page names a different state than this school — it may be another school");
   if (rivals.length) reasons.push(`${rivals.length} other similar candidate(s) came back`);
 
   return {
@@ -228,6 +240,7 @@ export async function discoverAthleticWebsite(
       ? `Needs a look: ${reasons.join("; ")}.`
       : `Athletics domain matches the school name (${Math.round(best.score * 100)}% of name words).`,
   };
+
 }
 
 const ROSTER_PATTERN = /roster/i;

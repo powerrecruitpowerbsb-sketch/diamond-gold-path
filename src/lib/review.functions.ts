@@ -159,6 +159,73 @@ export const approvePendingChanges = createServerFn({ method: "POST" })
     return { applied, failures };
   });
 
+/**
+ * Tidy the whole open queue: drop items whose proposed value already matches
+ * what we store, and apply blank-field fills confirmed by an official source.
+ * `apply: false` is a preview.
+ */
+export const sweepReviewQueue = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input?: { apply?: boolean }) => ({ apply: Boolean(input?.apply) }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { sweepPendingNoise } = await import("@/lib/review.server");
+    return sweepPendingNoise(context.supabase, context.userId, data.apply);
+  });
+
+/**
+ * Approve every open item matching the current filters — across all pages, not
+ * just the ones on screen. Rosters and brand-new records are never included:
+ * those always get looked at individually.
+ */
+export const approveMatchingChanges = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input?: { search?: string | null; minConfidence?: number | null; officialOnly?: boolean }) => ({
+      search: input?.search ? String(input.search).trim().toLowerCase() : "",
+      minConfidence: Math.min(Math.max(Number(input?.minConfidence ?? 0.9) || 0.9, 0), 1),
+      officialOnly: input?.officialOnly !== false,
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+
+    const { data: rows, error } = await context.supabase
+      .from("pending_data_changes")
+      .select(PENDING_COLUMNS)
+      .eq("status", "pending")
+      .in("table_name", ["universities", "programs"])
+      .not("field_name", "is", null)
+      .not("record_id", "is", null)
+      .gte("ai_confidence", data.minConfidence)
+      .limit(5000);
+    if (error) throw new Error(error.message);
+
+    const { approvePending, decoratePending } = await import("@/lib/review.server");
+    let candidates = await decoratePending(context.supabase, (rows ?? []) as any[]);
+    if (data.officialOnly) {
+      candidates = candidates.filter((row: any) => row.source_type === "official");
+    }
+    if (data.search) {
+      candidates = candidates.filter((row: any) =>
+        String(row.recordLabel ?? "").toLowerCase().includes(data.search),
+      );
+    }
+
+    let applied = 0;
+    const failures: { id: string; message: string }[] = [];
+    for (const row of candidates as any[]) {
+      try {
+        await approvePending(context.supabase, context.userId, row);
+        applied += 1;
+      } catch (failure) {
+        failures.push({ id: row.id, message: (failure as Error).message });
+      }
+    }
+    return { applied, failures: failures.slice(0, 5), failureCount: failures.length };
+  });
+
+
 export const rejectPendingChanges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { ids: string[] }) => ({ ids: (input.ids ?? []).map(String) }))
