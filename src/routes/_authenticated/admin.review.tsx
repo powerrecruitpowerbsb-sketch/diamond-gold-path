@@ -400,13 +400,72 @@ function ReviewQueue() {
             variant="outline"
             className="touch-target"
             disabled={busy || selected.size === 0}
-            onClick={() => reject.mutate([...selected])}
+            onClick={() =>
+              setRejecting({
+                ids: [...selected],
+                label: `${selected.size} selected item${selected.size === 1 ? "" : "s"}`,
+                reason: "",
+                rescrape: false,
+              })
+            }
           >
             <X className="size-4" aria-hidden />
-            Reject selected
+            Decline selected
           </Button>
         </div>
       </div>
+
+      {rejecting ? (
+        <div className="space-y-3 rounded-xl border border-seam-red/40 bg-seam-red-tint p-4">
+          <p className="text-sm font-semibold text-graphite">Declining {rejecting.label}</p>
+          <label className="block">
+            <span className="meta mb-1.5 block">WHAT WAS WRONG? (OPTIONAL)</span>
+            <input
+              value={rejecting.reason}
+              onChange={(event) =>
+                setRejecting((prev) => (prev ? { ...prev, reason: event.target.value } : prev))
+              }
+              placeholder="e.g. pulled the 2002 roster page, not the current one"
+              className="h-11 w-full max-w-xl rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-graphite">
+            <Checkbox
+              checked={rejecting.rescrape}
+              onCheckedChange={(value) =>
+                setRejecting((prev) => (prev ? { ...prev, rescrape: Boolean(value) } : prev))
+              }
+            />
+            Send this school back for a fresh pull
+          </label>
+          <div className="flex gap-2">
+            <Button
+              className="touch-target"
+              variant="destructive"
+              disabled={busy}
+              onClick={() =>
+                reject.mutate({
+                  ids: rejecting.ids,
+                  reason: rejecting.reason || null,
+                  rescrape: rejecting.rescrape,
+                })
+              }
+            >
+              Decline
+            </Button>
+            <Button
+              variant="outline"
+              className="touch-target"
+              disabled={busy}
+              onClick={() => setRejecting(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+
 
       {sweepPreview ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-org-accent/40 bg-org-accent/10 p-4">
