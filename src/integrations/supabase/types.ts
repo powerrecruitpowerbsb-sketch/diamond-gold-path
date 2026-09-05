@@ -1682,6 +1682,7 @@ export type Database = {
       coaches_team: { Args: { _team_id: string }; Returns: boolean }
       collection_cron_start: { Args: never; Returns: undefined }
       collection_cron_stop: { Args: never; Returns: undefined }
+      collection_cron_unschedule: { Args: never; Returns: undefined }
       current_org_id: { Args: never; Returns: string }
       has_org_wide_access: { Args: never; Returns: boolean }
       has_role: {
