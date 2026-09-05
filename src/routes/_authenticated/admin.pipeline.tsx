@@ -27,13 +27,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/pipeline")({
   head: () => ({
     meta: [
-      { title: "Collection pipeline — Power Recruit" },
+      { title: "Data collection — Power Recruit" },
       {
         name: "description",
         content:
           "Build the national program list from governing-body directories, then enrich every school with federal data.",
       },
-      { property: "og:title", content: "Collection pipeline — Power Recruit" },
+      { property: "og:title", content: "Data collection — Power Recruit" },
       {
         property: "og:description",
         content: "Automated collection: governing-body membership lists, federal school facts, and scrape coverage.",
