@@ -156,7 +156,7 @@ async function naiaMembers(): Promise<MemberRow[]> {
   const rows: MemberRow[] = [];
   for (const cells of tableRows(text)) {
     const name = firstLinkLabel(cells[0] ?? "");
-    if (!name) continue;
+    if (!name || looksLikeIndexPage(name)) continue;
     // Departing members are struck through with a background colour; keep them,
     // the scrape stage retires anything that no longer sponsors the sport.
     const state = stateCode(firstLinkTarget(cells[3] ?? "")?.split(",").pop()?.trim() ?? plain(cells[3] ?? ""));
@@ -222,7 +222,7 @@ async function cccaaMembers(): Promise<MemberRow[]> {
     }
     if (!/^\*\s*\[\[/.test(line)) continue;
     const name = firstLinkLabel(line);
-    if (!name || !conference) continue;
+    if (!name || !conference || looksLikeIndexPage(name)) continue;
     rows.push({
       name,
       state: "CA",
@@ -245,7 +245,7 @@ async function nwacMembers(): Promise<MemberRow[]> {
     const location = plain(cells[1] ?? "");
     // The sports-sponsorship table further down the page has no "City, State"
     // column, which is how a member row is told apart from it.
-    if (!name || !location.includes(",")) continue;
+    if (!name || looksLikeIndexPage(name) || !location.includes(",")) continue;
     const region = plain(cells[cells.length - 1] ?? "");
     rows.push({
       name,
@@ -287,7 +287,8 @@ export async function fetchWikiDirectory(sliceKey: string): Promise<DirectoryRow
 
   for (const member of members) {
     const key = member.name.toLowerCase();
-    if (seen.has(key)) continue;
+    // Last line of defence: an index page must never become a school record.
+    if (seen.has(key) || looksLikeIndexPage(member.name)) continue;
     seen.add(key);
     for (const sport of ["baseball", "softball"] as const) {
       rows.push({
