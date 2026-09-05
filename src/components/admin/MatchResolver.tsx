@@ -3,8 +3,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import {
+  linkSharedRecord,
   listFederalCandidates,
   markNotInFederal,
+  mergeDuplicateSchool,
+  previewSchoolMerge,
   resolveFederalMatch,
 } from "@/lib/pipeline.functions";
 
@@ -68,6 +71,9 @@ export function MatchResolver({
   const candidatesFn = useServerFn(listFederalCandidates);
   const resolveFn = useServerFn(resolveFederalMatch);
   const notInFederalFn = useServerFn(markNotInFederal);
+  const previewMergeFn = useServerFn(previewSchoolMerge);
+  const mergeFn = useServerFn(mergeDuplicateSchool);
+  const linkSharedFn = useServerFn(linkSharedRecord);
 
   const preloaded = suggestions ?? [];
   const best = preloaded[0] ?? null;
@@ -78,6 +84,17 @@ export function MatchResolver({
   const [candidates, setCandidates] = useState<MatchSuggestion[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [settled, setSettled] = useState<string | null>(null);
+  // Set when the record a person picked already belongs to another school.
+  const [conflict, setConflict] = useState<
+    | {
+        unitid: number;
+        recordName: string;
+        ownerId: string;
+        ownerName: string;
+        moves: { programs: number; rosterPlayers: number; shortlists: number; notes: number } | null;
+      }
+    | null
+  >(null);
 
   async function load(searchTerm: string) {
     setBusy(true);
@@ -97,6 +114,25 @@ export function MatchResolver({
     setBusy(true);
     try {
       const outcome = (await resolveFn({ data: { universityId: school.id, unitid } })) as any;
+      if (outcome?.conflict) {
+        let moves = null;
+        try {
+          moves = (await previewMergeFn({
+            data: { duplicateId: school.id, keeperId: outcome.conflict.ownerId },
+          })) as any;
+        } catch {
+          moves = null;
+        }
+        setConflict({
+          unitid,
+          recordName: name,
+          ownerId: String(outcome.conflict.ownerId),
+          ownerName: String(outcome.conflict.ownerName),
+          moves,
+        });
+        setOpen(false);
+        return;
+      }
       toast.success(`${school.name} matched to ${name}`);
       setSettled(`Matched to ${name}`);
       await onResolved(
@@ -105,6 +141,44 @@ export function MatchResolver({
       setOpen(false);
     } catch (failure) {
       toast.error(friendly(failure, "Could not save the match"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Same school held twice: fold this entry into the one with the record. */
+  async function onCombine() {
+    if (!conflict) return;
+    setBusy(true);
+    try {
+      await mergeFn({ data: { duplicateId: school.id, keeperId: conflict.ownerId } });
+      toast.success(`Combined into ${conflict.ownerName}`);
+      setSettled(`Combined into ${conflict.ownerName}`);
+      setConflict(null);
+      await onResolved(`${school.name} combined into ${conflict.ownerName}`);
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't combine these two schools"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** A different campus of the same institution: copy the facts across. */
+  async function onShareRecord() {
+    if (!conflict) return;
+    setBusy(true);
+    try {
+      const outcome = (await linkSharedFn({
+        data: { universityId: school.id, unitid: conflict.unitid },
+      })) as any;
+      toast.success(`${school.name} now shares ${conflict.ownerName}'s details`);
+      setSettled(`Shares a national record with ${conflict.ownerName}`);
+      setConflict(null);
+      await onResolved(
+        `${school.name} shares ${conflict.ownerName}'s national record: ${outcome?.fieldsApplied ?? 0} field(s) filled`,
+      );
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't copy those details across"));
     } finally {
       setBusy(false);
     }
@@ -173,6 +247,50 @@ export function MatchResolver({
           </div>
         )}
       </div>
+
+      {conflict ? (
+        <div className="mt-3 rounded-md border border-seam-red/30 bg-seam-red/5 p-3">
+          <p className="text-sm font-semibold text-graphite">
+            {conflict.ownerName} already uses the “{conflict.recordName}” national record.
+          </p>
+          <p className="meta mt-1">
+            Either this school is in our list twice, or it's a separate campus of the same institution — the
+            national list keeps one record per institution.
+          </p>
+          {conflict.moves ? (
+            <p className="meta mt-1">
+              Combining would move {conflict.moves.programs} team(s), {conflict.moves.rosterPlayers} roster
+              player(s), {conflict.moves.shortlists} shortlist entry(ies) and {conflict.moves.notes} note(s).
+            </p>
+          ) : null}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void onCombine()}
+              disabled={busy}
+              className="touch-target rounded-md bg-seam-red px-3 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {busy ? "Working…" : "Same school — combine them"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void onShareRecord()}
+              disabled={busy}
+              className="touch-target rounded-md border border-border px-3 text-xs font-semibold text-steel disabled:opacity-60"
+            >
+              Different campus — copy the details
+            </button>
+            <button
+              type="button"
+              onClick={() => setConflict(null)}
+              disabled={busy}
+              className="touch-target rounded-md px-3 text-xs font-semibold text-steel disabled:opacity-60"
+            >
+              Pick a different record
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <button

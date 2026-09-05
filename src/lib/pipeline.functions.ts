@@ -636,3 +636,46 @@ export const removeNonSchoolEntry = createServerFn({ method: "POST" })
 
     return clean({ removed: String(school.name ?? "") });
   });
+
+/** What a combine would move, so a person can see it before confirming. */
+export const previewSchoolMerge = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { duplicateId: string; keeperId: string }) => ({
+    duplicateId: String(input?.duplicateId ?? ""),
+    keeperId: String(input?.keeperId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { previewMerge } = await import("@/lib/school-merge.server");
+    return clean(await previewMerge(context.supabase, data.duplicateId, data.keeperId));
+  });
+
+/** Same school twice: fold the duplicate into the one that holds the record. */
+export const mergeDuplicateSchool = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { duplicateId: string; keeperId: string }) => ({
+    duplicateId: String(input?.duplicateId ?? ""),
+    keeperId: String(input?.keeperId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.duplicateId || !data.keeperId) throw new Error("Pick both schools first");
+    const { mergeSchools } = await import("@/lib/school-merge.server");
+    return clean(await mergeSchools(context.supabase, context.userId, data.duplicateId, data.keeperId));
+  });
+
+/** Different campus: copy the parent's facts without claiming its record. */
+export const linkSharedRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { universityId: string; unitid: number }) => ({
+    universityId: String(input?.universityId ?? ""),
+    unitid: Number(input?.unitid ?? 0),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.universityId || !data.unitid) throw new Error("Pick a national record first");
+    const { linkSharedFederalRecord } = await import("@/lib/school-merge.server");
+    return clean(
+      await linkSharedFederalRecord(context.supabase, context.userId, data.universityId, data.unitid),
+    );
+  });
