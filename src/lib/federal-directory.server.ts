@@ -212,3 +212,82 @@ export async function sweepUnresolvedSchools(
     results,
   };
 }
+
+export type FederalSuggestion = {
+  unitid: number;
+  name: string;
+  city: string | null;
+  state: string | null;
+  mainCampus: boolean | null;
+  enrollment: number | null;
+  score: number;
+  confident: boolean;
+};
+
+export type SchoolDecision = {
+  universityId: string;
+  schoolName: string;
+  city: string | null;
+  state: string | null;
+  status: string;
+  hasFacts: boolean;
+  websiteUrl: string | null;
+  suggestions: FederalSuggestion[];
+};
+
+/**
+ * Prepare a shortlist of likely federal records for every school still
+ * waiting on a decision. One directory download covers all of them, so the
+ * decision screen never has to wait on a lookup per row.
+ */
+export async function suggestFederalMatches(
+  supabase: any,
+  options: { limit: number },
+): Promise<SchoolDecision[]> {
+  const { data, error } = await supabase
+    .from("universities")
+    .select(
+      "id, name, state, city, federal_match_status, website_url, est_cost_of_attendance, tuition_in_state, undergrad_enrollment, avg_gpa",
+    )
+    .in("federal_match_status", ["unmatched", "ambiguous"])
+    .is("ipeds_unitid", null)
+    .order("name")
+    .limit(Math.max(1, Math.min(options.limit, 400)));
+  if (error) throw new Error(error.message);
+
+  const schools = (data ?? []) as any[];
+  if (!schools.length) return [];
+
+  const directory = await loadDirectory();
+
+  return schools.map((school) => {
+    const scored = scoreCandidates(school.name, school.state ?? null, directory, school.city ?? null)
+      .filter((candidate) => candidate.score >= CONSIDER_SCORE)
+      .slice(0, 3);
+    const verdict = verdictFor(scored);
+    return {
+      universityId: school.id,
+      schoolName: school.name,
+      city: school.city ?? null,
+      state: school.state ?? null,
+      status: String(school.federal_match_status ?? ""),
+      hasFacts: Boolean(
+        school.est_cost_of_attendance ||
+          school.tuition_in_state ||
+          school.undergrad_enrollment ||
+          school.avg_gpa,
+      ),
+      websiteUrl: school.website_url ?? null,
+      suggestions: scored.map((candidate, index) => ({
+        unitid: candidate.unitid,
+        name: candidate.name,
+        city: candidate.city,
+        state: candidate.state,
+        mainCampus: candidate.mainCampus ?? null,
+        enrollment: candidate.enrollment ?? null,
+        score: candidate.score,
+        confident: index === 0 && verdict === "confirmed",
+      })),
+    };
+  });
+}
