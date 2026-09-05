@@ -604,13 +604,17 @@ export const removeNonSchoolEntry = createServerFn({ method: "POST" })
 
     // Order matters: dependent rows first, then the programs, then the school.
     // Deletions are captured in the audit log by the database triggers.
-    for (const table of ["ingest_queue", "url_discovery_queue"]) {
-      const { error: queueError } = await context.supabase
-        .from(table)
-        .delete()
-        .eq("university_id", data.universityId);
-      if (queueError) throw new Error(queueError.message);
-    }
+    const { error: ingestError } = await context.supabase
+      .from("ingest_queue")
+      .delete()
+      .eq("university_id", data.universityId);
+    if (ingestError) throw new Error(ingestError.message);
+
+    const { error: discoveryError } = await context.supabase
+      .from("url_discovery_queue")
+      .delete()
+      .eq("university_id", data.universityId);
+    if (discoveryError) throw new Error(discoveryError.message);
     const { error: pendingError } = await context.supabase
       .from("pending_data_changes")
       .delete()
