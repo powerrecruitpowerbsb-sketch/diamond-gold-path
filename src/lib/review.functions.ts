@@ -226,24 +226,132 @@ export const approveMatchingChanges = createServerFn({ method: "POST" })
   });
 
 
+/**
+ * Approve an item after a human edited the value (e.g. the scraper read the
+ * wrong roster season). The system's original proposal is kept for the record.
+ */
+export const approveCorrectedChange = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; value: unknown; note?: string | null }) => ({
+    id: String(input.id),
+    value: input.value,
+    note: input.note ? String(input.note).slice(0, 500) : null,
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+
+    const { data: row, error } = await context.supabase
+      .from("pending_data_changes")
+      .select(`${PENDING_COLUMNS}, original_value, review_note`)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("That item is no longer in the queue");
+    const current = row as any;
+    if (current.status !== "pending") throw new Error("Already reviewed");
+
+    const original = current.original_value ?? current.proposed_value;
+    let corrected: any = data.value;
+    if (current.field_name) {
+      const previous =
+        current.proposed_value && typeof current.proposed_value === "object"
+          ? current.proposed_value[current.field_name]
+          : current.proposed_value;
+      corrected = coerceLike(previous, data.value);
+      if (current.proposed_value && typeof current.proposed_value === "object") {
+        corrected = { ...current.proposed_value, [current.field_name]: corrected };
+      }
+    } else if (current.table_name === "roster_players") {
+      corrected = { ...(current.proposed_value ?? {}), ...(data.value as any) };
+    }
+
+    const { error: saveError } = await context.supabase
+      .from("pending_data_changes")
+      .update({
+        proposed_value: corrected,
+        original_value: original,
+        review_note: data.note,
+        decided_via: "human_corrected",
+      })
+      .eq("id", data.id)
+      .eq("status", "pending");
+    if (saveError) throw new Error(saveError.message);
+
+    const { approvePending } = await import("@/lib/review.server");
+    await approvePending(context.supabase, context.userId, {
+      ...current,
+      proposed_value: corrected,
+    } as any);
+    return { applied: 1 };
+  });
+
+/** Keep a corrected value in the shape the column expects. */
+function coerceLike(previous: unknown, next: unknown) {
+  if (typeof next !== "string") return next;
+  const text = next.trim();
+  if (text === "") return null;
+  if (typeof previous === "number") {
+    const numeric = Number(text);
+    return Number.isFinite(numeric) ? numeric : text;
+  }
+  if (typeof previous === "boolean") return /^(true|yes|1)$/i.test(text);
+  return text;
+}
+
 export const rejectPendingChanges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { ids: string[] }) => ({ ids: (input.ids ?? []).map(String) }))
+  .inputValidator((input: { ids: string[]; reason?: string | null; rescrape?: boolean }) => ({
+    ids: (input.ids ?? []).map(String),
+    reason: input.reason ? String(input.reason).slice(0, 500) : null,
+    rescrape: Boolean(input.rescrape),
+  }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
     if (!data.ids.length) throw new Error("Nothing selected");
+
+    const { data: rows } = await context.supabase
+      .from("pending_data_changes")
+      .select("id, table_name, record_id, proposed_value")
+      .in("id", data.ids);
+
     const { error } = await context.supabase
       .from("pending_data_changes")
       .update({
         status: "rejected",
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
+        review_note: data.reason,
+        decided_via: "human",
       })
       .in("id", data.ids)
       .eq("status", "pending");
     if (error) throw new Error(error.message);
-    return { rejected: data.ids.length };
+
+    let requeued = 0;
+    if (data.rescrape) {
+      const programIds = new Set<string>();
+      for (const row of (rows ?? []) as any[]) {
+        const candidate =
+          row.table_name === "programs"
+            ? row.record_id
+            : row.table_name === "roster_players"
+              ? (row.proposed_value?.program_id ?? row.record_id)
+              : null;
+        if (candidate) programIds.add(String(candidate));
+      }
+      for (const programId of programIds) {
+        const { error: queueError } = await context.supabase
+          .from("ingest_queue")
+          .update({ status: "pending", attempts: 0, last_error: null, leased_at: null })
+          .eq("program_id", programId)
+          .eq("stage", "program_scrape");
+        if (!queueError) requeued += 1;
+      }
+    }
+
+    return { rejected: data.ids.length, requeued };
   });
+
 
 export const listRosterSnapshots = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

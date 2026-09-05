@@ -763,8 +763,10 @@ export type Database = {
           decided_via: string
           field_name: string | null
           id: string
+          original_value: Json | null
           proposed_value: Json
           record_id: string | null
+          review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           source_type: Database["public"]["Enums"]["source_type"]
@@ -779,8 +781,10 @@ export type Database = {
           decided_via?: string
           field_name?: string | null
           id?: string
+          original_value?: Json | null
           proposed_value: Json
           record_id?: string | null
+          review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_type?: Database["public"]["Enums"]["source_type"]
@@ -795,8 +799,10 @@ export type Database = {
           decided_via?: string
           field_name?: string | null
           id?: string
+          original_value?: Json | null
           proposed_value?: Json
           record_id?: string | null
+          review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_type?: Database["public"]["Enums"]["source_type"]

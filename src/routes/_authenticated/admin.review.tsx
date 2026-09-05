@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  approveCorrectedChange,
   approveMatchingChanges,
   approvePendingChanges,
   countPendingChanges,
@@ -24,6 +25,7 @@ import {
   rejectPendingChanges,
   sweepReviewQueue,
 } from "@/lib/review.functions";
+
 
 import { dataFieldLabel, dataValueLabel, recordKindLabel, sourceTypeLabel } from "@/lib/data-labels";
 import { cn } from "@/lib/utils";
@@ -132,6 +134,7 @@ function ReviewQueue() {
   const rejectFn = useServerFn(rejectPendingChanges);
   const sweepFn = useServerFn(sweepReviewQueue);
   const approveMatchingFn = useServerFn(approveMatchingChanges);
+  const correctFn = useServerFn(approveCorrectedChange);
 
   const [search, setSearch] = useState("");
   const [confidence, setConfidence] = useState("all");
@@ -141,6 +144,21 @@ function ReviewQueue() {
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
   const [sweepPreview, setSweepPreview] = useState<SweepResult | null>(null);
+  const [correcting, setCorrecting] = useState<{
+    id: string;
+    value: string;
+    season: string;
+    players: Record<string, unknown>[];
+    note: string;
+  } | null>(null);
+  const [rejecting, setRejecting] = useState<{
+    ids: string[];
+    label: string;
+    reason: string;
+    rescrape: boolean;
+  } | null>(null);
+
+
 
 
   const { program: programFilter } = Route.useSearch();
@@ -191,15 +209,31 @@ function ReviewQueue() {
   });
 
   const reject = useMutation({
-    mutationFn: (ids: string[]) => rejectFn({ data: { ids } }),
-    onSuccess: async (result: { rejected: number }) => {
+    mutationFn: (input: { ids: string[]; reason?: string | null; rescrape?: boolean }) =>
+      rejectFn({ data: input }),
+    onSuccess: async (result: { rejected: number; requeued: number }) => {
       toast.success(
-        `Rejected ${result.rejected} item${result.rejected === 1 ? "" : "s"} — live data untouched`,
+        `Declined ${result.rejected} item${result.rejected === 1 ? "" : "s"} — live data untouched${
+          result.requeued ? ` · ${result.requeued} program queued for a fresh pull` : ""
+        }`,
       );
+      setRejecting(null);
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const correct = useMutation({
+    mutationFn: (input: { id: string; value: unknown; note: string | null }) =>
+      correctFn({ data: input }),
+    onSuccess: async () => {
+      toast.success("Saved your corrected value to live data");
+      setCorrecting(null);
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   const sweep = useMutation({
     mutationFn: (apply: boolean) => sweepFn({ data: { apply } }) as Promise<SweepResult>,
@@ -241,7 +275,13 @@ function ReviewQueue() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const busy = approve.isPending || reject.isPending || sweep.isPending || approveMatching.isPending;
+  const busy =
+    approve.isPending ||
+    reject.isPending ||
+    sweep.isPending ||
+    approveMatching.isPending ||
+    correct.isPending;
+
   const toggle = (set: Set<string>, id: string) => {
     const next = new Set(set);
     if (next.has(id)) next.delete(id);
@@ -360,13 +400,72 @@ function ReviewQueue() {
             variant="outline"
             className="touch-target"
             disabled={busy || selected.size === 0}
-            onClick={() => reject.mutate([...selected])}
+            onClick={() =>
+              setRejecting({
+                ids: [...selected],
+                label: `${selected.size} selected item${selected.size === 1 ? "" : "s"}`,
+                reason: "",
+                rescrape: false,
+              })
+            }
           >
             <X className="size-4" aria-hidden />
-            Reject selected
+            Decline selected
           </Button>
         </div>
       </div>
+
+      {rejecting ? (
+        <div className="space-y-3 rounded-xl border border-seam-red/40 bg-seam-red-tint p-4">
+          <p className="text-sm font-semibold text-graphite">Declining {rejecting.label}</p>
+          <label className="block">
+            <span className="meta mb-1.5 block">WHAT WAS WRONG? (OPTIONAL)</span>
+            <input
+              value={rejecting.reason}
+              onChange={(event) =>
+                setRejecting((prev) => (prev ? { ...prev, reason: event.target.value } : prev))
+              }
+              placeholder="e.g. pulled the 2002 roster page, not the current one"
+              className="h-11 w-full max-w-xl rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-graphite">
+            <Checkbox
+              checked={rejecting.rescrape}
+              onCheckedChange={(value) =>
+                setRejecting((prev) => (prev ? { ...prev, rescrape: Boolean(value) } : prev))
+              }
+            />
+            Send this school back for a fresh pull
+          </label>
+          <div className="flex gap-2">
+            <Button
+              className="touch-target"
+              variant="destructive"
+              disabled={busy}
+              onClick={() =>
+                reject.mutate({
+                  ids: rejecting.ids,
+                  reason: rejecting.reason || null,
+                  rescrape: rejecting.rescrape,
+                })
+              }
+            >
+              Decline
+            </Button>
+            <Button
+              variant="outline"
+              className="touch-target"
+              disabled={busy}
+              onClick={() => setRejecting(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+
 
       {sweepPreview ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-org-accent/40 bg-org-accent/10 p-4">
@@ -484,10 +583,18 @@ function ReviewQueue() {
                       variant="outline"
                       className="touch-target"
                       disabled={busy}
-                      onClick={() => reject.mutate(ids)}
+                      onClick={() =>
+                        setRejecting({
+                          ids,
+                          label: `all ${ids.length} item${ids.length === 1 ? "" : "s"} for ${group.schoolName}`,
+                          reason: "",
+                          rescrape: false,
+                        })
+                      }
                     >
-                      Reject all
+                      Decline all
                     </Button>
+
                   </div>
                 </div>
 
@@ -677,9 +784,126 @@ function ReviewQueue() {
                               )}
                               <span>· FOUND {new Date(item.created_at).toLocaleDateString()}</span>
                             </p>
+
+                            {correcting?.id === item.id ? (
+                              <div className="mt-3 space-y-3 rounded-lg border border-org-accent/50 bg-org-accent/10 p-3">
+                                {item.table_name === "roster_players" && !item.field_name ? (
+                                  <>
+                                    <label className="block">
+                                      <span className="meta mb-1.5 block">SEASON YEAR</span>
+                                      <input
+                                        value={correcting.season}
+                                        onChange={(event) =>
+                                          setCorrecting((prev) =>
+                                            prev ? { ...prev, season: event.target.value } : prev,
+                                          )
+                                        }
+                                        inputMode="numeric"
+                                        className="h-11 w-32 rounded-lg border border-input bg-card px-3 text-sm tabular-nums outline-none focus:border-org-primary"
+                                      />
+                                    </label>
+                                    <p className="text-sm text-steel">
+                                      Keeping{" "}
+                                      <span className="font-semibold tabular-nums text-graphite">
+                                        {correcting.players.length}
+                                      </span>{" "}
+                                      players. Remove anyone who does not belong.
+                                    </p>
+                                    <ul className="max-h-56 space-y-1 overflow-y-auto">
+                                      {correcting.players.map((player, index) => (
+                                        <li
+                                          key={index}
+                                          className="flex items-center justify-between gap-2 text-sm text-graphite"
+                                        >
+                                          <span className="truncate">
+                                            {dataValueLabel(player["name"])} ·{" "}
+                                            {dataValueLabel(player["position"])} ·{" "}
+                                            {dataValueLabel(player["class_year"])}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            className="meta hover:text-seam-red"
+                                            onClick={() =>
+                                              setCorrecting((prev) =>
+                                                prev
+                                                  ? {
+                                                      ...prev,
+                                                      players: prev.players.filter(
+                                                        (_, spot) => spot !== index,
+                                                      ),
+                                                    }
+                                                  : prev,
+                                              )
+                                            }
+                                          >
+                                            REMOVE
+                                          </button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </>
+                                ) : (
+                                  <label className="block">
+                                    <span className="meta mb-1.5 block">CORRECTED VALUE</span>
+                                    <input
+                                      value={correcting.value}
+                                      onChange={(event) =>
+                                        setCorrecting((prev) =>
+                                          prev ? { ...prev, value: event.target.value } : prev,
+                                        )
+                                      }
+                                      className="h-11 w-full max-w-xl rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
+                                    />
+                                  </label>
+                                )}
+                                <label className="block">
+                                  <span className="meta mb-1.5 block">NOTE (OPTIONAL)</span>
+                                  <input
+                                    value={correcting.note}
+                                    onChange={(event) =>
+                                      setCorrecting((prev) =>
+                                        prev ? { ...prev, note: event.target.value } : prev,
+                                      )
+                                    }
+                                    placeholder="Why you changed it"
+                                    className="h-11 w-full max-w-xl rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
+                                  />
+                                </label>
+                                <div className="flex gap-2">
+                                  <Button
+                                    className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      correct.mutate({
+                                        id: item.id,
+                                        value:
+                                          item.table_name === "roster_players" && !item.field_name
+                                            ? {
+                                                season_year:
+                                                  Number(correcting.season) || undefined,
+                                                players: correcting.players,
+                                              }
+                                            : correcting.value,
+                                        note: correcting.note || null,
+                                      })
+                                    }
+                                  >
+                                    Save and approve
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    className="touch-target"
+                                    disabled={busy}
+                                    onClick={() => setCorrecting(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
 
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2">
                             <Button
                               className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
                               disabled={busy}
@@ -687,15 +911,45 @@ function ReviewQueue() {
                             >
                               Approve
                             </Button>
+                            {item.field_name ||
+                            (item.table_name === "roster_players" && !item.field_name) ? (
+                              <Button
+                                variant="outline"
+                                className="touch-target"
+                                disabled={busy}
+                                onClick={() =>
+                                  setCorrecting({
+                                    id: item.id,
+                                    value:
+                                      proposedScalar(item) == null
+                                        ? ""
+                                        : String(proposedScalar(item)),
+                                    season: String(item.proposed_value?.["season_year"] ?? ""),
+                                    players: rosterPlayers(item.proposed_value),
+                                    note: "",
+                                  })
+                                }
+                              >
+                                Fix and approve
+                              </Button>
+                            ) : null}
                             <Button
                               variant="outline"
                               className="touch-target"
                               disabled={busy}
-                              onClick={() => reject.mutate([item.id])}
+                              onClick={() =>
+                                setRejecting({
+                                  ids: [item.id],
+                                  label: "this item",
+                                  reason: "",
+                                  rescrape: false,
+                                })
+                              }
                             >
-                              Reject
+                              Decline
                             </Button>
                           </div>
+
                         </li>
                       );
                     })}
