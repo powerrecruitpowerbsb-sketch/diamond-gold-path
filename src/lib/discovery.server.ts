@@ -263,18 +263,53 @@ function readMapLinks(payload: any): string[] {
     .filter((url: string) => /^https?:\/\//i.test(url));
 }
 
+function pathOf(url: string): string {
+  try {
+    return new URL(url).pathname.replace(/\/+$/, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Sidearm sites carry a page per player and an archive page per season, and both
+ * contain the word "roster". Only the index page is useful, so a path that ends
+ * in something else — a name, a jersey number, a year — is never treated as the
+ * roster page.
+ */
+function isIndexPage(url: string, kind: "roster" | "coach"): boolean {
+  const path = pathOf(url);
+  return kind === "roster"
+    ? /\/roster$/.test(path)
+    : /\/(coaches|staff|coaching-staff|staff-directory)$/.test(path);
+}
+
 function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
   const sportRe = sportPattern(sport);
   const kindRe = kind === "roster" ? ROSTER_PATTERN : COACH_PATTERN;
-  const matches = links.filter((url) => sportRe.test(url) && kindRe.test(url));
-  if (matches.length) {
-    // Shortest path wins: "/sports/baseball/roster" over a year-archive variant.
-    matches.sort((a, b) => a.length - b.length);
-    return { url: matches[0]!, confidence: "high" as Confidence, note: "Sport-specific page found in the site map." };
+
+  const sportMatches = links.filter((url) => sportRe.test(url) && kindRe.test(url));
+  const indexPages = sportMatches.filter((url) => isIndexPage(url, kind));
+  if (indexPages.length) {
+    indexPages.sort((a, b) => pathOf(a).length - pathOf(b).length);
+    return {
+      url: indexPages[0]!,
+      confidence: "high" as Confidence,
+      note: "Sport-specific page found in the site map.",
+    };
+  }
+  if (sportMatches.length) {
+    // Right sport, but only a player page or a season archive was found.
+    sportMatches.sort((a, b) => pathOf(a).length - pathOf(b).length);
+    return {
+      url: sportMatches[0]!,
+      confidence: "low" as Confidence,
+      note: "Only a player or season-archive page was found, not the main page — worth checking.",
+    };
   }
   const loose = links.filter((url) => kindRe.test(url) && /sports|athletic/i.test(url));
   if (loose.length) {
-    loose.sort((a, b) => a.length - b.length);
+    loose.sort((a, b) => pathOf(a).length - pathOf(b).length);
     return {
       url: loose[0]!,
       confidence: "low" as Confidence,
@@ -283,6 +318,7 @@ function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
   }
   return null;
 }
+
 
 /** Map the athletics site and pick roster + coaching pages per sport program. */
 export async function discoverProgramPages(
