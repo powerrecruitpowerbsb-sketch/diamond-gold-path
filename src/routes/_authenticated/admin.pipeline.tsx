@@ -417,12 +417,33 @@ function Pipeline() {
               type="button"
               onClick={() => onFederalBatch(50)}
               disabled={busy !== null}
-              className="touch-target inline-flex items-center gap-2 rounded-lg bg-diamond-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+              className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
             >
               {busy === "federal" ? "Working…" : "Run 50"}
             </button>
+            {busy === "federal-all" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  stopRef.current = true;
+                }}
+                className="touch-target inline-flex items-center gap-2 rounded-lg border border-seam-red px-4 text-sm font-semibold text-seam-red"
+              >
+                Stop after this batch
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void onFederalUntilDone()}
+                disabled={busy !== null}
+                className="touch-target inline-flex items-center gap-2 rounded-lg bg-diamond-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                Keep going until done
+              </button>
+            )}
           </div>
         }
+
 
       >
         {status?.usingDemoKey ? (
