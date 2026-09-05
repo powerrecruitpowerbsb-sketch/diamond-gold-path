@@ -79,6 +79,22 @@ function firstLinkLabel(value: string): string | null {
   return plain(match[2] || match[1]!);
 }
 
+/**
+ * Wikipedia pages end with links to other index pages ("List of NAIA
+ * institutions", "Category:..."). Those aren't schools, so they must never be
+ * imported as one.
+ */
+export function looksLikeIndexPage(name: string): boolean {
+  return /^\s*(list of|index of|outline of|comparison of|timeline of|category:|template:|portal:|wikipedia:|help:|glossary of)\b/i.test(
+    name,
+  );
+}
+
+/** Trailing sections that follow a member list and contain unrelated links. */
+const TRAILING_SECTIONS =
+  /^(see also|references|notes|further reading|external links|sources|bibliography|footnotes)$/i;
+
+
 async function fetchWikitext(page: string, section?: number): Promise<string> {
   const params = new URLSearchParams({
     action: "parse",
