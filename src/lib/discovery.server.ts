@@ -159,6 +159,36 @@ export function isNonOfficial(url: string): boolean {
   return NON_OFFICIAL.some((bad) => host === bad || host.endsWith(`.${bad}`));
 }
 
+/** Comparable form of a URL, so a rejected link is recognised however it was written. */
+export function normalizeUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(String(url));
+    return `${parsed.hostname.replace(/^www\./i, "").toLowerCase()}${parsed.pathname.replace(/\/+$/, "").toLowerCase()}`;
+  } catch {
+    return String(url).trim().toLowerCase().replace(/\/+$/, "");
+  }
+}
+
+/** Links a person already declined for this school, so they never come back. */
+export async function loadRejectedUrls(
+  supabase: any,
+  universityId: string,
+): Promise<Set<string>> {
+  const { data } = await supabase
+    .from("url_discovery_queue")
+    .select("discovered_url")
+    .eq("university_id", universityId)
+    .eq("status", "rejected");
+  const blocked = new Set<string>();
+  for (const row of (data ?? []) as { discovered_url: string | null }[]) {
+    const key = normalizeUrl(row.discovered_url);
+    if (key) blocked.add(key);
+  }
+  return blocked;
+}
+
+
 type Candidate = { url: string; title: string };
 
 function readSearchResults(payload: any): Candidate[] {
