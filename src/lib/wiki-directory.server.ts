@@ -173,7 +173,13 @@ async function njcaaMembers(division: string): Promise<MemberRow[]> {
   const rows: MemberRow[] = [];
   let state: string | null = null;
 
-  for (const line of text.split("\n")) {
+  for (const raw of text.split("\n")) {
+    const line = raw.replace(/<[^>]+>/g, "").trim();
+    // Stop before "See also"/"References": those sections list other index
+    // pages, which would otherwise be read as schools in the last-seen state.
+    const top = /^==\s*([^=]+?)\s*==$/.exec(line);
+    if (top && TRAILING_SECTIONS.test(plain(top[1]!))) break;
+
     const heading = /^===\s*([^=]+?)\s*===$/.exec(line);
     if (heading) {
       state = stateCode(heading[1]!);
@@ -181,11 +187,12 @@ async function njcaaMembers(division: string): Promise<MemberRow[]> {
     }
     if (!/^\*\s*\[\[/.test(line)) continue;
     const name = firstLinkLabel(line);
-    if (!name) continue;
+    if (!name || looksLikeIndexPage(name)) continue;
     rows.push({ name, state, conference: null, division });
   }
   return rows;
 }
+
 
 /** CCCAA: conference headings over bullet lists; every member is in California. */
 async function cccaaMembers(): Promise<MemberRow[]> {
