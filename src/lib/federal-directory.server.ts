@@ -102,11 +102,12 @@ export async function refreshDirectoryTable(): Promise<{ stored: number }> {
     const chunk = entries.slice(index, index + 500).map((entry) => ({
       unitid: entry.unitid,
       name: entry.name,
-      alias: entry.alias,
-      city: entry.city,
-      state: entry.state,
-      main_campus: entry.mainCampus,
-      enrollment: entry.enrollment,
+      alias: entry.alias ?? null,
+      city: entry.city ?? null,
+      state: entry.state ?? null,
+      main_campus: entry.mainCampus ?? null,
+      enrollment: entry.enrollment ?? null,
+
       updated_at: now,
     }));
     const { error } = await supabaseAdmin.from("federal_directory").upsert(chunk, { onConflict: "unitid" });
