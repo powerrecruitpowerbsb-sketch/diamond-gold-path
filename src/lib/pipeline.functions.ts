@@ -290,6 +290,26 @@ export const listFederalCandidates = createServerFn({ method: "POST" })
  * matcher can have another go at them. Only schools that actually failed are
  * reset — confirmed ones are left alone.
  */
+/**
+ * Match the leftover schools against the entire federal directory at once.
+ * Preview mode reports what it would do without writing anything.
+ */
+export const runDirectorySweep = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { apply?: boolean; limit?: number }) => ({
+    apply: Boolean(input?.apply),
+    limit: Number(input?.limit) || 200,
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { sweepUnresolvedSchools } = await import("@/lib/federal-directory.server");
+    const outcome = await sweepUnresolvedSchools(context.supabase, context.userId, {
+      apply: data.apply,
+      limit: data.limit,
+    });
+    return clean(outcome);
+  });
+
 export const retryFederalUnresolved = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

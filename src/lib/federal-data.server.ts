@@ -39,6 +39,7 @@ const FIELDS = [
   "school.city",
   "school.state",
   "school.zip",
+  "school.main_campus",
   "school.ownership",
   "school.religious_affiliation",
   "school.locale",
@@ -286,12 +287,15 @@ export async function searchScorecard(name: string, state: string | null): Promi
 }
 
 function candidateOf(row: ScorecardRow) {
+  const mainCampus = row["school.main_campus"];
   return {
     unitid: Number(row["id"]),
     name: text(row["school.name"]) ?? "",
     alias: text(row["school.alias"]),
     city: text(row["school.city"]),
     state: text(row["school.state"]),
+    mainCampus: mainCampus === null || mainCampus === undefined ? null : Number(mainCampus) === 1,
+    enrollment: Number(row["latest.student.size"]) || null,
   };
 }
 
@@ -304,6 +308,7 @@ export function matchScorecard(
   schoolName: string,
   state: string | null,
   rows: ScorecardRow[],
+  city?: string | null,
 ): MatchResult {
   const byId = new Map<number, ScorecardRow>();
   for (const row of rows) byId.set(Number(row["id"]), row);
@@ -312,6 +317,7 @@ export function matchScorecard(
     schoolName,
     state,
     [...byId.values()].map(candidateOf),
+    city ?? null,
   ).filter((candidate) => candidate.score >= CONSIDER_SCORE);
 
   const status = verdictFor(scored);
@@ -337,6 +343,7 @@ export function matchScorecard(
 export async function findFederalRecord(
   schoolName: string,
   state: string | null,
+  city?: string | null,
 ): Promise<MatchResult> {
   const { stateHint } = splitStateHint(schoolName);
   const searchState = state || stateHint;
@@ -348,7 +355,7 @@ export async function findFederalRecord(
     for (const row of await searchScorecard(variant, searchState)) {
       pool.set(Number(row["id"]), row);
     }
-    const attempt = matchScorecard(schoolName, searchState, [...pool.values()]);
+    const attempt = matchScorecard(schoolName, searchState, [...pool.values()], city ?? null);
     if (attempt.status === "confirmed") return attempt;
     if (attempt.candidates.length) best = attempt;
   }
@@ -357,7 +364,7 @@ export async function findFederalRecord(
   // is the one that's wrong. Still never auto-confirms across a state line.
   if (!pool.size && searchState) {
     const rows = await searchScorecard(variants[0] ?? schoolName, null);
-    const attempt = matchScorecard(schoolName, null, rows);
+    const attempt = matchScorecard(schoolName, null, rows, city ?? null);
     if (attempt.candidates.length) {
       return { status: attempt.status === "confirmed" ? "ambiguous" : attempt.status, row: null, candidates: attempt.candidates };
     }
@@ -457,7 +464,7 @@ export async function syncUniversityFromFederal(
       ? { status: "confirmed", row: rows[0]!, candidates: [] }
       : { status: "unmatched", row: null, candidates: [] };
   } else {
-    match = await findFederalRecord(schoolName, state);
+    match = await findFederalRecord(schoolName, state, record["city"] ? String(record["city"]) : null);
   }
 
   if (match.status !== "confirmed" || !match.row) {

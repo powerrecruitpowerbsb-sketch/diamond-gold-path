@@ -17,6 +17,7 @@ import {
   rebuildQueue,
   resolveFederalMatch,
   retryFederalUnresolved,
+  runDirectorySweep,
   runFederalBatch,
   unparkAllFederalSchools,
   unparkFederalSchool,
@@ -89,6 +90,7 @@ function Pipeline() {
   const rebuildFn = useServerFn(rebuildQueue);
   const blockedFn = useServerFn(listFederalBlocked);
   const retryFn = useServerFn(retryFederalUnresolved);
+  const sweepFn = useServerFn(runDirectorySweep);
   const parkedFn = useServerFn(listFederalParked);
   const unparkFn = useServerFn(unparkFederalSchool);
   const unparkAllFn = useServerFn(unparkAllFederalSchools);
@@ -276,6 +278,41 @@ function Pipeline() {
     }
   }
 
+
+
+  /**
+   * Check the leftover schools against the whole federal list in one pass.
+   * Preview writes nothing, so the first few matches can be eyed first.
+   */
+  async function onDirectorySweep(apply: boolean) {
+    setBusy(apply ? "sweep-apply" : "sweep-preview");
+    try {
+      const result = (await sweepFn({ data: { apply, limit: 200 } })) as {
+        examined: number;
+        matched: number;
+        applied: number;
+        results: { schoolName: string; matchedName: string | null; status: string }[];
+      };
+      const samples = result.results
+        .filter((row) => row.status === "confirmed")
+        .slice(0, 5)
+        .map((row) => `${row.schoolName} → ${row.matchedName}`);
+      note(
+        `Full-list check: ${result.examined} looked at · ${result.matched} found${apply ? ` · ${result.applied} filled in` : " (preview only)"}`,
+      );
+      for (const sample of samples) note(`  ${sample}`);
+      toast.success(
+        apply
+          ? `${result.applied} school(s) filled in from the national list`
+          : `${result.matched} of ${result.examined} school(s) can be matched`,
+      );
+      await refresh();
+    } catch (failure) {
+      toast.error(friendly(failure, "Could not check against the national list"));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function onRetryUnresolved() {
     setBusy("retry-federal");
@@ -485,6 +522,22 @@ function Pipeline() {
         blurb="Tuition, enrollment, acceptance rate, SAT/ACT, graduation rate and campus setting come from the U.S. Department of Education, not from a model. Empty fields fill immediately; anything that would overwrite an existing value goes to the review queue."
         aside={
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void onDirectorySweep(false)}
+              disabled={busy !== null}
+              className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
+            >
+              {busy === "sweep-preview" ? "Checking…" : "Check the whole national list"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void onDirectorySweep(true)}
+              disabled={busy !== null}
+              className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
+            >
+              {busy === "sweep-apply" ? "Filling in…" : "Fill in what it finds"}
+            </button>
             <button
               type="button"
               onClick={() => void onRetryUnresolved()}
