@@ -395,7 +395,16 @@ function Pipeline() {
         title="Step 2 — Federal school facts"
         blurb="Tuition, enrollment, acceptance rate, SAT/ACT, graduation rate and campus setting come from the U.S. Department of Education, not from a model. Empty fields fill immediately; anything that would overwrite an existing value goes to the review queue."
         aside={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void onRetryUnresolved()}
+              disabled={busy !== null}
+              className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
+            >
+              <RefreshCw className="size-4" aria-hidden />
+              {busy === "retry-federal" ? "Queueing…" : "Try the unresolved again"}
+            </button>
             <button
               type="button"
               onClick={() => onFederalBatch(10)}
@@ -414,6 +423,7 @@ function Pipeline() {
             </button>
           </div>
         }
+
       >
         {status?.usingDemoKey ? (
           <p className="rounded-lg border border-warm-gold/40 bg-warm-gold/10 p-3 text-sm text-graphite">
