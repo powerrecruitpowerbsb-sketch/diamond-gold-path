@@ -5,6 +5,8 @@
  * live records are never written here.
  */
 
+import { mentionsOtherState } from "@/lib/data-quality";
+
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
 export type DiscoveryType = "athletic_website" | "roster_page" | "coaching_staff_page";
@@ -196,9 +198,17 @@ export async function discoverAthleticWebsite(
     .map((row) => {
       const score = nameMatchScore(name, row.url);
       const athletics = looksLikeAthletics(row.url, row.title);
-      return { ...row, score, athletics };
+      // "Southeastern University" (FL) must not be matched to "Southeastern
+      // Oklahoma State" just because the domain shares a word.
+      const wrongState = mentionsOtherState(`${row.title} ${row.url}`, state);
+      return { ...row, score, athletics, wrongState };
     })
-    .sort((a, b) => Number(b.athletics) - Number(a.athletics) || b.score - a.score);
+    .sort(
+      (a, b) =>
+        Number(a.wrongState) - Number(b.wrongState) ||
+        Number(b.athletics) - Number(a.athletics) ||
+        b.score - a.score,
+    );
 
   const best = scored[0]!;
   const origin = (() => {
@@ -215,7 +225,9 @@ export async function discoverAthleticWebsite(
 
   const reasons: string[] = [];
   if (!best.athletics) reasons.push("domain doesn't look like an athletics site");
-  if (best.score < 0.5) reasons.push("school name only loosely matches the domain");
+  if (best.score < 0.7) reasons.push("school name only loosely matches the domain");
+  if (best.wrongState)
+    reasons.push("the page names a different state than this school — it may be another school");
   if (rivals.length) reasons.push(`${rivals.length} other similar candidate(s) came back`);
 
   return {
@@ -228,6 +240,7 @@ export async function discoverAthleticWebsite(
       ? `Needs a look: ${reasons.join("; ")}.`
       : `Athletics domain matches the school name (${Math.round(best.score * 100)}% of name words).`,
   };
+
 }
 
 const ROSTER_PATTERN = /roster/i;
@@ -250,18 +263,72 @@ function readMapLinks(payload: any): string[] {
     .filter((url: string) => /^https?:\/\//i.test(url));
 }
 
+function pathOf(url: string): string {
+  try {
+    return new URL(url).pathname.replace(/\/+$/, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Sidearm sites carry a page per player and an archive page per season, and both
+ * contain the word "roster". Only the index page is useful, so a path that ends
+ * in something else — a name, a jersey number, a year — is never treated as the
+ * roster page.
+ */
+function isIndexPage(url: string, kind: "roster" | "coach"): boolean {
+  const path = pathOf(url);
+  return kind === "roster"
+    ? /\/roster$/.test(path)
+    : /\/(coaches|staff|coaching-staff|staff-directory)$/.test(path);
+}
+
 function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
   const sportRe = sportPattern(sport);
   const kindRe = kind === "roster" ? ROSTER_PATTERN : COACH_PATTERN;
-  const matches = links.filter((url) => sportRe.test(url) && kindRe.test(url));
-  if (matches.length) {
-    // Shortest path wins: "/sports/baseball/roster" over a year-archive variant.
-    matches.sort((a, b) => a.length - b.length);
-    return { url: matches[0]!, confidence: "high" as Confidence, note: "Sport-specific page found in the site map." };
+
+  const sportMatches = links.filter((url) => sportRe.test(url) && kindRe.test(url));
+  const indexPages = sportMatches.filter((url) => isIndexPage(url, kind));
+  if (indexPages.length) {
+    indexPages.sort((a, b) => pathOf(a).length - pathOf(b).length);
+    return {
+      url: indexPages[0]!,
+      confidence: "high" as Confidence,
+      note: "Sport-specific page found in the site map.",
+    };
+  }
+  // Site maps often only return deep links ("/roster/2024", "/roster/jane-doe/12").
+  // The index page is that same path trimmed at the roster/coaches segment.
+  for (const url of sportMatches) {
+    const segment = kind === "roster" ? "roster" : "coaches";
+    const path = pathOf(url);
+    const index = path.indexOf(`/${segment}/`);
+    if (index === -1) continue;
+    try {
+      const origin = new URL(url).origin;
+      return {
+        url: `${origin}${path.slice(0, index)}/${segment}`,
+        confidence: "high" as Confidence,
+        note: "Sport-specific page found in the site map.",
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  if (sportMatches.length) {
+    // Right sport, but only a player page or a season archive was found.
+    sportMatches.sort((a, b) => pathOf(a).length - pathOf(b).length);
+    return {
+      url: sportMatches[0]!,
+      confidence: "low" as Confidence,
+      note: "Only a player or season-archive page was found, not the main page — worth checking.",
+    };
   }
   const loose = links.filter((url) => kindRe.test(url) && /sports|athletic/i.test(url));
   if (loose.length) {
-    loose.sort((a, b) => a.length - b.length);
+    loose.sort((a, b) => pathOf(a).length - pathOf(b).length);
     return {
       url: loose[0]!,
       confidence: "low" as Confidence,
@@ -270,6 +337,7 @@ function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
   }
   return null;
 }
+
 
 /** Map the athletics site and pick roster + coaching pages per sport program. */
 export async function discoverProgramPages(

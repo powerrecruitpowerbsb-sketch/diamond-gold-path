@@ -1,6 +1,12 @@
 /** Server-only logic for the superadmin data review queue. */
 
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
+import {
+  isEmptyValue,
+  normalizePosition,
+  plausibleSeasonYear,
+  valuesEquivalent,
+} from "@/lib/data-quality";
 
 export const REVIEW_TABLES = ["universities", "programs", "roster_players"] as const;
 export type ReviewTable = (typeof REVIEW_TABLES)[number];
@@ -92,22 +98,27 @@ async function applyRosterProposal(supabase: any, row: PendingRow) {
   const programId = payload?.program_id ?? row.record_id;
   if (!players || !players.length) throw new Error("Roster proposal contains no players");
   if (!programId) throw new Error("Roster proposal is missing its program");
-  const seasonYear = Number(payload?.season_year) || new Date().getFullYear();
+  // A season read off a jersey number or an archive page is not a season.
+  const seasonYear = plausibleSeasonYear(payload?.season_year) ?? new Date().getFullYear();
 
-  const rows = players.map((player: any) => ({
-    program_id: programId,
-    season_year: seasonYear,
-    name: String(player?.name ?? "").trim(),
-    position: pickEnum(player?.position, POSITIONS),
-    class_year: pickEnum(player?.class_year, CLASS_YEARS),
-    bats: pickEnum(player?.bats, ["R", "L", "S"]),
-    throws: pickEnum(player?.throws, ["R", "L"]),
-    hometown: player?.hometown ? String(player.hometown) : null,
-    home_state: player?.home_state ? String(player.home_state).toUpperCase().slice(0, 2) : null,
-    is_transfer: Boolean(player?.is_transfer),
-    is_juco_transfer: Boolean(player?.is_juco_transfer),
-    two_way: pickEnum(player?.position, POSITIONS) === "TWO_WAY",
-  })).filter((r: { name: string }) => r.name);
+  const rows = players.map((player: any) => {
+    const position = pickEnum(normalizePosition(player?.position), POSITIONS);
+    return {
+      program_id: programId,
+      season_year: seasonYear,
+      name: String(player?.name ?? "").trim(),
+      position,
+      class_year: pickEnum(player?.class_year, CLASS_YEARS),
+      bats: pickEnum(player?.bats, ["R", "L", "S"]),
+      throws: pickEnum(player?.throws, ["R", "L"]),
+      hometown: player?.hometown ? String(player.hometown) : null,
+      home_state: player?.home_state ? String(player.home_state).toUpperCase().slice(0, 2) : null,
+      is_transfer: Boolean(player?.is_transfer),
+      is_juco_transfer: Boolean(player?.is_juco_transfer),
+      two_way: position === "TWO_WAY",
+    };
+  }).filter((r: { name: string }) => r.name);
+
 
   if (!rows.length) throw new Error("Roster proposal contains no named players");
 
@@ -232,17 +243,25 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
     const lookupTable = table === "roster_players" ? "programs" : table;
     if (!FIELD_TABLES.includes(lookupTable as (typeof FIELD_TABLES)[number])) continue;
     const select = lookupTable === "programs" ? "*, universities(name, state)" : "*";
-    const { data } = await supabase.from(lookupTable).select(select).in("id", [...ids]);
-    for (const record of (data ?? []) as Record<string, any>[]) {
-      const key = `${table}:${record["id"]}`;
-      const label =
-        lookupTable === "programs"
-          ? `${record["universities"]?.name ?? "Program"} — ${String(record["sport"] ?? "")}`
-          : String(record["name"] ?? "School");
-      live.set(key, record);
-      labels.set(key, table === "roster_players" ? `${label} roster` : label);
+    const idList = [...ids];
+    // Ask for records in batches: one request for hundreds of ids silently comes
+    // back short, which would make every item look like it had no live value.
+    for (let index = 0; index < idList.length; index += 100) {
+      const batch = idList.slice(index, index + 100);
+      const { data, error } = await supabase.from(lookupTable).select(select).in("id", batch);
+      if (error) throw new Error(error.message);
+      for (const record of (data ?? []) as Record<string, any>[]) {
+        const key = `${table}:${record["id"]}`;
+        const label =
+          lookupTable === "programs"
+            ? `${record["universities"]?.name ?? "Program"} — ${String(record["sport"] ?? "")}`
+            : String(record["name"] ?? "School");
+        live.set(key, record);
+        labels.set(key, table === "roster_players" ? `${label} roster` : label);
+      }
     }
   }
+
 
   return rows.map((row) => {
     const key = row.record_id ? `${row.table_name}:${row.record_id}` : null;
@@ -383,4 +402,119 @@ export async function groupPending(supabase: any, rows: DecoratedRow[]): Promise
     group.items.sort((a, b) => (a.ai_confidence ?? -1) - (b.ai_confidence ?? -1));
   }
   return list;
+}
+
+// --- Queue hygiene -----------------------------------------------------------
+
+/**
+ * The queue fills with items that never needed a person: a URL that differs
+ * only by a trailing slash, a number inside rounding distance, a flag filling a
+ * column that was only ever at its default. This walks the open queue and
+ * resolves those, leaving only genuine decisions behind.
+ *
+ * `apply: false` reports what would happen without touching anything.
+ */
+export async function sweepPendingNoise(
+  supabase: any,
+  userId: string,
+  apply: boolean,
+): Promise<{
+  examined: number;
+  noChange: number;
+  gapFills: number;
+  remaining: number;
+  failures: number;
+  samples: { label: string; field: string; reason: string }[];
+}> {
+  const { data: rows, error } = await supabase
+    .from("pending_data_changes")
+    .select(
+      "id, table_name, record_id, field_name, proposed_value, source_url, source_type, ai_confidence, status, created_at",
+    )
+    .eq("status", "pending")
+    .in("table_name", FIELD_TABLES as unknown as string[])
+    .not("field_name", "is", null)
+    .limit(5000);
+  if (error) throw new Error(error.message);
+
+  const pending = (rows ?? []) as PendingRow[];
+  const decorated = await decoratePending(supabase, pending);
+
+  const noChangeIds: string[] = [];
+  const gapFillRows: PendingRow[] = [];
+  const samples: { label: string; field: string; reason: string }[] = [];
+  let remaining = 0;
+
+  for (const row of decorated as any[]) {
+    const field = row.field_name as string;
+    const proposed = unwrapFieldValue(field, row.proposed_value);
+    const current = row.currentValue;
+
+    if (valuesEquivalent(field, current, proposed)) {
+      noChangeIds.push(row.id);
+      if (samples.length < 10) {
+        samples.push({
+          label: row.recordLabel ?? "Record",
+          field,
+          reason: "already matches what we store",
+        });
+      }
+      continue;
+    }
+
+    const trusted =
+      // A record we couldn't load is never treated as "blank".
+      Boolean(row.recordLabel) &&
+      isEmptyValue(field, current) &&
+      row.source_type === "official" &&
+      (row.ai_confidence ?? 0) >= 0.9;
+
+    if (trusted) {
+      gapFillRows.push(row as PendingRow);
+      if (samples.length < 10) {
+        samples.push({
+          label: row.recordLabel ?? "Record",
+          field,
+          reason: "fills a blank field from an official source",
+        });
+      }
+      continue;
+    }
+    remaining += 1;
+  }
+
+  let failures = 0;
+  if (apply) {
+    for (let index = 0; index < noChangeIds.length; index += 200) {
+      const batch = noChangeIds.slice(index, index + 200);
+      const { error: rejectError } = await supabase
+        .from("pending_data_changes")
+        .update({
+          status: "rejected",
+          reviewed_by: userId,
+          reviewed_at: new Date().toISOString(),
+          decided_via: "auto",
+        })
+        .in("id", batch)
+        .eq("status", "pending");
+      if (rejectError) throw new Error(rejectError.message);
+    }
+
+    for (const row of gapFillRows) {
+      try {
+        await approvePending(supabase, userId, row);
+      } catch {
+        failures += 1;
+      }
+    }
+  }
+
+  return {
+    examined: pending.length,
+    noChange: noChangeIds.length,
+    gapFills: gapFillRows.length,
+    remaining,
+    failures,
+    samples,
+  };
 }

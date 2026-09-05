@@ -7,7 +7,9 @@
  * the same writer a manual approval uses.
  */
 
+import { isEmptyValue, valuesEquivalent } from "@/lib/data-quality";
 import { normalizeSchoolName } from "@/lib/seed-import.server";
+
 
 const SCORECARD_URL = "https://api.data.gov/ed/collegescorecard/v1/schools";
 
@@ -445,8 +447,8 @@ export async function syncUniversityFromFederal(
   for (const [field, value] of Object.entries(mapped)) {
     if (!writable.has(field)) continue;
     const current = record[field];
-    if (sameValue(current, value)) continue;
-    const gapFill = current === null || current === undefined || current === "";
+    if (sameValue(field, current, value)) continue;
+    const gapFill = isEmptyValue(field, current);
     proposals.push({
       table_name: "universities",
       record_id: universityId,
@@ -459,6 +461,7 @@ export async function syncUniversityFromFederal(
       _gapFill: gapFill,
     });
   }
+
 
   let fieldsApplied = 0;
   let fieldsQueued = 0;
@@ -542,14 +545,10 @@ async function searchScorecardById(unitid: number): Promise<ScorecardRow[]> {
 }
 
 
-function sameValue(current: unknown, next: unknown): boolean {
-  if (current === null || current === undefined) return false;
-  if (typeof next === "number") {
-    const currentNumber = Number(current);
-    return Number.isFinite(currentNumber) && Math.abs(currentNumber - next) < 0.05;
-  }
-  return String(current).trim().toLowerCase() === String(next).trim().toLowerCase();
+function sameValue(field: string, current: unknown, next: unknown): boolean {
+  return valuesEquivalent(field, current, next);
 }
+
 
 /** Pin a school to a federal record a human picked, then pull its facts. */
 export async function confirmFederalMatch(
