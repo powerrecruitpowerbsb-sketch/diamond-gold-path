@@ -1,43 +1,42 @@
-# How a school leaves the "needs a decision" pile
+# Clear the last 120 schools automatically
 
-## What happens today
+## What the remaining list actually is
 
-A school in the pile has one of two labels: no federal record found, or several possible records. Three things can move it out:
+The 120 schools still waiting are not obscure. They include University of Michigan, Penn State, Texas A&M, North Carolina State, the Naval Academy, and a long tail of community-college branch campuses like CCBC-Catonsville and Metropolitan Community College-Longview.
 
-1. **Choose record** — you pick the right federal record and its cost, academic, size and location details are pulled in. The school is marked confirmed.
-2. **Not in the federal data** — the school is parked. It stops asking for a decision and stays fully searchable, but its cost and academic details stay blank. Reversible from the parked list.
-3. **A later automatic retry finds a match** — "Try the unresolved again" re-runs matching with the improved name matching, which is how the last big batch dropped from 447 unresolved to 65.
+Every one of these *is* in the federal directory. They are stuck because the match step can't decide between a main campus and its branches, or because our name is written differently ("U.S. Naval Academy" vs "United States Naval Academy"). So the answer is not typing them in by hand — it's teaching the matcher the few signals it currently throws away. Hand entry should be the last resort for a handful of schools, not the plan for 120.
 
-What is missing: there is no way to say "this school genuinely isn't in the federal directory, so I typed its details in myself, and it's now complete." A school whose details you fill in by hand on its edit screen still reads as parked or unresolved, and its typed-in numbers carry no note about where they came from.
+## Three passes, cheapest first
 
-## What to add
+**Pass 1 — main campus wins (expected to clear most of the ambiguous 55)**
 
-**1. A "filled in by hand" state**
+When our name is a plain school name with no campus qualifier ("University of Michigan"), and several federal records tie, prefer the one flagged as the main campus. When our name *does* carry a qualifier ("Penn State Beaver", "CCBC-Catonsville"), require the qualifier to appear in the federal record's name so it can't quietly grab the flagship. Two extra tie-breakers when names are still level: much larger enrollment, and matching city.
 
-Give a parked school a third outcome: marked complete because a person entered the details. On the school's edit screen, a short banner appears for any school that is parked or unresolved:
+**Pass 2 — a name-variants dictionary (expected to clear most of the unmatched 65)**
 
-- Explains in one line that federal data has nothing for this school, so its cost and academic details have to be typed in.
-- Lists which of those details are still blank.
-- A "Mark as filled in by hand" button, enabled once the key cost and academic fields have values. It records who did it and when.
+Add the abbreviation and punctuation patterns that governing-body directories use but the federal directory does not: "U.S." / "United States", "St." / "Saint", "A&M" / "Agricultural and Mechanical", "–" vs "-", "(Ohio)" / "(Texas)" state suffixes, "Univ" / "University", "CC" / "Community College", "Tech" / "Technical". Also try the name with any trailing parenthetical or campus phrase stripped, and try the athletics-known short name.
 
-These schools then read as complete in the console counts and never come back into the decision pile or the parked list.
+**Pass 3 — one bulk sweep against the whole directory**
 
-**2. Show the parked reason where staff actually look**
+For anything still unresolved, pull the full federal institution list once (about 6,500 rows, one paged download rather than per-school lookups) and match offline against every record including alternate names. No rate limits, no cost, and it catches cases where our name is too different for a name-based query to return the right record at all.
 
-On the school page and program profile, a school with no federal record shows a quiet line — "Cost and academic details entered by hand" or "Cost and academic details not yet available" — instead of blank fields with no explanation. Families and staff stop wondering whether the data is missing or the school is free.
+After the three passes run, whatever remains gets a decision from you — realistically a handful of very small or brand-new schools. Those keep the two existing choices (pick the record yourself, or park it) plus the hand-entry finish described below.
 
-**3. A worklist for parked schools**
+## Hand entry, for the handful that truly aren't listed
 
-The parked list gets a "details still blank" count per school and a link straight to its edit screen, so working through them is a queue rather than a hunt. Sorted so the schools your athletes have shortlisted come first.
+A parked school's edit screen gets a short banner: federal data has nothing for this school, here are the cost and academic details still blank, and a "Mark as filled in by hand" button that closes it out once they're filled. Those schools then count as complete and stop reappearing.
 
-**4. Undoing stays honest**
+On the school and program pages, a school with no federal record shows a quiet line — "Cost and academic details entered by hand" or "not yet available" — so blank cost fields never read as free.
 
-"Look again" already sends a parked school back for another automatic try. A school marked as filled in by hand keeps its typed-in values if a federal match later turns up — the automatic pass only fills blanks, never overwrites a person's entry, and anything it disagrees with goes to the review queue instead.
+## Reviewing the result
+
+Each pass reports how many it resolved and shows a sample of before/after matches before anything is written, so a bad rule is caught on 10 schools rather than 900. Automatic fills only ever fill blanks; anything that contradicts an existing value goes to the review queue as it does now.
 
 ## Technical notes
 
-- `universities.federal_match_status` already permits `manual`; nothing writes it today. Use it for the filled-in-by-hand state and include it in the confirmed-style counts in `src/lib/pipeline.functions.ts` (`pipelineStatus`, `listFederalBlocked`, `listFederalParked`).
-- New server function `markFederalManual({ universityId })` in `src/lib/pipeline.functions.ts`: sets status `manual`, stamps `federal_synced_at`, closes the `federal_data` queue row, and writes `data_field_sources` rows with `source_type: 'manual'` for the fields that have values, so the citation line on the program profile keeps working.
-- Completeness check driven by `SOURCED_UNIVERSITY_FIELDS` in `src/lib/admin-schemas.ts` — a small shared helper returns the blank sourced fields for a school and is reused by the edit banner and the parked worklist.
-- Gap-fill in `src/lib/federal-data.server.ts` already treats non-null values as authoritative; add `manual` to the statuses it will not overwrite so a later match can't clobber typed-in numbers.
+- `searchScorecard` in `src/lib/federal-data.server.ts` requests `FIELDS_WITH_MAJORS`, which omits `school.main_campus`; `candidateOf` also drops `latest.student.size`. Add both to the field list and to the candidate shape, then use them in the scoring in `src/lib/federal-match.ts`.
+- Pass 1 lives in `federal-match.ts`: a `campusQualifier()` helper detects a trailing campus token in our name; when absent, `main_campus === 1` adds to the score and satisfies `CONFIRM_LEAD`; when present, records whose name lacks the qualifier are penalised below `CONSIDER_SCORE`.
+- Pass 2 extends the existing alias/synonym tables in `federal-match.ts` and the `queryVariants` generator. Unit-testable without network calls — add a small vitest file covering the stuck names captured from the current queue.
+- Pass 3 is a new `src/lib/federal-directory.server.ts`: pages `per_page=100` over `school.operating=1` with id/name/alias/city/state/main_campus/size only, caches the rows in memory for the run, and scores them with the same `federal-match.ts` functions. Triggered by a new bounded server function so it runs from `/admin/pipeline` alongside the existing controls.
+- Hand-entry finish: `universities.federal_match_status` already permits `manual`, and nothing writes it. New `markFederalManual({ universityId })` in `src/lib/pipeline.functions.ts` sets it, stamps `federal_synced_at`, closes the `federal_data` queue row, and writes `data_field_sources` rows with `source_type: 'manual'` so the citation line keeps working. Completeness driven by `SOURCED_UNIVERSITY_FIELDS` in `src/lib/admin-schemas.ts`. Add `manual` to the statuses the gap-fill in `federal-data.server.ts` refuses to overwrite.
 - No schema migration required.
