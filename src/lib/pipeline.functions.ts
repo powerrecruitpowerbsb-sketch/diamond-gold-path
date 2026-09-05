@@ -254,7 +254,7 @@ export const listFederalCandidates = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
-    const { searchScorecard } = await import("@/lib/federal-data.server");
+    const { searchScorecard, findFederalRecord } = await import("@/lib/federal-data.server");
 
     const { data: school, error } = await context.supabase
       .from("universities")
@@ -263,8 +263,17 @@ export const listFederalCandidates = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const name = data.query || String((school as any).name ?? "");
-    const rows = await searchScorecard(name, data.query ? null : ((school as any).state ?? null));
+    // No search term: run the same multi-form lookup the automatic matcher uses,
+    // so the shortlist here is as good as the one that couldn't quite decide.
+    if (!data.query) {
+      const match = await findFederalRecord(
+        String((school as any).name ?? ""),
+        (school as any).state ?? null,
+      );
+      return clean(match.candidates.map((candidate) => ({ ...candidate, enrollment: null })));
+    }
+
+    const rows = await searchScorecard(data.query, null);
     return clean(
       rows.map((row) => ({
         unitid: Number(row["id"]),
@@ -275,6 +284,80 @@ export const listFederalCandidates = createServerFn({ method: "POST" })
       })),
     );
   });
+
+/**
+ * Hand the unresolved school-fact jobs back to the queue so the improved
+ * matcher can have another go at them. Only schools that actually failed are
+ * reset — confirmed ones are left alone.
+ */
+export const retryFederalUnresolved = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+
+    const { data: schools, error } = await context.supabase
+      .from("universities")
+      .select("id")
+      .in("federal_match_status", ["ambiguous", "unmatched"])
+      .not("federal_synced_at", "is", null);
+    if (error) throw new Error(error.message);
+
+    const ids = ((schools ?? []) as { id: string }[]).map((row) => row.id);
+    let reset = 0;
+    // Chunked: a single `in` list of thousands of ids overflows the request URL.
+    for (let index = 0; index < ids.length; index += 100) {
+      const slice = ids.slice(index, index + 100);
+      const { data: updated, error: resetError } = await context.supabase
+        .from("ingest_queue")
+        .update({
+          status: "pending",
+          attempts: 0,
+          last_error: null,
+          leased_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("stage", "federal_data")
+        .in("university_id", slice)
+        .select("id");
+      if (resetError) throw new Error(resetError.message);
+      reset += (updated ?? []).length;
+    }
+
+    return clean({ schools: ids.length, reset });
+  });
+
+/** Record that a school genuinely has no federal record, so it stops retrying. */
+export const markNotInFederal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { universityId: string }) => ({
+    universityId: String(input?.universityId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.universityId) throw new Error("Pick a school first");
+
+    const { error } = await context.supabase
+      .from("universities")
+      .update({
+        federal_match_status: "not_in_federal",
+        federal_synced_at: new Date().toISOString(),
+      })
+      .eq("id", data.universityId);
+    if (error) throw new Error(error.message);
+
+    await context.supabase
+      .from("ingest_queue")
+      .update({
+        status: "done",
+        last_error: "Not in the federal directory",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("university_id", data.universityId)
+      .eq("stage", "federal_data");
+
+    return clean({ ok: true });
+  });
+
 
 /** Pin a school to the federal record a human picked and pull its facts. */
 export const resolveFederalMatch = createServerFn({ method: "POST" })
