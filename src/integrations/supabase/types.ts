@@ -228,6 +228,7 @@ export type Database = {
       collection_state: {
         Row: {
           created_at: string
+          discovery_per_tick: number
           failures: number
           id: string
           is_running: boolean
@@ -237,12 +238,16 @@ export type Database = {
           links_found: number
           players_found: number
           programs_scraped: number
+          runner_token: string
+          runner_url: string | null
+          scrape_per_tick: number
           started_at: string | null
           stop_requested: boolean
           updated_at: string
         }
         Insert: {
           created_at?: string
+          discovery_per_tick?: number
           failures?: number
           id?: string
           is_running?: boolean
@@ -252,12 +257,16 @@ export type Database = {
           links_found?: number
           players_found?: number
           programs_scraped?: number
+          runner_token?: string
+          runner_url?: string | null
+          scrape_per_tick?: number
           started_at?: string | null
           stop_requested?: boolean
           updated_at?: string
         }
         Update: {
           created_at?: string
+          discovery_per_tick?: number
           failures?: number
           id?: string
           is_running?: boolean
@@ -267,6 +276,9 @@ export type Database = {
           links_found?: number
           players_found?: number
           programs_scraped?: number
+          runner_token?: string
+          runner_url?: string | null
+          scrape_per_tick?: number
           started_at?: string | null
           stop_requested?: boolean
           updated_at?: string
@@ -1668,6 +1680,8 @@ export type Database = {
       active_season_id: { Args: never; Returns: string }
       can_access_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       coaches_team: { Args: { _team_id: string }; Returns: boolean }
+      collection_cron_start: { Args: never; Returns: undefined }
+      collection_cron_stop: { Args: never; Returns: undefined }
       current_org_id: { Args: never; Returns: string }
       has_org_wide_access: { Args: never; Returns: boolean }
       has_role: {
@@ -1689,6 +1703,7 @@ export type Database = {
           season_year: number
         }[]
       }
+      trigger_collection_runner: { Args: never; Returns: undefined }
     }
     Enums: {
       athlete_data_source: "manual" | "csv" | "handled" | "curve_testing"
