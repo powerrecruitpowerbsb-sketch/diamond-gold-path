@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -79,6 +79,8 @@ function Pipeline() {
 
   const [busy, setBusy] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
+  const stopRef = useRef(false);
+
 
   const { data: status } = useQuery({ queryKey: ["pipeline-status"], queryFn: () => statusFn() });
   const { data: blocked } = useQuery({ queryKey: ["federal-blocked"], queryFn: () => blockedFn() });
@@ -217,6 +219,43 @@ function Pipeline() {
       setBusy(null);
     }
   }
+
+  /**
+   * Work the school-facts queue batch after batch until it's empty. Keeps going
+   * on its own so an interrupted pass can simply be restarted here, and stops
+   * cleanly if the federal service starts rate limiting us.
+   */
+  async function onFederalUntilDone() {
+    stopRef.current = false;
+    setBusy("federal-all");
+    let processed = 0;
+    let confirmed = 0;
+    let needsHelp = 0;
+    try {
+      for (let round = 0; round < 200; round += 1) {
+        const result = (await federalFn({ data: { limit: 25 } })) as any;
+        processed += result.processed;
+        confirmed += result.confirmed;
+        needsHelp += result.needsHelp;
+        note(`School facts: ${processed} done so far · ${confirmed} matched · ${needsHelp} need help`);
+        await refresh();
+        if (result.rateLimitHit) {
+          note("Paused: the federal data service is rate limiting us. Try again in a little while.");
+          toast.warning("Paused — federal data rate limit reached");
+          break;
+        }
+        if (!result.processed || stopRef.current) break;
+      }
+      toast.success(`${processed} school(s) processed`);
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Federal sync failed");
+    } finally {
+      stopRef.current = false;
+      setBusy(null);
+      await refresh();
+    }
+  }
+
 
   async function onRetryUnresolved() {
     setBusy("retry-federal");
@@ -417,12 +456,33 @@ function Pipeline() {
               type="button"
               onClick={() => onFederalBatch(50)}
               disabled={busy !== null}
-              className="touch-target inline-flex items-center gap-2 rounded-lg bg-diamond-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+              className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
             >
               {busy === "federal" ? "Working…" : "Run 50"}
             </button>
+            {busy === "federal-all" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  stopRef.current = true;
+                }}
+                className="touch-target inline-flex items-center gap-2 rounded-lg border border-seam-red px-4 text-sm font-semibold text-seam-red"
+              >
+                Stop after this batch
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void onFederalUntilDone()}
+                disabled={busy !== null}
+                className="touch-target inline-flex items-center gap-2 rounded-lg bg-diamond-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                Keep going until done
+              </button>
+            )}
           </div>
         }
+
 
       >
         {status?.usingDemoKey ? (
