@@ -12,11 +12,14 @@ import {
   importWikiSlice,
   listFederalBlocked,
   listFederalCandidates,
+  listFederalParked,
   markNotInFederal,
   rebuildQueue,
   resolveFederalMatch,
   retryFederalUnresolved,
   runFederalBatch,
+  unparkAllFederalSchools,
+  unparkFederalSchool,
 } from "@/lib/pipeline.functions";
 
 
@@ -60,6 +63,18 @@ const OTHER_SLICES = [
   { key: "nwac", label: "NWAC (Northwest)" },
 ] as const;
 
+/**
+ * Database and network errors are unreadable for a human, so only sentences we
+ * wrote ourselves are shown; anything else becomes the plain-English fallback.
+ */
+function friendly(failure: unknown, fallback: string): string {
+  const message = failure instanceof Error ? failure.message.trim() : "";
+  const jargon =
+    /constraint|relation |column |violates|duplicate key|PGRST|syntax error|permission denied|JWT|null value|invalid input|\bSQL\b|Forbidden/i;
+  if (!message || message.length > 160 || jargon.test(message)) return fallback;
+  return message;
+}
+
 const STAGE_LABELS: Record<string, string> = {
   federal_data: "School facts (federal data)",
   url_discovery: "Find athletics links",
@@ -74,6 +89,9 @@ function Pipeline() {
   const rebuildFn = useServerFn(rebuildQueue);
   const blockedFn = useServerFn(listFederalBlocked);
   const retryFn = useServerFn(retryFederalUnresolved);
+  const parkedFn = useServerFn(listFederalParked);
+  const unparkFn = useServerFn(unparkFederalSchool);
+  const unparkAllFn = useServerFn(unparkAllFederalSchools);
 
   const queryClient = useQueryClient();
 
@@ -84,6 +102,7 @@ function Pipeline() {
 
   const { data: status } = useQuery({ queryKey: ["pipeline-status"], queryFn: () => statusFn() });
   const { data: blocked } = useQuery({ queryKey: ["federal-blocked"], queryFn: () => blockedFn() });
+  const { data: parked } = useQuery({ queryKey: ["federal-parked"], queryFn: () => parkedFn() });
 
   function note(line: string) {
     setLog((current) => [line, ...current].slice(0, 12));
@@ -92,6 +111,7 @@ function Pipeline() {
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["pipeline-status"] });
     await queryClient.invalidateQueries({ queryKey: ["federal-blocked"] });
+    await queryClient.invalidateQueries({ queryKey: ["federal-parked"] });
   }
 
   /** Walk one slice in windows until the whole division/sport list is loaded. */
@@ -124,7 +144,7 @@ function Pipeline() {
       toast.success(`${label} imported`);
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Import failed");
+      toast.error(friendly(failure, "Import failed"));
     } finally {
       setBusy(null);
     }
@@ -140,7 +160,7 @@ function Pipeline() {
       toast.success("Full NCAA membership list imported");
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Import failed");
+      toast.error(friendly(failure, "Import failed"));
     } finally {
       setBusy(null);
     }
@@ -175,7 +195,7 @@ function Pipeline() {
       toast.success(`${label} imported`);
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Import failed");
+      toast.error(friendly(failure, "Import failed"));
     } finally {
       setBusy(null);
     }
@@ -191,7 +211,7 @@ function Pipeline() {
       toast.success("NAIA, NJCAA, CCCAA and NWAC imported");
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Import failed");
+      toast.error(friendly(failure, "Import failed"));
     } finally {
       setBusy(null);
     }
@@ -214,7 +234,7 @@ function Pipeline() {
       }
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Federal sync failed");
+      toast.error(friendly(failure, "Federal sync failed"));
     } finally {
       setBusy(null);
     }
@@ -248,7 +268,7 @@ function Pipeline() {
       }
       toast.success(`${processed} school(s) processed`);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Federal sync failed");
+      toast.error(friendly(failure, "Federal sync failed"));
     } finally {
       stopRef.current = false;
       setBusy(null);
@@ -269,13 +289,43 @@ function Pipeline() {
       );
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not queue the retry");
+      toast.error(friendly(failure, "Could not queue the retry"));
     } finally {
       setBusy(null);
     }
   }
 
 
+
+  async function onUnpark(id: string, name: string) {
+    setBusy(`unpark-${id}`);
+    try {
+      await unparkFn({ data: { universityId: id } });
+      note(`${name}: back in line for another look`);
+      toast.success(`${name} will be looked at again`);
+      await refresh();
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't put that school back in line"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onUnparkAll() {
+    setBusy("unpark-all");
+    try {
+      const result = (await unparkAllFn()) as { schools: number };
+      note(`${result.schools} parked school(s) sent back for another look`);
+      toast.success(
+        result.schools ? `${result.schools} school(s) will be looked at again` : "Nothing parked",
+      );
+      await refresh();
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't put those schools back in line"));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function onRebuild() {
     setBusy("rebuild");
@@ -286,7 +336,7 @@ function Pipeline() {
       toast.success(total ? `${total} job(s) queued` : "Queue already up to date");
       await refresh();
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not refresh the queue");
+      toast.error(friendly(failure, "Could not refresh the queue"));
     } finally {
       setBusy(null);
     }
@@ -513,6 +563,52 @@ function Pipeline() {
         )}
       </SectionCard>
 
+      {parked?.length ? (
+        <SectionCard
+          title="Parked — not in the federal data"
+          blurb="Schools you set aside. Their cost and academic details stay blank until federal data or a person fills them."
+          aside={
+            <button
+              type="button"
+              onClick={() => void onUnparkAll()}
+              disabled={busy !== null}
+              className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
+            >
+              <RefreshCw className="size-4" aria-hidden />
+              {busy === "unpark-all" ? "Queueing…" : "Look again at all"}
+            </button>
+          }
+        >
+          <div className="mt-4 grid gap-2">
+            <p className="text-sm font-semibold text-graphite">{parked.length} school(s) parked</p>
+            {parked.map((school: any) => (
+              <div
+                key={school.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-white p-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-graphite">{school.name}</p>
+                  <p className="meta">
+                    {[school.city, school.state].filter(Boolean).join(", ") || "Location unknown"}
+                    {school.federal_synced_at
+                      ? ` · parked ${new Date(school.federal_synced_at).toLocaleDateString()}`
+                      : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void onUnpark(school.id, school.name)}
+                  disabled={busy !== null}
+                  className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel disabled:opacity-60"
+                >
+                  {busy === `unpark-${school.id}` ? "Queueing…" : "Look again"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      ) : null}
+
       {log.length ? (
         <SectionCard title="Recent activity" blurb="What the last few runs did.">
           <ul className="grid gap-1.5 text-sm text-steel">
@@ -577,7 +673,7 @@ function MatchResolver({
       })) as any[];
       setCandidates(rows);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not load candidates");
+      toast.error(friendly(failure, "Could not load candidates"));
     } finally {
       setBusy(false);
     }
@@ -593,7 +689,7 @@ function MatchResolver({
       );
       setOpen(false);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not save the match");
+      toast.error(friendly(failure, "Could not save the match"));
     } finally {
       setBusy(false);
     }
@@ -603,10 +699,11 @@ function MatchResolver({
     setBusy(true);
     try {
       await notInFederalFn({ data: { universityId: school.id } });
-      toast.success(`${school.name} marked as not in the federal data`);
-      await onResolved(`${school.name}: marked as not in the federal data`);
+      toast.success(`${school.name} parked — you can undo this from the parked list below`);
+      await onResolved(`${school.name}: parked as not in the federal data`);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : "Could not save that");
+      toast.error(friendly(failure, "Couldn't park this school — please try again"));
+
     } finally {
       setBusy(false);
     }

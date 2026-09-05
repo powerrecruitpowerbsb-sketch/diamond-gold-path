@@ -358,6 +358,80 @@ export const markNotInFederal = createServerFn({ method: "POST" })
     return clean({ ok: true });
   });
 
+/** Schools a human parked as absent from the federal directory. */
+export const listFederalParked = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { data, error } = await context.supabase
+      .from("universities")
+      .select("id, name, state, city, federal_synced_at")
+      .eq("federal_match_status", "not_in_federal")
+      .order("federal_synced_at", { ascending: false })
+      .limit(300);
+    if (error) throw new Error(error.message);
+    return clean(data ?? []);
+  });
+
+/** Reset one school's federal-data queue row so it gets another look. */
+async function requeueFederal(supabase: any, ids: string[]) {
+  let reset = 0;
+  for (let index = 0; index < ids.length; index += 100) {
+    const slice = ids.slice(index, index + 100);
+    const { error: schoolError } = await supabase
+      .from("universities")
+      .update({ federal_match_status: "unmatched", federal_synced_at: null })
+      .in("id", slice);
+    if (schoolError) throw new Error(schoolError.message);
+
+    const { data: updated, error } = await supabase
+      .from("ingest_queue")
+      .update({
+        status: "pending",
+        attempts: 0,
+        last_error: null,
+        leased_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stage", "federal_data")
+      .in("university_id", slice)
+      .select("id");
+    if (error) throw new Error(error.message);
+    reset += (updated ?? []).length;
+  }
+  return reset;
+}
+
+/** Undo one parked school. */
+export const unparkFederalSchool = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { universityId: string }) => ({
+    universityId: String(input?.universityId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.universityId) throw new Error("Pick a school first");
+    const reset = await requeueFederal(context.supabase, [data.universityId]);
+    return clean({ ok: true, reset });
+  });
+
+/** Undo every parked school at once. */
+export const unparkAllFederalSchools = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { data: schools, error } = await context.supabase
+      .from("universities")
+      .select("id")
+      .eq("federal_match_status", "not_in_federal");
+    if (error) throw new Error(error.message);
+    const ids = ((schools ?? []) as { id: string }[]).map((row) => row.id);
+    const reset = await requeueFederal(context.supabase, ids);
+    return clean({ ok: true, schools: ids.length, reset });
+  });
+
+
+
 
 /** Pin a school to the federal record a human picked and pull its facts. */
 export const resolveFederalMatch = createServerFn({ method: "POST" })
