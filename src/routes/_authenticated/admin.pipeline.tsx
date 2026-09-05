@@ -216,6 +216,26 @@ function Pipeline() {
     }
   }
 
+  async function onRetryUnresolved() {
+    setBusy("retry-federal");
+    try {
+      const result = (await retryFn()) as { schools: number; reset: number };
+      note(`Sent ${result.reset} unresolved school(s) back for another look`);
+      toast.success(
+        result.reset
+          ? `${result.reset} school(s) queued to try again`
+          : "Nothing left to retry",
+      );
+      await refresh();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not queue the retry");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
+
   async function onRebuild() {
     setBusy("rebuild");
     try {
