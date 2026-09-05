@@ -73,6 +73,8 @@ function Pipeline() {
   const federalFn = useServerFn(runFederalBatch);
   const rebuildFn = useServerFn(rebuildQueue);
   const blockedFn = useServerFn(listFederalBlocked);
+  const retryFn = useServerFn(retryFederalUnresolved);
+
   const queryClient = useQueryClient();
 
   const [busy, setBusy] = useState<string | null>(null);
