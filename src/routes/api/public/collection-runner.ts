@@ -45,7 +45,12 @@ export const Route = createFileRoute("/api/public/collection-runner")({
         if (!authorized) {
           const { authenticateCronRequest } = await import("@/integrations/supabase/cron-auth");
           const denied = await authenticateCronRequest(request);
-          if (denied) return denied;
+          if (denied) {
+            return Response.json(
+              { ok: false, reason: "unauthorized", accepts: "runner key or cron secret" },
+              { status: 401 },
+            );
+          }
         }
 
         const {
