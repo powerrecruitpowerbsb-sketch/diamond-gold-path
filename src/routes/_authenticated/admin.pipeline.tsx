@@ -502,6 +502,8 @@ function MatchResolver({
 }) {
   const candidatesFn = useServerFn(listFederalCandidates);
   const resolveFn = useServerFn(resolveFederalMatch);
+  const notInFederalFn = useServerFn(markNotInFederal);
+
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<any[] | null>(null);
