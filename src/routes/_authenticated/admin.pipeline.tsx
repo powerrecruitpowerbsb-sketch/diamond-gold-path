@@ -564,17 +564,28 @@ function MatchResolver({
               : "several possible records"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setOpen((value) => !value);
-            if (!candidates) void load("");
-          }}
-          className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel"
-        >
-          {open ? "Close" : "Choose record"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void markMissing()}
+            disabled={busy}
+            className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel disabled:opacity-60"
+          >
+            Not in the federal data
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen((value) => !value);
+              if (!candidates) void load("");
+            }}
+            className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel"
+          >
+            {open ? "Close" : "Choose record"}
+          </button>
+        </div>
       </div>
+
 
       {open ? (
         <div className="mt-3 grid gap-2">
