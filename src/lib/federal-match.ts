@@ -32,7 +32,7 @@ const STOPWORDS = new Set(["the", "of", "at", "and", "a", "in", "campus", "main"
 /** Wording differences that mean the same thing in a school name. */
 const SYNONYMS: [RegExp, string][] = [
   [/&/g, " and "],
-  [/\bu\.?\s?s\.?\b/g, " united states "],
+  [/\bu\.?\s?s\.?(?=\s|$)/g, " united states "],
   [/\bmil\.?\b/g, "military"],
   [/\bpenn\b(?!sylvania)/g, "pennsylvania"],
   [/\bst\.?\b/g, "saint"],
@@ -164,7 +164,7 @@ export function queryVariants(rawName: string): string[] {
   // Hyphenated joint names ("Pomona-Pitzer Colleges") and long official forms:
   // fall back to the first two or three identifying words.
   // "U.S. Naval Academy" → "United States Naval Academy"
-  push(noThe.replace(/\bU\.?S\.?\b/g, "United States"));
+  push(noThe.replace(/\bU\.?\s?S\.?(?=\s|$)/gi, "United States"));
   // "Texas A&M University–Victoria" → "Texas A&M University Victoria"
   push(noThe.replace(/[-\u2013\u2014]/g, " "));
   // "Penn State Beaver" → "Pennsylvania State Beaver"
