@@ -566,7 +566,30 @@ export async function syncUniversityFromFederal(
       federal_synced_at: new Date().toISOString(),
     })
     .eq("id", universityId);
-  if (stampError) throw new Error(`Could not stamp the federal match: ${stampError.message}`);
+  if (stampError) {
+    // Another of our school rows already claims this federal record, which means
+    // we hold the same school twice. That's a merge decision for a human, so the
+    // school is handed back rather than failed outright.
+    if (/duplicate key|unique constraint/i.test(stampError.message)) {
+      await supabase
+        .from("universities")
+        .update({ federal_match_status: "ambiguous", federal_synced_at: new Date().toISOString() })
+        .eq("id", universityId);
+      return {
+        universityId,
+        schoolName,
+        status: "ambiguous",
+        unitid: null,
+        matchedName: null,
+        fieldsApplied,
+        majorsLinked,
+        fieldsQueued,
+        candidates: match.candidates,
+      };
+    }
+    throw new Error(`Could not stamp the federal match: ${stampError.message}`);
+  }
+
 
   return {
     universityId,
