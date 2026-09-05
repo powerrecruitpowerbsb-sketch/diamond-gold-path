@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/admin/federal-decisions")(
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: FederalDecisions;
+  component: FederalDecisions,
 });
 
 function FederalDecisions() {
