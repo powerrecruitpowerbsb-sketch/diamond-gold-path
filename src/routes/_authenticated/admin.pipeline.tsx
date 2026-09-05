@@ -445,35 +445,53 @@ function Pipeline() {
           />
         </div>
 
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs tracking-wide text-steel uppercase">
-                <th className="py-2 pr-3">Stage</th>
-                <th className="py-2 pr-3">Waiting</th>
-                <th className="py-2 pr-3">Running</th>
-                <th className="py-2 pr-3">Done</th>
-                <th className="py-2 pr-3">Retrying</th>
-                <th className="py-2">Needs you</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(status?.coverage ?? []).map((row) => (
-                <tr key={row.stage} className="border-t border-border">
-                  <td className="py-2 pr-3 font-semibold text-graphite">
-                    {STAGE_LABELS[row.stage] ?? row.stage}
-                  </td>
-                  <td className="py-2 pr-3 tabular-nums">{row.pending}</td>
-                  <td className="py-2 pr-3 tabular-nums">{row.running}</td>
-                  <td className="py-2 pr-3 tabular-nums text-diamond-green">{row.done}</td>
-                  <td className="py-2 pr-3 tabular-nums">{row.failed}</td>
-                  <td className="py-2 tabular-nums text-seam-red">{row.blocked}</td>
+        <details className="mt-5">
+          <summary className="cursor-pointer text-sm font-semibold text-steel">
+            Show the work list behind these numbers
+          </summary>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs tracking-wide text-steel uppercase">
+                  <th className="py-2 pr-3">Stage</th>
+                  <th className="py-2 pr-3">Waiting</th>
+                  <th className="py-2 pr-3">Running</th>
+                  <th className="py-2 pr-3">Done</th>
+                  <th className="py-2 pr-3">Retrying</th>
+                  <th className="py-2">Needs you</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {(status?.coverage ?? []).map((row) => (
+                  <tr key={row.stage} className="border-t border-border">
+                    <td className="py-2 pr-3 font-semibold text-graphite">
+                      {STAGE_LABELS[row.stage] ?? row.stage}
+                    </td>
+                    <td className="py-2 pr-3 tabular-nums">{row.pending}</td>
+                    <td className="py-2 pr-3 tabular-nums">{row.running}</td>
+                    <td className="py-2 pr-3 tabular-nums text-diamond-green">{row.done}</td>
+                    <td className="py-2 pr-3 tabular-nums">{row.failed}</td>
+                    <td className="py-2 tabular-nums text-seam-red">{row.blocked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
       </SectionCard>
+
+      <NeedsYou
+        decisions={status?.schools.federalNeedsHelp ?? 0}
+        notSchools={nonSchools?.entries?.length ?? 0}
+      />
+
+      <CollectionRunner />
+
+      <details className="rounded-xl border border-border bg-white p-4">
+        <summary className="cursor-pointer font-semibold text-graphite">
+          Hands-on tools — pull lists, fill school facts, clean up
+        </summary>
+        <div className="mt-4 grid gap-5">
 
       <SectionCard
         title="Step 1 — Pull the NCAA membership list"
