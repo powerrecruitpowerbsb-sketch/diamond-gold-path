@@ -146,7 +146,7 @@ export function CollectionRunner() {
           {running ? "Collecting now" : "Idle"}
         </span>
         {data?.state.lastMessage ? <span className="meta">{data.state.lastMessage}</span> : null}
-        {beta(beat)}
+        {beat ? <span className="meta">Last activity {beat}</span> : null}
         {data?.problems.failed || data?.problems.blocked ? (
           <span className="meta text-seam-red">
             {data.problems.failed} retrying · {data.problems.blocked} stuck
@@ -163,8 +163,4 @@ export function CollectionRunner() {
       ) : null}
     </SectionCard>
   );
-}
-
-function beta(beat: string | null) {
-  return beat ? <span className="meta">Last activity {beat}</span> : null;
 }
