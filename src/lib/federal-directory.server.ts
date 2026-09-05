@@ -64,20 +64,86 @@ async function page(index: number): Promise<{ rows: DirectoryRow[]; total: numbe
   return { rows: body.results ?? [], total: Number(body.metadata?.total) || 0 };
 }
 
-/** The full federal list, fetched once per server instance and reused. */
+/**
+ * The full federal list, straight from the source. 63 sequential pages take
+ * about a minute and a half, which is far too slow for a page load — this is
+ * only used to refill our own stored copy.
+ */
 export async function loadDirectory(): Promise<DirectoryEntry[]> {
   if (cached) return cached;
   const first = await page(0);
   const entries = first.rows.map(entryOf);
   const pages = Math.ceil(first.total / 100);
-  for (let index = 1; index < pages; index += 1) {
-    const next = await page(index);
-    for (const row of next.rows) entries.push(entryOf(row));
-    if (!next.rows.length) break;
+
+  // Fetched in parallel batches so a refresh takes seconds, not minutes, while
+  // staying gentle enough on the federal API to avoid its rate limit.
+  const BATCH = 8;
+  for (let start = 1; start < pages; start += BATCH) {
+    const indexes = [];
+    for (let index = start; index < Math.min(start + BATCH, pages); index += 1) indexes.push(index);
+    const results = await Promise.all(indexes.map((index) => page(index)));
+    for (const result of results) for (const row of result.rows) entries.push(entryOf(row));
   }
+
   cached = entries.filter((entry) => entry.unitid && entry.name);
   return cached;
 }
+
+/**
+ * Refill our stored copy of the national list. Everything downstream reads the
+ * stored copy, so this is the only place that talks to the federal API.
+ */
+export async function refreshDirectoryTable(): Promise<{ stored: number }> {
+  const entries = await loadDirectory();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const now = new Date().toISOString();
+
+  for (let index = 0; index < entries.length; index += 500) {
+    const chunk = entries.slice(index, index + 500).map((entry) => ({
+      unitid: entry.unitid,
+      name: entry.name,
+      alias: entry.alias,
+      city: entry.city,
+      state: entry.state,
+      main_campus: entry.mainCampus,
+      enrollment: entry.enrollment,
+      updated_at: now,
+    }));
+    const { error } = await supabaseAdmin.from("federal_directory").upsert(chunk, { onConflict: "unitid" });
+    if (error) throw new Error(error.message);
+  }
+
+  return { stored: entries.length };
+}
+
+/** Read the stored copy of the national list, page by page past the row cap. */
+export async function loadStoredDirectory(supabase: any): Promise<DirectoryEntry[]> {
+  const entries: DirectoryEntry[] = [];
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("federal_directory")
+      .select("unitid, name, alias, city, state, main_campus, enrollment")
+      .order("unitid")
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as any[];
+    for (const row of rows) {
+      entries.push({
+        unitid: Number(row.unitid),
+        name: String(row.name ?? ""),
+        alias: row.alias ?? null,
+        city: row.city ?? null,
+        state: row.state ?? null,
+        mainCampus: row.main_campus ?? null,
+        enrollment: row.enrollment ?? null,
+      });
+    }
+    if (rows.length < PAGE) break;
+  }
+  return entries;
+}
+
 
 export type DirectoryMatch = {
   status: Verdict;
@@ -144,7 +210,9 @@ export async function sweepUnresolvedSchools(
   const schools = (data ?? []) as { id: string; name: string; state: string | null; city: string | null }[];
   if (!schools.length) return { examined: 0, matched: 0, applied: 0, results: [] };
 
-  const directory = await loadDirectory();
+  const stored = await loadStoredDirectory(supabase);
+  const directory = stored.length >= 1000 ? stored : await loadDirectory();
+
   const { confirmFederalMatch } = await import("@/lib/federal-data.server");
   const results: SweepOutcome[] = [];
 
@@ -235,15 +303,26 @@ export type SchoolDecision = {
   suggestions: FederalSuggestion[];
 };
 
+export type SuggestionResult = {
+  directoryReady: boolean;
+  directoryCount: number;
+  schools: SchoolDecision[];
+};
+
 /**
  * Prepare a shortlist of likely federal records for every school still
- * waiting on a decision. One directory download covers all of them, so the
- * decision screen never has to wait on a lookup per row.
+ * waiting on a decision. This reads our stored copy of the national list, so
+ * the screen never waits on an outside download.
  */
 export async function suggestFederalMatches(
   supabase: any,
   options: { limit: number },
-): Promise<SchoolDecision[]> {
+): Promise<SuggestionResult> {
+  const directory = await loadStoredDirectory(supabase);
+  if (directory.length < 1000) {
+    return { directoryReady: false, directoryCount: directory.length, schools: [] };
+  }
+
   const { data, error } = await supabase
     .from("universities")
     .select(
@@ -256,11 +335,12 @@ export async function suggestFederalMatches(
   if (error) throw new Error(error.message);
 
   const schools = (data ?? []) as any[];
-  if (!schools.length) return [];
+  if (!schools.length) {
+    return { directoryReady: true, directoryCount: directory.length, schools: [] };
+  }
 
-  const directory = await loadDirectory();
+  const decisions = schools.map((school) => {
 
-  return schools.map((school) => {
     const scored = scoreCandidates(school.name, school.state ?? null, directory, school.city ?? null)
       .filter((candidate) => candidate.score >= CONSIDER_SCORE)
       .slice(0, 3);
@@ -290,4 +370,7 @@ export async function suggestFederalMatches(
       })),
     };
   });
+
+  return { directoryReady: true, directoryCount: directory.length, schools: decisions };
 }
+
