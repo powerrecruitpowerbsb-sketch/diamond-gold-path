@@ -32,6 +32,9 @@ const STOPWORDS = new Set(["the", "of", "at", "and", "a", "in", "campus", "main"
 /** Wording differences that mean the same thing in a school name. */
 const SYNONYMS: [RegExp, string][] = [
   [/&/g, " and "],
+  [/\bu\.?\s?s\.?\b/g, " united states "],
+  [/\bmil\.?\b/g, "military"],
+  [/\bpenn\b(?!sylvania)/g, "pennsylvania"],
   [/\bst\.?\b/g, "saint"],
   [/\bste\.?\b/g, "sainte"],
   [/\bmt\.?\b/g, "mount"],
@@ -45,7 +48,39 @@ const SYNONYMS: [RegExp, string][] = [
   [/\bagricultural\b/g, "a"],
   [/\bmechanical\b/g, "m"],
   [/\bsuny\b/g, "state university of new york"],
+  [/\bccbc\b/g, "community college of baltimore county"],
+  [/\bjc\b/g, "junior college"],
+  [/\bagri\.?\b/g, "a"],
+  [/\bintl\.?\b/g, "international"],
 ];
+
+/**
+ * Words that only ever appear as a campus qualifier, never as the identifying
+ * part of a school name. "Penn State Beaver" and "CCBC-Catonsville" name one
+ * specific campus, so a record without that qualifier is the wrong school even
+ * though every other word lines up.
+ */
+const QUALIFIER_SEPARATORS = /\s*(?:[-\u2013\u2014,]|\bat\b)\s*/;
+
+/**
+ * The campus qualifier in our name, if it has one. Returns null for a plain
+ * school name like "University of Michigan", which is what lets the main-campus
+ * preference kick in.
+ */
+export function campusQualifier(rawName: string): string | null {
+  const { name } = splitStateHint(rawName);
+  const parts = name.split(QUALIFIER_SEPARATORS).map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  const tail = parts[parts.length - 1]!;
+  const tokens = matchTokens(tail);
+  // A trailing "The State University of New Jersey" style clause is a long
+  // official form, not a campus; qualifiers are one or two identifying words.
+  if (!tokens.length || tokens.length > 2) return null;
+  // "Community College" style tails are category words, not a campus name.
+  const generic = new Set(["university", "college", "school", "institute", "academy", "state"]);
+  if (tokens.every((token) => generic.has(token))) return null;
+  return tokens.join(" ");
+}
 
 /** Strip a trailing wiki disambiguator and read it as a state hint. */
 export function splitStateHint(name: string): { name: string; stateHint: string | null } {
@@ -128,6 +163,19 @@ export function queryVariants(rawName: string): string[] {
 
   // Hyphenated joint names ("Pomona-Pitzer Colleges") and long official forms:
   // fall back to the first two or three identifying words.
+  // "U.S. Naval Academy" → "United States Naval Academy"
+  push(noThe.replace(/\bU\.?S\.?\b/g, "United States"));
+  // "Texas A&M University–Victoria" → "Texas A&M University Victoria"
+  push(noThe.replace(/[-\u2013\u2014]/g, " "));
+  // "Penn State Beaver" → "Pennsylvania State Beaver"
+  push(noThe.replace(/\bPenn\b(?!sylvania)/g, "Pennsylvania"));
+  // Drop a trailing campus qualifier so the family shows up at all.
+  const qualifier = campusQualifier(rawName);
+  if (qualifier) {
+    const base = noThe.split(/\s*(?:[-\u2013\u2014,]|\bat\b)\s*/)[0];
+    if (base) push(base);
+  }
+
   const words = noThe.replace(/[,]/g, " ").split(/\s+/).filter(Boolean);
   if (words.length > 3) push(words.slice(0, 3).join(" "));
   if (words.length > 2) push(words.slice(0, 2).join(" "));
@@ -141,6 +189,8 @@ export type ScoredCandidate = {
   alias: string | null;
   city: string | null;
   state: string | null;
+  mainCampus?: boolean | null;
+  enrollment?: number | null;
   score: number;
 };
 
@@ -154,16 +204,43 @@ export function scoreCandidates(
   ourName: string,
   ourState: string | null,
   candidates: Omit<ScoredCandidate, "score">[],
+  ourCity?: string | null,
 ): ScoredCandidate[] {
   const { name, stateHint } = splitStateHint(ourName);
   const state = (ourState || stateHint || "").toUpperCase() || null;
+  const qualifier = campusQualifier(ourName);
+  const city = (ourCity || "").trim().toLowerCase() || null;
+  const largest = Math.max(
+    1,
+    ...candidates.map((candidate) => Number(candidate.enrollment) || 0),
+  );
 
   return candidates
     .filter((candidate) => !state || !candidate.state || candidate.state.toUpperCase() === state)
     .map((candidate) => {
       const direct = nameSimilarity(name, candidate.name);
       const viaAlias = candidate.alias ? nameSimilarity(name, candidate.alias) : 0;
-      return { ...candidate, score: Math.max(direct, viaAlias) };
+      let score = Math.max(direct, viaAlias);
+
+      const haystack = `${candidate.name} ${candidate.alias ?? ""}`;
+      if (qualifier) {
+        // Our name names one campus. A record that doesn't mention that campus
+        // is a different school, however well the rest of the words match.
+        const theirTokens = new Set(matchTokens(haystack));
+        const covered = qualifier.split(" ").every((token) => theirTokens.has(token));
+        if (!covered) score *= 0.5;
+      } else {
+        // Plain name: the main campus is what people mean by it, and a branch
+        // record carrying extra campus words is not.
+        if (candidate.mainCampus) score += 0.06;
+        else if (candidate.mainCampus === false) score -= 0.04;
+        const size = Number(candidate.enrollment) || 0;
+        if (size) score += 0.03 * (size / largest);
+      }
+
+      if (city && candidate.city && candidate.city.trim().toLowerCase() === city) score += 0.03;
+
+      return { ...candidate, score: Math.max(0, Math.min(1, score)) };
     })
     .sort((a, b) => b.score - a.score);
 }
