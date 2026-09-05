@@ -8,14 +8,24 @@
 - Collection is barely started: only 21 programs have been scraped, 41 have a roster page on file, and 24 discovered links still await a yes/no.
 - Nothing runs on a schedule yet — every stage still needs someone to press a button.
 
-## Step 1 — Close out the pilot (small, do first)
+## Step 1 — Fix and correct: make the review queue editable, then close out the pilot
 
-- Work the 67 remaining items by hand, since that is now a 10-minute job.
-- While doing it, confirm the accuracy fixes held: the 17 roster proposals should show sensible season years, real positions instead of everything as "utility", and conference names in one consistent form.
+Right now a wrong proposal can only be declined, which throws away a good pull because one detail is wrong (a roster read as 2002 instead of 2026). First change:
+
+- **Approve with a correction.** Every item gets an editable value next to the proposed one — change it, then approve. What gets saved is your value, recorded as a staff correction with a note of what the system proposed.
+- **Roster proposals get a season year you can set** before approving, defaulting to the current recruiting year, plus a warning when the scraped year looks implausible. Individual players can be edited or dropped in the same view (name, position, class year, transfer flag).
+- **Declining asks why** — wrong school, wrong year, incomplete page, bad source, other (free text). The reason is stored so patterns are visible and the scraper can be tuned against real cases rather than guesses.
+- **"Send back for re-scrape"** as a third option, for a page that was simply read badly: it declines the proposal and re-queues that program instead of leaving it done.
+
+Then work the queue:
+
+- Clear the 67 remaining items, correcting rather than declining where the pull is mostly right.
+- Confirm the accuracy fixes held: sensible season years, real positions instead of everything as "utility", consistent conference names.
 - Re-find Southeastern University's (Florida) athletics links now that wrong-state matches are demoted, and confirm no Oklahoma pages come back.
 - Confirm Wallace State's division disagreement shows up as a flagged conflict rather than quietly applying.
 
 Gate: don't start Step 3 wide until this passes.
+
 
 ## Step 2 — Finish school facts (988 schools left)
 
