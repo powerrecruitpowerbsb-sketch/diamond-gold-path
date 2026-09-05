@@ -1,16 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Play, Square, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/admin/form-kit";
-import {
-  getCollectionProgress,
-  runCollectionBatch,
-  startCollection,
-  stopCollection,
-} from "@/lib/collection.functions";
+import { getCollectionProgress, startCollection, stopCollection } from "@/lib/collection.functions";
 
 type Progress = Awaited<ReturnType<typeof getCollectionProgress>>;
 
@@ -24,69 +19,34 @@ function Tile({ label, value, hint }: { label: string; value: number | string; h
   );
 }
 
+const relative = (iso: string | null) => {
+  if (!iso) return null;
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (seconds < 90) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 90) return `${minutes} min ago`;
+  return `${Math.round(minutes / 60)} hr ago`;
+};
+
 /**
- * Runs the country in the background: the browser keeps asking the server for
- * one small pass at a time while the run is open, so nothing depends on a
- * single long request and closing the page simply pauses progress.
+ * Read-out for the nationwide run. The work itself happens on the server on a
+ * schedule, so this page only starts it, stops it, and reports what happened —
+ * closing the page no longer pauses anything.
  */
 export function CollectionRunner() {
   const progressFn = useServerFn(getCollectionProgress);
   const startFn = useServerFn(startCollection);
   const stopFn = useServerFn(stopCollection);
-  const batchFn = useServerFn(runCollectionBatch);
 
   const [busy, setBusy] = useState(false);
-  const [log, setLog] = useState<string[]>([]);
-  const loopRef = useRef(false);
 
   const { data, refetch } = useQuery<Progress>({
     queryKey: ["collection-progress"],
     queryFn: () => progressFn() as Promise<Progress>,
-    refetchInterval: 15_000,
+    refetchInterval: 20_000,
   });
 
   const running = Boolean(data?.state.isRunning);
-  const note = (line: string) => setLog((prev) => [line, ...prev].slice(0, 12));
-
-  // Keep passes flowing while the run is marked open.
-  useEffect(() => {
-    if (!running || loopRef.current) return;
-    loopRef.current = true;
-
-    void (async () => {
-      try {
-        while (loopRef.current) {
-          const result = (await batchFn({
-            data: { discoverySchools: 6, scrapePrograms: 6, workers: 4 },
-          })) as any;
-          if (result.stopped) break;
-          const pass = result.pass;
-          if (pass) {
-            note(
-              `${pass.schoolsDiscovered} school(s) searched · ${pass.linksApplied} link(s) saved · ` +
-                `${pass.programsScraped} team(s) collected · ${pass.playersFound} player(s)` +
-                (pass.failures ? ` · ${pass.failures} problem(s)` : ""),
-            );
-          }
-          await refetch();
-          if (pass?.idle) {
-            toast.success("Everything in the queue has been collected");
-            break;
-          }
-        }
-      } catch (failure) {
-        note(failure instanceof Error ? failure.message : "A pass failed");
-        toast.error("Collection paused after an error — press Start to continue");
-      } finally {
-        loopRef.current = false;
-        await refetch();
-      }
-    })();
-
-    return () => {
-      loopRef.current = false;
-    };
-  }, [running, batchFn, refetch]);
 
   async function onStart() {
     setBusy(true);
@@ -96,8 +56,11 @@ export function CollectionRunner() {
         (sum: number, n) => sum + Number(n ?? 0),
         0,
       );
-      note(queued ? `Started — ${queued} new job(s) added to the list` : "Started");
-      toast.success("Collection running");
+      toast.success(
+        queued
+          ? `Collection running — ${queued} new job(s) added. You can close this page.`
+          : "Collection running — you can close this page.",
+      );
       await refetch();
     } catch (failure) {
       toast.error(failure instanceof Error ? failure.message : "Could not start collection");
@@ -108,10 +71,8 @@ export function CollectionRunner() {
 
   async function onStop() {
     setBusy(true);
-    loopRef.current = false;
     try {
       await stopFn();
-      note("Stopped");
       toast.success("Collection stopped — progress is saved");
       await refetch();
     } catch (failure) {
@@ -122,11 +83,12 @@ export function CollectionRunner() {
   }
 
   const remaining = (data?.remaining.discovery ?? 0) + (data?.remaining.scrape ?? 0);
+  const beat = relative(data?.state.lastBeatAt ?? null);
 
   return (
     <SectionCard
-      title="Step 3 — Collect every school in the country"
-      blurb="Finds each school's roster and coaching pages, then reads the facts and rosters off them. It works through the whole list a few schools at a time and picks up where it left off, so you can stop and start whenever you like."
+      title="Collect every school in the country"
+      blurb="Finds each school's roster and coaching pages, then reads the facts and rosters off them. It keeps working on its own, a few schools at a time — start it once and close the page whenever you like."
       aside={
         running ? (
           <button
@@ -160,12 +122,12 @@ export function CollectionRunner() {
         <Tile
           label="Roster pages found"
           value={data?.programs.withRosterUrl ?? 0}
-          hint={`${data?.remaining.discovery ?? 0} school jobs still to search`}
+          hint={`${data?.remaining.discovery ?? 0} school(s) still to search`}
         />
         <Tile
           label="Waiting to collect"
           value={data?.remaining.scrape ?? 0}
-          hint={remaining ? "Runs automatically while this is open" : "Nothing left in line"}
+          hint={remaining ? "Working through these automatically" : "Nothing left in line"}
         />
         <Tile
           label="Needs your eyes"
@@ -184,6 +146,7 @@ export function CollectionRunner() {
           {running ? "Collecting now" : "Idle"}
         </span>
         {data?.state.lastMessage ? <span className="meta">{data.state.lastMessage}</span> : null}
+        {beta(beat)}
         {data?.problems.failed || data?.problems.blocked ? (
           <span className="meta text-seam-red">
             {data.problems.failed} retrying · {data.problems.blocked} stuck
@@ -193,21 +156,15 @@ export function CollectionRunner() {
 
       {running ? (
         <p className="meta mt-3">
-          Keep this page open while it works. Totals this run: {data?.state.linksApplied ?? 0} link(s)
-          saved, {data?.state.programsScraped ?? 0} team(s) collected, {data?.state.playersFound ?? 0}{" "}
-          player(s) read.
+          Running on its own — no need to keep this page open. Totals this run:{" "}
+          {data?.state.linksApplied ?? 0} link(s) saved, {data?.state.programsScraped ?? 0} team(s)
+          collected, {data?.state.playersFound ?? 0} player(s) read.
         </p>
-      ) : null}
-
-      {log.length ? (
-        <ul className="mt-4 grid gap-1">
-          {log.map((line, index) => (
-            <li key={`${index}-${line}`} className="meta">
-              {line}
-            </li>
-          ))}
-        </ul>
       ) : null}
     </SectionCard>
   );
+}
+
+function beta(beat: string | null) {
+  return beat ? <span className="meta">Last activity {beat}</span> : null;
 }
