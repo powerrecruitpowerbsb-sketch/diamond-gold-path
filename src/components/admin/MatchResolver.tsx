@@ -248,6 +248,50 @@ export function MatchResolver({
         )}
       </div>
 
+      {conflict ? (
+        <div className="mt-3 rounded-md border border-seam-red/30 bg-seam-red/5 p-3">
+          <p className="text-sm font-semibold text-graphite">
+            {conflict.ownerName} already uses the “{conflict.recordName}” national record.
+          </p>
+          <p className="meta mt-1">
+            Either this school is in our list twice, or it's a separate campus of the same institution — the
+            national list keeps one record per institution.
+          </p>
+          {conflict.moves ? (
+            <p className="meta mt-1">
+              Combining would move {conflict.moves.programs} team(s), {conflict.moves.rosterPlayers} roster
+              player(s), {conflict.moves.shortlists} shortlist entry(ies) and {conflict.moves.notes} note(s).
+            </p>
+          ) : null}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void onCombine()}
+              disabled={busy}
+              className="touch-target rounded-md bg-seam-red px-3 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {busy ? "Working…" : "Same school — combine them"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void onShareRecord()}
+              disabled={busy}
+              className="touch-target rounded-md border border-border px-3 text-xs font-semibold text-steel disabled:opacity-60"
+            >
+              Different campus — copy the details
+            </button>
+            <button
+              type="button"
+              onClick={() => setConflict(null)}
+              disabled={busy}
+              className="touch-target rounded-md px-3 text-xs font-semibold text-steel disabled:opacity-60"
+            >
+              Pick a different record
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
