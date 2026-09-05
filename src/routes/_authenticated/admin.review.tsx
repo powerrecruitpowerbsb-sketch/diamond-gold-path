@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  approveCorrectedChange,
   approveMatchingChanges,
   approvePendingChanges,
   countPendingChanges,
@@ -24,6 +25,7 @@ import {
   rejectPendingChanges,
   sweepReviewQueue,
 } from "@/lib/review.functions";
+
 
 import { dataFieldLabel, dataValueLabel, recordKindLabel, sourceTypeLabel } from "@/lib/data-labels";
 import { cn } from "@/lib/utils";
