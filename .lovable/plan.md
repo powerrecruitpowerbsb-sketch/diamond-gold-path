@@ -25,27 +25,14 @@ Today the pipeline page is a wall of steps, stages, queues and tables. It become
 - The import steps (membership lists, national database, school websites) stop being buttons you sequence by hand. They become part of one automatic flow, with a rarely-needed "Advanced" drawer for manual re-runs.
 - Vocabulary throughout: Schools, Teams, National records, School websites, Rosters. Nothing else.
 
-## Phase 3 — Product build-out (in this order)
+## After this: planned separately
 
-**A. Family & athlete experience**
-- School search: clearer filters, saved searches, results that read like a school profile rather than a data dump.
-- Program page: what a family actually asks — cost, academics, roster makeup, where players come from, who to contact.
-- Shortlist: simpler statuses, progress at a glance, notes families can see.
-- Family portal: one page per athlete with their list and what staff shared.
-
-**B. Coach & staff daily tools**
-- Team page per season: who's on it, jersey numbers, quick add/move between teams.
-- Athlete assignment that respects seasons (move players forward, archive graduates).
-- Staff notes and shortlist review in the flow of a team, not a separate admin area.
-
-**C. Data quality dashboard**
-- Per-school completeness and freshness, with the weakest data surfaced first.
-- Spot-check tool: open a school, see each fact, its source link and when it was last verified, and correct it in place.
-- Trust badges on program pages driven by that same record.
+Three product areas are next, each getting its own plan and its own round of questions before anything is built — family & athlete experience, coach & staff daily tools, and a data quality dashboard. This plan covers only the two phases above.
 
 ## Technical notes
 
-- Scheduling: enable `pg_cron` + `pg_net`, store the runner secret in Vault, and schedule a POST to the existing `/api/public/collection-runner` route each minute with small per-tick limits. The route already authenticates the caller, leases work, and honours the stop flag, so no pipeline logic changes.
+- Scheduling: enable `pg_cron` + `pg_net`, store the runner secret in Vault, and schedule a POST to the existing `/api/public/collection-runner` route each minute with small per-tick limits. The route already authenticates the caller, leases work, and honours the stop flag, so no pipeline logic changes. If `pg_cron`/`pg_net` can't be enabled on this project, fall back to an external scheduled caller hitting the same route.
 - The browser-driven loop in `CollectionRunner.tsx` is removed; the component becomes read-only status plus start/stop against `collection_state`.
-- Phase 2 replaces `admin.pipeline.tsx` with a composed page (`WhatWeHave`, `NeedsYou`, `RunStatus`) reusing the existing server functions; the manual import controls move into an advanced drawer. `/admin/review`, `/admin/discovery` and `/admin/federal-decisions` get folded in as sections of "What needs you" so there's one destination.
-- Phase 3 items are separate passes; nothing in Phase 1 or 2 changes the collected data or the review/trust rules.
+- Phase 2 replaces `admin.pipeline.tsx` with a composed page (`WhatWeHave`, `NeedsYou`, `RunStatus`) reusing the existing server functions; the manual import controls move into an advanced drawer. `/admin/review`, `/admin/discovery` and `/admin/federal-decisions` get folded in as sections of "What needs you" so there's one destination, with the old paths kept working.
+- Nothing here changes collected data or the review/trust rules.
+
