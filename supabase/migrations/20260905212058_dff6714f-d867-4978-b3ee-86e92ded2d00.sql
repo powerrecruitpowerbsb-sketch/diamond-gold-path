@@ -1,0 +1,2 @@
+ALTER TABLE public.universities DROP CONSTRAINT IF EXISTS universities_federal_match_status_check;
+ALTER TABLE public.universities ADD CONSTRAINT universities_federal_match_status_check CHECK (federal_match_status = ANY (ARRAY['unmatched'::text, 'confirmed'::text, 'ambiguous'::text, 'manual'::text, 'not_in_federal'::text]));
