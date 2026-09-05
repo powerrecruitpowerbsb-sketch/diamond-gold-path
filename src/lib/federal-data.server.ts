@@ -384,6 +384,8 @@ export type FederalSyncResult = {
   fieldsQueued: number;
   majorsLinked: number;
   candidates: MatchResult["candidates"];
+  /** Set when another school already holds the chosen national record. */
+  conflict?: { unitid: number; ownerId: string; ownerName: string } | null;
 };
 
 /**
@@ -634,6 +636,32 @@ export async function confirmFederalMatch(
     .from("universities")
     .update({ ipeds_unitid: unitid, federal_match_status: "confirmed" })
     .eq("id", universityId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Only one school can hold a national record. When it is taken, hand the
+    // conflict back so a person can combine the schools or mark this one as
+    // sharing its parent's record.
+    if (/duplicate key|unique constraint/i.test(error.message)) {
+      const { federalRecordOwner } = await import("@/lib/school-merge.server");
+      const owner = await federalRecordOwner(supabase, unitid, universityId);
+      const { data: school } = await supabase
+        .from("universities")
+        .select("name")
+        .eq("id", universityId)
+        .maybeSingle();
+      return {
+        universityId,
+        schoolName: String((school as any)?.name ?? ""),
+        status: "ambiguous",
+        unitid: null,
+        matchedName: null,
+        fieldsApplied: 0,
+        fieldsQueued: 0,
+        majorsLinked: 0,
+        candidates: [],
+        conflict: owner ? { unitid, ownerId: owner.id, ownerName: owner.name } : null,
+      };
+    }
+    throw new Error(error.message);
+  }
   return syncUniversityFromFederal(supabase, userId, universityId);
 }
