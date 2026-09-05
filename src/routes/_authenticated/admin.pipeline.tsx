@@ -12,10 +12,13 @@ import {
   importWikiSlice,
   listFederalBlocked,
   listFederalCandidates,
+  markNotInFederal,
   rebuildQueue,
   resolveFederalMatch,
+  retryFederalUnresolved,
   runFederalBatch,
 } from "@/lib/pipeline.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/pipeline")({
   head: () => ({
@@ -70,6 +73,8 @@ function Pipeline() {
   const federalFn = useServerFn(runFederalBatch);
   const rebuildFn = useServerFn(rebuildQueue);
   const blockedFn = useServerFn(listFederalBlocked);
+  const retryFn = useServerFn(retryFederalUnresolved);
+
   const queryClient = useQueryClient();
 
   const [busy, setBusy] = useState<string | null>(null);
@@ -212,6 +217,26 @@ function Pipeline() {
       setBusy(null);
     }
   }
+
+  async function onRetryUnresolved() {
+    setBusy("retry-federal");
+    try {
+      const result = (await retryFn()) as { schools: number; reset: number };
+      note(`Sent ${result.reset} unresolved school(s) back for another look`);
+      toast.success(
+        result.reset
+          ? `${result.reset} school(s) queued to try again`
+          : "Nothing left to retry",
+      );
+      await refresh();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not queue the retry");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
 
   async function onRebuild() {
     setBusy("rebuild");
@@ -370,7 +395,16 @@ function Pipeline() {
         title="Step 2 — Federal school facts"
         blurb="Tuition, enrollment, acceptance rate, SAT/ACT, graduation rate and campus setting come from the U.S. Department of Education, not from a model. Empty fields fill immediately; anything that would overwrite an existing value goes to the review queue."
         aside={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void onRetryUnresolved()}
+              disabled={busy !== null}
+              className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
+            >
+              <RefreshCw className="size-4" aria-hidden />
+              {busy === "retry-federal" ? "Queueing…" : "Try the unresolved again"}
+            </button>
             <button
               type="button"
               onClick={() => onFederalBatch(10)}
@@ -389,6 +423,7 @@ function Pipeline() {
             </button>
           </div>
         }
+
       >
         {status?.usingDemoKey ? (
           <p className="rounded-lg border border-warm-gold/40 bg-warm-gold/10 p-3 text-sm text-graphite">
@@ -467,6 +502,8 @@ function MatchResolver({
 }) {
   const candidatesFn = useServerFn(listFederalCandidates);
   const resolveFn = useServerFn(resolveFederalMatch);
+  const notInFederalFn = useServerFn(markNotInFederal);
+
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<any[] | null>(null);
@@ -502,6 +539,19 @@ function MatchResolver({
     }
   }
 
+  async function markMissing() {
+    setBusy(true);
+    try {
+      await notInFederalFn({ data: { universityId: school.id } });
+      toast.success(`${school.name} marked as not in the federal data`);
+      await onResolved(`${school.name}: marked as not in the federal data`);
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not save that");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="rounded-lg border border-border bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -514,17 +564,28 @@ function MatchResolver({
               : "several possible records"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setOpen((value) => !value);
-            if (!candidates) void load("");
-          }}
-          className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel"
-        >
-          {open ? "Close" : "Choose record"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void markMissing()}
+            disabled={busy}
+            className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel disabled:opacity-60"
+          >
+            Not in the federal data
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen((value) => !value);
+              if (!candidates) void load("");
+            }}
+            className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel"
+          >
+            {open ? "Close" : "Choose record"}
+          </button>
+        </div>
       </div>
+
 
       {open ? (
         <div className="mt-3 grid gap-2">

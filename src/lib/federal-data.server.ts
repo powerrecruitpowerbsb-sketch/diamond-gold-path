@@ -8,7 +8,14 @@
  */
 
 import { isEmptyValue, valuesEquivalent } from "@/lib/data-quality";
-import { normalizeSchoolName } from "@/lib/seed-import.server";
+import {
+  CONSIDER_SCORE,
+  queryVariants,
+  scoreCandidates,
+  splitStateHint,
+  verdictFor,
+} from "@/lib/federal-match";
+
 
 
 const SCORECARD_URL = "https://api.data.gov/ed/collegescorecard/v1/schools";
@@ -278,51 +285,87 @@ export async function searchScorecard(name: string, state: string | null): Promi
   return scorecardFetch(params);
 }
 
+function candidateOf(row: ScorecardRow) {
+  return {
+    unitid: Number(row["id"]),
+    name: text(row["school.name"]) ?? "",
+    alias: text(row["school.alias"]),
+    city: text(row["school.city"]),
+    state: text(row["school.state"]),
+  };
+}
 
-/** Same-name-same-state is a confirmed match; anything looser needs a human. */
+/**
+ * Score a pool of federal records against one of our school names. Confirmed
+ * needs a near-identical name in the right state with a clear lead over the
+ * runner-up; anything looser is handed to a human.
+ */
 export function matchScorecard(
   schoolName: string,
   state: string | null,
   rows: ScorecardRow[],
 ): MatchResult {
-  const candidates = rows.map((row) => ({
-    unitid: Number(row["id"]),
-    name: text(row["school.name"]) ?? "",
-    city: text(row["school.city"]),
-    state: text(row["school.state"]),
-    row,
+  const byId = new Map<number, ScorecardRow>();
+  for (const row of rows) byId.set(Number(row["id"]), row);
+
+  const scored = scoreCandidates(
+    schoolName,
+    state,
+    [...byId.values()].map(candidateOf),
+  ).filter((candidate) => candidate.score >= CONSIDER_SCORE);
+
+  const status = verdictFor(scored);
+  const shown = scored.slice(0, 8).map(({ unitid, name, city, state: candidateState }) => ({
+    unitid,
+    name,
+    city,
+    state: candidateState,
   }));
 
-  if (!candidates.length) return { status: "unmatched", row: null, candidates: [] };
-
-  const key = normalizeSchoolName(schoolName);
-  const exact = candidates.filter((c) => {
-    if (normalizeSchoolName(c.name) !== key) return false;
-    return !state || (c.state ?? "").toUpperCase() === state.toUpperCase();
-  });
-
-  if (exact.length === 1) {
-    return { status: "confirmed", row: exact[0]!.row, candidates: strip(exact) };
+  if (status === "confirmed") {
+    return { status, row: byId.get(scored[0]!.unitid) ?? null, candidates: shown };
   }
-  if (exact.length > 1) {
-    return { status: "ambiguous", row: null, candidates: strip(exact) };
-  }
-
-  const inState = state
-    ? candidates.filter((c) => (c.state ?? "").toUpperCase() === state.toUpperCase())
-    : candidates;
-  const pool = inState.length ? inState : candidates;
-  if (pool.length === 1) {
-    // One operating school in the right state whose name merely differs in
-    // wording ("Univ of X" vs "University of X") — still needs eyes.
-    return { status: "ambiguous", row: null, candidates: strip(pool) };
-  }
-  return { status: "ambiguous", row: null, candidates: strip(pool.slice(0, 8)) };
+  return { status, row: null, candidates: shown };
 }
 
-function strip(list: { unitid: number; name: string; city: string | null; state: string | null }[]) {
-  return list.map(({ unitid, name, city, state }) => ({ unitid, name, city, state }));
+/**
+ * Find one school's federal record. Our names carry wiki disambiguators and
+ * long official forms the federal search doesn't recognise, so several query
+ * forms are tried in order and stopped as soon as one produces a confident
+ * match — most schools settle on the first call.
+ */
+export async function findFederalRecord(
+  schoolName: string,
+  state: string | null,
+): Promise<MatchResult> {
+  const { stateHint } = splitStateHint(schoolName);
+  const searchState = state || stateHint;
+  const pool = new Map<number, ScorecardRow>();
+  let best: MatchResult = { status: "unmatched", row: null, candidates: [] };
+
+  const variants = queryVariants(schoolName).slice(0, 4);
+  for (const variant of variants) {
+    for (const row of await searchScorecard(variant, searchState)) {
+      pool.set(Number(row["id"]), row);
+    }
+    const attempt = matchScorecard(schoolName, searchState, [...pool.values()]);
+    if (attempt.status === "confirmed") return attempt;
+    if (attempt.candidates.length) best = attempt;
+  }
+
+  // Nothing in the school's own state: try nationally, in case our state value
+  // is the one that's wrong. Still never auto-confirms across a state line.
+  if (!pool.size && searchState) {
+    const rows = await searchScorecard(variants[0] ?? schoolName, null);
+    const attempt = matchScorecard(schoolName, null, rows);
+    if (attempt.candidates.length) {
+      return { status: attempt.status === "confirmed" ? "ambiguous" : attempt.status, row: null, candidates: attempt.candidates };
+    }
+  }
+
+  return best;
 }
+
 
 export type FederalSyncResult = {
   universityId: string;
@@ -414,7 +457,7 @@ export async function syncUniversityFromFederal(
       ? { status: "confirmed", row: rows[0]!, candidates: [] }
       : { status: "unmatched", row: null, candidates: [] };
   } else {
-    match = matchScorecard(schoolName, state, await searchScorecard(schoolName, state));
+    match = await findFederalRecord(schoolName, state);
   }
 
   if (match.status !== "confirmed" || !match.row) {
@@ -523,7 +566,30 @@ export async function syncUniversityFromFederal(
       federal_synced_at: new Date().toISOString(),
     })
     .eq("id", universityId);
-  if (stampError) throw new Error(`Could not stamp the federal match: ${stampError.message}`);
+  if (stampError) {
+    // Another of our school rows already claims this federal record, which means
+    // we hold the same school twice. That's a merge decision for a human, so the
+    // school is handed back rather than failed outright.
+    if (/duplicate key|unique constraint/i.test(stampError.message)) {
+      await supabase
+        .from("universities")
+        .update({ federal_match_status: "ambiguous", federal_synced_at: new Date().toISOString() })
+        .eq("id", universityId);
+      return {
+        universityId,
+        schoolName,
+        status: "ambiguous",
+        unitid: null,
+        matchedName: null,
+        fieldsApplied,
+        majorsLinked,
+        fieldsQueued,
+        candidates: match.candidates,
+      };
+    }
+    throw new Error(`Could not stamp the federal match: ${stampError.message}`);
+  }
+
 
   return {
     universityId,
