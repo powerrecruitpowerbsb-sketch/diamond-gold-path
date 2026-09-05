@@ -35,6 +35,7 @@ import { Route as AuthenticatedRosterNewRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSettingsBrandingRouteImport } from './routes/_authenticated/settings.branding'
 import { Route as AuthenticatedSettingsSeasonsRouteImport } from './routes/_authenticated/settings.seasons'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings.team'
+import { Route as ApiPublicCollectionRunnerRouteImport } from './routes/api/public/collection-runner'
 import { Route as ApiPublicFederalRunnerRouteImport } from './routes/api/public/federal-runner'
 import { Route as AuthenticatedAdminProgramsIndexRouteImport } from './routes/_authenticated/admin.programs.index'
 import { Route as AuthenticatedAdminProgramsIdRouteImport } from './routes/_authenticated/admin.programs.$id'
@@ -185,6 +186,12 @@ const AuthenticatedSettingsTeamRoute =
     path: '/settings/team',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicCollectionRunnerRoute =
+  ApiPublicCollectionRunnerRouteImport.update({
+    id: '/api/public/collection-runner',
+    path: '/api/public/collection-runner',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicFederalRunnerRoute = ApiPublicFederalRunnerRouteImport.update({
   id: '/api/public/federal-runner',
   path: '/api/public/federal-runner',
@@ -263,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/collection-runner': typeof ApiPublicCollectionRunnerRoute
   '/api/public/federal-runner': typeof ApiPublicFederalRunnerRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/roster/': typeof AuthenticatedRosterIndexRoute
@@ -298,6 +306,7 @@ export interface FileRoutesByTo {
   '/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/collection-runner': typeof ApiPublicCollectionRunnerRoute
   '/api/public/federal-runner': typeof ApiPublicFederalRunnerRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/roster': typeof AuthenticatedRosterIndexRoute
@@ -336,6 +345,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/_authenticated/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/collection-runner': typeof ApiPublicCollectionRunnerRoute
   '/api/public/federal-runner': typeof ApiPublicFederalRunnerRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/roster/': typeof AuthenticatedRosterIndexRoute
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/settings/branding'
     | '/settings/seasons'
     | '/settings/team'
+    | '/api/public/collection-runner'
     | '/api/public/federal-runner'
     | '/admin/'
     | '/roster/'
@@ -409,6 +420,7 @@ export interface FileRouteTypes {
     | '/settings/branding'
     | '/settings/seasons'
     | '/settings/team'
+    | '/api/public/collection-runner'
     | '/api/public/federal-runner'
     | '/admin'
     | '/roster'
@@ -446,6 +458,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/branding'
     | '/_authenticated/settings/seasons'
     | '/_authenticated/settings/team'
+    | '/api/public/collection-runner'
     | '/api/public/federal-runner'
     | '/_authenticated/admin/'
     | '/_authenticated/roster/'
@@ -465,6 +478,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicCollectionRunnerRoute: typeof ApiPublicCollectionRunnerRoute
   ApiPublicFederalRunnerRoute: typeof ApiPublicFederalRunnerRoute
 }
 
@@ -652,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsTeamRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/collection-runner': {
+      id: '/api/public/collection-runner'
+      path: '/api/public/collection-runner'
+      fullPath: '/api/public/collection-runner'
+      preLoaderRoute: typeof ApiPublicCollectionRunnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/federal-runner': {
       id: '/api/public/federal-runner'
       path: '/api/public/federal-runner'
@@ -803,6 +824,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicCollectionRunnerRoute: ApiPublicCollectionRunnerRoute,
   ApiPublicFederalRunnerRoute: ApiPublicFederalRunnerRoute,
 }
 export const routeTree = rootRouteImport
