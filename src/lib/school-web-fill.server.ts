@@ -40,8 +40,12 @@ function requireEnv(name: string): string {
   return value;
 }
 
-/** Find a school's own website when we don't already have one on file. */
-async function findWebsite(name: string, state: string | null): Promise<string | null> {
+/**
+ * Look up the school's own pages that state cost and admissions figures. A
+ * homepage rarely lists tuition, so we search for the pages that do and keep
+ * only results on the school's own .edu domain.
+ */
+async function findSchoolPages(name: string, state: string | null): Promise<string[]> {
   const response = await fetch(`${GATEWAY_FIRECRAWL}/search`, {
     method: "POST",
     headers: {
@@ -50,27 +54,41 @@ async function findWebsite(name: string, state: string | null): Promise<string |
       "X-Connection-Api-Key": requireEnv("FIRECRAWL_API_KEY_1"),
     },
     body: JSON.stringify({
-      query: `${name}${state ? ` ${state}` : ""} official college website tuition admissions`,
-      limit: 5,
+      query: `${name}${state ? ` ${state}` : ""} tuition and fees cost of attendance admissions requirements`,
+      limit: 8,
     }),
   });
 
   if (!response.ok) {
     const body = await response.text();
     console.error(`Website search failed [${response.status}] ${name}: ${body}`);
-    return null;
+    return [];
   }
 
   const payload = (await response.json()) as any;
-  const results: any[] = payload?.data ?? payload?.results ?? payload?.data?.web ?? [];
-  for (const result of Array.isArray(results) ? results : []) {
+  const raw = payload?.data?.web ?? payload?.data ?? payload?.results ?? [];
+  const results: any[] = Array.isArray(raw) ? raw : [];
+
+  const urls: string[] = [];
+  const domains = new Set<string>();
+  for (const result of results) {
     const url = String(result?.url ?? "");
-    if (!url) continue;
-    // Directory sites describe schools; only the school's own domain counts as
-    // an official source, and .edu is the reliable signal for that.
-    if (/\.edu(\/|$)/i.test(url)) return url;
+    // Directory and ranking sites describe schools; only the school's own
+    // domain counts as an official source, and .edu is the reliable signal.
+    if (!url || !/^https?:\/\/[^/]*\.edu(\/|$|:)/i.test(url)) continue;
+    let host = "";
+    try {
+      host = new URL(url).hostname.toLowerCase();
+    } catch {
+      continue;
+    }
+    // Two pages from one school is plenty; more than that mostly repeats itself.
+    if (domains.size && !domains.has(host)) continue;
+    domains.add(host);
+    if (!urls.includes(url)) urls.push(url);
+    if (urls.length >= 2) break;
   }
-  return null;
+  return urls;
 }
 
 /** Read one school's own pages and turn what they say into review items. */
@@ -99,26 +117,28 @@ export async function webFillSchool(
     errorMessage: null,
   };
 
-  let website: string | null = record["website_url"] ?? null;
-  if (!website) {
-    website = await findWebsite(outcome.schoolName, record["state"] ?? null);
-    if (website) {
-      outcome.websiteUrl = website;
-      // The address itself is a fact worth keeping, and every later run starts
-      // from it instead of paying for another search.
-      await supabase.from("universities").update({ website_url: website }).eq("id", universityId);
-    }
-  }
+  const found = await findSchoolPages(outcome.schoolName, record["state"] ?? null);
+  const targets = [record["admissions_url"] ?? null, ...found].filter(
+    (url, index, all): url is string => Boolean(url) && all.indexOf(url) === index,
+  );
 
-  if (!website) {
+  if (!targets.length) {
     outcome.status = "no_website";
-    outcome.errorMessage = "Couldn't find this school's own website";
+    outcome.errorMessage = "Couldn't find this school's own cost or admissions pages";
     return outcome;
   }
 
-  const targets = [website, record["admissions_url"] ?? null].filter(
-    (url, index, all): url is string => Boolean(url) && all.indexOf(url) === index,
-  );
+  if (!record["website_url"] && found[0]) {
+    // The address itself is worth keeping so later runs start from it.
+    try {
+      const home = new URL(found[0]).origin;
+      outcome.websiteUrl = home;
+      await supabase.from("universities").update({ website_url: home }).eq("id", universityId);
+    } catch {
+      /* a malformed address simply isn't stored */
+    }
+  }
+
 
   const proposals: ProposalRow[] = [];
   const failures: string[] = [];
