@@ -218,6 +218,43 @@ function Pipeline() {
     }
   }
 
+  /**
+   * Work the school-facts queue batch after batch until it's empty. Keeps going
+   * on its own so an interrupted pass can simply be restarted here, and stops
+   * cleanly if the federal service starts rate limiting us.
+   */
+  async function onFederalUntilDone() {
+    stopRef.current = false;
+    setBusy("federal-all");
+    let processed = 0;
+    let confirmed = 0;
+    let needsHelp = 0;
+    try {
+      for (let round = 0; round < 200; round += 1) {
+        const result = (await federalFn({ data: { limit: 25 } })) as any;
+        processed += result.processed;
+        confirmed += result.confirmed;
+        needsHelp += result.needsHelp;
+        note(`School facts: ${processed} done so far · ${confirmed} matched · ${needsHelp} need help`);
+        await refresh();
+        if (result.rateLimitHit) {
+          note("Paused: the federal data service is rate limiting us. Try again in a little while.");
+          toast.warning("Paused — federal data rate limit reached");
+          break;
+        }
+        if (!result.processed || stopRef.current) break;
+      }
+      toast.success(`${processed} school(s) processed`);
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Federal sync failed");
+    } finally {
+      stopRef.current = false;
+      setBusy(null);
+      await refresh();
+    }
+  }
+
+
   async function onRetryUnresolved() {
     setBusy("retry-federal");
     try {
