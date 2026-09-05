@@ -8,7 +8,7 @@
  * and far cheaper than another round of per-school queries.
  */
 
-import { scoreCandidates, verdictFor, type MatchStatus, type ScoredCandidate } from "@/lib/federal-match";
+import { CONSIDER_SCORE, scoreCandidates, verdictFor, type ScoredCandidate, type Verdict } from "@/lib/federal-match";
 
 const SCORECARD_URL = "https://api.data.gov/ed/collegescorecard/v1/schools";
 
@@ -80,7 +80,7 @@ export async function loadDirectory(): Promise<DirectoryEntry[]> {
 }
 
 export type DirectoryMatch = {
-  status: MatchStatus;
+  status: Verdict;
   unitid: number | null;
   matchedName: string | null;
   candidates: { unitid: number; name: string; city: string | null; state: string | null }[];
@@ -94,7 +94,7 @@ export function matchAgainstDirectory(
   city: string | null,
 ): DirectoryMatch {
   const scored = scoreCandidates(schoolName, state, directory, city).filter(
-    (candidate) => candidate.score >= 0.5,
+    (candidate) => candidate.score >= CONSIDER_SCORE,
   );
   const status = verdictFor(scored);
   const best = scored[0] ?? null;
@@ -115,7 +115,7 @@ export type SweepOutcome = {
   universityId: string;
   schoolName: string;
   state: string | null;
-  status: MatchStatus;
+  status: Verdict;
   matchedName: string | null;
   unitid: number | null;
   applied: boolean;
