@@ -615,10 +615,11 @@ function MatchResolver({
     setBusy(true);
     try {
       await notInFederalFn({ data: { universityId: school.id } });
-      toast.success(`${school.name} marked as not in the federal data`);
-      await onResolved(`${school.name}: marked as not in the federal data`);
+      toast.success(`${school.name} parked — you can undo this from the parked list below`);
+      await onResolved(`${school.name}: parked as not in the federal data`);
     } catch (failure) {
-      toast.error(friendly(failure, "Could not save that"));
+      toast.error(friendly(failure, "Couldn't park this school — please try again"));
+
     } finally {
       setBusy(false);
     }
