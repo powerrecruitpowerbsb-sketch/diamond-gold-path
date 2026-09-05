@@ -79,6 +79,22 @@ function firstLinkLabel(value: string): string | null {
   return plain(match[2] || match[1]!);
 }
 
+/**
+ * Wikipedia pages end with links to other index pages ("List of NAIA
+ * institutions", "Category:..."). Those aren't schools, so they must never be
+ * imported as one.
+ */
+export function looksLikeIndexPage(name: string): boolean {
+  return /^\s*(list of|index of|outline of|comparison of|timeline of|category:|template:|portal:|wikipedia:|help:|glossary of)\b/i.test(
+    name,
+  );
+}
+
+/** Trailing sections that follow a member list and contain unrelated links. */
+const TRAILING_SECTIONS =
+  /^(see also|references|notes|further reading|external links|sources|bibliography|footnotes)$/i;
+
+
 async function fetchWikitext(page: string, section?: number): Promise<string> {
   const params = new URLSearchParams({
     action: "parse",
@@ -140,7 +156,7 @@ async function naiaMembers(): Promise<MemberRow[]> {
   const rows: MemberRow[] = [];
   for (const cells of tableRows(text)) {
     const name = firstLinkLabel(cells[0] ?? "");
-    if (!name) continue;
+    if (!name || looksLikeIndexPage(name)) continue;
     // Departing members are struck through with a background colour; keep them,
     // the scrape stage retires anything that no longer sponsors the sport.
     const state = stateCode(firstLinkTarget(cells[3] ?? "")?.split(",").pop()?.trim() ?? plain(cells[3] ?? ""));
@@ -157,7 +173,13 @@ async function njcaaMembers(division: string): Promise<MemberRow[]> {
   const rows: MemberRow[] = [];
   let state: string | null = null;
 
-  for (const line of text.split("\n")) {
+  for (const raw of text.split("\n")) {
+    const line = raw.replace(/<[^>]+>/g, "").trim();
+    // Stop before "See also"/"References": those sections list other index
+    // pages, which would otherwise be read as schools in the last-seen state.
+    const top = /^==\s*([^=]+?)\s*==$/.exec(line);
+    if (top && TRAILING_SECTIONS.test(plain(top[1]!))) break;
+
     const heading = /^===\s*([^=]+?)\s*===$/.exec(line);
     if (heading) {
       state = stateCode(heading[1]!);
@@ -165,11 +187,12 @@ async function njcaaMembers(division: string): Promise<MemberRow[]> {
     }
     if (!/^\*\s*\[\[/.test(line)) continue;
     const name = firstLinkLabel(line);
-    if (!name) continue;
+    if (!name || looksLikeIndexPage(name)) continue;
     rows.push({ name, state, conference: null, division });
   }
   return rows;
 }
+
 
 /** CCCAA: conference headings over bullet lists; every member is in California. */
 async function cccaaMembers(): Promise<MemberRow[]> {
@@ -199,7 +222,7 @@ async function cccaaMembers(): Promise<MemberRow[]> {
     }
     if (!/^\*\s*\[\[/.test(line)) continue;
     const name = firstLinkLabel(line);
-    if (!name || !conference) continue;
+    if (!name || !conference || looksLikeIndexPage(name)) continue;
     rows.push({
       name,
       state: "CA",
@@ -222,7 +245,7 @@ async function nwacMembers(): Promise<MemberRow[]> {
     const location = plain(cells[1] ?? "");
     // The sports-sponsorship table further down the page has no "City, State"
     // column, which is how a member row is told apart from it.
-    if (!name || !location.includes(",")) continue;
+    if (!name || looksLikeIndexPage(name) || !location.includes(",")) continue;
     const region = plain(cells[cells.length - 1] ?? "");
     rows.push({
       name,
@@ -264,7 +287,8 @@ export async function fetchWikiDirectory(sliceKey: string): Promise<DirectoryRow
 
   for (const member of members) {
     const key = member.name.toLowerCase();
-    if (seen.has(key)) continue;
+    // Last line of defence: an index page must never become a school record.
+    if (seen.has(key) || looksLikeIndexPage(member.name)) continue;
     seen.add(key);
     for (const sport of ["baseball", "softball"] as const) {
       rows.push({

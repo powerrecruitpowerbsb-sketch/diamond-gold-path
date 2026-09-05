@@ -522,3 +522,117 @@ export const resolveFederalMatch = createServerFn({ method: "POST" })
 
     return clean(outcome);
   });
+
+/**
+ * Anything in the school list that reads like a directory or index page rather
+ * than a real school. Wikipedia imports occasionally sweep these up.
+ */
+const NON_SCHOOL_PATTERN = "^(list of|index of|outline of|comparison of|timeline of|category:|template:|portal:)";
+
+export const listNonSchoolEntries = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { data, error } = await context.supabase
+      .from("universities")
+      .select("id, name, state, federal_match_status")
+      .ilike("name", "%")
+      .or(
+        [
+          "name.ilike.list of%",
+          "name.ilike.index of%",
+          "name.ilike.outline of%",
+          "name.ilike.comparison of%",
+          "name.ilike.timeline of%",
+          "name.ilike.category:%",
+          "name.ilike.template:%",
+          "name.ilike.portal:%",
+        ].join(","),
+      )
+      .order("name")
+      .limit(200);
+    if (error) throw new Error(error.message);
+
+    const rows = (data ?? []) as any[];
+    if (!rows.length) return clean({ entries: [] });
+
+    // Show how much is hanging off each one so a removal is never a surprise.
+    const ids = rows.map((row) => row.id);
+    const { data: programs } = await context.supabase
+      .from("programs")
+      .select("id, university_id")
+      .in("university_id", ids);
+
+    const programCount = new Map<string, number>();
+    for (const program of (programs ?? []) as any[]) {
+      const key = String(program.university_id);
+      programCount.set(key, (programCount.get(key) ?? 0) + 1);
+    }
+
+    return clean({
+      entries: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        state: row.state ?? null,
+        programs: programCount.get(String(row.id)) ?? 0,
+      })),
+    });
+  });
+
+/** Remove one entry that isn't a school, plus everything attached to it. */
+export const removeNonSchoolEntry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { universityId: string }) => ({
+    universityId: String(input?.universityId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.universityId) throw new Error("Nothing was selected to remove");
+
+    const { data: school, error } = await context.supabase
+      .from("universities")
+      .select("id, name")
+      .eq("id", data.universityId)
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Only entries that match the index-page shape can be removed here, so a
+    // real school can never be deleted by this tool.
+    if (!new RegExp(NON_SCHOOL_PATTERN, "i").test(String(school.name ?? ""))) {
+      throw new Error("That looks like a real school — remove it from the school list instead");
+    }
+
+    // Order matters: dependent rows first, then the programs, then the school.
+    // Deletions are captured in the audit log by the database triggers.
+    const { error: ingestError } = await context.supabase
+      .from("ingest_queue")
+      .delete()
+      .eq("university_id", data.universityId);
+    if (ingestError) throw new Error(ingestError.message);
+
+    const { error: discoveryError } = await context.supabase
+      .from("url_discovery_queue")
+      .delete()
+      .eq("university_id", data.universityId);
+    if (discoveryError) throw new Error(discoveryError.message);
+    const { error: pendingError } = await context.supabase
+      .from("pending_data_changes")
+      .delete()
+      .eq("table_name", "universities")
+      .eq("record_id", data.universityId);
+    if (pendingError) throw new Error(pendingError.message);
+
+    const { error: programError } = await context.supabase
+      .from("programs")
+      .delete()
+      .eq("university_id", data.universityId);
+    if (programError) throw new Error(programError.message);
+
+    const { error: schoolError } = await context.supabase
+      .from("universities")
+      .delete()
+      .eq("id", data.universityId);
+    if (schoolError) throw new Error(schoolError.message);
+
+    return clean({ removed: String(school.name ?? "") });
+  });
