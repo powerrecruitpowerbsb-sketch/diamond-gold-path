@@ -50,3 +50,24 @@ describe("scoreCandidates", () => {
     expect(scored.every((c) => c.state === "TX")).toBe(true);
   });
 });
+
+describe("shorter federal names", () => {
+  it("does not match a school onto a less specific record", () => {
+    const scored = scoreCandidates("Bloomsburg University of Pennsylvania", "PA", [
+      { unitid: 1, name: "University of Pennsylvania", alias: null, city: "Philadelphia", state: "PA", mainCampus: true, enrollment: 25000 },
+    ]);
+    expect(verdictFor(scored)).not.toBe("confirmed");
+  });
+  it("does not match a branch onto its district record", () => {
+    const scored = scoreCandidates("CCBC-Catonsville", "MD", [
+      { unitid: 1, name: "Community College of Baltimore County", alias: "CCBC", city: "Baltimore", state: "MD", mainCampus: true, enrollment: 18000 },
+    ]);
+    expect(verdictFor(scored)).not.toBe("confirmed");
+  });
+  it("still confirms our name inside a federal suffix", () => {
+    const scored = scoreCandidates("Miami University (Ohio)", "OH", [
+      { unitid: 1, name: "Miami University-Oxford", alias: null, city: "Oxford", state: "OH", mainCampus: true, enrollment: 20000 },
+    ]);
+    expect(verdictFor(scored)).toBe("confirmed");
+  });
+});

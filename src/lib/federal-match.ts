@@ -121,9 +121,14 @@ export function nameSimilarity(ours: string, theirs: string): number {
 
   const setB = new Set(b);
   const shared = a.filter((token) => setB.has(token)).length;
-  const contained = shared === a.length || shared === new Set(b).size;
-  const score = shared / Math.max(a.length, new Set(b).size);
-  return contained ? Math.max(score, 0.9) : score;
+  const score = shared / Math.max(a.length, setB.size);
+  // Our whole name inside theirs is the good case: the extra words are the
+  // federal directory's own suffixes ("-Main Campus"). The reverse is not —
+  // "Bloomsburg University of Pennsylvania" contains "University of
+  // Pennsylvania" and is a completely different school, so a shorter federal
+  // name never gets the containment credit.
+  const oursInsideTheirs = shared === a.length && setB.size >= a.length;
+  return oursInsideTheirs ? Math.max(score, 0.9) : score;
 }
 
 /**
