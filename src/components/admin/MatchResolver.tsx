@@ -3,8 +3,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import {
+  linkSharedRecord,
   listFederalCandidates,
   markNotInFederal,
+  mergeDuplicateSchool,
+  previewSchoolMerge,
   resolveFederalMatch,
 } from "@/lib/pipeline.functions";
 
@@ -68,6 +71,9 @@ export function MatchResolver({
   const candidatesFn = useServerFn(listFederalCandidates);
   const resolveFn = useServerFn(resolveFederalMatch);
   const notInFederalFn = useServerFn(markNotInFederal);
+  const previewMergeFn = useServerFn(previewSchoolMerge);
+  const mergeFn = useServerFn(mergeDuplicateSchool);
+  const linkSharedFn = useServerFn(linkSharedRecord);
 
   const preloaded = suggestions ?? [];
   const best = preloaded[0] ?? null;
@@ -78,6 +84,17 @@ export function MatchResolver({
   const [candidates, setCandidates] = useState<MatchSuggestion[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [settled, setSettled] = useState<string | null>(null);
+  // Set when the record a person picked already belongs to another school.
+  const [conflict, setConflict] = useState<
+    | {
+        unitid: number;
+        recordName: string;
+        ownerId: string;
+        ownerName: string;
+        moves: { programs: number; rosterPlayers: number; shortlists: number; notes: number } | null;
+      }
+    | null
+  >(null);
 
   async function load(searchTerm: string) {
     setBusy(true);
@@ -97,6 +114,25 @@ export function MatchResolver({
     setBusy(true);
     try {
       const outcome = (await resolveFn({ data: { universityId: school.id, unitid } })) as any;
+      if (outcome?.conflict) {
+        let moves = null;
+        try {
+          moves = (await previewMergeFn({
+            data: { duplicateId: school.id, keeperId: outcome.conflict.ownerId },
+          })) as any;
+        } catch {
+          moves = null;
+        }
+        setConflict({
+          unitid,
+          recordName: name,
+          ownerId: String(outcome.conflict.ownerId),
+          ownerName: String(outcome.conflict.ownerName),
+          moves,
+        });
+        setOpen(false);
+        return;
+      }
       toast.success(`${school.name} matched to ${name}`);
       setSettled(`Matched to ${name}`);
       await onResolved(
@@ -105,6 +141,44 @@ export function MatchResolver({
       setOpen(false);
     } catch (failure) {
       toast.error(friendly(failure, "Could not save the match"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Same school held twice: fold this entry into the one with the record. */
+  async function onCombine() {
+    if (!conflict) return;
+    setBusy(true);
+    try {
+      await mergeFn({ data: { duplicateId: school.id, keeperId: conflict.ownerId } });
+      toast.success(`Combined into ${conflict.ownerName}`);
+      setSettled(`Combined into ${conflict.ownerName}`);
+      setConflict(null);
+      await onResolved(`${school.name} combined into ${conflict.ownerName}`);
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't combine these two schools"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** A different campus of the same institution: copy the facts across. */
+  async function onShareRecord() {
+    if (!conflict) return;
+    setBusy(true);
+    try {
+      const outcome = (await linkSharedFn({
+        data: { universityId: school.id, unitid: conflict.unitid },
+      })) as any;
+      toast.success(`${school.name} now shares ${conflict.ownerName}'s details`);
+      setSettled(`Shares a national record with ${conflict.ownerName}`);
+      setConflict(null);
+      await onResolved(
+        `${school.name} shares ${conflict.ownerName}'s national record: ${outcome?.fieldsApplied ?? 0} field(s) filled`,
+      );
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't copy those details across"));
     } finally {
       setBusy(false);
     }
