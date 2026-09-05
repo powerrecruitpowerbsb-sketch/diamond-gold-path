@@ -12,7 +12,9 @@ import {
   importWikiSlice,
   listFederalBlocked,
   listFederalParked,
+  listNonSchoolEntries,
   rebuildQueue,
+  removeNonSchoolEntry,
   retryFederalUnresolved,
   runDirectorySweep,
   runFederalBatch,
@@ -91,6 +93,8 @@ function Pipeline() {
   const parkedFn = useServerFn(listFederalParked);
   const unparkFn = useServerFn(unparkFederalSchool);
   const unparkAllFn = useServerFn(unparkAllFederalSchools);
+  const nonSchoolsFn = useServerFn(listNonSchoolEntries);
+  const removeNonSchoolFn = useServerFn(removeNonSchoolEntry);
 
   const queryClient = useQueryClient();
 
@@ -102,6 +106,10 @@ function Pipeline() {
   const { data: status } = useQuery({ queryKey: ["pipeline-status"], queryFn: () => statusFn() });
   const { data: blocked } = useQuery({ queryKey: ["federal-blocked"], queryFn: () => blockedFn() });
   const { data: parked } = useQuery({ queryKey: ["federal-parked"], queryFn: () => parkedFn() });
+  const { data: nonSchools } = useQuery({
+    queryKey: ["non-school-entries"],
+    queryFn: () => nonSchoolsFn(),
+  });
 
   function note(line: string) {
     setLog((current) => [line, ...current].slice(0, 12));
@@ -111,6 +119,7 @@ function Pipeline() {
     await queryClient.invalidateQueries({ queryKey: ["pipeline-status"] });
     await queryClient.invalidateQueries({ queryKey: ["federal-blocked"] });
     await queryClient.invalidateQueries({ queryKey: ["federal-parked"] });
+    await queryClient.invalidateQueries({ queryKey: ["non-school-entries"] });
   }
 
   /** Walk one slice in windows until the whole division/sport list is loaded. */
@@ -340,6 +349,21 @@ function Pipeline() {
       await refresh();
     } catch (failure) {
       toast.error(friendly(failure, "Couldn't put that school back in line"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /** Drop one directory/index page that was imported as if it were a school. */
+  async function onRemoveNonSchool(id: string, name: string) {
+    setBusy(`remove-${id}`);
+    try {
+      await removeNonSchoolFn({ data: { universityId: id } });
+      note(`Removed "${name}" — not a school`);
+      toast.success(`Removed "${name}"`);
+      await refresh();
+    } catch (failure) {
+      toast.error(friendly(failure, "Couldn't remove that entry"));
     } finally {
       setBusy(null);
     }
@@ -653,6 +677,41 @@ function Pipeline() {
                   className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel disabled:opacity-60"
                 >
                   {busy === `unpark-${school.id}` ? "Queueing…" : "Look again"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      ) : null}
+
+      {nonSchools?.entries?.length ? (
+        <SectionCard
+          title="Entries that aren't schools"
+          blurb="Directory and index pages that slipped in with a membership list. Removing one also clears its placeholder baseball and softball teams."
+        >
+          <div className="mt-4 grid gap-2">
+            <p className="text-sm font-semibold text-graphite">
+              {nonSchools.entries.length} entry(ies) to clear out
+            </p>
+            {nonSchools.entries.map((entry: any) => (
+              <div
+                key={entry.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-white p-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-graphite">{entry.name}</p>
+                  <p className="meta">
+                    {entry.state ? `${entry.state} · ` : ""}
+                    {entry.programs} placeholder team(s)
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void onRemoveNonSchool(entry.id, entry.name)}
+                  disabled={busy !== null}
+                  className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-seam-red disabled:opacity-60"
+                >
+                  {busy === `remove-${entry.id}` ? "Removing…" : "Remove"}
                 </button>
               </div>
             ))}
