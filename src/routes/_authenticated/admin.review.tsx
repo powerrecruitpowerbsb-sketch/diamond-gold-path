@@ -275,7 +275,13 @@ function ReviewQueue() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const busy = approve.isPending || reject.isPending || sweep.isPending || approveMatching.isPending;
+  const busy =
+    approve.isPending ||
+    reject.isPending ||
+    sweep.isPending ||
+    approveMatching.isPending ||
+    correct.isPending;
+
   const toggle = (set: Set<string>, id: string) => {
     const next = new Set(set);
     if (next.has(id)) next.delete(id);
