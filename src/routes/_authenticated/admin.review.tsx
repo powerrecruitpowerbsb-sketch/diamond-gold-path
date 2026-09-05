@@ -784,9 +784,126 @@ function ReviewQueue() {
                               )}
                               <span>· FOUND {new Date(item.created_at).toLocaleDateString()}</span>
                             </p>
+
+                            {correcting?.id === item.id ? (
+                              <div className="mt-3 space-y-3 rounded-lg border border-org-accent/50 bg-org-accent/10 p-3">
+                                {item.table_name === "roster_players" && !item.field_name ? (
+                                  <>
+                                    <label className="block">
+                                      <span className="meta mb-1.5 block">SEASON YEAR</span>
+                                      <input
+                                        value={correcting.season}
+                                        onChange={(event) =>
+                                          setCorrecting((prev) =>
+                                            prev ? { ...prev, season: event.target.value } : prev,
+                                          )
+                                        }
+                                        inputMode="numeric"
+                                        className="h-11 w-32 rounded-lg border border-input bg-card px-3 text-sm tabular-nums outline-none focus:border-org-primary"
+                                      />
+                                    </label>
+                                    <p className="text-sm text-steel">
+                                      Keeping{" "}
+                                      <span className="font-semibold tabular-nums text-graphite">
+                                        {correcting.players.length}
+                                      </span>{" "}
+                                      players. Remove anyone who does not belong.
+                                    </p>
+                                    <ul className="max-h-56 space-y-1 overflow-y-auto">
+                                      {correcting.players.map((player, index) => (
+                                        <li
+                                          key={index}
+                                          className="flex items-center justify-between gap-2 text-sm text-graphite"
+                                        >
+                                          <span className="truncate">
+                                            {dataValueLabel(player["name"])} ·{" "}
+                                            {dataValueLabel(player["position"])} ·{" "}
+                                            {dataValueLabel(player["class_year"])}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            className="meta hover:text-seam-red"
+                                            onClick={() =>
+                                              setCorrecting((prev) =>
+                                                prev
+                                                  ? {
+                                                      ...prev,
+                                                      players: prev.players.filter(
+                                                        (_, spot) => spot !== index,
+                                                      ),
+                                                    }
+                                                  : prev,
+                                              )
+                                            }
+                                          >
+                                            REMOVE
+                                          </button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </>
+                                ) : (
+                                  <label className="block">
+                                    <span className="meta mb-1.5 block">CORRECTED VALUE</span>
+                                    <input
+                                      value={correcting.value}
+                                      onChange={(event) =>
+                                        setCorrecting((prev) =>
+                                          prev ? { ...prev, value: event.target.value } : prev,
+                                        )
+                                      }
+                                      className="h-11 w-full max-w-xl rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
+                                    />
+                                  </label>
+                                )}
+                                <label className="block">
+                                  <span className="meta mb-1.5 block">NOTE (OPTIONAL)</span>
+                                  <input
+                                    value={correcting.note}
+                                    onChange={(event) =>
+                                      setCorrecting((prev) =>
+                                        prev ? { ...prev, note: event.target.value } : prev,
+                                      )
+                                    }
+                                    placeholder="Why you changed it"
+                                    className="h-11 w-full max-w-xl rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
+                                  />
+                                </label>
+                                <div className="flex gap-2">
+                                  <Button
+                                    className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      correct.mutate({
+                                        id: item.id,
+                                        value:
+                                          item.table_name === "roster_players" && !item.field_name
+                                            ? {
+                                                season_year:
+                                                  Number(correcting.season) || undefined,
+                                                players: correcting.players,
+                                              }
+                                            : correcting.value,
+                                        note: correcting.note || null,
+                                      })
+                                    }
+                                  >
+                                    Save and approve
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    className="touch-target"
+                                    disabled={busy}
+                                    onClick={() => setCorrecting(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
 
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2">
                             <Button
                               className="touch-target bg-diamond-green text-white hover:bg-diamond-green/90"
                               disabled={busy}
@@ -794,15 +911,45 @@ function ReviewQueue() {
                             >
                               Approve
                             </Button>
+                            {item.field_name ||
+                            (item.table_name === "roster_players" && !item.field_name) ? (
+                              <Button
+                                variant="outline"
+                                className="touch-target"
+                                disabled={busy}
+                                onClick={() =>
+                                  setCorrecting({
+                                    id: item.id,
+                                    value:
+                                      proposedScalar(item) == null
+                                        ? ""
+                                        : String(proposedScalar(item)),
+                                    season: String(item.proposed_value?.["season_year"] ?? ""),
+                                    players: rosterPlayers(item.proposed_value),
+                                    note: "",
+                                  })
+                                }
+                              >
+                                Fix and approve
+                              </Button>
+                            ) : null}
                             <Button
                               variant="outline"
                               className="touch-target"
                               disabled={busy}
-                              onClick={() => reject.mutate([item.id])}
+                              onClick={() =>
+                                setRejecting({
+                                  ids: [item.id],
+                                  label: "this item",
+                                  reason: "",
+                                  rescrape: false,
+                                })
+                              }
                             >
-                              Reject
+                              Decline
                             </Button>
                           </div>
+
                         </li>
                       );
                     })}
