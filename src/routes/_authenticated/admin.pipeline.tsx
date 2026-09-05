@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Building2, Database, Download, Landmark, RefreshCw } from "lucide-react";
@@ -11,11 +11,8 @@ import {
   importNcaaSlice,
   importWikiSlice,
   listFederalBlocked,
-  listFederalCandidates,
   listFederalParked,
-  markNotInFederal,
   rebuildQueue,
-  resolveFederalMatch,
   retryFederalUnresolved,
   runDirectorySweep,
   runFederalBatch,
