@@ -583,10 +583,18 @@ function ReviewQueue() {
                       variant="outline"
                       className="touch-target"
                       disabled={busy}
-                      onClick={() => reject.mutate(ids)}
+                      onClick={() =>
+                        setRejecting({
+                          ids,
+                          label: `all ${ids.length} item${ids.length === 1 ? "" : "s"} for ${group.schoolName}`,
+                          reason: "",
+                          rescrape: false,
+                        })
+                      }
                     >
-                      Reject all
+                      Decline all
                     </Button>
+
                   </div>
                 </div>
 
