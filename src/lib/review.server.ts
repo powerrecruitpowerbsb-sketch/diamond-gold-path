@@ -291,6 +291,14 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
       athleticWebsite: (record?.["athletic_website"] ?? null) as string | null,
       coachingStaffUrl: (record?.["coaching_staff_url"] ?? null) as string | null,
       schoolWebsite: ((record?.["universities"] as any)?.website_url ?? null) as string | null,
+      previouslyDeclined: declined.has(
+        rejectionKey({
+          table_name: row.table_name,
+          record_id: row.record_id,
+          field_name: row.field_name,
+          value: row.field_name ? unwrapFieldValue(row.field_name, row.proposed_value) : row.proposed_value,
+        }),
+      ),
     };
     // Say on the item itself why a person is being asked — the same judgement the
     // automatic tidy-up uses, so the screen and the sweep never disagree.
