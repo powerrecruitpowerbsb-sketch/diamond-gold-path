@@ -1796,6 +1796,7 @@ export type Database = {
       collection_cron_start: { Args: never; Returns: undefined }
       collection_cron_stop: { Args: never; Returns: undefined }
       collection_cron_unschedule: { Args: never; Returns: undefined }
+      collection_watchdog: { Args: never; Returns: Json }
       current_org_id: { Args: never; Returns: string }
       enqueue_due_refreshes: {
         Args: { _program_limit?: number; _school_limit?: number }
