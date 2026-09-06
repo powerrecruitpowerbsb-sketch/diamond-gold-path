@@ -25,7 +25,22 @@ A program is **complete** when it has: a verified sponsorship decision, an offic
 
 Target: 95%+ of the 3,115 sponsored programs complete, with the remainder listed by name and reason. The product can launch on that, because families search programs, not perfection.
 
+## Can we trust what's already in there?
+
+Schools: yes — matched against the federal directory. Programs, measured today:
+
+- **Does this school have the sport?** Strong. 3,056 of 3,115 "yes" decisions and all 274 "no" decisions come from the federal athletics report, an independent authority. Only 104 conflicts and 126 never-checked programs are unproven.
+- **Head coach.** Only 904 programs have one, but all 904 now trace to an official sport staff page checked within the last 30 days, because the unproven ones were cleared. Thin, not wrong.
+- **Rosters.** Weakest area. 42,324 current-season players across ~1,381 programs; 1,284 of those have believable squad sizes, 97 are suspiciously short, and 13,226 player rows still sit on older seasons and need clearing or re-pulling.
+- **Conference and division.** 616 sponsored programs have no conference and 550 no division — blank, which is honest, but it weakens search.
+
+So the honest read is: sponsorship proven, coaches proven-but-sparse, rosters need a verification pass. Step 0 below is that pass.
+
 ## The work, in order
+
+**0. Verify what's already stored, before adding more.**
+Re-run every existing program through the same guards used at write time: coach names without official sport-page proof are cleared and requeued, the 97 short rosters and 13,226 stale-season player rows are re-pulled or retired, and the 104 sponsorship conflicts get resolved. Output is a one-page report: how many stored values are proven, how many were cleared, how many need you. That report is the baseline you can trust, and it takes hours, not days.
+
 
 **1. Make the engine unstoppable (first, today).**
 Reclaim the 186 stuck jobs automatically after a timeout, restart on its own after any crash, and keep running on the timer without the page open. Add one honest progress line: programs completed, programs left, current rate, projected finish date. Right now nothing tells you whether you're 2 days or 2 months out — after this, it will.
