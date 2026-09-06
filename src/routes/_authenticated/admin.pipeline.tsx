@@ -7,6 +7,8 @@ import { toast } from "sonner";
 
 import { AccuracyPanel } from "@/components/admin/AccuracyPanel";
 import { CollectionRunner } from "@/components/admin/CollectionRunner";
+import { CompletionBoard } from "@/components/admin/CompletionBoard";
+
 import { SectionCard } from "@/components/admin/form-kit";
 import {
   getPipelineStatus,
