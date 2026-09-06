@@ -324,12 +324,18 @@ export async function groupPending(supabase: any, rows: DecoratedRow[]): Promise
     ),
   ];
 
+  const chunk = <T,>(items: T[], size: number) => {
+    const out: T[][] = [];
+    for (let index = 0; index < items.length; index += size) out.push(items.slice(index, index + size));
+    return out;
+  };
+
   const programToSchool = new Map<string, { schoolId: string; schoolName: string; sport: string }>();
-  if (programIds.length) {
+  for (const ids of chunk(programIds, 100)) {
     const { data } = await supabase
       .from("programs")
       .select("id, sport, university_id, universities(name)")
-      .in("id", programIds);
+      .in("id", ids);
     for (const program of (data ?? []) as any[]) {
       programToSchool.set(program.id, {
         schoolId: program.university_id,
@@ -348,10 +354,11 @@ export async function groupPending(supabase: any, rows: DecoratedRow[]): Promise
     ),
   ];
   const schoolNames = new Map<string, string>();
-  if (schoolIds.length) {
-    const { data } = await supabase.from("universities").select("id, name").in("id", schoolIds);
+  for (const ids of chunk(schoolIds, 100)) {
+    const { data } = await supabase.from("universities").select("id, name").in("id", ids);
     for (const school of (data ?? []) as any[]) schoolNames.set(school.id, school.name);
   }
+
 
   const groups = new Map<string, PendingGroup>();
 
