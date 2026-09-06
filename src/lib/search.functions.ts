@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { fetchAllRows } from "@/lib/paginate";
 import {
   UNIVERSITY_COLS,
   normalizeSearchInput,
@@ -11,9 +12,15 @@ import {
 export const getSearchFacets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Paged reads: both tables hold more rows than one request can return, and a
+    // truncated read would quietly drop states and conferences from the filters.
     const [universities, programs, majors] = await Promise.all([
-      context.supabase.from("universities").select("state, region"),
-      context.supabase.from("programs").select("conference, division"),
+      fetchAllRows((from, to) =>
+        context.supabase.from("universities").select("state, region").order("id").range(from, to) as any,
+      ),
+      fetchAllRows((from, to) =>
+        context.supabase.from("programs").select("conference, division").order("id").range(from, to) as any,
+      ),
       context.supabase.from("majors").select("id, name").order("name"),
     ]);
 
@@ -21,13 +28,14 @@ export const getSearchFacets = createServerFn({ method: "GET" })
       Array.from(new Set(values.filter((v): v is string => Boolean(v && v.trim())))).sort();
 
     return {
-      states: uniq(((universities.data ?? []) as any[]).map((r) => r.state)),
-      regions: uniq(((universities.data ?? []) as any[]).map((r) => r.region)),
-      conferences: uniq(((programs.data ?? []) as any[]).map((r) => r.conference)),
-      divisions: uniq(((programs.data ?? []) as any[]).map((r) => r.division)),
-      majors: ((majors.data ?? []) as any[]).map((m) => ({ id: m.id, name: m.name })),
+      states: uniq((universities as any[]).map((r) => r.state)),
+      regions: uniq((universities as any[]).map((r) => r.region)),
+      conferences: uniq((programs as any[]).map((r) => r.conference)),
+      divisions: uniq((programs as any[]).map((r) => r.division)),
+      majors: (((majors as any).data ?? []) as any[]).map((m) => ({ id: m.id, name: m.name })),
     };
   });
+
 
 /** Filtered program search. RLS applies as the signed-in user. */
 export const searchPrograms = createServerFn({ method: "POST" })
@@ -71,7 +79,9 @@ export const searchPrograms = createServerFn({ method: "POST" })
         `id, sport, governing_body, division, conference, scholarships_available, scholarship_details,
          athletic_website, roster_url, coaching_staff_url, head_coach_name, last_verified_at,
          universities!inner(${UNIVERSITY_COLS})`,
+        { count: "exact" },
       )
+
       .eq("sport", f.sport)
       .eq("offering_status", "verified");
 
@@ -105,11 +115,18 @@ export const searchPrograms = createServerFn({ method: "POST" })
     // Acceptance rate is stored 0-100, the same scale the filter uses.
     range("universities.acceptance_rate", f.acceptanceMin, f.acceptanceMax);
 
-    const { data, error } = await query.limit(400);
+    // Ordered by school name so the cap always takes the same, alphabetical slice
+    // instead of an arbitrary 400 rows.
+    const LIMIT = 400;
+    const { data, error, count } = await query
+      .order("name", { referencedTable: "universities" })
+      .limit(LIMIT);
     if (error) throw new Error(error.message);
 
     const rows = (data ?? []) as any[];
+    const capped = rows.length >= LIMIT;
     const programIds = rows.map((r) => r.id);
+
 
     // Roster size = player count for the most recent season on file per program.
     const rosterSizes = new Map<string, { seasonYear: number | null; size: number }>();
@@ -145,7 +162,18 @@ export const searchPrograms = createServerFn({ method: "POST" })
 
     results.sort((a, b) => String(a.university?.name).localeCompare(String(b.university?.name)));
 
-    return { results, total: results.length };
+    const rosterFiltered = f.rosterMin !== null || f.rosterMax !== null;
+    const matches = Number(count ?? results.length);
+
+    return {
+      results,
+      total: results.length,
+      // How many programs match the filters in total, and whether the list was cut
+      // off at the display cap (roster-size filtering happens after the fetch).
+      matches: rosterFiltered ? results.length : matches,
+      capped: capped && !rosterFiltered,
+    };
+
   });
 
 /** Everything the program profile page renders. */

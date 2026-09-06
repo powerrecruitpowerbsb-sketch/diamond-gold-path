@@ -356,8 +356,13 @@ function SearchScreen() {
         <h2 className="font-display text-xl font-bold text-graphite">
           {results.isPending ? "Searching…" : `${rows.length} program${rows.length === 1 ? "" : "s"}`}
         </h2>
-        <p className="meta">{titleCase(params.sport)}</p>
+        <p className="meta">
+          {results.data?.capped
+            ? `Showing the first ${rows.length} of ${results.data.matches} — narrow your filters · ${titleCase(params.sport)}`
+            : titleCase(params.sport)}
+        </p>
       </div>
+
 
       {results.isError ? (
         <p className="mt-4 rounded-xl bg-seam-red-tint p-4 text-sm text-seam-red">
