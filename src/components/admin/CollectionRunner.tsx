@@ -45,6 +45,9 @@ export function CollectionRunner() {
   const startFn = useServerFn(startCollection);
   const stopFn = useServerFn(stopCollection);
 
+  const wavesFn = useServerFn(getCollectionWaves);
+  const chooseWaveFn = useServerFn(chooseCollectionWave);
+
   const [busy, setBusy] = useState(false);
 
   const { data, refetch } = useQuery<Progress>({
@@ -53,7 +56,32 @@ export function CollectionRunner() {
     refetchInterval: 20_000,
   });
 
+  const { data: waves, refetch: refetchWaves } = useQuery({
+    queryKey: ["collection-waves"],
+    queryFn: () => wavesFn() as Promise<{ key: string; label: string; waiting: number; held: number }[]>,
+    refetchInterval: 60_000,
+  });
+
   const running = Boolean(data?.state.isRunning);
+
+  async function onChooseWave(wave: string, label: string) {
+    setBusy(true);
+    try {
+      const result = (await chooseWaveFn({ data: { wave } })) as {
+        released: number;
+        held: number;
+        waitingInWave: number;
+      };
+      toast.success(
+        `${label} is next in line — ${result.waitingInWave} team${result.waitingInWave === 1 ? "" : "s"} to work through${result.held ? `, ${result.held} set aside for later` : ""}`,
+      );
+      await Promise.all([refetch(), refetchWaves()]);
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not switch levels");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onStart() {
     setBusy(true);
@@ -63,6 +91,7 @@ export function CollectionRunner() {
         (sum: number, n) => sum + Number(n ?? 0),
         0,
       );
+
       toast.success(
         queued
           ? `Collection running — ${queued} new job(s) added. You can close this page.`
