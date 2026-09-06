@@ -18,6 +18,35 @@ import {
 
 type Progress = Awaited<ReturnType<typeof getCollectionProgress>>;
 
+type Level = {
+  key: string;
+  label: string;
+  waiting: number;
+  held: number;
+  running: number;
+  done: number;
+  total: number;
+  complete: boolean;
+};
+
+type Board = {
+  levels: Level[];
+  currentWave: string | null;
+  nextWave: string | null;
+  autoAdvance: boolean;
+  perMinute: number;
+};
+
+/** "about 35 min" / "about 2 hr" from a count and a per-minute pace. */
+function estimate(left: number, perMinute: number): string | null {
+  if (!left || perMinute <= 0) return null;
+  const minutes = Math.round(left / perMinute);
+  if (minutes < 60) return `about ${Math.max(1, minutes)} min left at the current pace`;
+  const hours = Math.round((minutes / 60) * 10) / 10;
+  return `about ${hours} hr left at the current pace`;
+}
+
+
 function Tile({ label, value, hint }: { label: string; value: number | string; hint?: string }) {
   return (
     <div className="rounded-lg border border-border p-3">
