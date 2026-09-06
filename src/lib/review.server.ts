@@ -512,6 +512,11 @@ export function pendingVerdict(row: any): {
   /** Set for a roster we keep even though the page was only partly read. */
   partial?: boolean;
 } {
+  // A value someone already turned down is never raised a second time.
+  if (row.previouslyDeclined) {
+    return { kind: "no_change", reason: "you turned this value down before" };
+  }
+
   if (row.table_name === "roster_players") {
     const verdict = rosterVerdict(row.proposed_value ?? {}, row.source_url);
     if (verdict.auto) {
