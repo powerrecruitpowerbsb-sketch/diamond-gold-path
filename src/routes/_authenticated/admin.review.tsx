@@ -258,7 +258,7 @@ function ReviewQueue() {
   const correct = useMutation({
     mutationFn: (input: { id: string; value: unknown; note: string | null }) =>
       correctFn({ data: input }),
-    onSuccess: async (_result, input: { id: string }) => {
+    onSuccess: async (_result, input: { id: string; value: unknown; note: string | null }) => {
       toast.success("Saved your corrected value to live data");
       setCorrecting(null);
       await invalidate([input.id]);
