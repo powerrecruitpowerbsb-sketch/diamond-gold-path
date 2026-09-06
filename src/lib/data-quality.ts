@@ -45,9 +45,12 @@ export function normalizeUrlValue(value: unknown): string {
 function normalizeText(value: unknown): string {
   return String(value ?? "")
     .trim()
+    .replace(/[.,'’"()]/g, "")
+    .replace(/[-–—/]/g, " ")
     .replace(/\s+/g, " ")
     .toLowerCase();
 }
+
 
 /**
  * "Kansas" and "KS" are the same answer. We store the two-letter code, so a page
