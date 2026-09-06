@@ -212,9 +212,18 @@ export async function discoverAthleticWebsite(
 ): Promise<DiscoveryResult> {
   const query = `${name}${state ? ` ${state}` : ""} official athletics website`;
   const payload = await firecrawl("/search", { query, limit: 8 });
+  const isBlocked = (url: string) => {
+    if (excluded.has(normalizeUrl(url))) return true;
+    try {
+      return excluded.has(normalizeUrl(new URL(url).origin));
+    } catch {
+      return false;
+    }
+  };
   const candidates = readSearchResults(payload).filter(
-    (row) => !isNonOfficial(row.url) && !excluded.has(normalizeUrl(row.url)),
+    (row) => !isNonOfficial(row.url) && !isBlocked(row.url),
   );
+
 
 
   if (!candidates.length) {
