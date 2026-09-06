@@ -44,9 +44,10 @@ const chunk = <T,>(items: T[], size: number) => {
 export async function sweepDiscoveredLinks(
   supabase: any,
   actorId: string,
-  options: { apply: boolean; limit?: number } = { apply: false },
+  options: { apply: boolean; limit?: number; offset?: number } = { apply: false },
 ): Promise<SweepCounts> {
   const limit = Math.min(Math.max(options.limit ?? 1000, 1), 1000);
+  const offset = Math.max(options.offset ?? 0, 0);
 
   const { count: pendingTotal } = await supabase
     .from("url_discovery_queue")
@@ -62,8 +63,9 @@ export async function sweepDiscoveredLinks(
     .eq("status", "pending_review")
     .not("discovered_url", "is", null)
     .order("created_at", { ascending: true })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
   if (error) throw new Error(error.message);
+
 
   const rows = (data ?? []) as Row[];
   const counts: SweepCounts = {
