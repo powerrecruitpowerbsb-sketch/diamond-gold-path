@@ -115,54 +115,86 @@ export function valuesEquivalent(field: string, current: unknown, next: unknown)
  * Known abbreviations expand to the full name; anything unknown is just tidied
  * so at least casing and spacing stop generating fake differences.
  */
+/**
+ * Abbreviation to full name. Keys are already in normalized form (lower case,
+ * no punctuation, hyphens as spaces) because that's how they're looked up.
+ */
 const CONFERENCE_ALIASES: Record<string, string> = {
-  nwac: "Northwest Athletic Conference",
-  "northwest athletic conference": "Northwest Athletic Conference",
-  sec: "Southeastern Conference",
-  "south east conference": "Southeastern Conference",
-  "southeastern conference": "Southeastern Conference",
-  "big 12": "Big 12 Conference",
-  "big 12 conference": "Big 12 Conference",
-  "big ten": "Big Ten Conference",
-  "big ten conference": "Big Ten Conference",
-  acc: "Atlantic Coast Conference",
-  "atlantic coast conference": "Atlantic Coast Conference",
-  "pac-12": "Pac-12 Conference",
-  "big east": "Big East Conference",
-  "big west": "Big West Conference",
-  "sun belt": "Sun Belt Conference",
-  "cusa": "Conference USA",
-  "conference usa": "Conference USA",
-  "aac": "American Athletic Conference",
-  "american athletic conference": "American Athletic Conference",
-  "mac": "Mid-American Conference",
-  "mid-american conference": "Mid-American Conference",
-  "mwc": "Mountain West Conference",
-  "mountain west conference": "Mountain West Conference",
-  "wcc": "West Coast Conference",
-  "west coast conference": "West Coast Conference",
-  "wac": "Western Athletic Conference",
-  "caa": "Coastal Athletic Association",
-  "socon": "Southern Conference",
-  "gac": "Great American Conference",
-  "great american conference": "Great American Conference",
-  "pcac": "Pacific Coast Athletic Conference",
-  "pacific coast athletic conference": "Pacific Coast Athletic Conference",
-  scc: "South Coast Conference",
-  "south coast conference": "South Coast Conference",
+  nwac: "northwest athletic",
+  sec: "southeastern",
+  "south east": "southeastern",
+  "big 10": "big ten",
+  b1g: "big ten",
+  acc: "atlantic coast",
+  pac 12: "pac 12",
+  "big 12": "big 12",
+  cusa: "usa",
+  aac: "american athletic",
+  mac: "mid american",
+  mwc: "mountain west",
+  wcc: "west coast",
+  wac: "western athletic",
+  caa: "coastal athletic",
+  socon: "southern",
+  gac: "great american",
+  pcac: "pacific coast athletic",
+  scc: "south coast",
+  siac: "southern intercollegiate athletic",
+  rmac: "rocky mountain athletic",
+  wiac: "wisconsin intercollegiate athletic",
+  sciac: "southern california intercollegiate athletic",
+  scac: "southern collegiate athletic",
+  pacwest: "pacific west",
+  "pac west": "pacific west",
+  odac: "old dominion athletic",
+  asun: "atlantic sun",
+  ovc: "ohio valley",
+  maac: "metro atlantic athletic",
+  meac: "mid eastern athletic",
+  swac: "southwestern athletic",
+  nec: "northeast",
+  aec: "america east",
+  psac: "pennsylvania state athletic",
+  gnac: "great northwest athletic",
+  glvc: "great lakes valley",
+  giac: "gulf south",
+  gsc: "gulf south",
+  sac: "south atlantic",
+  ccaa: "california collegiate athletic",
+  lsc: "lone star",
+  miaa: "mid america intercollegiate athletics",
+  nsic: "northern sun intercollegiate",
+  ecc: "east coast",
+  cciw: "college conference of illinois and wisconsin",
+  nescac: "new england small college athletic",
+  liberty: "liberty league",
+  "the summit league": "summit",
+  summit: "summit",
+  "horizon league": "horizon",
+  "ivy league": "ivy",
+  "patriot league": "patriot",
+  cvc: "california valley",
 };
 
+/** Wording that adds nothing: every conference is an "athletic conference". */
+const CONFERENCE_NOISE =
+  /\b(conference|conf|athletics|association|league|the)\b/g;
+
 export function canonicalConference(value: unknown): string {
-  const key = normalizeText(value).replace(/\bconf\.?\b/g, "conference");
+  let key = normalizeText(value);
   if (!key) return "";
-  return CONFERENCE_ALIASES[key] ?? key.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  key = CONFERENCE_ALIASES[key] ?? key;
+  const trimmed = key.replace(CONFERENCE_NOISE, " ").replace(/\s+/g, " ").trim();
+  const expanded = CONFERENCE_ALIASES[trimmed] ?? trimmed;
+  return expanded.replace(CONFERENCE_NOISE, " ").replace(/\s+/g, " ").trim();
 }
 
 /** True for a conference string we don't recognise — worth a human glance. */
 export function isUnknownConference(value: unknown): boolean {
-  const key = normalizeText(value).replace(/\bconf\.?\b/g, "conference");
-  return Boolean(key) && !(key in CONFERENCE_ALIASES);
+  const key = canonicalConference(value);
+  return Boolean(key) && !Object.values(CONFERENCE_ALIASES).includes(key);
 }
+
 
 /**
  * Roster pages carry jersey numbers, career stats and archive years that a model
