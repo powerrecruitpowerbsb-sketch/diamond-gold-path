@@ -39,15 +39,22 @@ These are queued work, not new features. Run them continuously with the current 
 **4. Prove the coach guard once, with tests.**
 Freeze the real failures (UCF, Cincinnati, Texas State, plus the Seton Hill/Rhodes false rejects) as fixed test cases so the guard can never silently regress while volume runs. This is a half-day, and it's what lets step 2 run unattended.
 
-**5. Keep your queue an exceptions list.**
-Verified-only gating and pull-time settlement are already in. Add the last piece: a rejected-value memory so a value you declined is never re-proposed, and a weekly 25-program spot check that reports a plain accuracy percentage per field. That number is how you know the database is trustworthy without clicking through it.
+**5. Safety rails that run alongside the fill, not after it.**
+Each of these works at write time, so it makes the volume in step 2 trustworthy instead of delaying it:
+- **Rejected-value memory** — a value you declined is never proposed again for that program and field.
+- **Two-source agreement for coaches** — written only when the sport's own official staff page states it, or two independent pages agree; anything less stays an exception. This is exactly where the Big 12 error came from, so it is not optional.
+- **Per-field provenance on every new write** — any value on screen traces to the page and date it came from. This is also what makes the product credible to families.
+- **Duplicate protection on rosters** — a uniqueness rule plus a one-off cleanup of the 35 existing duplicates, so re-pulls can never double a team.
+- **Weekly accuracy score** — sample 25 programs, re-fetch, compare, report a plain percentage per field. That number is how you know it's accurate without clicking through 3,000 programs.
+- **Report a mistake** — one control on any program that clears the value and requeues it with the reporter's note, so errors found in real use get fixed instead of lived with.
 
 **6. Then stop working on the pipeline.**
 Once step 1's projection says "complete", the remaining work is product: search, comparison, athlete matching, family experience. The pipeline becomes a background service you check weekly.
 
-## What I am deliberately not doing
+## What I am deliberately leaving for later
 
-Two-source corroboration for every field, full provenance backfill, batch undo, and duplicate-roster indexing are real improvements but they slow completion and none of them are what's blocking a product. They go on a later list. The 35 duplicate roster rows get cleaned as a one-off, no schema work.
+Batch undo of a whole sweep, backfilling provenance for values written before today, and a two-source rule for non-coach facts. Each is a large retroactive pass over 30,000+ existing rows and none changes what a family sees, so they wait until the fill is complete.
+
 
 ## Technical notes
 
