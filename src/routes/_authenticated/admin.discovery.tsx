@@ -266,6 +266,13 @@ function DiscoveryQueue() {
             : `${list.data?.total ?? 0} link${(list.data?.total ?? 0) === 1 ? "" : "s"} waiting · page ${list.data?.page ?? 1} of ${list.data?.totalPages ?? 1}`
         }
       >
+        {(list.data as any)?.hiddenUnsponsored ? (
+          <p className="meta mb-3">
+            {(list.data as any).hiddenUnsponsored} link
+            {(list.data as any).hiddenUnsponsored === 1 ? "" : "s"} held back — we haven't confirmed those
+            schools play that sport yet.
+          </p>
+        ) : null}
         {list.isPending ? (
           <div className="h-40 animate-pulse rounded-xl bg-muted" />
         ) : !rows.length ? (
