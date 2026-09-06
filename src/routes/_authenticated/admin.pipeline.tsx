@@ -16,6 +16,7 @@ import {
   listNonSchoolEntries,
   rebuildQueue,
   removeNonSchoolEntry,
+  requeueRejected,
   retryFederalUnresolved,
   runDirectorySweep,
   runFederalBatch,
@@ -96,6 +97,30 @@ function Pipeline() {
   const unparkAllFn = useServerFn(unparkAllFederalSchools);
   const nonSchoolsFn = useServerFn(listNonSchoolEntries);
   const removeNonSchoolFn = useServerFn(removeNonSchoolEntry);
+  const requeueRejectedFn = useServerFn(requeueRejected);
+
+  const onRequeueRejected = async () => {
+    setBusy("requeue-rejected");
+    try {
+      const result = (await requeueRejectedFn({})) as {
+        schoolsQueued: number;
+        cappedSchools: number;
+        programsQueued: number;
+      };
+      toast.success(
+        `${result.schoolsQueued} school${result.schoolsQueued === 1 ? "" : "s"} and ${result.programsQueued} program${result.programsQueued === 1 ? "" : "s"} sent back for a fresh look`,
+      );
+      if (result.cappedSchools)
+        toast.message(
+          `${result.cappedSchools} school${result.cappedSchools === 1 ? "" : "s"} have been searched too many times — those need a link pasted in by hand.`,
+        );
+      await queryClient.invalidateQueries();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not queue them");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const queryClient = useQueryClient();
 
@@ -492,6 +517,27 @@ function Pipeline() {
           Hands-on tools — pull lists, fill school facts, clean up
         </summary>
         <div className="mt-4 grid gap-5">
+
+      <SectionCard
+        title="Look again at everything you declined"
+        blurb="From now on, declining a link or a value sends that school straight back for a fresh look. This catches up on everything declined before that was switched on."
+        aside={
+          <button
+            type="button"
+            onClick={onRequeueRejected}
+            disabled={busy !== null}
+            className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            <RefreshCw className="size-4" aria-hidden />
+            {busy === "requeue-rejected" ? "Queueing…" : "Search these again"}
+          </button>
+        }
+      >
+        <p className="text-sm text-steel">
+          The links you turned down are remembered, so the same wrong page can't come back as a
+          suggestion.
+        </p>
+      </SectionCard>
 
       <SectionCard
         title="Step 1 — Pull the NCAA membership list"

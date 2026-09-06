@@ -159,6 +159,36 @@ export function isNonOfficial(url: string): boolean {
   return NON_OFFICIAL.some((bad) => host === bad || host.endsWith(`.${bad}`));
 }
 
+/** Comparable form of a URL, so a rejected link is recognised however it was written. */
+export function normalizeUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(String(url));
+    return `${parsed.hostname.replace(/^www\./i, "").toLowerCase()}${parsed.pathname.replace(/\/+$/, "").toLowerCase()}`;
+  } catch {
+    return String(url).trim().toLowerCase().replace(/\/+$/, "");
+  }
+}
+
+/** Links a person already declined for this school, so they never come back. */
+export async function loadRejectedUrls(
+  supabase: any,
+  universityId: string,
+): Promise<Set<string>> {
+  const { data } = await supabase
+    .from("url_discovery_queue")
+    .select("discovered_url")
+    .eq("university_id", universityId)
+    .eq("status", "rejected");
+  const blocked = new Set<string>();
+  for (const row of (data ?? []) as { discovered_url: string | null }[]) {
+    const key = normalizeUrl(row.discovered_url);
+    if (key) blocked.add(key);
+  }
+  return blocked;
+}
+
+
 type Candidate = { url: string; title: string };
 
 function readSearchResults(payload: any): Candidate[] {
@@ -178,10 +208,23 @@ function readSearchResults(payload: any): Candidate[] {
 export async function discoverAthleticWebsite(
   name: string,
   state: string | null,
+  excluded: Set<string> = new Set(),
 ): Promise<DiscoveryResult> {
   const query = `${name}${state ? ` ${state}` : ""} official athletics website`;
   const payload = await firecrawl("/search", { query, limit: 8 });
-  const candidates = readSearchResults(payload).filter((row) => !isNonOfficial(row.url));
+  const isBlocked = (url: string) => {
+    if (excluded.has(normalizeUrl(url))) return true;
+    try {
+      return excluded.has(normalizeUrl(new URL(url).origin));
+    } catch {
+      return false;
+    }
+  };
+  const candidates = readSearchResults(payload).filter(
+    (row) => !isNonOfficial(row.url) && !isBlocked(row.url),
+  );
+
+
 
   if (!candidates.length) {
     return {
@@ -343,6 +386,7 @@ function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
 export async function discoverProgramPages(
   athleticSite: string,
   programs: { id: string; sport: string }[],
+  excluded: Set<string> = new Set(),
 ): Promise<DiscoveryResult[]> {
   const results: DiscoveryResult[] = [];
   const links = new Set<string>();
@@ -356,12 +400,15 @@ export async function discoverProgramPages(
     }
   }
 
-  const all = [...links];
+  // Anything a person already declined for this school is a dead end.
+  const all = [...links].filter((url) => !excluded.has(normalizeUrl(url)));
 
   for (const program of programs) {
     for (const kind of ["roster", "coach"] as const) {
       const discoveryType: DiscoveryType = kind === "roster" ? "roster_page" : "coaching_staff_page";
-      const pick = all.length ? pickPageUrl(all, program.sport, kind) : null;
+      const candidate = all.length ? pickPageUrl(all, program.sport, kind) : null;
+      const pick = candidate && excluded.has(normalizeUrl(candidate.url)) ? null : candidate;
+
       results.push({
         discoveryType,
         programId: program.id,
@@ -403,20 +450,23 @@ export async function discoverUniversityUrls(
 
   const results: DiscoveryResult[] = [];
   let errorMessage: string | null = null;
+  const excluded = await loadRejectedUrls(supabase, universityId);
 
   try {
-    const site = await discoverAthleticWebsite(name, state);
+    const site = await discoverAthleticWebsite(name, state, excluded);
     results.push(site);
     if (site.url) {
       const pageResults = await discoverProgramPages(
         site.url,
         (programs ?? []) as { id: string; sport: string }[],
+        excluded,
       );
       results.push(...pageResults);
     }
   } catch (failure) {
     errorMessage = failure instanceof Error ? failure.message : "Discovery failed";
   }
+
 
   for (const result of results) {
     // Refresh the open proposal for this school/program/link kind rather than
@@ -480,4 +530,63 @@ export async function applyDiscoveredUrl(
     .update({ [field]: row.discovered_url })
     .eq("id", row.program_id);
   if (error) throw new Error(error.message);
+}
+
+/** How many times a person has already declined a link of this kind for a school. */
+export async function rejectedCount(
+  supabase: any,
+  universityId: string,
+  discoveryType: DiscoveryType,
+): Promise<number> {
+  const { count } = await supabase
+    .from("url_discovery_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("university_id", universityId)
+    .eq("discovery_type", discoveryType)
+    .eq("status", "rejected");
+  return count ?? 0;
+}
+
+export const REJECT_RESEARCH_LIMIT = 3;
+
+/**
+ * Send a school back for a fresh link search. Stops after a few rounds so a
+ * school whose site simply can't be found doesn't loop forever.
+ */
+export async function requeueSchoolForDiscovery(
+  supabase: any,
+  universityId: string,
+  discoveryType?: DiscoveryType,
+): Promise<{ requeued: boolean; reason: string }> {
+  if (discoveryType) {
+    const tries = await rejectedCount(supabase, universityId, discoveryType);
+    if (tries >= REJECT_RESEARCH_LIMIT) {
+      return {
+        requeued: false,
+        reason: `Searched ${tries} times already — this one needs a link pasted in by hand.`,
+      };
+    }
+  }
+
+  const { data: existing } = await supabase
+    .from("ingest_queue")
+    .select("id")
+    .eq("university_id", universityId)
+    .eq("stage", "url_discovery")
+    .limit(1);
+
+  if (existing && existing.length) {
+    const { error } = await supabase
+      .from("ingest_queue")
+      .update({ status: "pending", attempts: 0, last_error: null, leased_at: null })
+      .eq("id", (existing[0] as { id: string }).id);
+    if (error) return { requeued: false, reason: error.message };
+    return { requeued: true, reason: "Queued for a fresh search." };
+  }
+
+  const { error } = await supabase
+    .from("ingest_queue")
+    .insert({ university_id: universityId, stage: "url_discovery", status: "pending" });
+  if (error) return { requeued: false, reason: error.message };
+  return { requeued: true, reason: "Queued for a fresh search." };
 }

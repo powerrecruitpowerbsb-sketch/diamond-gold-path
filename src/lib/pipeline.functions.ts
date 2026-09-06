@@ -679,3 +679,72 @@ export const linkSharedRecord = createServerFn({ method: "POST" })
       await linkSharedFederalRecord(context.supabase, context.userId, data.universityId, data.unitid),
     );
   });
+
+/**
+ * One-time catch-up: everything a person already declined goes back in line for
+ * a fresh look, so the backlog gets picked up by the background collector.
+ */
+export const requeueRejected = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { requeueSchoolForDiscovery } = await import("@/lib/discovery.server");
+
+    const { data: rejectedLinks, error: linkError } = await context.supabase
+      .from("url_discovery_queue")
+      .select("university_id, discovery_type")
+      .eq("status", "rejected");
+    if (linkError) throw new Error(linkError.message);
+
+    const seen = new Set<string>();
+    let schoolsQueued = 0;
+    let cappedSchools = 0;
+    for (const row of (rejectedLinks ?? []) as {
+      university_id: string;
+      discovery_type: any;
+    }[]) {
+      const key = `${row.university_id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const outcome = await requeueSchoolForDiscovery(
+        context.supabase,
+        String(row.university_id),
+        row.discovery_type,
+      );
+      if (outcome.requeued) schoolsQueued += 1;
+      else cappedSchools += 1;
+    }
+
+    // Programs whose proposed values were declined get read again too.
+    const { data: rejectedChanges, error: changeError } = await context.supabase
+      .from("pending_data_changes")
+      .select("table_name, record_id, proposed_value")
+      .eq("status", "rejected");
+    if (changeError) throw new Error(changeError.message);
+
+    const programIds = new Set<string>();
+    for (const row of (rejectedChanges ?? []) as any[]) {
+      const candidate =
+        row.table_name === "programs"
+          ? row.record_id
+          : row.table_name === "roster_players"
+            ? (row.proposed_value?.program_id ?? row.record_id)
+            : null;
+      if (candidate) programIds.add(String(candidate));
+    }
+
+    let programsQueued = 0;
+    const ids = [...programIds];
+    for (let index = 0; index < ids.length; index += 100) {
+      const batch = ids.slice(index, index + 100);
+      const { data: updated, error: queueError } = await context.supabase
+        .from("ingest_queue")
+        .update({ status: "pending", attempts: 0, last_error: null, leased_at: null })
+        .in("program_id", batch)
+        .eq("stage", "program_scrape")
+        .select("id");
+      if (!queueError) programsQueued += (updated ?? []).length;
+    }
+
+    return clean({ schoolsQueued, cappedSchools, programsQueued });
+  });
