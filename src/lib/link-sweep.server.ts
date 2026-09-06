@@ -76,7 +76,7 @@ export async function sweepDiscoveredLinks(
     byReason: {},
     requeuedSchools: 0,
     failures: 0,
-    moreWaiting: (pendingTotal ?? 0) > rows.length,
+    moreWaiting: (pendingTotal ?? 0) > offset + rows.length,
   };
 
   // Every athletics site already confirmed for these schools, so a roster or
