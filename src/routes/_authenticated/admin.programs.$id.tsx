@@ -21,6 +21,8 @@ import {
 } from "@/lib/intel.functions";
 import { RosterHistory } from "@/components/admin/RosterHistory";
 import { IngestPanel } from "@/components/admin/IngestPanel";
+import { ManualCoach } from "@/components/admin/ManualCoach";
+
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/programs/$id")({
