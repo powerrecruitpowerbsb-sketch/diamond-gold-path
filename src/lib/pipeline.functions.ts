@@ -892,3 +892,111 @@ export const getAccuracySummary = createServerFn({ method: "GET" })
     const { accuracySummary } = await import("@/lib/accuracy.server");
     return clean(await accuracySummary(context.supabase));
   });
+
+/** The progress board: how close every sponsored team is to finished. */
+export const getCompletionBoard = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { completionBoard } = await import("@/lib/completion.server");
+    return clean(await completionBoard(context.supabase));
+  });
+
+/** Queue up every team that still needs links, a roster or a coach. */
+export const queueRemainingWork = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input?: { limit?: number }) => ({
+    limit: Math.min(Math.max(Number(input?.limit ?? 4000) || 4000, 1), 8000),
+  }))
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context as any);
+    const { enqueueGapWork } = await import("@/lib/completion.server");
+    return clean(await enqueueGapWork(context.supabase, { limit: data.limit }));
+  });
+
+/** Find (and optionally clear) teams holding another school's pages. */
+export const auditPageOwnership = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input?: { apply?: boolean }) => ({ apply: Boolean(input?.apply) }))
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context as any);
+    const { auditPageOwnership: audit } = await import("@/lib/completion.server");
+    const result = await audit(context.supabase, { apply: data.apply });
+    return clean({ ...result, problems: result.problems.slice(0, 200), total: result.problems.length });
+  });
+
+/** Work through the waiting review items and discovered links in one pass. */
+export const clearBacklog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input?: { apply?: boolean }) => ({ apply: Boolean(input?.apply) }))
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context as any);
+    const { sweepPendingUntilDone } = await import("@/lib/review.server");
+    const { sweepLinksUntilDone } = await import("@/lib/link-sweep.server");
+    const facts = await sweepPendingUntilDone(context.supabase, context.userId, data.apply, {
+      budgetMs: 25_000,
+    });
+    const links = await sweepLinksUntilDone(context.supabase, context.userId, {
+      apply: data.apply,
+      budgetMs: 25_000,
+    });
+    return clean({ facts, links });
+  });
+
+/**
+ * Type in a coach we know by hand. A name entered by a person is recorded as
+ * coming from a person, and the pipeline will never quietly overwrite it —
+ * a page that disagrees comes back as something to confirm.
+ */
+export const setCoachManually = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { programId: string; name: string; sourceUrl?: string | null }) => ({
+    programId: String(input.programId),
+    name: String(input.name ?? "").trim().slice(0, 120),
+    sourceUrl: input.sourceUrl ? String(input.sourceUrl).trim() : null,
+  }))
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context as any);
+    if (!data.name) throw new Error("Enter the coach's name");
+
+    const { data: before, error: readError } = await context.supabase
+      .from("programs")
+      .select("head_coach_name")
+      .eq("id", data.programId)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+
+    const { error } = await context.supabase
+      .from("programs")
+      .update({ head_coach_name: data.name, last_verified_at: new Date().toISOString() })
+      .eq("id", data.programId);
+    if (error) throw new Error(error.message);
+
+    const { error: sourceError } = await context.supabase.from("data_field_sources").upsert(
+      [
+        {
+          table_name: "programs",
+          record_id: data.programId,
+          field_name: "head_coach_name",
+          source_url: data.sourceUrl,
+          source_type: "manual",
+          last_verified_at: new Date().toISOString(),
+          verified_by: context.userId,
+        },
+      ],
+      { onConflict: "table_name,record_id,field_name" },
+    );
+    if (sourceError) throw new Error(sourceError.message);
+
+    await context.supabase.from("audit_log").insert({
+      actor_id: context.userId,
+      table_name: "programs",
+      record_id: data.programId,
+      field_name: "head_coach_name",
+      old_value: before?.head_coach_name ?? null,
+      new_value: data.name,
+      action: "override",
+    });
+
+    return clean({ ok: true, name: data.name });
+  });

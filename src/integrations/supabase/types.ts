@@ -1209,6 +1209,7 @@ export type Database = {
           name: string
           position: Database["public"]["Enums"]["player_position"] | null
           program_id: string
+          season_label: string | null
           season_year: number | null
           sport_specific_attributes: Json | null
           throws: Database["public"]["Enums"]["throws_hand"] | null
@@ -1227,6 +1228,7 @@ export type Database = {
           name: string
           position?: Database["public"]["Enums"]["player_position"] | null
           program_id: string
+          season_label?: string | null
           season_year?: number | null
           sport_specific_attributes?: Json | null
           throws?: Database["public"]["Enums"]["throws_hand"] | null
@@ -1245,6 +1247,7 @@ export type Database = {
           name?: string
           position?: Database["public"]["Enums"]["player_position"] | null
           program_id?: string
+          season_label?: string | null
           season_year?: number | null
           sport_specific_attributes?: Json | null
           throws?: Database["public"]["Enums"]["throws_hand"] | null

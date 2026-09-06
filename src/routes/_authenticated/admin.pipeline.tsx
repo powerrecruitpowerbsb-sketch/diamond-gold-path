@@ -7,6 +7,8 @@ import { toast } from "sonner";
 
 import { AccuracyPanel } from "@/components/admin/AccuracyPanel";
 import { CollectionRunner } from "@/components/admin/CollectionRunner";
+import { CompletionBoard } from "@/components/admin/CompletionBoard";
+
 import { SectionCard } from "@/components/admin/form-kit";
 import {
   getPipelineStatus,
@@ -586,9 +588,12 @@ function Pipeline() {
         notSchools={nonSchools?.entries?.length ?? 0}
       />
 
+      <CompletionBoard />
+
       <CollectionRunner />
 
       <AccuracyPanel />
+
 
       <details className="rounded-xl border border-border bg-white p-4">
         <summary className="cursor-pointer font-semibold text-graphite">

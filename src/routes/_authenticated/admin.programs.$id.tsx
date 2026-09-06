@@ -21,6 +21,8 @@ import {
 } from "@/lib/intel.functions";
 import { RosterHistory } from "@/components/admin/RosterHistory";
 import { IngestPanel } from "@/components/admin/IngestPanel";
+import { ManualCoach } from "@/components/admin/ManualCoach";
+
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/programs/$id")({
@@ -81,7 +83,9 @@ function AdminProgramDetail() {
         </div>
       </div>
 
+      <ManualCoach programId={id} currentName={program.head_coach_name} />
       <IngestPanel programId={id} />
+
       <IntelSection programId={id} />
       <RelationshipSection programId={id} />
       <RosterHistory programId={id} />
