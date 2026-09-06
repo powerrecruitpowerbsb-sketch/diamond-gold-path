@@ -194,15 +194,18 @@ export const listPrograms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertSuperadmin(context as any);
-    const { data, error } = await context.supabase
-      .from("programs")
-      .select(
-        "id, university_id, sport, governing_body, division, conference, head_coach_name, recruiting_coordinator_name, scholarships_available, offering_status, last_verified_at, universities(name, state)",
-      )
-      .order("sport");
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    return await fetchAllRows((from, to) =>
+      context.supabase
+        .from("programs")
+        .select(
+          "id, university_id, sport, governing_body, division, conference, head_coach_name, recruiting_coordinator_name, scholarships_available, offering_status, last_verified_at, universities!inner(name, state)",
+        )
+        .order("name", { referencedTable: "universities" })
+        .order("sport")
+        .range(from, to) as any,
+    );
   });
+
 
 export const getProgram = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
