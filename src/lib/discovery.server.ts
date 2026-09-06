@@ -450,20 +450,23 @@ export async function discoverUniversityUrls(
 
   const results: DiscoveryResult[] = [];
   let errorMessage: string | null = null;
+  const excluded = await loadRejectedUrls(supabase, universityId);
 
   try {
-    const site = await discoverAthleticWebsite(name, state);
+    const site = await discoverAthleticWebsite(name, state, excluded);
     results.push(site);
     if (site.url) {
       const pageResults = await discoverProgramPages(
         site.url,
         (programs ?? []) as { id: string; sport: string }[],
+        excluded,
       );
       results.push(...pageResults);
     }
   } catch (failure) {
     errorMessage = failure instanceof Error ? failure.message : "Discovery failed";
   }
+
 
   for (const result of results) {
     // Refresh the open proposal for this school/program/link kind rather than
