@@ -405,6 +405,83 @@ export function rosterVerdict(
   return { auto: true, reason: null };
 }
 
+/**
+ * A weaker roster verdict: is the pull good enough to keep even though the page
+ * was clearly only partly read? Short rosters are still real players, so they
+ * are saved and the program goes back in line for a fuller pull.
+ */
+export function rosterKeepable(
+  payload: { season_year?: unknown; players?: unknown },
+  now: Date = new Date(),
+): { keep: boolean; partial: boolean; reason: string | null } {
+  const players = Array.isArray(payload?.players) ? (payload.players as any[]) : [];
+  const named = players.filter((player) => normalizeText(player?.name).length > 2);
+  if (!named.length) return { keep: false, partial: false, reason: "no player names were read" };
+  if (players.length > 70) {
+    return { keep: false, partial: false, reason: `${players.length} players is more than a real roster` };
+  }
+  const season = plausibleSeasonYear(payload?.season_year);
+  if (!season || !acceptableSeasonYears(now).includes(season)) {
+    return {
+      keep: false,
+      partial: false,
+      reason: season ? `roster is labelled ${season}` : "no season could be read",
+    };
+  }
+  const distinct = new Set(named.map((player) => normalizeText(player.name))).size;
+  if (distinct < Math.ceil(named.length * 0.9)) {
+    return { keep: false, partial: false, reason: "blank or repeated player names" };
+  }
+  return { keep: true, partial: named.length < 18, reason: null };
+}
+
+/**
+ * Is this value even possible for the column? Guards the automatic path so an
+ * obviously wrong reading (a 4-digit enrollment for a 200,000-student number, a
+ * 480% graduation rate) still stops for a person.
+ */
+const NUMERIC_RANGES: Record<string, [number, number]> = {
+  undergrad_enrollment: [20, 200_000],
+  graduation_rate: [0, 100],
+  acceptance_rate: [0, 100],
+  avg_gpa: [1, 5],
+  avg_sat: [400, 1600],
+  avg_act: [1, 36],
+  tuition_in_state: [0, 120_000],
+  tuition_out_state: [0, 120_000],
+  room_board: [0, 60_000],
+  est_cost_of_attendance: [0, 200_000],
+  est_net_price: [0, 200_000],
+};
+
+export function fieldValueSane(field: string, value: unknown): boolean {
+  if (value === null || value === undefined || value === "") return true;
+
+  const range = NUMERIC_RANGES[field];
+  if (range) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return false;
+    return num >= range[0] && num <= range[1];
+  }
+
+  if (field === "campus_setting") {
+    return ["urban", "suburban", "rural"].includes(normalizeText(value));
+  }
+  if (field === "public_private") {
+    return ["public", "private"].includes(normalizeText(value));
+  }
+  if (STATE_FIELDS.has(field)) return /^[A-Z]{2}$/.test(normalizeStateValue(value));
+  if (field === "student_faculty_ratio") return /\d/.test(String(value)) && String(value).length < 12;
+  if (field === "conference" || field === "division") return String(value).trim().length < 60;
+  if (field === "city") return /^[a-z .'-]{2,60}$/i.test(String(value).trim());
+  if (field === "head_coach_name") return /^[a-z .'-]{4,60}$/i.test(String(value).trim());
+  if (field === "governing_body") {
+    return ["NCAA", "NAIA", "NJCAA", "CCCAA", "NWAC"].includes(String(value).toUpperCase().trim());
+  }
+  return true;
+}
+
+
 /** Columns the database stores as whole numbers — a scraped "19.4" must round. */
 const INTEGER_FIELDS = new Set([
   "avg_sat",
