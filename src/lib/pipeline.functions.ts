@@ -922,7 +922,12 @@ export const auditPageOwnership = createServerFn({ method: "POST" })
     await assertSuperadmin(context as any);
     const { auditPageOwnership: audit } = await import("@/lib/completion.server");
     const result = await audit(context.supabase, { apply: data.apply });
-    return clean({ ...result, problems: result.problems.slice(0, 200), total: result.problems.length });
+    return clean({
+      ...result,
+      problems: result.problems.slice(0, 200),
+      standoffs: result.standoffs.slice(0, 200),
+      total: result.problems.length,
+    });
   });
 
 /** Work through the waiting review items and discovered links in one pass. */
