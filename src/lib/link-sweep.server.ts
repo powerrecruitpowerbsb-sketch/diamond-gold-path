@@ -324,73 +324,25 @@ export async function retireEmptyDiscoveryRows(
 ): Promise<RetireEmptyResult> {
   const limit = Math.min(Math.max(options.limit ?? 2000, 1), 5000);
 
-  const { data, error } = await supabase
-    .from("url_discovery_queue")
-    .select("id, university_id, program_id, discovery_type")
-    .eq("status", "pending_review")
-    .is("discovered_url", null)
-    .order("created_at", { ascending: true })
-    .limit(limit + 1);
-  if (error) throw new Error(error.message);
+  // The Data API caps a single read at 1,000 rows, so walk the pile in pages.
+  const rows: { id: string; university_id: string; program_id: string | null }[] = [];
+  for (let page = 0; page <= limit; page += 500) {
+    const { data, error } = await supabase
+      .from("url_discovery_queue")
+      .select("id, university_id, program_id")
+      .eq("status", "pending_review")
+      .is("discovered_url", null)
+      .order("created_at", { ascending: true })
+      .range(page, page + 499);
+    if (error) throw new Error(error.message);
+    const chunkRows = (data ?? []) as typeof rows;
+    rows.push(...chunkRows);
+    if (chunkRows.length < 500 || rows.length > limit) break;
+  }
 
-  const rows = (data ?? []) as {
-    id: string;
-    university_id: string;
-    program_id: string | null;
-    discovery_type: string;
-  }[];
   const moreWaiting = rows.length > limit;
   const batch = rows.slice(0, limit);
 
-  const result: RetireEmptyResult = {
-    found: batch.length,
-    retired: 0,
-    programsQueued: 0,
-    moreWaiting,
-  };
-  if (!batch.length || !options.apply) return result;
-
-  const now = new Date().toISOString();
-  for (const ids of chunk(batch.map((row) => row.id), 200)) {
-    const { error: updateError } = await supabase
-      .from("url_discovery_queue")
-      .update({
-        status: "rejected",
-        reviewed_by: actorId,
-        reviewed_at: now,
-        notes: "Search came back with no address — retired and queued for a fresh search.",
-      })
-      .in("id", ids)
-      .eq("status", "pending_review");
-    if (updateError) throw new Error(updateError.message);
-    result.retired += ids.length;
-  }
-
-  // Put the affected teams back in line for another look at their links.
-  const jobs = new Map<string, { university_id: string; program_id: string | null }>();
-  for (const row of batch) {
-    jobs.set(row.program_id ?? `school:${row.university_id}`, {
-      university_id: row.university_id,
-      program_id: row.program_id,
-    });
-  }
-  const withProgram = [...jobs.values()].filter((job) => job.program_id);
-  for (const group of chunk(withProgram, 300)) {
-    const { error: queueError } = await supabase.from("ingest_queue").upsert(
-      group.map((job) => ({
-        university_id: job.university_id,
-        program_id: job.program_id,
-        stage: "url_discovery",
-        status: "pending",
-        attempts: 0,
-        leased_at: null,
-        last_error: null,
-      })),
-      { onConflict: "program_id,stage" },
-    );
-    if (queueError) throw new Error(queueError.message);
-    result.programsQueued += group.length;
-  }
 
   return result;
 }
