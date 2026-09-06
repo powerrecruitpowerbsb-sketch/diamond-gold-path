@@ -155,7 +155,6 @@ function ReviewQueue() {
     ids: string[];
     label: string;
     reason: string;
-    rescrape: boolean;
   } | null>(null);
 
 
@@ -209,7 +208,7 @@ function ReviewQueue() {
   });
 
   const reject = useMutation({
-    mutationFn: (input: { ids: string[]; reason?: string | null; rescrape?: boolean }) =>
+    mutationFn: (input: { ids: string[]; reason?: string | null }) =>
       rejectFn({ data: input }),
     onSuccess: async (result: { rejected: number; requeued: number }) => {
       toast.success(
@@ -405,7 +404,6 @@ function ReviewQueue() {
                 ids: [...selected],
                 label: `${selected.size} selected item${selected.size === 1 ? "" : "s"}`,
                 reason: "",
-                rescrape: false,
               })
             }
           >
@@ -429,15 +427,9 @@ function ReviewQueue() {
               className="h-11 w-full max-w-xl rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
             />
           </label>
-          <label className="flex items-center gap-2 text-sm text-graphite">
-            <Checkbox
-              checked={rejecting.rescrape}
-              onCheckedChange={(value) =>
-                setRejecting((prev) => (prev ? { ...prev, rescrape: Boolean(value) } : prev))
-              }
-            />
-            Send this school back for a fresh pull
-          </label>
+          <p className="text-sm text-steel">
+            This school automatically goes back in line for a fresh pull.
+          </p>
           <div className="flex gap-2">
             <Button
               className="touch-target"
@@ -447,7 +439,6 @@ function ReviewQueue() {
                 reject.mutate({
                   ids: rejecting.ids,
                   reason: rejecting.reason || null,
-                  rescrape: rejecting.rescrape,
                 })
               }
             >
@@ -942,7 +933,6 @@ function ReviewQueue() {
                                   ids: [item.id],
                                   label: "this item",
                                   reason: "",
-                                  rescrape: false,
                                 })
                               }
                             >
