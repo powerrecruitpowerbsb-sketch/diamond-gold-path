@@ -270,6 +270,8 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
     }
   }
 
+  // Anything a person has already declined for this record is never asked again.
+  const declined = await loadDeclinedKeys(supabase, rows);
 
   return rows.map((row) => {
     const key = row.record_id ? `${row.table_name}:${row.record_id}` : null;
