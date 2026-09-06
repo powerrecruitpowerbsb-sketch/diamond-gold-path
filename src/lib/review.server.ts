@@ -1,6 +1,7 @@
 /** Server-only logic for the superadmin data review queue. */
 
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
+import { COACH_FIELDS, coachEvidenceVerdict } from "@/lib/coach-quality";
 import {
   coerceForColumn,
   fieldValueSane,
@@ -247,7 +248,8 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
     // Roster proposals point at a program, not a roster_players row.
     const lookupTable = table === "roster_players" ? "programs" : table;
     if (!FIELD_TABLES.includes(lookupTable as (typeof FIELD_TABLES)[number])) continue;
-    const select = lookupTable === "programs" ? "*, universities(name, state)" : "*";
+    const select =
+      lookupTable === "programs" ? "*, universities(name, state, website_url)" : "*";
     const idList = [...ids];
     // Ask for records in batches: one request for hundreds of ids silently comes
     // back short, which would make every item look like it had no live value.
@@ -280,6 +282,12 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
       currentRecord: (row.field_name || row.table_name === "roster_players"
         ? null
         : (record ?? null)) as Json,
+      // Carried for the coach guards: which sport this is, and which sites
+      // count as this school's own.
+      programSport: (record?.["sport"] ?? null) as string | null,
+      athleticWebsite: (record?.["athletic_website"] ?? null) as string | null,
+      coachingStaffUrl: (record?.["coaching_staff_url"] ?? null) as string | null,
+      schoolWebsite: ((record?.["universities"] as any)?.website_url ?? null) as string | null,
     };
     // Say on the item itself why a person is being asked — the same judgement the
     // automatic tidy-up uses, so the screen and the sweep never disagree.
@@ -466,6 +474,27 @@ export function pendingVerdict(row: any): {
 
   if (valuesEquivalent(field, current, proposed)) {
     return { kind: "no_change", reason: "already matches what we store" };
+  }
+
+  // Coach names live or die by their evidence. Unproven pages are discarded
+  // outright rather than queued, and a change to a name we already hold at a
+  // top-division program is confirmed by a person before it is written.
+  if (COACH_FIELDS.has(field)) {
+    const evidence = coachEvidenceVerdict({
+      value: proposed,
+      sourceUrl: row.source_url,
+      sport: row.programSport,
+      athleticWebsite: row.athleticWebsite,
+      coachingStaffUrl: row.coachingStaffUrl,
+      schoolWebsite: row.schoolWebsite,
+    });
+    if (!evidence.ok) {
+      const reason = evidence.reason ?? "the coach page could not be trusted";
+      return { kind: evidence.severity === "flag" ? "needs_review" : "no_change", reason };
+    }
+    if (!isEmptyValue(field, current)) {
+      return { kind: "needs_review", reason: "this would replace a coach we already have" };
+    }
   }
 
   const disagreement = Array.isArray(row.proposed_value?.["_alternates"]);

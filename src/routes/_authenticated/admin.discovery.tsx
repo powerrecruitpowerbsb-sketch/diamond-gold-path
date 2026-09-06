@@ -113,12 +113,28 @@ function DiscoveryQueue() {
     queryFn: () => unfoundFn({ data: { page: unfoundPage, pageSize: 50 } }) as Promise<Page<UnfoundRow>>,
   });
 
-  const refreshAll = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["discovered-urls"] }),
-      queryClient.invalidateQueries({ queryKey: ["unfound-links"] }),
-      queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] }),
-    ]);
+  /** Decided links leave the list at once; the fresh read follows quietly. */
+  const dropDecided = (ids: string[]) => {
+    const gone = new Set(ids);
+    queryClient.setQueriesData({ queryKey: ["discovered-urls"] }, (previous: any) =>
+      previous?.rows
+        ? {
+            ...previous,
+            rows: previous.rows.filter((row: Row) => !gone.has(row.id)),
+            total: Math.max(0, (previous.total ?? 0) - ids.length),
+          }
+        : previous,
+    );
+    queryClient.setQueryData(["pending-discoveries-count"], (previous: any) =>
+      previous ? { ...previous, pending: Math.max(0, (previous.pending ?? 0) - ids.length) } : previous,
+    );
+  };
+
+  const refreshAll = async (decidedIds?: string[]) => {
+    if (decidedIds?.length) dropDecided(decidedIds);
+    void queryClient.invalidateQueries({ queryKey: ["discovered-urls"] });
+    void queryClient.invalidateQueries({ queryKey: ["unfound-links"] });
+    void queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] });
   };
 
   const review = useMutation({
@@ -127,7 +143,7 @@ function DiscoveryQueue() {
       toast.success(
         input.decision === "confirm" ? "Link saved to the record" : "Marked wrong — searching again",
       );
-      await refreshAll();
+      await refreshAll([input.id]);
     },
     onError: (failure: unknown) =>
       toast.error(failure instanceof Error ? failure.message : "Could not save that decision"),
@@ -136,9 +152,9 @@ function DiscoveryQueue() {
   const reviewMany = useMutation({
     mutationFn: (input: { ids: string[]; decision: "confirm" | "reject" }) =>
       reviewManyFn({ data: input }) as Promise<{ done: number; failed: number }>,
-    onSuccess: async (result) => {
+    onSuccess: async (result, input) => {
       toast.success(`${result.done} decided${result.failed ? `, ${result.failed} couldn't be saved` : ""}`);
-      await refreshAll();
+      await refreshAll(input.ids);
     },
     onError: (failure: unknown) =>
       toast.error(failure instanceof Error ? failure.message : "Could not save those decisions"),
@@ -250,6 +266,13 @@ function DiscoveryQueue() {
             : `${list.data?.total ?? 0} link${(list.data?.total ?? 0) === 1 ? "" : "s"} waiting · page ${list.data?.page ?? 1} of ${list.data?.totalPages ?? 1}`
         }
       >
+        {(list.data as any)?.hiddenUnsponsored ? (
+          <p className="meta mb-3">
+            {(list.data as any).hiddenUnsponsored} link
+            {(list.data as any).hiddenUnsponsored === 1 ? "" : "s"} held back — we haven't confirmed those
+            schools play that sport yet.
+          </p>
+        ) : null}
         {list.isPending ? (
           <div className="h-40 animate-pulse rounded-xl bg-muted" />
         ) : !rows.length ? (

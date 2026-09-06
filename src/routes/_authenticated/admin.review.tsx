@@ -192,21 +192,47 @@ function ReviewQueue() {
   });
   const autoApplied = (counts as any)?.autoAppliedLast7Days ?? 0;
 
-  const invalidate = async () => {
+  /**
+   * Decided items disappear from the screen straight away, and the fresh read
+   * happens in the background. Waiting for the whole queue to be rebuilt after
+   * every single decision is what made this feel broken.
+   */
+  const dropDecided = (ids: string[]) => {
+    const gone = new Set(ids);
+    queryClient.setQueriesData({ queryKey: ["pending-changes"] }, (previous: any) => {
+      if (!previous?.groups) return previous;
+      const groups = previous.groups
+        .map((group: Group) => ({ ...group, items: group.items.filter((item) => !gone.has(item.id)) }))
+        .filter((group: Group) => group.items.length > 0);
+      return {
+        ...previous,
+        groups,
+        totalGroups: groups.length,
+        filteredItems: groups.reduce((sum: number, group: Group) => sum + group.items.length, 0),
+        totalItems: Math.max(0, (previous.totalItems ?? 0) - ids.length),
+      };
+    });
+    queryClient.setQueryData(["pending-changes-count"], (previous: any) =>
+      previous ? { ...previous, pending: Math.max(0, (previous.pending ?? 0) - ids.length) } : previous,
+    );
+  };
+
+  const invalidate = async (decidedIds?: string[]) => {
     setSelected(new Set());
-    await queryClient.invalidateQueries({ queryKey: ["pending-changes"] });
-    await queryClient.invalidateQueries({ queryKey: ["pending-changes-count"] });
-    await queryClient.invalidateQueries({ queryKey: ["admin-universities"] });
-    await queryClient.invalidateQueries({ queryKey: ["admin-programs"] });
+    if (decidedIds?.length) dropDecided(decidedIds);
+    void queryClient.invalidateQueries({ queryKey: ["pending-changes"] });
+    void queryClient.invalidateQueries({ queryKey: ["pending-changes-count"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin-universities"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin-programs"] });
   };
 
   const approve = useMutation({
     mutationFn: (ids: string[]) => approveFn({ data: { ids } }),
-    onSuccess: async (result: { applied: number; failures: { message: string }[] }) => {
+    onSuccess: async (result: { applied: number; failures: { message: string }[] }, ids: string[]) => {
       if (result.applied)
         toast.success(`Applied ${result.applied} change${result.applied === 1 ? "" : "s"} to live data`);
       for (const failure of result.failures) toast.error(failure.message);
-      await invalidate();
+      await invalidate(ids);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -214,14 +240,17 @@ function ReviewQueue() {
   const reject = useMutation({
     mutationFn: (input: { ids: string[]; reason?: string | null }) =>
       rejectFn({ data: input }),
-    onSuccess: async (result: { rejected: number; requeued: number }) => {
+    onSuccess: async (
+      result: { rejected: number; requeued: number },
+      input: { ids: string[]; reason?: string | null },
+    ) => {
       toast.success(
         `Declined ${result.rejected} item${result.rejected === 1 ? "" : "s"} — live data untouched${
           result.requeued ? ` · ${result.requeued} program queued for a fresh pull` : ""
         }`,
       );
       setRejecting(null);
-      await invalidate();
+      await invalidate(input.ids);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -229,10 +258,10 @@ function ReviewQueue() {
   const correct = useMutation({
     mutationFn: (input: { id: string; value: unknown; note: string | null }) =>
       correctFn({ data: input }),
-    onSuccess: async () => {
+    onSuccess: async (_result, input: { id: string; value: unknown; note: string | null }) => {
       toast.success("Saved your corrected value to live data");
       setCorrecting(null);
-      await invalidate();
+      await invalidate([input.id]);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -320,6 +349,11 @@ function ReviewQueue() {
             <p className="mt-1 inline-flex items-center gap-1 text-sm text-diamond-green tabular-nums">
               <ShieldCheck className="size-4" aria-hidden />
               {autoApplied} applied automatically this week
+            </p>
+          ) : null}
+          {(queue as any)?.hiddenUnsponsored ? (
+            <p className="meta mt-1 tabular-nums">
+              {(queue as any).hiddenUnsponsored} HELD BACK — SPORT NOT CONFIRMED AT THAT SCHOOL
             </p>
           ) : null}
         </div>

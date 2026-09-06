@@ -140,7 +140,13 @@ export function newsPath(url: string | null | undefined): boolean {
 export function junkHost(url: string | null | undefined): boolean {
   const host = hostOf(url);
   if (!host) return false;
-  return JUNK_HOST_FRAGMENTS.some((fragment) => host.includes(fragment));
+  return JUNK_HOST_FRAGMENTS.some((fragment) =>
+    // A domain fragment must be the host or a parent of it, never a substring:
+    // "x.com" must not condemn rhodeslynx.com.
+    fragment.includes(".")
+      ? host === fragment || host.endsWith(`.${fragment}`)
+      : host.split(/[.-]/).includes(fragment),
+  );
 }
 
 /** The "athletics site" we found is really the school's own homepage. */

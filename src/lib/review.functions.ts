@@ -92,7 +92,44 @@ export const listPendingChanges = createServerFn({ method: "GET" })
 
     const { decoratePending, groupPending } = await import("@/lib/review.server");
     const decorated = await decoratePending(context.supabase, (rows ?? []) as any[]);
-    let groups = await groupPending(context.supabase, decorated as any[]);
+
+    // Hold back anything about a sport we haven't confirmed the school plays,
+    // so schools without baseball or softball stop appearing here at all.
+    const programIds = [
+      ...new Set(
+        (decorated as any[])
+          .map((row) =>
+            row.table_name === "programs"
+              ? row.record_id
+              : row.table_name === "roster_players"
+                ? (row.proposed_value?.program_id ?? row.record_id)
+                : null,
+          )
+          .filter(Boolean) as string[],
+      ),
+    ];
+    const sponsored = new Set<string>();
+    for (let index = 0; index < programIds.length; index += 100) {
+      const { data: programRows } = await context.supabase
+        .from("programs")
+        .select("id, offering_status")
+        .in("id", programIds.slice(index, index + 100));
+      for (const program of (programRows ?? []) as any[]) {
+        if (program.offering_status === "verified") sponsored.add(program.id);
+      }
+    }
+    const visible = (decorated as any[]).filter((row) => {
+      const programId =
+        row.table_name === "programs"
+          ? row.record_id
+          : row.table_name === "roster_players"
+            ? (row.proposed_value?.program_id ?? row.record_id)
+            : null;
+      return !programId || sponsored.has(String(programId));
+    });
+    const hiddenUnsponsored = (decorated as any[]).length - visible.length;
+
+    let groups = await groupPending(context.supabase, visible as any[]);
 
 
 
@@ -130,6 +167,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
 
     return {
       groups,
+      hiddenUnsponsored,
       totalGroups,
       totalItems,
       filteredItems,
