@@ -86,6 +86,7 @@ type QueuePage = {
   groups: Group[];
   totalGroups: number;
   totalItems: number;
+  totalPages: number;
   filteredItems: number;
   conflicts: number;
   page: number;
@@ -292,7 +293,8 @@ function ReviewQueue() {
   };
 
 
-  const totalPages = Math.max(Math.ceil((queue?.totalGroups ?? 0) / (queue?.pageSize ?? 25)), 1);
+  const pendingTotal = (counts as any)?.pending ?? null;
+  const totalPages = queue?.totalPages ?? 1;
 
   return (
     <div className="space-y-5">
@@ -307,7 +309,9 @@ function ReviewQueue() {
         </div>
         <div className="text-right">
           <p className="meta tabular-nums">
-            {queue?.totalGroups ?? 0} SCHOOLS · {queue?.filteredItems ?? 0} ITEMS
+            {isPending
+              ? `${pendingTotal ?? "—"} ITEMS WAITING · LOADING…`
+              : `${queue?.totalGroups ?? 0} SCHOOLS · ${queue?.filteredItems ?? 0} ON THIS PAGE · ${queue?.totalItems ?? 0} TOTAL`}
           </p>
           {autoApplied ? (
             <p className="mt-1 inline-flex items-center gap-1 text-sm text-diamond-green tabular-nums">
