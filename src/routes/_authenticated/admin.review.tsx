@@ -351,6 +351,11 @@ function ReviewQueue() {
               {autoApplied} applied automatically this week
             </p>
           ) : null}
+          {(queue as any)?.hiddenUnsponsored ? (
+            <p className="meta mt-1 tabular-nums">
+              {(queue as any).hiddenUnsponsored} HELD BACK — SPORT NOT CONFIRMED AT THAT SCHOOL
+            </p>
+          ) : null}
         </div>
       </div>
 
