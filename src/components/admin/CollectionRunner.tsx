@@ -49,6 +49,7 @@ export function CollectionRunner() {
 
   const wavesFn = useServerFn(getCollectionWaves);
   const chooseWaveFn = useServerFn(chooseCollectionWave);
+  const autoAdvanceFn = useServerFn(setCollectionAutoAdvance);
 
   const [busy, setBusy] = useState(false);
 
@@ -58,13 +59,17 @@ export function CollectionRunner() {
     refetchInterval: 20_000,
   });
 
-  const { data: waves, refetch: refetchWaves } = useQuery({
+  const { data: board, refetch: refetchWaves } = useQuery({
     queryKey: ["collection-waves"],
-    queryFn: () => wavesFn() as Promise<{ key: string; label: string; waiting: number; held: number }[]>,
-    refetchInterval: 60_000,
+    queryFn: () => wavesFn() as Promise<Board>,
+    refetchInterval: 30_000,
   });
 
   const running = Boolean(data?.state.isRunning);
+  const levels = board?.levels ?? [];
+  const current = levels.find((level) => level.key === board?.currentWave) ?? null;
+  const next = levels.find((level) => level.key === board?.nextWave) ?? null;
+  const pace = board?.perMinute ?? 0;
 
   async function onChooseWave(wave: string, label: string) {
     setBusy(true);
@@ -84,6 +89,24 @@ export function CollectionRunner() {
       setBusy(false);
     }
   }
+
+  async function onToggleAutoAdvance(on: boolean) {
+    setBusy(true);
+    try {
+      await autoAdvanceFn({ data: { on } });
+      toast.success(
+        on
+          ? "It will move on to the next level by itself"
+          : "It will stay on this level until you pick the next one",
+      );
+      await refetchWaves();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not save that");
+    } finally {
+      setBusy(false);
+    }
+  }
+
 
   async function onStart() {
     setBusy(true);
