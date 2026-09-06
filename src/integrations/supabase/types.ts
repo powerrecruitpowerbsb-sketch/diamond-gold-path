@@ -278,7 +278,9 @@ export type Database = {
       }
       collection_state: {
         Row: {
+          auto_advance: boolean
           created_at: string
+          current_wave: string | null
           discovery_per_tick: number
           failures: number
           id: string
@@ -297,7 +299,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_advance?: boolean
           created_at?: string
+          current_wave?: string | null
           discovery_per_tick?: number
           failures?: number
           id?: string
@@ -316,7 +320,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_advance?: boolean
           created_at?: string
+          current_wave?: string | null
           discovery_per_tick?: number
           failures?: number
           id?: string
