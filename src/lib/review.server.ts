@@ -519,6 +519,8 @@ export function pendingVerdict(row: any): {
   reason: string;
   /** Set for a roster we keep even though the page was only partly read. */
   partial?: boolean;
+  /** Set when the team should go back in line for a fresh pull. */
+  repull?: boolean;
 } {
   // A value someone already turned down is never raised a second time.
   if (row.previouslyDeclined) {
@@ -538,6 +540,20 @@ export function pendingVerdict(row: any): {
           ? "only part of the roster was read — saved, with a fuller pull queued"
           : "a roster from the team's own page",
         partial: keepable.partial,
+      };
+    }
+    // A roster read off last year's page, or one whose season could not be read
+    // at all, is nothing a person can put right by hand: the page itself was
+    // wrong or stale. Drop it and put the team back in line for a fresh pull
+    // rather than parking it in the queue for someone to stare at.
+    const staleSeason = /^roster is labelled |^no season could be read$/.test(
+      keepable.reason ?? verdict.reason ?? "",
+    );
+    if (staleSeason) {
+      return {
+        kind: "no_change",
+        reason: "the page showed an out-of-date season — a fresh pull is queued",
+        repull: true,
       };
     }
     return { kind: "needs_review", reason: keepable.reason ?? verdict.reason ?? "needs a look" };
@@ -660,6 +676,10 @@ export async function settlePendingRows(
 
     if (verdict.kind === "no_change") {
       noChangeIds.push(row.id);
+      if (verdict.repull) {
+        const programId = (row.proposed_value?.program_id ?? row.record_id) as string | null;
+        if (programId) repullPrograms.add(programId);
+      }
     } else if (verdict.kind === "auto_apply") {
       autoRows.push(row as PendingRow);
       if (verdict.partial) {
