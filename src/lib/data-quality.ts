@@ -309,3 +309,63 @@ export function mentionsOtherState(text: string, state: string | null): boolean 
   }
   return false;
 }
+
+// --- Roster acceptance rules -------------------------------------------------
+
+/**
+ * The season years a freshly scraped roster may legitimately carry: the current
+ * one, plus next year's once the new academic year has started.
+ */
+export function acceptableSeasonYears(now: Date = new Date()): number[] {
+  const year = now.getFullYear();
+  return now.getMonth() >= 6 ? [year, year + 1] : [year - 1, year];
+}
+
+export type RosterVerdict = { auto: boolean; reason: string | null };
+
+/**
+ * Judge a scraped roster on the roster itself instead of a flat trust score: the
+ * page it came from, the season it claims, the squad size and whether the names
+ * read like real, distinct players. Anything that fails gets a plain-language
+ * reason so a person can fix or decline it in one step.
+ */
+export function rosterVerdict(
+  payload: { season_year?: unknown; players?: unknown },
+  sourceUrl?: string | null,
+  now: Date = new Date(),
+): RosterVerdict {
+  const players = Array.isArray(payload?.players) ? (payload.players as any[]) : [];
+  if (players.length < 18) {
+    return { auto: false, reason: `only ${players.length} players read from the page` };
+  }
+  if (players.length > 70) {
+    return { auto: false, reason: `${players.length} players is more than a real roster` };
+  }
+
+  const season = plausibleSeasonYear(payload?.season_year);
+  if (!season || !acceptableSeasonYears(now).includes(season)) {
+    return {
+      auto: false,
+      reason: season ? `roster is labelled ${season}` : "no season could be read",
+    };
+  }
+
+  const names = players
+    .map((player) => normalizeText(player?.name))
+    .filter((name) => name.length > 2);
+  const distinct = new Set(names).size;
+  if (distinct < Math.ceil(players.length * 0.9)) {
+    return { auto: false, reason: "blank or repeated player names" };
+  }
+
+  const positions = players.filter((player) => normalizePosition(player?.position)).length;
+  if (positions < Math.ceil(players.length * 0.5)) {
+    return { auto: false, reason: "most positions could not be read" };
+  }
+
+  if (!/roster/i.test(String(sourceUrl ?? ""))) {
+    return { auto: false, reason: "not read from a roster page" };
+  }
+
+  return { auto: true, reason: null };
+}
