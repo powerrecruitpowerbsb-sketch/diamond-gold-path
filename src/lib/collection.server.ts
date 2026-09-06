@@ -221,6 +221,14 @@ export async function runCollectionPass(
   );
   const result = emptyPass();
 
+  // A round that died mid-way used to leave its work marked "in progress"
+  // forever, so those schools were never collected. Free anything abandoned for
+  // more than fifteen minutes before claiming new work.
+  const { data: freed } = await supabase.rpc("reclaim_stale_leases", { _minutes: 15 });
+  if (typeof freed === "number" && freed > 0) {
+    result.notes.push(`${freed} stuck job(s) put back in the queue`);
+  }
+
   // --- Stage 1: find each school's athletics, roster and coaching pages -------
   if (discoverySchools > 0) {
     const items = await leaseQueueItems(supabase, "url_discovery", discoverySchools * 2);
