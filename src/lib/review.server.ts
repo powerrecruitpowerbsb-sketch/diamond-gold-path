@@ -489,12 +489,7 @@ export function pendingVerdict(row: any): {
 }
 
 
-export async function sweepPendingNoise(
-  supabase: any,
-  userId: string,
-  apply: boolean,
-  limit = 1000,
-): Promise<{
+export type PendingSweepResult = {
   examined: number;
   noChange: number;
   gapFills: number;
@@ -503,7 +498,25 @@ export async function sweepPendingNoise(
   moreWaiting: boolean;
   reasons: { reason: string; count: number }[];
   samples: { label: string; field: string; reason: string }[];
-}> {
+};
+
+/** Identity of a proposal, so the same fact proposed twice is only decided once. */
+function proposalKey(row: PendingRow): string {
+  return [
+    row.table_name,
+    row.record_id ?? "",
+    row.field_name ?? "",
+    JSON.stringify(row.proposed_value ?? null),
+  ].join("|");
+}
+
+export async function sweepPendingNoise(
+  supabase: any,
+  userId: string,
+  apply: boolean,
+  limit = 1000,
+  offset = 0,
+): Promise<PendingSweepResult> {
   const { data: rows, error } = await supabase
     .from("pending_data_changes")
     .select(
@@ -511,7 +524,7 @@ export async function sweepPendingNoise(
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
   if (error) throw new Error(error.message);
 
   const pending = (rows ?? []) as PendingRow[];
@@ -520,16 +533,26 @@ export async function sweepPendingNoise(
     .from("pending_data_changes")
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
-  const moreWaiting = (openTotal ?? 0) > pending.length;
+  const moreWaiting = (openTotal ?? 0) > offset + pending.length;
   const decorated = await decoratePending(supabase, pending);
 
   const noChangeIds: string[] = [];
   const autoRows: PendingRow[] = [];
+  const repullPrograms = new Set<string>();
   const samples: { label: string; field: string; reason: string }[] = [];
   const reasonCounts = new Map<string, number>();
+  const seen = new Set<string>();
   let remaining = 0;
 
   for (const row of decorated as any[]) {
+    // Duplicates of a proposal we have already handled in this pass are noise.
+    const key = proposalKey(row as PendingRow);
+    if (seen.has(key)) {
+      noChangeIds.push(row.id);
+      continue;
+    }
+    seen.add(key);
+
     const verdict = pendingVerdict(row);
     const field = (row.field_name as string) ?? "roster";
 
@@ -537,6 +560,10 @@ export async function sweepPendingNoise(
       noChangeIds.push(row.id);
     } else if (verdict.kind === "auto_apply") {
       autoRows.push(row as PendingRow);
+      if (verdict.partial) {
+        const programId = (row.proposed_value?.program_id ?? row.record_id) as string | null;
+        if (programId) repullPrograms.add(programId);
+      }
     } else {
       remaining += 1;
       reasonCounts.set(verdict.reason, (reasonCounts.get(verdict.reason) ?? 0) + 1);
@@ -572,6 +599,17 @@ export async function sweepPendingNoise(
         failures += 1;
       }
     }
+
+    // Partly-read rosters are kept, then the program goes back in line so a
+    // later pull can complete it.
+    for (const programId of repullPrograms) {
+      await supabase
+        .from("ingest_queue")
+        .upsert(
+          [{ program_id: programId, stage: "program_scrape", status: "pending", attempts: 0 }],
+          { onConflict: "program_id,stage" },
+        );
+    }
   }
 
   return {
@@ -587,3 +625,60 @@ export async function sweepPendingNoise(
     samples,
   };
 }
+
+/**
+ * Work the whole waiting pile instead of one batch: repeat passes, stepping past
+ * the items left for a person, until nothing is left or time runs out.
+ */
+export async function sweepPendingUntilDone(
+  supabase: any,
+  userId: string,
+  apply: boolean,
+  options: { maxPasses?: number; budgetMs?: number } = {},
+): Promise<PendingSweepResult & { passes: number }> {
+  const maxPasses = Math.min(Math.max(options.maxPasses ?? 8, 1), 20);
+  const budgetMs = options.budgetMs ?? 45_000;
+  const startedAt = Date.now();
+
+  const total: PendingSweepResult & { passes: number } = {
+    examined: 0,
+    noChange: 0,
+    gapFills: 0,
+    remaining: 0,
+    failures: 0,
+    moreWaiting: false,
+    reasons: [],
+    samples: [],
+    passes: 0,
+  };
+  const reasonCounts = new Map<string, number>();
+  let offset = 0;
+
+  for (let pass = 0; pass < maxPasses; pass += 1) {
+    const result = await sweepPendingNoise(supabase, userId, apply, 1000, offset);
+    total.passes += 1;
+    total.examined += result.examined;
+    total.noChange += result.noChange;
+    total.gapFills += result.gapFills;
+    total.remaining += result.remaining;
+    total.failures += result.failures;
+    total.moreWaiting = result.moreWaiting;
+    for (const { reason, count } of result.reasons) {
+      reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + count);
+    }
+    for (const sample of result.samples) {
+      if (total.samples.length < 10) total.samples.push(sample);
+    }
+    offset += result.remaining;
+
+    if (!apply) break;
+    if (!result.moreWaiting || result.examined === 0) break;
+    if (Date.now() - startedAt > budgetMs) break;
+  }
+
+  total.reasons = [...reasonCounts.entries()]
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count);
+  return total;
+}
+
