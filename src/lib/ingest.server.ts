@@ -5,6 +5,7 @@
  */
 
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
+import { COACH_FIELDS, coachEvidenceVerdict } from "@/lib/coach-quality";
 import {
   canonicalConference,
   coerceForColumn,
@@ -382,6 +383,22 @@ export function buildFieldProposals(
     if (value === null) continue;
     const current = liveRecord[key];
     if (!differs(key, current, value)) continue;
+
+    // A coach name may only ever come from a page proven to be this school's
+    // staff page for this sport. A page that fails outright is dropped here, so
+    // it never becomes a stored value and never becomes a queue item either.
+    if (table === "programs" && COACH_FIELDS.has(key)) {
+      const evidence = coachEvidenceVerdict({
+        value,
+        sourceUrl,
+        sport: String(liveRecord["sport"] ?? ""),
+        athleticWebsite: liveRecord["athletic_website"] as string | null,
+        coachingStaffUrl: liveRecord["coaching_staff_url"] as string | null,
+        schoolWebsite: (liveRecord["universities"] as any)?.website_url ?? null,
+      });
+      if (!evidence.ok && evidence.severity === "reject") continue;
+    }
+
     const score = Number(confidence[key]);
     let scored = Number.isFinite(score) ? Math.min(Math.max(score, 0), 1) : null;
 
@@ -392,6 +409,7 @@ export function buildFieldProposals(
     // An unfamiliar conference wording is worth a glance rather than a silent write.
     const unknownConference = key === "conference" && isUnknownConference(value);
     if (contradiction || unknownConference) scored = Math.min(scored ?? 0.5, 0.5);
+
 
     rows.push({
       table_name: table,
