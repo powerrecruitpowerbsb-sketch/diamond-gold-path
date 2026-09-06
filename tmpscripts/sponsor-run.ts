@@ -6,7 +6,7 @@ const supabase = createClient(process.env["SUPABASE_URL"]!, process.env["SUPABAS
 });
 let totals = { schoolsChecked: 0, offered: 0, notOffered: 0, conflicts: 0 };
 for (let round = 0; round < 12; round += 1) {
-  const r: any = await syncSponsorshipBatch(supabase, { limit: 60 });
+  const r: any = await syncSponsorshipBatch(supabase, { limit: 60, recheck: true });
   totals.schoolsChecked += r.schoolsChecked ?? 0;
   totals.offered += r.offered ?? 0;
   totals.notOffered += r.notOffered ?? 0;
