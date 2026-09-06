@@ -43,6 +43,25 @@ One retroactive sweep applies the same rules to everything outstanding:
 
 The sweep runs in bounded batches in the background and reports what it did, so it can't stall the screen.
 
+## Schools that don't field these sports
+
+Of the links still waiting on you, 149 belong to sports slots we have never confirmed and 95 aren't tied to a sport at all — those are the ones you keep seeing for schools with no baseball or softball. Fix:
+
+- Nothing reaches the review screens until the sport is settled as offered. Unconfirmed slots wait for the federal sponsorship check instead of asking you.
+- School-level links with no sport attached are attributed to a confirmed program or dropped.
+- Anything belonging to a sport marked not offered is cleared immediately, and the same filter is applied to the current backlog.
+- The remaining undecided slots stay on the collection screen's one-click Offered / Not offered list, which is where that question belongs.
+
+## Approving shouldn't reload the world
+
+Today each approve or decline refreshes the whole schools list, the whole programs list, the queue page, and an exact count — that's why it stalls. Fix:
+
+- A decided row disappears from the list immediately; nothing else is refetched.
+- Counters update by subtraction and are refreshed cheaply in the background.
+- Bulk decisions post in one request instead of one per item.
+- Batch buttons on each group: accept everything the rules already trust for this school, in one click.
+
+
 ## Technical notes
 
 - Extend `pendingVerdict` in `src/lib/review.server.ts` with coach-name sanity/authority rules and a season-currency rule for rosters, so review, the pull-time settlement path, and the sweep all share one judgement.
@@ -51,3 +70,5 @@ The sweep runs in bounded batches in the background and reports what it did, so 
 - Record applied automatic decisions in `pending_data_changes` with `decided_via = 'auto'` (already the pattern) plus an `original_value` snapshot for undo, and drive the "changes worth a glance" and "spot check" views from those rows.
 - New route `admin.changes.tsx` (glance + undo + spot check) and shrink `admin.review.tsx` to true exceptions only.
 - Backlog sweep: extend `sweepReviewQueue` batching in `src/lib/review.functions.ts` and expose a "clear the backlog" control on the collection screen with progress counts.
+- Gate the review/discovery listings on `programs.offering_status = 'verified'` and resolve or drop `program_id is null` discovery rows; extend the not-offered retirement sweep in `src/lib/sport-sponsorship.server.ts` over the existing backlog.
+- `admin.review.tsx` / `admin.discovery.tsx`: drop `invalidateQueries` on `admin-universities` / `admin-programs`, remove decided ids from the cached page via `setQueryData`, keep counts as a low-frequency cached query with local decrement, and batch decisions into a single server call.
