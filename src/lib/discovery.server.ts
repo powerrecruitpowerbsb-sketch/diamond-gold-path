@@ -531,3 +531,62 @@ export async function applyDiscoveredUrl(
     .eq("id", row.program_id);
   if (error) throw new Error(error.message);
 }
+
+/** How many times a person has already declined a link of this kind for a school. */
+export async function rejectedCount(
+  supabase: any,
+  universityId: string,
+  discoveryType: DiscoveryType,
+): Promise<number> {
+  const { count } = await supabase
+    .from("url_discovery_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("university_id", universityId)
+    .eq("discovery_type", discoveryType)
+    .eq("status", "rejected");
+  return count ?? 0;
+}
+
+export const REJECT_RESEARCH_LIMIT = 3;
+
+/**
+ * Send a school back for a fresh link search. Stops after a few rounds so a
+ * school whose site simply can't be found doesn't loop forever.
+ */
+export async function requeueSchoolForDiscovery(
+  supabase: any,
+  universityId: string,
+  discoveryType?: DiscoveryType,
+): Promise<{ requeued: boolean; reason: string }> {
+  if (discoveryType) {
+    const tries = await rejectedCount(supabase, universityId, discoveryType);
+    if (tries >= REJECT_RESEARCH_LIMIT) {
+      return {
+        requeued: false,
+        reason: `Searched ${tries} times already — this one needs a link pasted in by hand.`,
+      };
+    }
+  }
+
+  const { data: existing } = await supabase
+    .from("ingest_queue")
+    .select("id")
+    .eq("university_id", universityId)
+    .eq("stage", "url_discovery")
+    .limit(1);
+
+  if (existing && existing.length) {
+    const { error } = await supabase
+      .from("ingest_queue")
+      .update({ status: "pending", attempts: 0, last_error: null, leased_at: null })
+      .eq("id", (existing[0] as { id: string }).id);
+    if (error) return { requeued: false, reason: error.message };
+    return { requeued: true, reason: "Queued for a fresh search." };
+  }
+
+  const { error } = await supabase
+    .from("ingest_queue")
+    .insert({ university_id: universityId, stage: "url_discovery", status: "pending" });
+  if (error) return { requeued: false, reason: error.message };
+  return { requeued: true, reason: "Queued for a fresh search." };
+}
