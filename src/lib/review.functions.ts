@@ -398,8 +398,17 @@ export const rejectPendingChanges = createServerFn({ method: "POST" })
 
     const { data: rows } = await context.supabase
       .from("pending_data_changes")
-      .select("id, table_name, record_id, proposed_value")
+      .select("id, table_name, record_id, field_name, proposed_value")
       .in("id", data.ids);
+
+    // Remember the decision so a re-read of the same page can't propose it again.
+    const { rememberDeclines } = await import("@/lib/review.server");
+    await rememberDeclines(
+      context.supabase,
+      context.userId,
+      (rows ?? []) as any[],
+      data.reason,
+    );
 
     const { error } = await context.supabase
       .from("pending_data_changes")
