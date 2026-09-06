@@ -81,7 +81,9 @@ function AdminProgramDetail() {
         </div>
       </div>
 
+      <ManualCoach programId={id} currentName={program.head_coach_name} />
       <IngestPanel programId={id} />
+
       <IntelSection programId={id} />
       <RelationshipSection programId={id} />
       <RosterHistory programId={id} />
