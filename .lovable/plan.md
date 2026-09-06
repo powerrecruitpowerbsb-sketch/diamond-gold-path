@@ -70,3 +70,5 @@ Today each approve or decline refreshes the whole schools list, the whole progra
 - Record applied automatic decisions in `pending_data_changes` with `decided_via = 'auto'` (already the pattern) plus an `original_value` snapshot for undo, and drive the "changes worth a glance" and "spot check" views from those rows.
 - New route `admin.changes.tsx` (glance + undo + spot check) and shrink `admin.review.tsx` to true exceptions only.
 - Backlog sweep: extend `sweepReviewQueue` batching in `src/lib/review.functions.ts` and expose a "clear the backlog" control on the collection screen with progress counts.
+- Gate the review/discovery listings on `programs.offering_status = 'verified'` and resolve or drop `program_id is null` discovery rows; extend the not-offered retirement sweep in `src/lib/sport-sponsorship.server.ts` over the existing backlog.
+- `admin.review.tsx` / `admin.discovery.tsx`: drop `invalidateQueries` on `admin-universities` / `admin-programs`, remove decided ids from the cached page via `setQueryData`, keep counts as a low-frequency cached query with local decrement, and batch decisions into a single server call.
