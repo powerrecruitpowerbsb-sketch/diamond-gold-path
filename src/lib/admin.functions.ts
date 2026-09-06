@@ -229,13 +229,15 @@ export const listUniversityOptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertSuperadmin(context as any);
-    const { data, error } = await context.supabase
-      .from("universities")
-      .select("id, name, state")
-      .order("name");
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    return await fetchAllRows((from, to) =>
+      context.supabase
+        .from("universities")
+        .select("id, name, state")
+        .order("name")
+        .range(from, to) as any,
+    );
   });
+
 
 export const saveProgram = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
