@@ -166,11 +166,16 @@ export const approvePendingChanges = createServerFn({ method: "POST" })
  */
 export const sweepReviewQueue = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input?: { apply?: boolean }) => ({ apply: Boolean(input?.apply) }))
+  .inputValidator((input?: { apply?: boolean; limit?: number | null }) => ({
+    apply: Boolean(input?.apply),
+    // Bounded batches: a backlog of thousands is worked a slice at a time so a
+    // single request never runs past its budget.
+    limit: Math.min(Math.max(Number(input?.limit ?? 1200) || 1200, 100), 2000),
+  }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
     const { sweepPendingNoise } = await import("@/lib/review.server");
-    return sweepPendingNoise(context.supabase, context.userId, data.apply);
+    return sweepPendingNoise(context.supabase, context.userId, data.apply, data.limit);
   });
 
 /**
