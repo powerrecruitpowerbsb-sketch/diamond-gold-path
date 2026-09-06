@@ -172,6 +172,42 @@ export function CollectionRunner() {
         />
       </div>
 
+      <div className="mt-4 rounded-lg border border-border p-3">
+        <p className="meta flex items-center gap-2">
+          <Layers className="size-3.5" aria-hidden />
+          Work one level at a time
+        </p>
+        <p className="meta mt-1">
+          Pick a level to work on now. Everything else waits its turn — nothing is lost.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(waves ?? []).map((wave) => (
+            <button
+              key={wave.key}
+              type="button"
+              onClick={() => void onChooseWave(wave.key, wave.label)}
+              disabled={busy}
+              className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-ink-navy disabled:opacity-60"
+            >
+              {wave.label}
+              <span className="meta ml-2">
+                {wave.waiting} to do{wave.held ? ` · ${wave.held} waiting turn` : ""}
+              </span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => void onChooseWave("all", "Everything")}
+            disabled={busy}
+            className="touch-target rounded-lg border border-ink-navy px-3 text-sm font-semibold text-ink-navy disabled:opacity-60"
+          >
+            Everything at once
+          </button>
+        </div>
+      </div>
+
+
+
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <span
           className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
