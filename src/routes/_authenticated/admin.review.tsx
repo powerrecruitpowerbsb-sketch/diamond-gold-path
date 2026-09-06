@@ -579,7 +579,7 @@ function ReviewQueue() {
                           ids,
                           label: `all ${ids.length} item${ids.length === 1 ? "" : "s"} for ${group.schoolName}`,
                           reason: "",
-                          rescrape: false,
+
                         })
                       }
                     >
