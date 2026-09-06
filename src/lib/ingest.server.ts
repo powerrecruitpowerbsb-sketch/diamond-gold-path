@@ -7,11 +7,13 @@
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
 import {
   canonicalConference,
+  coerceForColumn,
   contradictsGoverningBody,
   isEmptyValue,
   isUnknownConference,
   normalizePosition,
   plausibleSeasonYear,
+  rosterVerdict,
   valuesEquivalent,
 } from "@/lib/data-quality";
 
@@ -313,7 +315,7 @@ function coerce(field: string, raw: unknown): unknown {
   if (raw === null || raw === undefined || raw === "") return null;
   if (NUMERIC_FIELDS.has(field)) {
     const num = typeof raw === "number" ? raw : Number(String(raw).replace(/[^0-9.\-]/g, ""));
-    return Number.isFinite(num) ? num : null;
+    return Number.isFinite(num) ? coerceForColumn(field, num) : null;
   }
   if (BOOLEAN_FIELDS.has(field)) {
     if (typeof raw === "boolean") return raw;
@@ -352,7 +354,7 @@ export type ProposalRow = {
 /** Trust policy, in one place so it can be tuned without hunting through the pipeline. */
 export const INGEST_POLICY = {
   /** Gap-fills from an official source at or above this confidence apply without review. */
-  autoApplyConfidence: 0.9,
+  autoApplyConfidence: 0.7,
   /** A four-year roster smaller than this almost certainly means an incomplete scrape. */
   minCredibleRoster: 15,
 };
@@ -458,8 +460,7 @@ export function mergeFieldProposals(rows: ProposalRow[]): ProposalRow[] {
 /** Gap-fill + official + high confidence = trusted enough to skip the queue. */
 export function isAutoApplicable(row: ProposalRow): boolean {
   return Boolean(
-    row.field_name &&
-      row.gap_fill &&
+    row.gap_fill &&
       row.source_type === "official" &&
       (row.ai_confidence ?? 0) >= INGEST_POLICY.autoApplyConfidence,
   );
@@ -632,9 +633,12 @@ export async function ingestProgram(
 
         const summary = summarizeRoster(players);
         const seasonYear = season_year ?? new Date().getFullYear();
-        const suspicious = players.length < INGEST_POLICY.minCredibleRoster;
+        // Judge the roster on the roster: the page it came from, the season it
+        // claims, the squad size and whether the names read like real players.
+        const verdict = rosterVerdict({ season_year: seasonYear, players }, target.url);
+        const suspicious = !verdict.auto;
         if (suspicious) {
-          rosterWarning = `Only ${players.length} players were read from the roster page — a full four-year roster is usually 30+. This looks like an incomplete scrape, so it is flagged for scrutiny instead of being trusted.`;
+          rosterWarning = `This roster needs a look: ${verdict.reason}.`;
         }
 
         const { error: snapshotError } = await supabase.from("roster_snapshots").insert({
@@ -660,11 +664,13 @@ export async function ingestProgram(
             season_year: seasonYear,
             players,
             incomplete_scrape: suspicious,
+            review_reason: verdict.reason,
             scrape_diagnostics: diagnostics,
           } as any,
           source_url: target.url,
           source_type: "official",
-          ai_confidence: suspicious ? 0.3 : 0.7,
+          ai_confidence: suspicious ? 0.3 : 0.95,
+          gap_fill: verdict.auto,
         });
 
         urlResults.push({
@@ -672,7 +678,7 @@ export async function ingestProgram(
           purpose: target.purpose,
           status: "scraped",
           detail: suspicious
-            ? `only ${players.length} players read from ${diagnostics.characters} characters — likely incomplete; snapshot saved for ${seasonYear}`
+            ? `${players.length} players read but held for review (${verdict.reason}); snapshot saved for ${seasonYear}`
             : `${players.length} players read; snapshot saved for ${seasonYear}`,
         });
       }
@@ -726,11 +732,9 @@ export async function ingestProgram(
       );
   }
 
-  const autoRows = freshFieldProposals.filter(isAutoApplicable);
-  const reviewRows = [
-    ...freshFieldProposals.filter((row) => !isAutoApplicable(row)),
-    ...recordProposals,
-  ];
+  const candidates = [...freshFieldProposals, ...recordProposals];
+  const autoRows = candidates.filter(isAutoApplicable);
+  const reviewRows = candidates.filter((row) => !isAutoApplicable(row));
 
   const toInsert = [
     ...autoRows.map((row) => ({ row, decided_via: "auto" as const })),
@@ -758,17 +762,16 @@ export async function ingestProgram(
   let autoApplied = 0;
   if (autoRows.length && inserted.length) {
     const { approvePending } = await import("@/lib/review.server");
-    const autoKeys = new Set(
-      autoRows.map((row) => `${row.table_name}:${row.record_id}:${row.field_name}`),
-    );
+    const key = (row: { table_name: string; record_id: string; field_name: string | null }) =>
+      `${row.table_name}:${row.record_id}:${row.field_name ?? "whole-record"}`;
+    const autoKeys = new Set(autoRows.map(key));
     for (const row of inserted) {
-      if (!row.field_name) continue;
-      if (!autoKeys.has(`${row.table_name}:${row.record_id}:${row.field_name}`)) continue;
+      if (!autoKeys.has(key(row))) continue;
       try {
         await approvePending(supabase, userId, row);
         autoApplied += 1;
       } catch (failure) {
-        console.error(`Auto-apply failed for ${row.field_name}: ${(failure as Error).message}`);
+        console.error(`Auto-apply failed for ${row.field_name ?? "roster"}: ${(failure as Error).message}`);
       }
     }
   }

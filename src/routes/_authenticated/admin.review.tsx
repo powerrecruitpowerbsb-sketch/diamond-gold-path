@@ -67,6 +67,7 @@ type PendingItem = {
   recordLabel: string | null;
   currentValue: unknown;
   currentRecord: Record<string, unknown> | null;
+  reviewReason?: string | null;
 };
 
 type Group = {
@@ -97,6 +98,8 @@ type SweepResult = {
   gapFills: number;
   remaining: number;
   failures: number;
+  moreWaiting?: boolean;
+  reasons?: { reason: string; count: number }[];
   samples: { label: string; field: string; reason: string }[];
 };
 
@@ -467,8 +470,18 @@ function ReviewQueue() {
             </p>
             <p className="mt-1 text-steel">
               Clearing those leaves {sweepPreview.remaining} real decision
-              {sweepPreview.remaining === 1 ? "" : "s"} for you.
+              {sweepPreview.remaining === 1 ? "" : "s"} for you
+              {sweepPreview.moreWaiting ? ", and more items after this batch" : ""}.
             </p>
+            {sweepPreview.reasons?.length ? (
+              <ul className="mt-2 space-y-0.5 text-steel">
+                {sweepPreview.reasons.slice(0, 5).map((entry) => (
+                  <li key={entry.reason} className="tabular-nums">
+                    {entry.count} · {entry.reason}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
           <div className="flex gap-2">
             <Button
@@ -621,6 +634,11 @@ function ReviewQueue() {
                                 <span className="inline-flex items-center gap-1 rounded-md bg-seam-red-tint px-2 py-0.5 text-xs font-semibold text-seam-red">
                                   <AlertTriangle className="size-3" aria-hidden />
                                   Sources disagree
+                                </span>
+                              ) : null}
+                              {item.reviewReason ? (
+                                <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-steel">
+                                  {item.reviewReason}
                                 </span>
                               ) : null}
                               <span className="meta tabular-nums">
