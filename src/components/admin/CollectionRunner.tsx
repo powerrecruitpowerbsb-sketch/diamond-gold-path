@@ -1,11 +1,18 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Play, Square, Activity } from "lucide-react";
+import { Play, Square, Activity, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/admin/form-kit";
-import { getCollectionProgress, startCollection, stopCollection } from "@/lib/collection.functions";
+import {
+  chooseCollectionWave,
+  getCollectionProgress,
+  getCollectionWaves,
+  startCollection,
+  stopCollection,
+} from "@/lib/collection.functions";
+
 
 type Progress = Awaited<ReturnType<typeof getCollectionProgress>>;
 
@@ -38,6 +45,9 @@ export function CollectionRunner() {
   const startFn = useServerFn(startCollection);
   const stopFn = useServerFn(stopCollection);
 
+  const wavesFn = useServerFn(getCollectionWaves);
+  const chooseWaveFn = useServerFn(chooseCollectionWave);
+
   const [busy, setBusy] = useState(false);
 
   const { data, refetch } = useQuery<Progress>({
@@ -46,7 +56,32 @@ export function CollectionRunner() {
     refetchInterval: 20_000,
   });
 
+  const { data: waves, refetch: refetchWaves } = useQuery({
+    queryKey: ["collection-waves"],
+    queryFn: () => wavesFn() as Promise<{ key: string; label: string; waiting: number; held: number }[]>,
+    refetchInterval: 60_000,
+  });
+
   const running = Boolean(data?.state.isRunning);
+
+  async function onChooseWave(wave: string, label: string) {
+    setBusy(true);
+    try {
+      const result = (await chooseWaveFn({ data: { wave } })) as {
+        released: number;
+        held: number;
+        waitingInWave: number;
+      };
+      toast.success(
+        `${label} is next in line — ${result.waitingInWave} team${result.waitingInWave === 1 ? "" : "s"} to work through${result.held ? `, ${result.held} set aside for later` : ""}`,
+      );
+      await Promise.all([refetch(), refetchWaves()]);
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not switch levels");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onStart() {
     setBusy(true);
@@ -56,6 +91,7 @@ export function CollectionRunner() {
         (sum: number, n) => sum + Number(n ?? 0),
         0,
       );
+
       toast.success(
         queued
           ? `Collection running — ${queued} new job(s) added. You can close this page.`
@@ -135,6 +171,42 @@ export function CollectionRunner() {
           hint={`${data?.review.links ?? 0} link(s) · ${data?.review.facts ?? 0} fact(s)`}
         />
       </div>
+
+      <div className="mt-4 rounded-lg border border-border p-3">
+        <p className="meta flex items-center gap-2">
+          <Layers className="size-3.5" aria-hidden />
+          Work one level at a time
+        </p>
+        <p className="meta mt-1">
+          Pick a level to work on now. Everything else waits its turn — nothing is lost.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(waves ?? []).map((wave) => (
+            <button
+              key={wave.key}
+              type="button"
+              onClick={() => void onChooseWave(wave.key, wave.label)}
+              disabled={busy}
+              className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-ink-navy disabled:opacity-60"
+            >
+              {wave.label}
+              <span className="meta ml-2">
+                {wave.waiting} to do{wave.held ? ` · ${wave.held} waiting turn` : ""}
+              </span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => void onChooseWave("all", "Everything")}
+            disabled={busy}
+            className="touch-target rounded-lg border border-ink-navy px-3 text-sm font-semibold text-ink-navy disabled:opacity-60"
+          >
+            Everything at once
+          </button>
+        </div>
+      </div>
+
+
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <span

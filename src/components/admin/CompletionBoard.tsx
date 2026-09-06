@@ -59,8 +59,9 @@ export function CompletionBoard() {
   const backlog = useMutation({
     mutationFn: (apply: boolean) => backlogFn({ data: { apply } }),
     onSuccess: (result: any, apply) => {
+      const retired = result.emptyLinks?.retired ?? result.emptyLinks?.found ?? 0;
       toast.success(
-        `${apply ? "Handled" : "Would handle"} ${result.facts?.applied ?? 0} fact(s) and ${result.links?.approve ?? 0} link approvals, ${result.links?.reject ?? 0} rejections.`,
+        `${apply ? "Handled" : "Would handle"} ${result.facts?.applied ?? 0} fact(s) and ${result.links?.approve ?? 0} link approvals, ${result.links?.reject ?? 0} rejections${retired ? `, and cleared ${retired} empty search${retired === 1 ? "" : "es"}` : ""}.`,
       );
       refresh();
     },
