@@ -210,10 +210,14 @@ export async function sweepLinksUntilDone(
     passes: 0,
   };
 
+  // Items left for a person stay in the queue, so each pass steps past the ones
+  // the last pass already decided to leave alone.
+  let offset = 0;
   for (let pass = 0; pass < maxPasses; pass += 1) {
     const counts = await sweepDiscoveredLinks(supabase, actorId, {
       apply: options.apply,
       limit: 1000,
+      offset,
     });
     total.passes += 1;
     total.scanned += counts.scanned;
@@ -226,13 +230,14 @@ export async function sweepLinksUntilDone(
     for (const [code, count] of Object.entries(counts.byReason)) {
       total.byReason[code] = (total.byReason[code] ?? 0) + count;
     }
+    offset += counts.ask;
 
-    const decided = counts.approve + counts.reject;
     // A preview never changes anything, so one pass is all it can tell us.
     if (!options.apply) break;
-    if (!counts.moreWaiting || decided === 0) break;
+    if (!counts.moreWaiting || counts.scanned === 0) break;
     if (Date.now() - startedAt > budgetMs) break;
   }
+
 
   return total;
 }
