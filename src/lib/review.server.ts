@@ -467,7 +467,7 @@ export async function sweepPendingNoise(
   supabase: any,
   userId: string,
   apply: boolean,
-  limit = 1200,
+  limit = 1000,
 ): Promise<{
   examined: number;
   noChange: number;
@@ -485,12 +485,16 @@ export async function sweepPendingNoise(
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true })
-    .limit(limit + 1);
+    .limit(limit);
   if (error) throw new Error(error.message);
 
-  const all = (rows ?? []) as PendingRow[];
-  const moreWaiting = all.length > limit;
-  const pending = all.slice(0, limit);
+  const pending = (rows ?? []) as PendingRow[];
+  // The API caps a read at 1,000 rows, so "is there more?" comes from a count.
+  const { count: openTotal } = await supabase
+    .from("pending_data_changes")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  const moreWaiting = (openTotal ?? 0) > pending.length;
   const decorated = await decoratePending(supabase, pending);
 
   const noChangeIds: string[] = [];

@@ -170,7 +170,7 @@ export const sweepReviewQueue = createServerFn({ method: "POST" })
     apply: Boolean(input?.apply),
     // Bounded batches: a backlog of thousands is worked a slice at a time so a
     // single request never runs past its budget.
-    limit: Math.min(Math.max(Number(input?.limit ?? 1200) || 1200, 100), 2000),
+    limit: Math.min(Math.max(Number(input?.limit ?? 1000) || 1000, 100), 1000),
   }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);

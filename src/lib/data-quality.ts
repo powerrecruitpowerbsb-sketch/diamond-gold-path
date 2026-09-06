@@ -359,7 +359,7 @@ export function rosterVerdict(
   }
 
   const positions = players.filter((player) => normalizePosition(player?.position)).length;
-  if (positions < Math.ceil(players.length * 0.5)) {
+  if (positions < Math.ceil(players.length * 0.3)) {
     return { auto: false, reason: "most positions could not be read" };
   }
 
