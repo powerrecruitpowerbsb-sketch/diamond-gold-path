@@ -102,18 +102,18 @@ export const listPendingChanges = createServerFn({ method: "GET" })
 
     const filteredItems = groups.reduce((sum, group) => sum + group.items.length, 0);
     const totalGroups = groups.length;
-    const start = (data.page - 1) * data.pageSize;
-    const page = groups.slice(start, start + data.pageSize);
 
     return {
-      groups: page,
+      groups,
       totalGroups,
       totalItems,
       filteredItems,
+      totalPages: Math.max(1, Math.ceil(totalItems / itemsPerPage)),
       conflicts: groups.reduce((sum, group) => sum + group.conflicts, 0),
       page: data.page,
       pageSize: data.pageSize,
     };
+
   });
 
 
