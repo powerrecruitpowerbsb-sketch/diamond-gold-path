@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Building2, Database, Download, Landmark, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
+import { AccuracyPanel } from "@/components/admin/AccuracyPanel";
 import { CollectionRunner } from "@/components/admin/CollectionRunner";
 import { SectionCard } from "@/components/admin/form-kit";
 import {
@@ -586,6 +587,8 @@ function Pipeline() {
       />
 
       <CollectionRunner />
+
+      <AccuracyPanel />
 
       <details className="rounded-xl border border-border bg-white p-4">
         <summary className="cursor-pointer font-semibold text-graphite">
