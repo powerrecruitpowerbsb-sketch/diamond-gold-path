@@ -399,5 +399,5 @@ export async function auditPageOwnership(
     );
   }
 
-  return { checked: programs.length, problems, cleared };
+  return { checked: programs.length, problems, standoffs, cleared };
 }
