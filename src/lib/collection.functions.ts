@@ -95,3 +95,24 @@ export const runCollectionBatch = createServerFn({ method: "POST" })
       progress: await collectionProgress(context.supabase),
     });
   });
+
+/** Which competition level the run should work on next. */
+export const getCollectionWaves = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { waveProgress } = await import("@/lib/waves.server");
+    return clean(await waveProgress(context.supabase));
+  });
+
+/** Release one level's work and set the rest aside until its turn. */
+export const chooseCollectionWave = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { wave: string }) => ({ wave: String(input?.wave ?? "all") }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { setCollectionWave, WAVES } = await import("@/lib/waves.server");
+    const known = WAVES.some((wave) => wave.key === data.wave);
+    if (!known) throw new Error("Unknown level");
+    return clean(await setCollectionWave(context.supabase, data.wave as any));
+  });
