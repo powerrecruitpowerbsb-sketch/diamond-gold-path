@@ -317,9 +317,24 @@ export async function runCollectionPass(
     });
   }
 
+  // Safety net: anything left over — written before the rules changed, or only
+  // decidable once a sibling program's site was confirmed — is tidied here, so
+  // no button press is needed to keep the two lists down to real decisions.
+  try {
+    const { sweepPendingUntilDone } = await import("@/lib/review.server");
+    const { sweepLinksUntilDone } = await import("@/lib/link-sweep.server");
+    await sweepPendingUntilDone(supabase, actorId, true, { maxPasses: 2, budgetMs: 20_000 });
+    await sweepLinksUntilDone(supabase, actorId, { apply: true, maxPasses: 2, budgetMs: 20_000 });
+  } catch (failure) {
+    result.notes.push(
+      `Automatic tidy-up skipped this round: ${failure instanceof Error ? failure.message : "unknown error"}`,
+    );
+  }
+
   await recordBeat(supabase, result);
   return result;
 }
+
 
 /** Live progress for the pipeline screen: how much of the country is collected. */
 export async function collectionProgress(supabase: any) {

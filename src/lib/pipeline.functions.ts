@@ -61,14 +61,54 @@ export const getPipelineStatus = createServerFn({ method: "GET" })
       count("programs", (q) => q.not("head_coach_name", "is", null)),
     ]);
 
+    const soon = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+    const nowIso = new Date().toISOString();
+    const [rostersDueNow, rostersDueSoon, factsDueNow, factsDueSoon] = await Promise.all([
+      count("programs", (q) => q.lte("roster_refresh_due_at", nowIso).not("roster_url", "is", null)),
+      count("programs", (q) =>
+        q.gt("roster_refresh_due_at", nowIso).lte("roster_refresh_due_at", soon).not("roster_url", "is", null),
+      ),
+      count("universities", (q) =>
+        q.lte("facts_refresh_due_at", nowIso).in("federal_match_status", ["confirmed", "manual"]),
+      ),
+      count("universities", (q) =>
+        q
+          .gt("facts_refresh_due_at", nowIso)
+          .lte("facts_refresh_due_at", soon)
+          .in("federal_match_status", ["confirmed", "manual"]),
+      ),
+    ]);
+
     return clean({
       usingDemoKey: usingDemoKey(),
       coverage,
       schools: { total: schoolsTotal, federalConfirmed, federalNeedsHelp, withCost },
       programs: { total: programsTotal, baseball, softball, withRosterUrl, withCoach },
+      refresh: { rostersDueNow, rostersDueSoon, factsDueNow, factsDueSoon },
     });
 
   });
+
+/** Send everything that is due for its scheduled re-check back into the queue now. */
+export const runDueRefreshes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("enqueue_due_refreshes" as any, {
+      _program_limit: 500,
+      _school_limit: 500,
+    });
+    if (error) throw new Error(error.message);
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { programs_queued: number; schools_queued: number }
+      | null;
+    return clean({
+      programsQueued: row?.programs_queued ?? 0,
+      schoolsQueued: row?.schools_queued ?? 0,
+    });
+  });
+
 
 /** Add queue rows for anything new, so a fresh import joins the pipeline. */
 export const rebuildQueue = createServerFn({ method: "POST" })
