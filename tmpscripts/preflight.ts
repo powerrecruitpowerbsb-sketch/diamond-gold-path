@@ -8,5 +8,6 @@ const supabase = createClient(process.env["SUPABASE_URL"]!, process.env["SUPABAS
 });
 
 const own = await auditPageOwnership(supabase, { apply });
-console.log("ownership:", { checked: own.checked, problems: own.problems.length, cleared: own.cleared });
+console.log("ownership:", { checked: own.checked, problems: own.problems.length, standoffs: own.standoffs.length, cleared: own.cleared });
+for (const s of own.standoffs.slice(0, 30)) console.log("  standoff:", s.domain, "->", s.schools.join(" | "));
 for (const p of own.problems.slice(0, 15)) console.log("  ", p.schoolName, p.sport, p.domain, "kept by", p.keptBy, p.fields.join(","));
