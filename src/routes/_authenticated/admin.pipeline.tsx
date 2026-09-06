@@ -803,8 +803,40 @@ function Pipeline() {
         </SectionCard>
       ) : null}
 
+      <SectionCard
+        title="Keeping information current"
+        blurb="Rosters are checked twice a year, school facts once a year. Each school has its own date, so the work is spread out and happens on its own."
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="rounded-lg border border-border bg-white p-3">
+            <p className="text-sm font-semibold text-graphite">Rosters</p>
+            <p className="meta">
+              {status?.refresh?.rostersDueNow ?? 0} due now · {status?.refresh?.rostersDueSoon ?? 0} in the
+              next month
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-white p-3">
+            <p className="text-sm font-semibold text-graphite">School facts</p>
+            <p className="meta">
+              {status?.refresh?.factsDueNow ?? 0} due now · {status?.refresh?.factsDueSoon ?? 0} in the next
+              month
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRunDueRefreshes}
+          disabled={busy !== null}
+          className="touch-target mt-3 inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-graphite disabled:opacity-60"
+        >
+          <RefreshCw className="h-4 w-4" />
+          {busy === "due-refresh" ? "Lining them up…" : "Check everything due now"}
+        </button>
+      </SectionCard>
+
       {log.length ? (
         <SectionCard title="Recent activity" blurb="What the last few runs did.">
+
           <ul className="grid gap-1.5 text-sm text-steel">
             {log.map((line, index) => (
               <li key={`${line}-${index}`} className="font-mono text-xs">
