@@ -733,17 +733,13 @@ export async function ingestProgram(
   }
 
   const candidates = [...freshFieldProposals, ...recordProposals];
-  const autoRows = candidates.filter(isAutoApplicable);
-  const reviewRows = candidates.filter((row) => !isAutoApplicable(row));
 
-  const toInsert = [
-    ...autoRows.map((row) => ({ row, decided_via: "auto" as const })),
-    ...reviewRows.map((row) => ({ row, decided_via: "human" as const })),
-  ].map(({ row, decided_via }) => {
+  const toInsert = candidates.map((row) => {
     const { gap_fill: _gapFill, ...rest } = row;
-    return { ...rest, decided_via };
+    // Every item is written first, then judged by the shared rulebook below, so
+    // the live write, the citation and the activity log all take one path.
+    return { ...rest, decided_via: isAutoApplicable(row) ? ("auto" as const) : ("human" as const) };
   });
-
 
   let inserted: any[] = [];
   if (toInsert.length) {
@@ -757,26 +753,24 @@ export async function ingestProgram(
     inserted = (insertedRows ?? []) as any[];
   }
 
-  // Trusted gap-fills apply immediately through the same writer a human approval uses,
-  // so live values, source citations and the activity log all stay on one path.
+  // The same rules the tidy-up applies run here, at the moment of the pull, so
+  // only a genuine judgement call is ever left waiting for a person.
   let autoApplied = 0;
-  if (autoRows.length && inserted.length) {
-    const { approvePending } = await import("@/lib/review.server");
-    const key = (row: { table_name: string; record_id: string; field_name: string | null }) =>
-      `${row.table_name}:${row.record_id}:${row.field_name ?? "whole-record"}`;
-    const autoKeys = new Set(autoRows.map(key));
-    for (const row of inserted) {
-      if (!autoKeys.has(key(row))) continue;
-      try {
-        await approvePending(supabase, userId, row);
-        autoApplied += 1;
-      } catch (failure) {
-        console.error(`Auto-apply failed for ${row.field_name ?? "roster"}: ${(failure as Error).message}`);
-      }
+  let settledRemaining = inserted.length;
+  if (inserted.length) {
+    const { decoratePending, settlePendingRows } = await import("@/lib/review.server");
+    try {
+      const decorated = await decoratePending(supabase, inserted as any[]);
+      const settled = await settlePendingRows(supabase, userId, decorated as any[], true);
+      autoApplied = settled.autoApplied;
+      settledRemaining = settled.remaining;
+    } catch (failure) {
+      console.error(`Could not settle fresh proposals: ${(failure as Error).message}`);
     }
   }
 
-  const queuedForReview = Math.max(inserted.length - autoApplied, 0);
+  const queuedForReview = Math.max(settledRemaining, 0);
+
 
 
   const anySuccess = urlResults.some((r) => r.status === "scraped" || r.status === "empty");
