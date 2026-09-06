@@ -49,6 +49,22 @@ function normalizeText(value: unknown): string {
     .toLowerCase();
 }
 
+/**
+ * "Kansas" and "KS" are the same answer. We store the two-letter code, so a page
+ * that spells the state out must never read as a disagreement.
+ */
+export function normalizeStateValue(value: unknown): string {
+  const raw = normalizeText(value);
+  if (!raw) return "";
+  if (/^[a-z]{2}$/.test(raw)) return raw.toUpperCase();
+  for (const [code, name] of Object.entries(US_STATE_NAMES)) {
+    if (name === raw) return code;
+  }
+  return raw.toUpperCase();
+}
+
+const STATE_FIELDS = new Set(["state", "home_state"]);
+
 /** True when the live value carries no real information yet. */
 export function isEmptyValue(field: string, value: unknown): boolean {
   if (value === null || value === undefined || value === "") return true;
@@ -78,6 +94,10 @@ export function valuesEquivalent(field: string, current: unknown, next: unknown)
 
   if (URL_FIELDS.has(field)) {
     return normalizeUrlValue(current) === normalizeUrlValue(next);
+  }
+
+  if (STATE_FIELDS.has(field)) {
+    return normalizeStateValue(current) === normalizeStateValue(next);
   }
 
   if (field === "conference") {
