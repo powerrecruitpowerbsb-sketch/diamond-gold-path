@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { fetchAllRows } from "@/lib/paginate";
+
+
 
 type Json = Record<string, unknown>;
 
@@ -90,15 +93,17 @@ export const listUniversities = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertSuperadmin(context as any);
-    const { data, error } = await context.supabase
-      .from("universities")
-      .select(
-        "id, name, city, state, region, public_private, campus_setting, school_size_bucket, undergrad_enrollment, avg_gpa, acceptance_rate, est_cost_of_attendance, est_net_price, updated_at, programs(id, sport, division, governing_body)",
-      )
-      .order("name");
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    return await fetchAllRows((from, to) =>
+      context.supabase
+        .from("universities")
+        .select(
+          "id, name, city, state, region, public_private, campus_setting, school_size_bucket, undergrad_enrollment, avg_gpa, acceptance_rate, est_cost_of_attendance, est_net_price, updated_at, programs(id, sport, division, governing_body)",
+        )
+        .order("name")
+        .range(from, to) as any,
+    );
   });
+
 
 export const getUniversity = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
