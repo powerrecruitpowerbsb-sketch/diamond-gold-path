@@ -252,8 +252,11 @@ function ReviewQueue() {
       }
       setSweepPreview(null);
       toast.success(
-        `Cleared ${result.noChange} duplicate item${result.noChange === 1 ? "" : "s"} and applied ${result.gapFills} blank-field fill${result.gapFills === 1 ? "" : "s"}`,
+        `Cleared ${result.noChange} duplicate or matching item${result.noChange === 1 ? "" : "s"} and applied ${result.gapFills} school-site fact${result.gapFills === 1 ? "" : "s"}${
+          result.moreWaiting ? " — run it again to keep going" : ""
+        }`,
       );
+
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
