@@ -586,9 +586,12 @@ function Pipeline() {
         notSchools={nonSchools?.entries?.length ?? 0}
       />
 
+      <CompletionBoard />
+
       <CollectionRunner />
 
       <AccuracyPanel />
+
 
       <details className="rounded-xl border border-border bg-white p-4">
         <summary className="cursor-pointer font-semibold text-graphite">
