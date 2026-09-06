@@ -77,6 +77,23 @@ export async function sweepDiscoveredLinks(
     moreWaiting: (pendingTotal ?? 0) > rows.length,
   };
 
+  // Every athletics site already confirmed for these schools, so a roster or
+  // coaching page on a sibling program's site is recognised too.
+  const schoolIds = [...new Set(rows.map((row) => row.university_id))];
+  const hostsBySchool = new Map<string, string[]>();
+  for (const ids of chunk(schoolIds, 100)) {
+    const { data: programs } = await supabase
+      .from("programs")
+      .select("university_id, athletic_website")
+      .in("university_id", ids)
+      .not("athletic_website", "is", null);
+    for (const program of (programs ?? []) as any[]) {
+      const list = hostsBySchool.get(program.university_id) ?? [];
+      list.push(program.athletic_website);
+      hostsBySchool.set(program.university_id, list);
+    }
+  }
+
   const toApprove: Row[] = [];
   const toReject: { row: Row; verdict: LinkVerdict }[] = [];
 
@@ -87,6 +104,7 @@ export async function sweepDiscoveredLinks(
       sport: row.programs?.sport ?? null,
       schoolWebsite: row.universities?.website_url ?? null,
       athleticWebsite: row.programs?.athletic_website ?? null,
+      athleticHosts: hostsBySchool.get(row.university_id) ?? [],
     });
     if (verdict.action === "ask") {
       counts.ask += 1;
@@ -101,6 +119,7 @@ export async function sweepDiscoveredLinks(
       toReject.push({ row, verdict });
     }
   }
+
 
   if (!options.apply) return counts;
 
