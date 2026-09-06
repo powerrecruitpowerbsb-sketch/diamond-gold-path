@@ -468,6 +468,30 @@ export async function discoverUniversityUrls(
   }
 
 
+  // Apply the same link-quality rules a person would apply on the review screen,
+  // so plainly wrong links never reach the approval list at all.
+  const { data: schoolRow } = await supabase
+    .from("universities")
+    .select("website_url")
+    .eq("id", universityId)
+    .maybeSingle();
+
+  for (const result of results) {
+    if (result.url) {
+      const verdict = classifyLink({
+        kind: result.discoveryType,
+        url: result.url,
+        sport: result.sport ?? null,
+        schoolWebsite: (schoolRow as any)?.website_url ?? null,
+      });
+      if (verdict.action === "reject") {
+        result.url = null;
+        result.confidence = "failed";
+        result.notes = `Discarded automatically: ${verdict.reason}`;
+      }
+    }
+  }
+
   for (const result of results) {
     // Refresh the open proposal for this school/program/link kind rather than
     // stacking duplicates in the queue on a re-run.
