@@ -137,8 +137,11 @@ export function resolveSharedDomain<T extends { schoolId: string; verdict: Owner
   const ranked = [...claims].sort((a, b) => b.verdict.score - a.verdict.score);
   const best = ranked[0]!;
   if (best.verdict.score === 0) return { winner: null, losers: [] };
-  const tied = ranked.filter((claim) => claim.verdict.score === best.verdict.score);
-  // A genuine tie is not evidence either way — leave both for a person.
-  if (tied.length > 1) return { winner: null, losers: [] };
-  return { winner: best, losers: ranked.slice(1).filter((claim) => claim.schoolId !== best.schoolId) };
+  // Only a claim with no evidence at all is safe to clear automatically. When a
+  // rival school's name also appears in the address (bethanybison.com claimed by
+  // both Bethany Colleges), the difference is a judgement call, not proof, so the
+  // whole address is left for a person to settle.
+  const rivals = ranked.slice(1).filter((claim) => claim.schoolId !== best.schoolId);
+  if (rivals.some((claim) => claim.verdict.score > 0)) return { winner: null, losers: [] };
+  return { winner: best, losers: rivals };
 }
