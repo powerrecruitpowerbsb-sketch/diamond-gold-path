@@ -6,6 +6,7 @@
  */
 
 import { mentionsOtherState } from "@/lib/data-quality";
+import { classifyLink } from "@/lib/link-quality";
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
