@@ -121,11 +121,23 @@ export const countPendingChanges = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertSuperadmin(context as any);
-    const { count, error } = await context.supabase
+
+    // Exact counts can time out on a large table — fall back to a planned
+    // estimate instead of failing the whole page.
+    let pending = 0;
+    const exact = await context.supabase
       .from("pending_data_changes")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending");
-    if (error) throw new Error(error.message);
+    if (exact.error) {
+      const planned = await context.supabase
+        .from("pending_data_changes")
+        .select("id", { count: "planned", head: true })
+        .eq("status", "pending");
+      pending = planned.count ?? 0;
+    } else {
+      pending = exact.count ?? 0;
+    }
 
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { count: autoCount } = await context.supabase
@@ -135,8 +147,9 @@ export const countPendingChanges = createServerFn({ method: "GET" })
       .eq("decided_via", "auto")
       .gte("reviewed_at", since);
 
-    return { pending: count ?? 0, autoAppliedLast7Days: autoCount ?? 0 };
+    return { pending, autoAppliedLast7Days: autoCount ?? 0 };
   });
+
 
 export const approvePendingChanges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
