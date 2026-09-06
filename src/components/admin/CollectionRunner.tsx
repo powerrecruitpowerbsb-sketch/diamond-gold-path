@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Play, Square, Activity, Layers } from "lucide-react";
+import { Play, Square, Activity, Layers, Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/admin/form-kit";
@@ -9,12 +9,43 @@ import {
   chooseCollectionWave,
   getCollectionProgress,
   getCollectionWaves,
+  setCollectionAutoAdvance,
   startCollection,
   stopCollection,
 } from "@/lib/collection.functions";
 
 
+
 type Progress = Awaited<ReturnType<typeof getCollectionProgress>>;
+
+type Level = {
+  key: string;
+  label: string;
+  waiting: number;
+  held: number;
+  running: number;
+  done: number;
+  total: number;
+  complete: boolean;
+};
+
+type Board = {
+  levels: Level[];
+  currentWave: string | null;
+  nextWave: string | null;
+  autoAdvance: boolean;
+  perMinute: number;
+};
+
+/** "about 35 min" / "about 2 hr" from a count and a per-minute pace. */
+function estimate(left: number, perMinute: number): string | null {
+  if (!left || perMinute <= 0) return null;
+  const minutes = Math.round(left / perMinute);
+  if (minutes < 60) return `about ${Math.max(1, minutes)} min left at the current pace`;
+  const hours = Math.round((minutes / 60) * 10) / 10;
+  return `about ${hours} hr left at the current pace`;
+}
+
 
 function Tile({ label, value, hint }: { label: string; value: number | string; hint?: string }) {
   return (
@@ -47,6 +78,7 @@ export function CollectionRunner() {
 
   const wavesFn = useServerFn(getCollectionWaves);
   const chooseWaveFn = useServerFn(chooseCollectionWave);
+  const autoAdvanceFn = useServerFn(setCollectionAutoAdvance);
 
   const [busy, setBusy] = useState(false);
 
@@ -56,13 +88,17 @@ export function CollectionRunner() {
     refetchInterval: 20_000,
   });
 
-  const { data: waves, refetch: refetchWaves } = useQuery({
+  const { data: board, refetch: refetchWaves } = useQuery({
     queryKey: ["collection-waves"],
-    queryFn: () => wavesFn() as Promise<{ key: string; label: string; waiting: number; held: number }[]>,
-    refetchInterval: 60_000,
+    queryFn: () => wavesFn() as Promise<Board>,
+    refetchInterval: 30_000,
   });
 
   const running = Boolean(data?.state.isRunning);
+  const levels = board?.levels ?? [];
+  const current = levels.find((level) => level.key === board?.currentWave) ?? null;
+  const next = levels.find((level) => level.key === board?.nextWave) ?? null;
+  const pace = board?.perMinute ?? 0;
 
   async function onChooseWave(wave: string, label: string) {
     setBusy(true);
@@ -82,6 +118,24 @@ export function CollectionRunner() {
       setBusy(false);
     }
   }
+
+  async function onToggleAutoAdvance(on: boolean) {
+    setBusy(true);
+    try {
+      await autoAdvanceFn({ data: { on } });
+      toast.success(
+        on
+          ? "It will move on to the next level by itself"
+          : "It will stay on this level until you pick the next one",
+      );
+      await refetchWaves();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not save that");
+    } finally {
+      setBusy(false);
+    }
+  }
+
 
   async function onStart() {
     setBusy(true);
@@ -177,21 +231,68 @@ export function CollectionRunner() {
           <Layers className="size-3.5" aria-hidden />
           Work one level at a time
         </p>
-        <p className="meta mt-1">
-          Pick a level to work on now. Everything else waits its turn — nothing is lost.
-        </p>
+
+        {current ? (
+          <div className="mt-3 rounded-lg bg-border/20 p-3">
+            <p className="text-sm font-semibold text-ink-navy">
+              {current.complete ? `${current.label} is complete` : `Working on now: ${current.label}`}
+            </p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-border/60">
+              <div
+                className="h-full rounded-full bg-diamond-green transition-all"
+                style={{
+                  width: `${current.total ? Math.round((current.done / current.total) * 100) : 0}%`,
+                }}
+              />
+            </div>
+            <p className="meta mt-2 tabular-nums">
+              {current.done} of {current.total} done
+              {current.running ? ` · ${current.running} in progress` : ""}
+              {current.waiting ? ` · ${current.waiting} still in line` : ""}
+            </p>
+            {!current.complete && estimate(current.waiting, pace) ? (
+              <p className="meta mt-1">{estimate(current.waiting, pace)}</p>
+            ) : null}
+            {current.complete && next ? (
+              <p className="meta mt-1">
+                {board?.autoAdvance ? `Moving on to ${next.label}` : `Next up: ${next.label} — pick it when you're ready`}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <p className="meta mt-2">Pick a level to work on now. Everything else waits its turn.</p>
+        )}
+
+        <label className="meta mt-3 flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={board?.autoAdvance ?? true}
+            disabled={busy}
+            onChange={(event) => void onToggleAutoAdvance(event.target.checked)}
+            className="size-4 rounded border-border"
+          />
+          Work through the levels in order, without asking me
+        </label>
+
         <div className="mt-3 flex flex-wrap gap-2">
-          {(waves ?? []).map((wave) => (
+          {levels.map((level) => (
             <button
-              key={wave.key}
+              key={level.key}
               type="button"
-              onClick={() => void onChooseWave(wave.key, wave.label)}
+              onClick={() => void onChooseWave(level.key, level.label)}
               disabled={busy}
-              className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-ink-navy disabled:opacity-60"
+              className={`touch-target rounded-lg border px-3 text-sm font-semibold text-ink-navy disabled:opacity-60 ${
+                level.key === board?.currentWave ? "border-ink-navy bg-border/30" : "border-border"
+              }`}
             >
-              {wave.label}
-              <span className="meta ml-2">
-                {wave.waiting} to do{wave.held ? ` · ${wave.held} waiting turn` : ""}
+              <span className="inline-flex items-center gap-1.5">
+                {level.complete ? <Check className="size-3.5 text-diamond-green" aria-hidden /> : null}
+                {level.label}
+              </span>
+              <span className="meta ml-2 tabular-nums">
+                {level.complete
+                  ? "done"
+                  : `${level.done} done · ${level.waiting} to do${level.held ? ` · ${level.held} waiting turn` : ""}`}
               </span>
             </button>
           ))}
@@ -204,6 +305,7 @@ export function CollectionRunner() {
             Everything at once
           </button>
         </div>
+
       </div>
 
 

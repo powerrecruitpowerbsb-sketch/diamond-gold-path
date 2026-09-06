@@ -88,9 +88,36 @@ export const Route = createFileRoute("/api/public/collection-runner")({
           workers: num("workers", 4),
         });
 
-        if (pass.idle) await markCollectionFinished(supabase, "All queued work is finished");
+        // Nothing left at this level: move to the next one on its own, unless
+        // the operator asked to choose each level by hand.
+        if (pass.idle) {
+          const { data: stateRow } = await supabase
+            .from("collection_state")
+            .select("auto_advance")
+            .eq("id", "singleton")
+            .maybeSingle();
+          const autoAdvance = (stateRow as { auto_advance?: boolean } | null)?.auto_advance !== false;
+
+          if (autoAdvance) {
+            const { advanceToNextWave } = await import("@/lib/waves.server");
+            const moved = await advanceToNextWave(supabase);
+            if (moved) {
+              await supabase
+                .from("collection_state")
+                .update({
+                  last_message: `Moved on to ${moved.label}`,
+                  last_beat_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", "singleton");
+              return Response.json({ ok: true, running: true, advancedTo: moved.wave, ...pass });
+            }
+          }
+          await markCollectionFinished(supabase, "All queued work is finished");
+        }
 
         return Response.json({ ok: true, running: !pass.idle, ...pass });
+
       },
     },
   },

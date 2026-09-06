@@ -116,3 +116,14 @@ export const chooseCollectionWave = createServerFn({ method: "POST" })
     if (!known) throw new Error("Unknown level");
     return clean(await setCollectionWave(context.supabase, data.wave as any));
   });
+
+/** Work through the levels in order without being asked each time. */
+export const setCollectionAutoAdvance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { on: boolean }) => ({ on: Boolean(input?.on) }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { setAutoAdvance } = await import("@/lib/waves.server");
+    return clean({ autoAdvance: await setAutoAdvance(context.supabase, data.on) });
+  });
+
