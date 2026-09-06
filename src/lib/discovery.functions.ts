@@ -134,5 +134,18 @@ export const reviewDiscoveredUrl = createServerFn({ method: "POST" })
       .eq("status", "pending_review");
     if (updateError) throw new Error(updateError.message);
 
-    return { ok: true };
+    // A decline means "this link is wrong" — go look for a better one. The
+    // rejected URL is remembered, so it can't come back as a suggestion.
+    if (data.decision === "reject") {
+      const { requeueSchoolForDiscovery } = await import("@/lib/discovery.server");
+      const outcome = await requeueSchoolForDiscovery(
+        context.supabase,
+        String((row as any).university_id),
+        (row as any).discovery_type,
+      );
+      return { ok: true, requeued: outcome.requeued, message: outcome.reason };
+    }
+
+    return { ok: true, requeued: false, message: "Saved to live data." };
   });
+
