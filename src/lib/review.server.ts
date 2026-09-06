@@ -414,16 +414,64 @@ export async function groupPending(supabase: any, rows: DecoratedRow[]): Promise
  *
  * `apply: false` reports what would happen without touching anything.
  */
+/**
+ * One shared judgement for an open item, used both by the sweep and by the
+ * review screen, so what the screen says about an item is exactly what the
+ * sweep would do with it.
+ */
+export function pendingVerdict(row: any): {
+  kind: "no_change" | "auto_apply" | "needs_review";
+  reason: string;
+} {
+  if (row.table_name === "roster_players") {
+    const verdict = rosterVerdict(row.proposed_value ?? {}, row.source_url);
+    if (verdict.auto) return { kind: "auto_apply", reason: "a complete roster from the team's own page" };
+    return { kind: "needs_review", reason: verdict.reason ?? "needs a look" };
+  }
+
+  const field = row.field_name as string;
+  if (!field) return { kind: "needs_review", reason: "a brand-new record" };
+
+  const proposed = unwrapFieldValue(field, row.proposed_value);
+  const current = row.currentValue;
+
+  if (valuesEquivalent(field, current, proposed)) {
+    return { kind: "no_change", reason: "already matches what we store" };
+  }
+
+  const disagreement = Array.isArray(row.proposed_value?.["_alternates"]);
+  if (disagreement) return { kind: "needs_review", reason: "two sources disagree" };
+
+  if (!row.recordLabel) return { kind: "needs_review", reason: "we could not load the record" };
+
+  if (!isEmptyValue(field, current)) {
+    return { kind: "needs_review", reason: "would replace a value we already hold" };
+  }
+
+  if (row.source_type !== "official") {
+    return { kind: "needs_review", reason: "fills a blank field, but not from an official source" };
+  }
+
+  if ((row.ai_confidence ?? 0) < 0.7) {
+    return { kind: "needs_review", reason: "the reading of this page looked shaky" };
+  }
+
+  return { kind: "auto_apply", reason: "fills a blank field from an official source" };
+}
+
 export async function sweepPendingNoise(
   supabase: any,
   userId: string,
   apply: boolean,
+  limit = 1200,
 ): Promise<{
   examined: number;
   noChange: number;
   gapFills: number;
   remaining: number;
   failures: number;
+  moreWaiting: boolean;
+  reasons: { reason: string; count: number }[];
   samples: { label: string; field: string; reason: string }[];
 }> {
   const { data: rows, error } = await supabase
@@ -432,55 +480,38 @@ export async function sweepPendingNoise(
       "id, table_name, record_id, field_name, proposed_value, source_url, source_type, ai_confidence, status, created_at",
     )
     .eq("status", "pending")
-    .in("table_name", FIELD_TABLES as unknown as string[])
-    .not("field_name", "is", null)
-    .limit(5000);
+    .order("created_at", { ascending: true })
+    .limit(limit + 1);
   if (error) throw new Error(error.message);
 
-  const pending = (rows ?? []) as PendingRow[];
+  const all = (rows ?? []) as PendingRow[];
+  const moreWaiting = all.length > limit;
+  const pending = all.slice(0, limit);
   const decorated = await decoratePending(supabase, pending);
 
   const noChangeIds: string[] = [];
-  const gapFillRows: PendingRow[] = [];
+  const autoRows: PendingRow[] = [];
   const samples: { label: string; field: string; reason: string }[] = [];
+  const reasonCounts = new Map<string, number>();
   let remaining = 0;
 
   for (const row of decorated as any[]) {
-    const field = row.field_name as string;
-    const proposed = unwrapFieldValue(field, row.proposed_value);
-    const current = row.currentValue;
+    const verdict = pendingVerdict(row);
+    const field = (row.field_name as string) ?? "roster";
 
-    if (valuesEquivalent(field, current, proposed)) {
+    if (verdict.kind === "no_change") {
       noChangeIds.push(row.id);
-      if (samples.length < 10) {
-        samples.push({
-          label: row.recordLabel ?? "Record",
-          field,
-          reason: "already matches what we store",
-        });
-      }
+    } else if (verdict.kind === "auto_apply") {
+      autoRows.push(row as PendingRow);
+    } else {
+      remaining += 1;
+      reasonCounts.set(verdict.reason, (reasonCounts.get(verdict.reason) ?? 0) + 1);
       continue;
     }
 
-    const trusted =
-      // A record we couldn't load is never treated as "blank".
-      Boolean(row.recordLabel) &&
-      isEmptyValue(field, current) &&
-      row.source_type === "official" &&
-      (row.ai_confidence ?? 0) >= 0.9;
-
-    if (trusted) {
-      gapFillRows.push(row as PendingRow);
-      if (samples.length < 10) {
-        samples.push({
-          label: row.recordLabel ?? "Record",
-          field,
-          reason: "fills a blank field from an official source",
-        });
-      }
-      continue;
+    if (samples.length < 10) {
+      samples.push({ label: row.recordLabel ?? "Record", field, reason: verdict.reason });
     }
-    remaining += 1;
   }
 
   let failures = 0;
@@ -500,7 +531,7 @@ export async function sweepPendingNoise(
       if (rejectError) throw new Error(rejectError.message);
     }
 
-    for (const row of gapFillRows) {
+    for (const row of autoRows) {
       try {
         await approvePending(supabase, userId, row);
       } catch {
@@ -512,9 +543,13 @@ export async function sweepPendingNoise(
   return {
     examined: pending.length,
     noChange: noChangeIds.length,
-    gapFills: gapFillRows.length,
+    gapFills: autoRows.length,
     remaining,
     failures,
+    moreWaiting,
+    reasons: [...reasonCounts.entries()]
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count),
     samples,
   };
 }
