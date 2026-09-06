@@ -72,3 +72,22 @@ Today each approve or decline refreshes the whole schools list, the whole progra
 - Backlog sweep: extend `sweepReviewQueue` batching in `src/lib/review.functions.ts` and expose a "clear the backlog" control on the collection screen with progress counts.
 - Gate the review/discovery listings on `programs.offering_status = 'verified'` and resolve or drop `program_id is null` discovery rows; extend the not-offered retirement sweep in `src/lib/sport-sponsorship.server.ts` over the existing backlog.
 - `admin.review.tsx` / `admin.discovery.tsx`: drop `invalidateQueries` on `admin-universities` / `admin-programs`, remove decided ids from the cached page via `setQueryData`, keep counts as a low-frequency cached query with local decrement, and batch decisions into a single server call.
+
+## What could break this — and the hard guards
+
+I checked the Big 12 baseball rows and found the exact failure you spotted. UCF's baseball head coach is stored as Tiffany Roberts Sahaydak — the women's soccer coach — and the source recorded for it is the athletics site's front page, not a baseball staff page. Cincinnati's staff link points at one 2025 assistant's bio page. So the cause isn't "too little human review"; it's that a name was accepted from a page that was never proven to be about that sport. That's fixable with rules that are stricter, not looser.
+
+Hard guards, each of which blocks a write rather than asking you a question:
+
+1. Sport proof required. A coach name is only accepted from a page whose address or title names that sport (baseball/bsb, softball/sball) or a staff directory filtered to it. A homepage, a general staff directory, or a bio page for one person can never set a head coach. This alone would have prevented the UCF error.
+2. School proof required. The page must live on the same host as that school's confirmed athletics site. Cross-school and cross-campus bleed is rejected outright.
+3. Title proof required. The name must sit next to an explicit "Head Coach" title. Assistant, associate, interim-without-title, director, and staff-list-first-row guesses are rejected.
+4. Name sanity. Must look like a person's name — no emails, phone numbers, job titles, department names, or all-caps headings.
+5. Blank never wins. A failed scrape, an AI timeout, or an empty extraction is recorded as a failure and never overwrites a stored value with nothing or with a lower-quality source.
+6. Provenance per field. Every stored coach name keeps the exact page it came from and when, visible on the program page, so any value can be traced in one click. Fields whose source doesn't meet guards 1-3 are cleared and re-pulled rather than trusted.
+7. Known-answer test set. A fixed list of roughly 60 programs with coaches you can confirm (all Big 12 and a spread of D2/D3/NAIA/JUCO) is re-checked automatically after each sweep. If any known answer breaks, automatic coach writes pause and you get told which rule failed — accuracy becomes something we measure, not hope for.
+8. Cross-check where visibility is highest. For D1 programs, a coach change must be corroborated by a second official page (roster page staff block or the school's staff directory filtered to the sport) before it's applied; otherwise it lands in the small flagged list.
+9. Everything is reversible. Every automatic write keeps the previous value, so a bad rule is undone in bulk, not repaired by hand.
+10. Report-a-mistake. Any program page gets a "this is wrong" control that reopens that field and requeues the pull, so real-world errors come back to us instead of sitting in the database.
+
+First step of the build is a cleanup pass: find every coach name and link whose recorded source doesn't satisfy guards 1-3 (UCF and Cincinnati among them), clear it, and re-pull from a proven sport staff page.
