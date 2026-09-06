@@ -257,7 +257,11 @@ function ProgramProfile() {
           )}
           {lastVerified ? <> · Last verified: {lastVerified}</> : null} · Refreshed quarterly
         </p>
+        <div className="mt-4">
+          <ReportMistake programId={id} />
+        </div>
       </section>
+
 
       <StitchDivider />
 
