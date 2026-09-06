@@ -300,10 +300,9 @@ function coerceLike(previous: unknown, next: unknown) {
 
 export const rejectPendingChanges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { ids: string[]; reason?: string | null; rescrape?: boolean }) => ({
+  .inputValidator((input: { ids: string[]; reason?: string | null }) => ({
     ids: (input.ids ?? []).map(String),
     reason: input.reason ? String(input.reason).slice(0, 500) : null,
-    rescrape: Boolean(input.rescrape),
   }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
@@ -327,27 +326,27 @@ export const rejectPendingChanges = createServerFn({ method: "POST" })
       .eq("status", "pending");
     if (error) throw new Error(error.message);
 
+    // Declining always means "read this program again" — no opt-in needed.
     let requeued = 0;
-    if (data.rescrape) {
-      const programIds = new Set<string>();
-      for (const row of (rows ?? []) as any[]) {
-        const candidate =
-          row.table_name === "programs"
-            ? row.record_id
-            : row.table_name === "roster_players"
-              ? (row.proposed_value?.program_id ?? row.record_id)
-              : null;
-        if (candidate) programIds.add(String(candidate));
-      }
-      for (const programId of programIds) {
-        const { error: queueError } = await context.supabase
-          .from("ingest_queue")
-          .update({ status: "pending", attempts: 0, last_error: null, leased_at: null })
-          .eq("program_id", programId)
-          .eq("stage", "program_scrape");
-        if (!queueError) requeued += 1;
-      }
+    const programIds = new Set<string>();
+    for (const row of (rows ?? []) as any[]) {
+      const candidate =
+        row.table_name === "programs"
+          ? row.record_id
+          : row.table_name === "roster_players"
+            ? (row.proposed_value?.program_id ?? row.record_id)
+            : null;
+      if (candidate) programIds.add(String(candidate));
     }
+    for (const programId of programIds) {
+      const { error: queueError } = await context.supabase
+        .from("ingest_queue")
+        .update({ status: "pending", attempts: 0, last_error: null, leased_at: null })
+        .eq("program_id", programId)
+        .eq("stage", "program_scrape");
+      if (!queueError) requeued += 1;
+    }
+
 
     return { rejected: data.ids.length, requeued };
   });
