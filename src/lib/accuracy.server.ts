@@ -57,7 +57,7 @@ export async function sampleCoachAccuracy(supabase: any, limit = 12): Promise<Sa
   const { data: programs, error } = await supabase
     .from("programs")
     .select(
-      "id, sport, head_coach_name, athletic_website, coaching_staff_url, university_id, universities(name, website)",
+      "id, sport, head_coach_name, athletic_website, coaching_staff_url, university_id, universities(name, website_url)",
     )
     .not("head_coach_name", "is", null)
     .limit(size * 4);
