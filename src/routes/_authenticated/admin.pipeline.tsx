@@ -100,6 +100,23 @@ function Pipeline() {
   const nonSchoolsFn = useServerFn(listNonSchoolEntries);
   const removeNonSchoolFn = useServerFn(removeNonSchoolEntry);
   const requeueRejectedFn = useServerFn(requeueRejected);
+  const dueRefreshFn = useServerFn(runDueRefreshes);
+
+  const onRunDueRefreshes = async () => {
+    setBusy("due-refresh");
+    try {
+      const result = (await dueRefreshFn({})) as { programsQueued: number; schoolsQueued: number };
+      toast.success(
+        `${result.programsQueued} roster${result.programsQueued === 1 ? "" : "s"} and ${result.schoolsQueued} school${result.schoolsQueued === 1 ? "" : "s"} lined up for a fresh look`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["pipeline-status"] });
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not start the refresh");
+    } finally {
+      setBusy(null);
+    }
+  };
+
 
   const onRequeueRejected = async () => {
     setBusy("requeue-rejected");
