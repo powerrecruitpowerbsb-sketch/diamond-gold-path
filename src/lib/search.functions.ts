@@ -79,7 +79,9 @@ export const searchPrograms = createServerFn({ method: "POST" })
         `id, sport, governing_body, division, conference, scholarships_available, scholarship_details,
          athletic_website, roster_url, coaching_staff_url, head_coach_name, last_verified_at,
          universities!inner(${UNIVERSITY_COLS})`,
+        { count: "exact" },
       )
+
       .eq("sport", f.sport)
       .eq("offering_status", "verified");
 
