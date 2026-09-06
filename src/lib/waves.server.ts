@@ -175,9 +175,11 @@ export function nextWaveWithWork(levels: WaveStatus[], after: WaveKey | null): W
   const order = WAVES.filter((wave) => wave.key !== "all").map((wave) => wave.key);
   const start = after ? order.indexOf(after) + 1 : 0;
   for (let i = Math.max(start, 0); i < order.length; i += 1) {
-    const level = levels.find((entry) => entry.key === order[i]);
-    if (level && !level.complete) return order[i];
+    const key = order[i]!;
+    const level = levels.find((entry) => entry.key === key);
+    if (level && !level.complete) return key;
   }
+
   // Fall back to any earlier level still holding work.
   for (const key of order) {
     const level = levels.find((entry) => entry.key === key);
