@@ -126,7 +126,7 @@ const CONFERENCE_ALIASES: Record<string, string> = {
   "big 10": "big ten",
   b1g: "big ten",
   acc: "atlantic coast",
-  pac 12: "pac 12",
+  "pac 12": "pac 12",
   "big 12": "big 12",
   cusa: "usa",
   aac: "american athletic",
