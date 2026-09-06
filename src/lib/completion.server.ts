@@ -252,15 +252,33 @@ export type OwnershipProblem = {
   fields: string[];
 };
 
+export type OwnershipStandoff = {
+  domain: string;
+  schools: string[];
+};
+
 /**
  * Two schools can't share one athletics domain. Find the teams holding another
  * school's pages (College of Central Florida holding ucfknights.com) and, when
  * asked, clear those links and requeue the team for a fresh search.
+ *
+ * When neither school's name is anywhere in the address — mutigers.com,
+ * gamecocksonline.com, duhawks.com — nothing here can tell them apart, so both
+ * are reported as a standoff for a person and nothing is cleared. Guessing was
+ * worse than doing nothing: the wrong school's own web address had already been
+ * overwritten with the contested site, which made the impostor look like the
+ * owner. That is why a school's own website is ignored when it IS the address
+ * under dispute.
  */
 export async function auditPageOwnership(
   supabase: any,
   options: { apply?: boolean } = {},
-): Promise<{ checked: number; problems: OwnershipProblem[]; cleared: number }> {
+): Promise<{
+  checked: number;
+  problems: OwnershipProblem[];
+  standoffs: OwnershipStandoff[];
+  cleared: number;
+}> {
   const programs = await loadPrograms(supabase);
 
   type Claim = {
@@ -280,13 +298,17 @@ export async function auditPageOwnership(
     for (const domain of new Set(domainsFor(program))) {
       const claims = byDomain.get(domain) ?? new Map<string, Claim>();
       if (!claims.has(program.university_id)) {
+        const schoolSite = program.universities?.website_url ?? null;
+        // A school "website" that is the contested address itself proves nothing.
+        const trustedSite =
+          schoolSite && registrableDomain(hostOf(schoolSite)) === domain ? null : schoolSite;
         claims.set(program.university_id, {
           schoolId: program.university_id,
           schoolName: program.universities?.name ?? null,
           verdict: pageOwnership({
             url: `https://${domain}`,
             schoolName: program.universities?.name ?? null,
-            schoolWebsite: program.universities?.website_url ?? null,
+            schoolWebsite: trustedSite,
           }),
         });
       }
@@ -295,13 +317,21 @@ export async function auditPageOwnership(
   }
 
   const losingSchools = new Map<string, { domain: string; keptBy: string | null }>();
+  const standoffs: OwnershipStandoff[] = [];
   for (const [domain, claims] of byDomain) {
     if (claims.size < 2) continue;
     const { winner, losers } = resolveSharedDomain([...claims.values()]);
+    if (!winner) {
+      standoffs.push({
+        domain,
+        schools: [...claims.values()].map((claim) => claim.schoolName ?? "Unnamed school"),
+      });
+      continue;
+    }
     for (const loser of losers) {
       losingSchools.set(`${loser.schoolId}:${domain}`, {
         domain,
-        keptBy: winner?.schoolName ?? null,
+        keptBy: winner.schoolName ?? null,
       });
     }
   }
@@ -341,6 +371,20 @@ export async function auditPageOwnership(
     const { error } = await supabase.from("programs").update(patch).eq("id", program.id);
     if (error) throw new Error(error.message);
     cleared += fields.length;
+
+    // The school's own web address was sometimes overwritten with the other
+    // school's athletics domain too (Cincinnati State pointing at gobearcats.com).
+    // Clear that as well, or the next search inherits the same wrong site.
+    const schoolSite = program.universities?.website_url ?? null;
+    if (schoolSite && registrableDomain(hostOf(schoolSite)) === domain) {
+      const { error: schoolError } = await supabase
+        .from("universities")
+        .update({ website_url: null })
+        .eq("id", program.university_id);
+      if (schoolError) throw new Error(schoolError.message);
+      cleared += 1;
+    }
+
     await supabase.from("ingest_queue").upsert(
       {
         university_id: program.university_id,
@@ -355,5 +399,5 @@ export async function auditPageOwnership(
     );
   }
 
-  return { checked: programs.length, problems, cleared };
+  return { checked: programs.length, problems, standoffs, cleared };
 }

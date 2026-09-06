@@ -103,9 +103,13 @@ export function pageOwnership(input: {
   const matched = words.filter((word) => flatHost.includes(word));
   if (matched.length) {
     const longest = matched.reduce((best, word) => (word.length > best.length ? word : best), "");
+    // Words in the school's name that the address does NOT contain count against
+    // it: lemoynedolphins.com names Le Moyne College, not LeMoyne-Owen College,
+    // because "owen" is missing from the address.
+    const missing = words.length - matched.length;
     return {
       strength: "named_in_domain",
-      score: 40 + longest.length + matched.length * 5,
+      score: 40 + longest.length + matched.length * 5 - missing * 8,
       reason: `the address names this school (“${longest}”)`,
     };
   }
@@ -133,8 +137,11 @@ export function resolveSharedDomain<T extends { schoolId: string; verdict: Owner
   const ranked = [...claims].sort((a, b) => b.verdict.score - a.verdict.score);
   const best = ranked[0]!;
   if (best.verdict.score === 0) return { winner: null, losers: [] };
-  const tied = ranked.filter((claim) => claim.verdict.score === best.verdict.score);
-  // A genuine tie is not evidence either way — leave both for a person.
-  if (tied.length > 1) return { winner: null, losers: [] };
-  return { winner: best, losers: ranked.slice(1).filter((claim) => claim.schoolId !== best.schoolId) };
+  // Only a claim with no evidence at all is safe to clear automatically. When a
+  // rival school's name also appears in the address (bethanybison.com claimed by
+  // both Bethany Colleges), the difference is a judgement call, not proof, so the
+  // whole address is left for a person to settle.
+  const rivals = ranked.slice(1).filter((claim) => claim.schoolId !== best.schoolId);
+  if (rivals.some((claim) => claim.verdict.score > 0)) return { winner: null, losers: [] };
+  return { winner: best, losers: rivals };
 }
