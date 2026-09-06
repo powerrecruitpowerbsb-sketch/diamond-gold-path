@@ -103,9 +103,13 @@ export function pageOwnership(input: {
   const matched = words.filter((word) => flatHost.includes(word));
   if (matched.length) {
     const longest = matched.reduce((best, word) => (word.length > best.length ? word : best), "");
+    // Words in the school's name that the address does NOT contain count against
+    // it: lemoynedolphins.com names Le Moyne College, not LeMoyne-Owen College,
+    // because "owen" is missing from the address.
+    const missing = words.length - matched.length;
     return {
       strength: "named_in_domain",
-      score: 40 + longest.length + matched.length * 5,
+      score: 40 + longest.length + matched.length * 5 - missing * 8,
       reason: `the address names this school (“${longest}”)`,
     };
   }
