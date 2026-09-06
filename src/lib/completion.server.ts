@@ -341,6 +341,20 @@ export async function auditPageOwnership(
     const { error } = await supabase.from("programs").update(patch).eq("id", program.id);
     if (error) throw new Error(error.message);
     cleared += fields.length;
+
+    // The school's own web address was sometimes overwritten with the other
+    // school's athletics domain too (Cincinnati State pointing at gobearcats.com).
+    // Clear that as well, or the next search inherits the same wrong site.
+    const schoolSite = program.universities?.website_url ?? null;
+    if (schoolSite && registrableDomain(hostOf(schoolSite)) === domain) {
+      const { error: schoolError } = await supabase
+        .from("universities")
+        .update({ website_url: null })
+        .eq("id", program.university_id);
+      if (schoolError) throw new Error(schoolError.message);
+      cleared += 1;
+    }
+
     await supabase.from("ingest_queue").upsert(
       {
         university_id: program.university_id,
