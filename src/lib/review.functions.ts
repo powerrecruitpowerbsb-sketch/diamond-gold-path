@@ -167,6 +167,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
 
     return {
       groups,
+      hiddenUnsponsored,
       totalGroups,
       totalItems,
       filteredItems,
