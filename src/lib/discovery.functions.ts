@@ -79,7 +79,7 @@ export const listDiscoveredUrls = createServerFn({ method: "GET" })
     const { data: rows, error, count } = await context.supabase
       .from("url_discovery_queue")
       .select(
-        "id, university_id, program_id, discovery_type, discovered_url, confidence, notes, created_at, universities(name, state, website_url), programs(sport, athletic_website)",
+        "id, university_id, program_id, discovery_type, discovered_url, confidence, notes, created_at, universities(name, state, website_url), programs(sport, athletic_website, offering_status)",
         { count: "exact" },
       )
       .eq("status", "pending_review")
@@ -89,10 +89,20 @@ export const listDiscoveredUrls = createServerFn({ method: "GET" })
       .range(from, from + data.pageSize - 1);
     if (error) throw new Error(error.message);
 
+    // Never ask about a sport a school may not even play. Links for a program
+    // we haven't confirmed is sponsored — or one we know isn't — wait until the
+    // sponsorship check settles it, instead of filling this screen.
+    const all = (rows ?? []) as any[];
+    const visible = all.filter((row) => {
+      const status = row.programs?.offering_status;
+      return !status || status === "verified";
+    });
+
     const total = count ?? 0;
     return JSON.parse(
       JSON.stringify({
-        rows: rows ?? [],
+        rows: visible,
+        hiddenUnsponsored: all.length - visible.length,
         total,
         page: data.page,
         pageSize: data.pageSize,
