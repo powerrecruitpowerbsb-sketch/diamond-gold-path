@@ -7,6 +7,7 @@ import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { StitchDivider, VerifiedStat } from "@/components/brand/VerifiedStat";
 import { ShortlistSaveButton } from "@/components/brand/ShortlistSaveButton";
+import { ReportMistake } from "@/components/brand/ReportMistake";
 import { getProgramProfile } from "@/lib/search.functions";
 import { listAthletePicker } from "@/lib/shortlist.functions";
 import { INTEL_FIELD_LABELS } from "@/lib/search-schema";

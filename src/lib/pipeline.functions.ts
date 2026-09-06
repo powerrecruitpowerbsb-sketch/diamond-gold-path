@@ -870,3 +870,25 @@ export const setSportOffering = createServerFn({ method: "POST" })
 
     return clean({ ok: true });
   });
+
+/** Take a small sample of stored coaches and re-check each against its source. */
+export const runAccuracySample = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { limit?: number }) => ({
+    limit: Math.min(Math.max(Number(input?.limit ?? 12) || 12, 1), 40),
+  }))
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context as any);
+    const { sampleCoachAccuracy, accuracySummary } = await import("@/lib/accuracy.server");
+    const sample = await sampleCoachAccuracy(context.supabase, data.limit);
+    return clean({ sample, summary: await accuracySummary(context.supabase) });
+  });
+
+/** The rolling accuracy picture for the admin screen. */
+export const getAccuracySummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { accuracySummary } = await import("@/lib/accuracy.server");
+    return clean(await accuracySummary(context.supabase));
+  });
