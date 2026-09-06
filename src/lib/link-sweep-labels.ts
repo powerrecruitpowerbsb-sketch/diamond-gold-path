@@ -5,6 +5,8 @@ const REASON_LABELS: Record<string, string> = {
   news_page: "A news story, not a team page",
   junk_host: "Not a school athletics site",
   school_homepage: "The school's homepage, not its athletics site",
+  wrong_school: "Belongs to a different school",
+
   not_a_web_page: "A document, not a team page",
   athletics_site: "The school's athletics site",
   sport_page_on_known_site: "Right sport on an athletics site",
