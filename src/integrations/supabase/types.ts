@@ -974,6 +974,7 @@ export type Database = {
           last_verified_at: string | null
           offering_status: Database["public"]["Enums"]["program_offering_status"]
           recruiting_coordinator_name: string | null
+          roster_refresh_due_at: string | null
           roster_url: string | null
           scholarship_details: string | null
           scholarships_available: boolean | null
@@ -995,6 +996,7 @@ export type Database = {
           last_verified_at?: string | null
           offering_status?: Database["public"]["Enums"]["program_offering_status"]
           recruiting_coordinator_name?: string | null
+          roster_refresh_due_at?: string | null
           roster_url?: string | null
           scholarship_details?: string | null
           scholarships_available?: boolean | null
@@ -1016,6 +1018,7 @@ export type Database = {
           last_verified_at?: string | null
           offering_status?: Database["public"]["Enums"]["program_offering_status"]
           recruiting_coordinator_name?: string | null
+          roster_refresh_due_at?: string | null
           roster_url?: string | null
           scholarship_details?: string | null
           scholarships_available?: boolean | null
@@ -1404,6 +1407,7 @@ export type Database = {
           distance_to_airport_miles: number | null
           est_cost_of_attendance: number | null
           est_net_price: number | null
+          facts_refresh_due_at: string | null
           federal_match_name: string | null
           federal_match_status: string
           federal_synced_at: string | null
@@ -1444,6 +1448,7 @@ export type Database = {
           distance_to_airport_miles?: number | null
           est_cost_of_attendance?: number | null
           est_net_price?: number | null
+          facts_refresh_due_at?: string | null
           federal_match_name?: string | null
           federal_match_status?: string
           federal_synced_at?: string | null
@@ -1484,6 +1489,7 @@ export type Database = {
           distance_to_airport_miles?: number | null
           est_cost_of_attendance?: number | null
           est_net_price?: number | null
+          facts_refresh_due_at?: string | null
           federal_match_name?: string | null
           federal_match_status?: string
           federal_synced_at?: string | null
@@ -1684,6 +1690,13 @@ export type Database = {
       collection_cron_stop: { Args: never; Returns: undefined }
       collection_cron_unschedule: { Args: never; Returns: undefined }
       current_org_id: { Args: never; Returns: string }
+      enqueue_due_refreshes: {
+        Args: { _program_limit?: number; _school_limit?: number }
+        Returns: {
+          programs_queued: number
+          schools_queued: number
+        }[]
+      }
       has_org_wide_access: { Args: never; Returns: boolean }
       has_role: {
         Args: {
