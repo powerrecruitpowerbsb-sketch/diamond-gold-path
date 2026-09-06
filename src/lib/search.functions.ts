@@ -162,7 +162,18 @@ export const searchPrograms = createServerFn({ method: "POST" })
 
     results.sort((a, b) => String(a.university?.name).localeCompare(String(b.university?.name)));
 
-    return { results, total: results.length };
+    const rosterFiltered = f.rosterMin !== null || f.rosterMax !== null;
+    const matches = Number(count ?? results.length);
+
+    return {
+      results,
+      total: results.length,
+      // How many programs match the filters in total, and whether the list was cut
+      // off at the display cap (roster-size filtering happens after the fetch).
+      matches: rosterFiltered ? results.length : matches,
+      capped: capped && !rosterFiltered,
+    };
+
   });
 
 /** Everything the program profile page renders. */
