@@ -386,6 +386,7 @@ function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
 export async function discoverProgramPages(
   athleticSite: string,
   programs: { id: string; sport: string }[],
+  excluded: Set<string> = new Set(),
 ): Promise<DiscoveryResult[]> {
   const results: DiscoveryResult[] = [];
   const links = new Set<string>();
@@ -399,12 +400,15 @@ export async function discoverProgramPages(
     }
   }
 
-  const all = [...links];
+  // Anything a person already declined for this school is a dead end.
+  const all = [...links].filter((url) => !excluded.has(normalizeUrl(url)));
 
   for (const program of programs) {
     for (const kind of ["roster", "coach"] as const) {
       const discoveryType: DiscoveryType = kind === "roster" ? "roster_page" : "coaching_staff_page";
-      const pick = all.length ? pickPageUrl(all, program.sport, kind) : null;
+      const candidate = all.length ? pickPageUrl(all, program.sport, kind) : null;
+      const pick = candidate && excluded.has(normalizeUrl(candidate.url)) ? null : candidate;
+
       results.push({
         discoveryType,
         programId: program.id,
