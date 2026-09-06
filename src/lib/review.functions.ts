@@ -39,11 +39,16 @@ export const listPendingChanges = createServerFn({ method: "GET" })
   )
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
+    // Read one window of items straight from the database instead of pulling
+    // thousands of rows and slicing them here — that's what made this screen
+    // sit blank for the better part of a minute.
+    const itemsPerPage = data.pageSize * 8;
+    const from = (data.page - 1) * itemsPerPage;
     let query = context.supabase
       .from("pending_data_changes")
-      .select(PENDING_COLUMNS)
+      .select(PENDING_COLUMNS, { count: "exact" })
       .order("created_at", { ascending: false })
-      .limit(3000);
+      .range(from, from + itemsPerPage - 1);
     if (data.status && data.status !== "all") query = query.eq("status", data.status as any);
 
     if (data.programId) {
@@ -57,14 +62,15 @@ export const listPendingChanges = createServerFn({ method: "GET" })
       query = query.in("record_id", ids);
     }
 
-    const { data: rows, error } = await query;
+    const { data: rows, error, count } = await query;
     if (error) throw new Error(error.message);
 
     const { decoratePending, groupPending } = await import("@/lib/review.server");
     const decorated = await decoratePending(context.supabase, (rows ?? []) as any[]);
     let groups = await groupPending(context.supabase, decorated as any[]);
 
-    const totalItems = decorated.length;
+    const totalItems = count ?? decorated.length;
+
 
     if (data.confidence !== "all" || data.kind !== "all") {
       groups = groups
