@@ -111,7 +111,7 @@ export async function sampleCoachAccuracy(supabase: any, limit = 12): Promise<Sa
       sport: program.sport,
       athleticWebsite: program.athletic_website,
       coachingStaffUrl: program.coaching_staff_url,
-      schoolWebsite: program.universities?.website ?? null,
+      schoolWebsite: program.universities?.website_url ?? null,
     });
 
     if (!sourceUrl) {
