@@ -42,11 +42,14 @@ export const listPendingChanges = createServerFn({ method: "GET" })
     // Read one window of items straight from the database instead of pulling
     // thousands of rows and slicing them here — that's what made this screen
     // sit blank for the better part of a minute.
-    const itemsPerPage = data.pageSize * 8;
+    // A smaller window per page: preparing 200 items with their live values took
+    // most of a minute, which read as a blank screen.
+    const itemsPerPage = data.pageSize * 2;
+
     const from = (data.page - 1) * itemsPerPage;
     let query = context.supabase
       .from("pending_data_changes")
-      .select(PENDING_COLUMNS, { count: "exact" })
+      .select(PENDING_COLUMNS)
       .order("created_at", { ascending: false })
       .range(from, from + itemsPerPage - 1);
     if (data.status && data.status !== "all") query = query.eq("status", data.status as any);
@@ -62,14 +65,36 @@ export const listPendingChanges = createServerFn({ method: "GET" })
       query = query.in("record_id", ids);
     }
 
-    const { data: rows, error, count } = await query;
+    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
+
+    // The total comes from its own count, and falls back to an estimate: an
+    // exact count over tens of thousands of rows can time out and used to take
+    // the whole screen down with it.
+    const countFilter = () => {
+      let base = context.supabase.from("pending_data_changes");
+      return base;
+    };
+    let totalItems = 0;
+    {
+      let exact = countFilter().select("id", { count: "exact", head: true });
+      if (data.status && data.status !== "all") exact = exact.eq("status", data.status as any);
+      const exactResult = await exact;
+      if (exactResult.error) {
+        let planned = countFilter().select("id", { count: "planned", head: true });
+        if (data.status && data.status !== "all") planned = planned.eq("status", data.status as any);
+        const plannedResult = await planned;
+        totalItems = plannedResult.count ?? 0;
+      } else {
+        totalItems = exactResult.count ?? 0;
+      }
+    }
 
     const { decoratePending, groupPending } = await import("@/lib/review.server");
     const decorated = await decoratePending(context.supabase, (rows ?? []) as any[]);
     let groups = await groupPending(context.supabase, decorated as any[]);
 
-    const totalItems = count ?? decorated.length;
+
 
 
     if (data.confidence !== "all" || data.kind !== "all") {
