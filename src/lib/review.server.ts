@@ -606,13 +606,24 @@ export async function sweepPendingNoise(
     // Partly-read rosters are kept, then the program goes back in line so a
     // later pull can complete it.
     for (const programId of repullPrograms) {
-      await supabase
+      const { data: existing } = await supabase
         .from("ingest_queue")
-        .upsert(
-          [{ program_id: programId, stage: "program_scrape", status: "pending", attempts: 0 }],
-          { onConflict: "program_id,stage" },
-        );
+        .select("id")
+        .eq("program_id", programId)
+        .eq("stage", "program_scrape")
+        .maybeSingle();
+      if (existing?.id) {
+        await supabase
+          .from("ingest_queue")
+          .update({ status: "pending", attempts: 0, leased_at: null })
+          .eq("id", existing.id);
+      } else {
+        await supabase
+          .from("ingest_queue")
+          .insert([{ program_id: programId, stage: "program_scrape", status: "pending" }]);
+      }
     }
+
   }
 
   return {
