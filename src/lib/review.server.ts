@@ -434,11 +434,25 @@ export async function groupPending(supabase: any, rows: DecoratedRow[]): Promise
 export function pendingVerdict(row: any): {
   kind: "no_change" | "auto_apply" | "needs_review";
   reason: string;
+  /** Set for a roster we keep even though the page was only partly read. */
+  partial?: boolean;
 } {
   if (row.table_name === "roster_players") {
     const verdict = rosterVerdict(row.proposed_value ?? {}, row.source_url);
-    if (verdict.auto) return { kind: "auto_apply", reason: "a complete roster from the team's own page" };
-    return { kind: "needs_review", reason: verdict.reason ?? "needs a look" };
+    if (verdict.auto) {
+      return { kind: "auto_apply", reason: "a complete roster from the team's own page" };
+    }
+    const keepable = rosterKeepable(row.proposed_value ?? {});
+    if (keepable.keep) {
+      return {
+        kind: "auto_apply",
+        reason: keepable.partial
+          ? "only part of the roster was read — saved, with a fuller pull queued"
+          : "a roster from the team's own page",
+        partial: keepable.partial,
+      };
+    }
+    return { kind: "needs_review", reason: keepable.reason ?? verdict.reason ?? "needs a look" };
   }
 
   const field = row.field_name as string;
@@ -456,20 +470,24 @@ export function pendingVerdict(row: any): {
 
   if (!row.recordLabel) return { kind: "needs_review", reason: "we could not load the record" };
 
-  if (!isEmptyValue(field, current)) {
-    return { kind: "needs_review", reason: "would replace a value we already hold" };
+  if (!fieldValueSane(field, proposed)) {
+    return { kind: "needs_review", reason: "that value doesn't look possible for this field" };
   }
 
   if (row.source_type !== "official") {
-    return { kind: "needs_review", reason: "fills a blank field, but not from an official source" };
+    return { kind: "needs_review", reason: "not from the school's own site" };
   }
 
-  if ((row.ai_confidence ?? 0) < 0.7) {
-    return { kind: "needs_review", reason: "the reading of this page looked shaky" };
-  }
-
-  return { kind: "auto_apply", reason: "fills a blank field from an official source" };
+  // The school's own site is treated as the better answer, so it is applied even
+  // when it replaces something we already hold.
+  return {
+    kind: "auto_apply",
+    reason: isEmptyValue(field, current)
+      ? "fills a blank field from the school's own site"
+      : "updates an older value from the school's own site",
+  };
 }
+
 
 export async function sweepPendingNoise(
   supabase: any,
