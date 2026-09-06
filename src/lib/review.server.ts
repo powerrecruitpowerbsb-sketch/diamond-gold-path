@@ -513,6 +513,118 @@ function proposalKey(row: PendingRow): string {
   ].join("|");
 }
 
+/**
+ * Decide a set of already-decorated open items and, when asked, carry those
+ * decisions out. This is the single rulebook: the sweep runs it over the whole
+ * waiting pile, and each pull runs it over the items it just created, so a fresh
+ * pull never leaves behind work a sweep would have done for you.
+ */
+export async function settlePendingRows(
+  supabase: any,
+  userId: string,
+  decorated: any[],
+  apply: boolean,
+): Promise<{
+  noChange: number;
+  autoApplied: number;
+  remaining: number;
+  failures: number;
+  reasons: Map<string, number>;
+  samples: { label: string; field: string; reason: string }[];
+}> {
+  const noChangeIds: string[] = [];
+  const autoRows: PendingRow[] = [];
+  const repullPrograms = new Set<string>();
+  const samples: { label: string; field: string; reason: string }[] = [];
+  const reasons = new Map<string, number>();
+  const seen = new Set<string>();
+  let remaining = 0;
+
+  for (const row of decorated) {
+    // Duplicates of a proposal we have already handled in this pass are noise.
+    const key = proposalKey(row as PendingRow);
+    if (seen.has(key)) {
+      noChangeIds.push(row.id);
+      continue;
+    }
+    seen.add(key);
+
+    const verdict = pendingVerdict(row);
+    const field = (row.field_name as string) ?? "roster";
+
+    if (verdict.kind === "no_change") {
+      noChangeIds.push(row.id);
+    } else if (verdict.kind === "auto_apply") {
+      autoRows.push(row as PendingRow);
+      if (verdict.partial) {
+        const programId = (row.proposed_value?.program_id ?? row.record_id) as string | null;
+        if (programId) repullPrograms.add(programId);
+      }
+    } else {
+      remaining += 1;
+      reasons.set(verdict.reason, (reasons.get(verdict.reason) ?? 0) + 1);
+      continue;
+    }
+
+    if (samples.length < 10) {
+      samples.push({ label: row.recordLabel ?? "Record", field, reason: verdict.reason });
+    }
+  }
+
+  let failures = 0;
+  let autoApplied = autoRows.length;
+
+  if (apply) {
+    for (let index = 0; index < noChangeIds.length; index += 200) {
+      const batch = noChangeIds.slice(index, index + 200);
+      const { error: rejectError } = await supabase
+        .from("pending_data_changes")
+        .update({
+          status: "rejected",
+          reviewed_by: userId,
+          reviewed_at: new Date().toISOString(),
+          decided_via: "auto",
+        })
+        .in("id", batch)
+        .eq("status", "pending");
+      if (rejectError) throw new Error(rejectError.message);
+    }
+
+    autoApplied = 0;
+    for (const row of autoRows) {
+      try {
+        await approvePending(supabase, userId, row);
+        autoApplied += 1;
+      } catch {
+        failures += 1;
+      }
+    }
+
+    // Partly-read rosters are kept, then the program goes back in line so a
+    // later pull can complete it.
+    for (const programId of repullPrograms) {
+      const { data: existing } = await supabase
+        .from("ingest_queue")
+        .select("id")
+        .eq("program_id", programId)
+        .eq("stage", "program_scrape")
+        .maybeSingle();
+      if (existing?.id) {
+        await supabase
+          .from("ingest_queue")
+          .update({ status: "pending", attempts: 0, leased_at: null })
+          .eq("id", existing.id);
+      } else {
+        await supabase
+          .from("ingest_queue")
+          .insert([{ program_id: programId, stage: "program_scrape", status: "pending" }]);
+      }
+    }
+  }
+
+  return { noChange: noChangeIds.length, autoApplied, remaining, failures, reasons, samples };
+}
+
 export async function sweepPendingNoise(
   supabase: any,
   userId: string,
@@ -539,106 +651,22 @@ export async function sweepPendingNoise(
   const moreWaiting = (openTotal ?? 0) > offset + pending.length;
   const decorated = await decoratePending(supabase, pending);
 
-  const noChangeIds: string[] = [];
-  const autoRows: PendingRow[] = [];
-  const repullPrograms = new Set<string>();
-  const samples: { label: string; field: string; reason: string }[] = [];
-  const reasonCounts = new Map<string, number>();
-  const seen = new Set<string>();
-  let remaining = 0;
-
-  for (const row of decorated as any[]) {
-    // Duplicates of a proposal we have already handled in this pass are noise.
-    const key = proposalKey(row as PendingRow);
-    if (seen.has(key)) {
-      noChangeIds.push(row.id);
-      continue;
-    }
-    seen.add(key);
-
-    const verdict = pendingVerdict(row);
-    const field = (row.field_name as string) ?? "roster";
-
-    if (verdict.kind === "no_change") {
-      noChangeIds.push(row.id);
-    } else if (verdict.kind === "auto_apply") {
-      autoRows.push(row as PendingRow);
-      if (verdict.partial) {
-        const programId = (row.proposed_value?.program_id ?? row.record_id) as string | null;
-        if (programId) repullPrograms.add(programId);
-      }
-    } else {
-      remaining += 1;
-      reasonCounts.set(verdict.reason, (reasonCounts.get(verdict.reason) ?? 0) + 1);
-      continue;
-    }
-
-    if (samples.length < 10) {
-      samples.push({ label: row.recordLabel ?? "Record", field, reason: verdict.reason });
-    }
-  }
-
-  let failures = 0;
-  if (apply) {
-    for (let index = 0; index < noChangeIds.length; index += 200) {
-      const batch = noChangeIds.slice(index, index + 200);
-      const { error: rejectError } = await supabase
-        .from("pending_data_changes")
-        .update({
-          status: "rejected",
-          reviewed_by: userId,
-          reviewed_at: new Date().toISOString(),
-          decided_via: "auto",
-        })
-        .in("id", batch)
-        .eq("status", "pending");
-      if (rejectError) throw new Error(rejectError.message);
-    }
-
-    for (const row of autoRows) {
-      try {
-        await approvePending(supabase, userId, row);
-      } catch {
-        failures += 1;
-      }
-    }
-
-    // Partly-read rosters are kept, then the program goes back in line so a
-    // later pull can complete it.
-    for (const programId of repullPrograms) {
-      const { data: existing } = await supabase
-        .from("ingest_queue")
-        .select("id")
-        .eq("program_id", programId)
-        .eq("stage", "program_scrape")
-        .maybeSingle();
-      if (existing?.id) {
-        await supabase
-          .from("ingest_queue")
-          .update({ status: "pending", attempts: 0, leased_at: null })
-          .eq("id", existing.id);
-      } else {
-        await supabase
-          .from("ingest_queue")
-          .insert([{ program_id: programId, stage: "program_scrape", status: "pending" }]);
-      }
-    }
-
-  }
+  const settled = await settlePendingRows(supabase, userId, decorated as any[], apply);
 
   return {
     examined: pending.length,
-    noChange: noChangeIds.length,
-    gapFills: autoRows.length,
-    remaining,
-    failures,
+    noChange: settled.noChange,
+    gapFills: settled.autoApplied,
+    remaining: settled.remaining,
+    failures: settled.failures,
     moreWaiting,
-    reasons: [...reasonCounts.entries()]
+    reasons: [...settled.reasons.entries()]
       .map(([reason, count]) => ({ reason, count }))
       .sort((a, b) => b.count - a.count),
-    samples,
+    samples: settled.samples,
   };
 }
+
 
 /**
  * Work the whole waiting pile instead of one batch: repeat passes, stepping past
