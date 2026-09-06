@@ -972,12 +972,16 @@ export type Database = {
           id: string
           last_roster_pull_at: string | null
           last_verified_at: string | null
+          offering_evidence: Json | null
+          offering_source: string | null
           offering_status: Database["public"]["Enums"]["program_offering_status"]
+          offering_verified_at: string | null
           recruiting_coordinator_name: string | null
           roster_refresh_due_at: string | null
           roster_url: string | null
           scholarship_details: string | null
           scholarships_available: boolean | null
+          sponsorship_checked_at: string | null
           sport: Database["public"]["Enums"]["sport"]
           university_id: string
           updated_at: string
@@ -994,12 +998,16 @@ export type Database = {
           id?: string
           last_roster_pull_at?: string | null
           last_verified_at?: string | null
+          offering_evidence?: Json | null
+          offering_source?: string | null
           offering_status?: Database["public"]["Enums"]["program_offering_status"]
+          offering_verified_at?: string | null
           recruiting_coordinator_name?: string | null
           roster_refresh_due_at?: string | null
           roster_url?: string | null
           scholarship_details?: string | null
           scholarships_available?: boolean | null
+          sponsorship_checked_at?: string | null
           sport: Database["public"]["Enums"]["sport"]
           university_id: string
           updated_at?: string
@@ -1016,12 +1024,16 @@ export type Database = {
           id?: string
           last_roster_pull_at?: string | null
           last_verified_at?: string | null
+          offering_evidence?: Json | null
+          offering_source?: string | null
           offering_status?: Database["public"]["Enums"]["program_offering_status"]
+          offering_verified_at?: string | null
           recruiting_coordinator_name?: string | null
           roster_refresh_due_at?: string | null
           roster_url?: string | null
           scholarship_details?: string | null
           scholarships_available?: boolean | null
+          sponsorship_checked_at?: string | null
           sport?: Database["public"]["Enums"]["sport"]
           university_id?: string
           updated_at?: string

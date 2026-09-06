@@ -317,6 +317,17 @@ export async function runCollectionPass(
     });
   }
 
+  // Settle sport sponsorship first: a sport a school doesn't field never needs a
+  // link search or a scrape, so this removes work rather than adding it.
+  try {
+    const { syncSponsorshipBatch } = await import("@/lib/sport-sponsorship.server");
+    await syncSponsorshipBatch(supabase, { limit: 40 });
+  } catch (failure) {
+    result.notes.push(
+      `Sport check skipped this round: ${failure instanceof Error ? failure.message : "unknown error"}`,
+    );
+  }
+
   // Safety net: anything left over — written before the rules changed, or only
   // decidable once a sibling program's site was confirmed — is tidied here, so
   // no button press is needed to keep the two lists down to real decisions.
