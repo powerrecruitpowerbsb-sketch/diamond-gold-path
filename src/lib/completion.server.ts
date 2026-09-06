@@ -317,13 +317,21 @@ export async function auditPageOwnership(
   }
 
   const losingSchools = new Map<string, { domain: string; keptBy: string | null }>();
+  const standoffs: OwnershipStandoff[] = [];
   for (const [domain, claims] of byDomain) {
     if (claims.size < 2) continue;
     const { winner, losers } = resolveSharedDomain([...claims.values()]);
+    if (!winner) {
+      standoffs.push({
+        domain,
+        schools: [...claims.values()].map((claim) => claim.schoolName ?? "Unnamed school"),
+      });
+      continue;
+    }
     for (const loser of losers) {
       losingSchools.set(`${loser.schoolId}:${domain}`, {
         domain,
-        keptBy: winner?.schoolName ?? null,
+        keptBy: winner.schoolName ?? null,
       });
     }
   }
