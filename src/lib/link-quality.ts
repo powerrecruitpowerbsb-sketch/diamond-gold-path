@@ -51,7 +51,29 @@ const OTHER_SPORTS = [
   "rugby",
   "waterpolo",
   "wpolo",
+  "polo",
   "beach",
+  "saac",
+  "sportsmed",
+  "sportsmedicine",
+  "sports-medicine",
+  "training",
+  "trainer",
+  "adaptive",
+  "cheerleading",
+  "flag-football",
+  "stunt",
+  "acrobatics",
+  "equestrian",
+  "fencing",
+  "skiing",
+  "shooting",
+  "triathlon",
+  "archery",
+  "badminton",
+  "handball",
+  "squash",
+  "wpolo",
 ];
 
 const OUR_SPORTS = ["baseball", "softball", "bsb", "sball", "wsb"];
@@ -75,6 +97,11 @@ const JUNK_HOST_FRAGMENTS = [
   "eventbrite",
   "issuu.com",
   "linktr.ee",
+  "sportsrecruits.com",
+  "teamunify.com",
+  "leagueapps",
+  "sportngin",
+  "gofundme.com",
 ];
 
 const lower = (value: string) => value.toLowerCase();
