@@ -208,10 +208,14 @@ function readSearchResults(payload: any): Candidate[] {
 export async function discoverAthleticWebsite(
   name: string,
   state: string | null,
+  excluded: Set<string> = new Set(),
 ): Promise<DiscoveryResult> {
   const query = `${name}${state ? ` ${state}` : ""} official athletics website`;
   const payload = await firecrawl("/search", { query, limit: 8 });
-  const candidates = readSearchResults(payload).filter((row) => !isNonOfficial(row.url));
+  const candidates = readSearchResults(payload).filter(
+    (row) => !isNonOfficial(row.url) && !excluded.has(normalizeUrl(row.url)),
+  );
+
 
   if (!candidates.length) {
     return {
