@@ -12,6 +12,7 @@ import {
   rosterVerdict,
   valuesEquivalent,
 } from "@/lib/data-quality";
+import { rejectionKey } from "@/lib/rejected-memory";
 
 
 export const REVIEW_TABLES = ["universities", "programs", "roster_players"] as const;
@@ -232,6 +233,59 @@ export async function approvePending(supabase: any, userId: string, row: Pending
   return { id: row.id, recordId };
 }
 
+/**
+ * Which of these proposals repeat a value someone already declined? Looked up
+ * per record so a re-read of the same wrong page is dropped silently instead of
+ * coming back to the queue.
+ */
+async function loadDeclinedKeys(supabase: any, rows: PendingRow[]): Promise<Set<string>> {
+  const ids = [...new Set(rows.map((row) => row.record_id).filter(Boolean) as string[])];
+  const keys = new Set<string>();
+  for (let index = 0; index < ids.length; index += 100) {
+    const batch = ids.slice(index, index + 100);
+    const { data } = await supabase
+      .from("rejected_values")
+      .select("table_name, record_id, field_name, normalized_value")
+      .in("record_id", batch);
+    for (const row of ((data ?? []) as any[])) {
+      keys.add(
+        [row.table_name, row.record_id ?? "", row.field_name ?? "", row.normalized_value].join("|"),
+      );
+    }
+  }
+  return keys;
+}
+
+/** Remember declined values so the same proposal is never raised again. */
+export async function rememberDeclines(
+  supabase: any,
+  userId: string,
+  rows: PendingRow[],
+  reason: string | null,
+) {
+  const payload = rows
+    .filter((row) => row.record_id)
+    .map((row) => ({
+      table_name: row.table_name,
+      record_id: row.record_id,
+      field_name: row.field_name ?? "",
+      normalized_value: rejectionKey({
+        table_name: row.table_name,
+        record_id: row.record_id,
+        field_name: row.field_name,
+        value: row.field_name ? unwrapFieldValue(row.field_name, row.proposed_value) : row.proposed_value,
+      }).split("|").slice(3).join("|"),
+      reason,
+      created_by: userId,
+    }));
+  if (!payload.length) return 0;
+  const { error } = await supabase
+    .from("rejected_values")
+    .upsert(payload, { onConflict: "table_name,record_id,field_name,normalized_value" });
+  if (error) throw new Error(error.message);
+  return payload.length;
+}
+
 /** Attach the current live value (and a human label) to each pending row. */
 export async function decoratePending(supabase: any, rows: PendingRow[]) {
   const byTable = new Map<string, Set<string>>();
@@ -269,6 +323,8 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
     }
   }
 
+  // Anything a person has already declined for this record is never asked again.
+  const declined = await loadDeclinedKeys(supabase, rows);
 
   return rows.map((row) => {
     const key = row.record_id ? `${row.table_name}:${row.record_id}` : null;
@@ -288,6 +344,14 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
       athleticWebsite: (record?.["athletic_website"] ?? null) as string | null,
       coachingStaffUrl: (record?.["coaching_staff_url"] ?? null) as string | null,
       schoolWebsite: ((record?.["universities"] as any)?.website_url ?? null) as string | null,
+      previouslyDeclined: declined.has(
+        rejectionKey({
+          table_name: row.table_name,
+          record_id: row.record_id,
+          field_name: row.field_name,
+          value: row.field_name ? unwrapFieldValue(row.field_name, row.proposed_value) : row.proposed_value,
+        }),
+      ),
     };
     // Say on the item itself why a person is being asked — the same judgement the
     // automatic tidy-up uses, so the screen and the sweep never disagree.
@@ -448,6 +512,11 @@ export function pendingVerdict(row: any): {
   /** Set for a roster we keep even though the page was only partly read. */
   partial?: boolean;
 } {
+  // A value someone already turned down is never raised a second time.
+  if (row.previouslyDeclined) {
+    return { kind: "no_change", reason: "you turned this value down before" };
+  }
+
   if (row.table_name === "roster_players") {
     const verdict = rosterVerdict(row.proposed_value ?? {}, row.source_url);
     if (verdict.auto) {

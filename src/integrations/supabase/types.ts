@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      accuracy_checks: {
+        Row: {
+          checked_at: string
+          detail: string | null
+          field_name: string
+          fresh_value: string | null
+          id: string
+          program_id: string | null
+          stored_value: string | null
+          university_id: string | null
+          verdict: string
+        }
+        Insert: {
+          checked_at?: string
+          detail?: string | null
+          field_name: string
+          fresh_value?: string | null
+          id?: string
+          program_id?: string | null
+          stored_value?: string | null
+          university_id?: string | null
+          verdict: string
+        }
+        Update: {
+          checked_at?: string
+          detail?: string | null
+          field_name?: string
+          fresh_value?: string | null
+          id?: string
+          program_id?: string | null
+          stored_value?: string | null
+          university_id?: string | null
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accuracy_checks_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accuracy_checks_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athlete_family_links: {
         Row: {
           created_at: string
@@ -1103,6 +1154,47 @@ export type Database = {
           },
         ]
       }
+      rejected_values: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          field_name: string
+          id: string
+          normalized_value: string
+          reason: string | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          field_name: string
+          id?: string
+          normalized_value: string
+          reason?: string | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          field_name?: string
+          id?: string
+          normalized_value?: string
+          reason?: string | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rejected_values_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roster_players: {
         Row: {
           bats: Database["public"]["Enums"]["bats_hand"] | null
@@ -1729,6 +1821,7 @@ export type Database = {
           season_year: number
         }[]
       }
+      reclaim_stale_leases: { Args: { _minutes?: number }; Returns: number }
       trigger_collection_runner: { Args: never; Returns: undefined }
     }
     Enums: {
