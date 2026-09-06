@@ -12,6 +12,7 @@ import {
   rosterVerdict,
   valuesEquivalent,
 } from "@/lib/data-quality";
+import { rejectionKey } from "@/lib/rejected-memory";
 
 
 export const REVIEW_TABLES = ["universities", "programs", "roster_players"] as const;
