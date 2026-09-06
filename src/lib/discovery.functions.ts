@@ -261,3 +261,56 @@ export const reviewDiscoveredUrl = createServerFn({ method: "POST" })
     return { ok: true, requeued: false, message: "Saved to live data." };
   });
 
+
+/** Decide a whole page of links at once. */
+export const reviewDiscoveredUrls = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { ids: string[]; decision: "confirm" | "reject" }) => ({
+    ids: (Array.isArray(input?.ids) ? input.ids : []).slice(0, 100).map(String),
+    decision: input.decision === "confirm" ? ("confirm" as const) : ("reject" as const),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.ids.length) return { ok: true, done: 0, failed: 0, requeued: 0 };
+
+    const { data: rows, error } = await context.supabase
+      .from("url_discovery_queue")
+      .select("id, university_id, program_id, discovery_type, discovered_url, status")
+      .in("id", data.ids)
+      .eq("status", "pending_review");
+    if (error) throw new Error(error.message);
+
+    const { applyDiscoveredUrl, requeueSchoolForDiscovery } = await import("@/lib/discovery.server");
+    const now = new Date().toISOString();
+    let done = 0;
+    let failed = 0;
+    let requeued = 0;
+    const schools = new Set<string>();
+
+    for (const row of (rows ?? []) as any[]) {
+      try {
+        if (data.decision === "confirm") await applyDiscoveredUrl(context.supabase, row);
+        const { error: updateError } = await context.supabase
+          .from("url_discovery_queue")
+          .update({
+            status: data.decision === "confirm" ? "confirmed" : "rejected",
+            reviewed_by: context.userId,
+            reviewed_at: now,
+          })
+          .eq("id", row.id)
+          .eq("status", "pending_review");
+        if (updateError) throw new Error(updateError.message);
+        done += 1;
+        if (data.decision === "reject") schools.add(String(row.university_id));
+      } catch {
+        failed += 1;
+      }
+    }
+
+    for (const universityId of schools) {
+      const outcome = await requeueSchoolForDiscovery(context.supabase, universityId);
+      if (outcome.requeued) requeued += 1;
+    }
+
+    return { ok: true, done, failed, requeued };
+  });
