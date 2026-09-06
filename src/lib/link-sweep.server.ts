@@ -173,11 +173,65 @@ export async function sweepDiscoveredLinks(
       .eq("university_id", universityId)
       .eq("discovery_type", kind)
       .eq("status", "rejected");
-    if ((rejectedSoFar ?? 0) > REJECT_RESEARCH_LIMIT * 4) continue;
-    const outcome = await requeueSchoolForDiscovery(supabase, universityId);
+    if ((rejectedSoFar ?? 0) >= REJECT_RESEARCH_LIMIT) continue;
+    const outcome = await requeueSchoolForDiscovery(supabase, universityId, kind);
     if (outcome.requeued) counts.requeuedSchools += 1;
     tried.add(universityId);
   }
 
   return counts;
 }
+
+/**
+ * Work the whole pile rather than one batch: repeat passes until nothing is
+ * waiting, a pass decides nothing new, or the time budget runs out. The caller
+ * can run it again to pick up where this left off.
+ */
+export async function sweepLinksUntilDone(
+  supabase: any,
+  actorId: string,
+  options: { apply: boolean; maxPasses?: number; budgetMs?: number } = { apply: false },
+): Promise<SweepCounts & { passes: number }> {
+  const maxPasses = Math.min(Math.max(options.maxPasses ?? 8, 1), 20);
+  const budgetMs = options.budgetMs ?? 45_000;
+  const startedAt = Date.now();
+
+  const total: SweepCounts & { passes: number } = {
+    scanned: 0,
+    approve: 0,
+    reject: 0,
+    ask: 0,
+    byReason: {},
+    requeuedSchools: 0,
+    failures: 0,
+    moreWaiting: false,
+    passes: 0,
+  };
+
+  for (let pass = 0; pass < maxPasses; pass += 1) {
+    const counts = await sweepDiscoveredLinks(supabase, actorId, {
+      apply: options.apply,
+      limit: 1000,
+    });
+    total.passes += 1;
+    total.scanned += counts.scanned;
+    total.approve += counts.approve;
+    total.reject += counts.reject;
+    total.ask += counts.ask;
+    total.requeuedSchools += counts.requeuedSchools;
+    total.failures += counts.failures;
+    total.moreWaiting = counts.moreWaiting;
+    for (const [code, count] of Object.entries(counts.byReason)) {
+      total.byReason[code] = (total.byReason[code] ?? 0) + count;
+    }
+
+    const decided = counts.approve + counts.reject;
+    // A preview never changes anything, so one pass is all it can tell us.
+    if (!options.apply) break;
+    if (!counts.moreWaiting || decided === 0) break;
+    if (Date.now() - startedAt > budgetMs) break;
+  }
+
+  return total;
+}
+
