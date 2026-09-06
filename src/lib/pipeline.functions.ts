@@ -937,15 +937,22 @@ export const clearBacklog = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperadmin(context as any);
     const { sweepPendingUntilDone } = await import("@/lib/review.server");
-    const { sweepLinksUntilDone } = await import("@/lib/link-sweep.server");
+    const { sweepLinksUntilDone, retireEmptyDiscoveryRows } = await import(
+      "@/lib/link-sweep.server"
+    );
     const facts = await sweepPendingUntilDone(context.supabase, context.userId, data.apply, {
       budgetMs: 25_000,
+    });
+    // Rows with no address at all are empty searches, not decisions: retire them
+    // and put those teams back in line before judging the real links.
+    const emptyLinks = await retireEmptyDiscoveryRows(context.supabase, context.userId, {
+      apply: data.apply,
     });
     const links = await sweepLinksUntilDone(context.supabase, context.userId, {
       apply: data.apply,
       budgetMs: 25_000,
     });
-    return clean({ facts, links });
+    return clean({ facts, links, emptyLinks });
   });
 
 /**
