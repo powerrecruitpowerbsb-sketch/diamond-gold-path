@@ -113,11 +113,18 @@ export const searchPrograms = createServerFn({ method: "POST" })
     // Acceptance rate is stored 0-100, the same scale the filter uses.
     range("universities.acceptance_rate", f.acceptanceMin, f.acceptanceMax);
 
-    const { data, error } = await query.limit(400);
+    // Ordered by school name so the cap always takes the same, alphabetical slice
+    // instead of an arbitrary 400 rows.
+    const LIMIT = 400;
+    const { data, error, count } = await query
+      .order("name", { referencedTable: "universities" })
+      .limit(LIMIT);
     if (error) throw new Error(error.message);
 
     const rows = (data ?? []) as any[];
+    const capped = rows.length >= LIMIT;
     const programIds = rows.map((r) => r.id);
+
 
     // Roster size = player count for the most recent season on file per program.
     const rosterSizes = new Map<string, { seasonYear: number | null; size: number }>();
