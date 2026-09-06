@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { fetchAllRows } from "@/lib/paginate";
 import {
   UNIVERSITY_COLS,
   normalizeSearchInput,
@@ -11,9 +12,15 @@ import {
 export const getSearchFacets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Paged reads: both tables hold more rows than one request can return, and a
+    // truncated read would quietly drop states and conferences from the filters.
     const [universities, programs, majors] = await Promise.all([
-      context.supabase.from("universities").select("state, region"),
-      context.supabase.from("programs").select("conference, division"),
+      fetchAllRows((from, to) =>
+        context.supabase.from("universities").select("state, region").order("id").range(from, to) as any,
+      ),
+      fetchAllRows((from, to) =>
+        context.supabase.from("programs").select("conference, division").order("id").range(from, to) as any,
+      ),
       context.supabase.from("majors").select("id, name").order("name"),
     ]);
 
@@ -21,13 +28,14 @@ export const getSearchFacets = createServerFn({ method: "GET" })
       Array.from(new Set(values.filter((v): v is string => Boolean(v && v.trim())))).sort();
 
     return {
-      states: uniq(((universities.data ?? []) as any[]).map((r) => r.state)),
-      regions: uniq(((universities.data ?? []) as any[]).map((r) => r.region)),
-      conferences: uniq(((programs.data ?? []) as any[]).map((r) => r.conference)),
-      divisions: uniq(((programs.data ?? []) as any[]).map((r) => r.division)),
-      majors: ((majors.data ?? []) as any[]).map((m) => ({ id: m.id, name: m.name })),
+      states: uniq((universities as any[]).map((r) => r.state)),
+      regions: uniq((universities as any[]).map((r) => r.region)),
+      conferences: uniq((programs as any[]).map((r) => r.conference)),
+      divisions: uniq((programs as any[]).map((r) => r.division)),
+      majors: (((majors as any).data ?? []) as any[]).map((m) => ({ id: m.id, name: m.name })),
     };
   });
+
 
 /** Filtered program search. RLS applies as the signed-in user. */
 export const searchPrograms = createServerFn({ method: "POST" })
