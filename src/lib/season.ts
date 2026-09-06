@@ -22,8 +22,9 @@ export function acceptableSeasonYears(now: Date = new Date()): number[] {
 
 /** 2027 → "2026-27". */
 export function seasonLabel(seasonYear: number | null | undefined): string {
+  if (seasonYear === null || seasonYear === undefined) return "—";
   const year = Number(seasonYear);
-  if (!Number.isFinite(year)) return "—";
+  if (!Number.isFinite(year) || year <= 0) return "—";
   const start = Math.trunc(year) - 1;
   return `${start}-${String(Math.trunc(year)).slice(2)}`;
 }
