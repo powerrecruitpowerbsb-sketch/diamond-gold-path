@@ -228,11 +228,11 @@ function ReviewQueue() {
 
   const approve = useMutation({
     mutationFn: (ids: string[]) => approveFn({ data: { ids } }),
-    onSuccess: async (result: { applied: number; failures: { message: string }[] }) => {
+    onSuccess: async (result: { applied: number; failures: { message: string }[] }, ids: string[]) => {
       if (result.applied)
         toast.success(`Applied ${result.applied} change${result.applied === 1 ? "" : "s"} to live data`);
       for (const failure of result.failures) toast.error(failure.message);
-      await invalidate();
+      await invalidate(ids);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -240,14 +240,17 @@ function ReviewQueue() {
   const reject = useMutation({
     mutationFn: (input: { ids: string[]; reason?: string | null }) =>
       rejectFn({ data: input }),
-    onSuccess: async (result: { rejected: number; requeued: number }) => {
+    onSuccess: async (
+      result: { rejected: number; requeued: number },
+      input: { ids: string[]; reason?: string | null },
+    ) => {
       toast.success(
         `Declined ${result.rejected} item${result.rejected === 1 ? "" : "s"} — live data untouched${
           result.requeued ? ` · ${result.requeued} program queued for a fresh pull` : ""
         }`,
       );
       setRejecting(null);
-      await invalidate();
+      await invalidate(input.ids);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -255,10 +258,10 @@ function ReviewQueue() {
   const correct = useMutation({
     mutationFn: (input: { id: string; value: unknown; note: string | null }) =>
       correctFn({ data: input }),
-    onSuccess: async () => {
+    onSuccess: async (_result, input: { id: string }) => {
       toast.success("Saved your corrected value to live data");
       setCorrecting(null);
-      await invalidate();
+      await invalidate([input.id]);
     },
     onError: (error: Error) => toast.error(error.message),
   });
