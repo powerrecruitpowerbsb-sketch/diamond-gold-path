@@ -7,6 +7,7 @@
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
 import {
   canonicalConference,
+  coerceForColumn,
   contradictsGoverningBody,
   isEmptyValue,
   isUnknownConference,
@@ -314,7 +315,7 @@ function coerce(field: string, raw: unknown): unknown {
   if (raw === null || raw === undefined || raw === "") return null;
   if (NUMERIC_FIELDS.has(field)) {
     const num = typeof raw === "number" ? raw : Number(String(raw).replace(/[^0-9.\-]/g, ""));
-    return Number.isFinite(num) ? num : null;
+    return Number.isFinite(num) ? coerceForColumn(field, num) : null;
   }
   if (BOOLEAN_FIELDS.has(field)) {
     if (typeof raw === "boolean") return raw;

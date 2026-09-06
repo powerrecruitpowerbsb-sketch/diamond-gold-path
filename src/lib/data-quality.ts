@@ -369,3 +369,21 @@ export function rosterVerdict(
 
   return { auto: true, reason: null };
 }
+
+/** Columns the database stores as whole numbers — a scraped "19.4" must round. */
+const INTEGER_FIELDS = new Set([
+  "avg_sat",
+  "avg_act",
+  "undergrad_enrollment",
+  "season_year",
+  "distance_to_airport_miles_int",
+]);
+
+/** Shape a value so the column will accept it (whole numbers stay whole). */
+export function coerceForColumn(field: string, value: unknown): unknown {
+  if (INTEGER_FIELDS.has(field) && value !== null && value !== "" && value !== undefined) {
+    const num = Number(value);
+    if (Number.isFinite(num)) return Math.round(num);
+  }
+  return value;
+}

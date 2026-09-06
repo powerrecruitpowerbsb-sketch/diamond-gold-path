@@ -2,6 +2,7 @@
 
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
 import {
+  coerceForColumn,
   isEmptyValue,
   normalizePosition,
   plausibleSeasonYear,
@@ -162,7 +163,7 @@ export async function approvePending(supabase: any, userId: string, row: Pending
     const value = unwrapFieldValue(row.field_name, row.proposed_value);
     const { error } = await supabase
       .from(row.table_name)
-      .update({ [row.field_name]: value === "" ? null : value })
+      .update({ [row.field_name]: value === "" ? null : coerceForColumn(row.field_name, value) })
       .eq("id", recordId);
     if (error) throw new Error(error.message);
     await upsertSource(
