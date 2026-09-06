@@ -252,15 +252,33 @@ export type OwnershipProblem = {
   fields: string[];
 };
 
+export type OwnershipStandoff = {
+  domain: string;
+  schools: string[];
+};
+
 /**
  * Two schools can't share one athletics domain. Find the teams holding another
  * school's pages (College of Central Florida holding ucfknights.com) and, when
  * asked, clear those links and requeue the team for a fresh search.
+ *
+ * When neither school's name is anywhere in the address — mutigers.com,
+ * gamecocksonline.com, duhawks.com — nothing here can tell them apart, so both
+ * are reported as a standoff for a person and nothing is cleared. Guessing was
+ * worse than doing nothing: the wrong school's own web address had already been
+ * overwritten with the contested site, which made the impostor look like the
+ * owner. That is why a school's own website is ignored when it IS the address
+ * under dispute.
  */
 export async function auditPageOwnership(
   supabase: any,
   options: { apply?: boolean } = {},
-): Promise<{ checked: number; problems: OwnershipProblem[]; cleared: number }> {
+): Promise<{
+  checked: number;
+  problems: OwnershipProblem[];
+  standoffs: OwnershipStandoff[];
+  cleared: number;
+}> {
   const programs = await loadPrograms(supabase);
 
   type Claim = {
@@ -280,13 +298,17 @@ export async function auditPageOwnership(
     for (const domain of new Set(domainsFor(program))) {
       const claims = byDomain.get(domain) ?? new Map<string, Claim>();
       if (!claims.has(program.university_id)) {
+        const schoolSite = program.universities?.website_url ?? null;
+        // A school "website" that is the contested address itself proves nothing.
+        const trustedSite =
+          schoolSite && registrableDomain(hostOf(schoolSite)) === domain ? null : schoolSite;
         claims.set(program.university_id, {
           schoolId: program.university_id,
           schoolName: program.universities?.name ?? null,
           verdict: pageOwnership({
             url: `https://${domain}`,
             schoolName: program.universities?.name ?? null,
-            schoolWebsite: program.universities?.website_url ?? null,
+            schoolWebsite: trustedSite,
           }),
         });
       }
