@@ -52,7 +52,7 @@ describe("does this page belong to this school?", () => {
 });
 
 describe("near-identical school names", () => {
-  const claim = (schoolId: string, schoolName: string, url: string, schoolWebsite?: string) => ({
+  const claim = (schoolId: string, schoolName: string, url: string, schoolWebsite: string | null = null) => ({
     schoolId,
     verdict: pageOwnership({ url, schoolName, schoolWebsite }),
   });
