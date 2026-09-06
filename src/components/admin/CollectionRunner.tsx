@@ -231,21 +231,68 @@ export function CollectionRunner() {
           <Layers className="size-3.5" aria-hidden />
           Work one level at a time
         </p>
-        <p className="meta mt-1">
-          Pick a level to work on now. Everything else waits its turn — nothing is lost.
-        </p>
+
+        {current ? (
+          <div className="mt-3 rounded-lg bg-border/20 p-3">
+            <p className="text-sm font-semibold text-ink-navy">
+              {current.complete ? `${current.label} is complete` : `Working on now: ${current.label}`}
+            </p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-border/60">
+              <div
+                className="h-full rounded-full bg-diamond-green transition-all"
+                style={{
+                  width: `${current.total ? Math.round((current.done / current.total) * 100) : 0}%`,
+                }}
+              />
+            </div>
+            <p className="meta mt-2 tabular-nums">
+              {current.done} of {current.total} done
+              {current.running ? ` · ${current.running} in progress` : ""}
+              {current.waiting ? ` · ${current.waiting} still in line` : ""}
+            </p>
+            {!current.complete && estimate(current.waiting, pace) ? (
+              <p className="meta mt-1">{estimate(current.waiting, pace)}</p>
+            ) : null}
+            {current.complete && next ? (
+              <p className="meta mt-1">
+                {board?.autoAdvance ? `Moving on to ${next.label}` : `Next up: ${next.label} — pick it when you're ready`}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <p className="meta mt-2">Pick a level to work on now. Everything else waits its turn.</p>
+        )}
+
+        <label className="meta mt-3 flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={board?.autoAdvance ?? true}
+            disabled={busy}
+            onChange={(event) => void onToggleAutoAdvance(event.target.checked)}
+            className="size-4 rounded border-border"
+          />
+          Work through the levels in order, without asking me
+        </label>
+
         <div className="mt-3 flex flex-wrap gap-2">
-          {(waves ?? []).map((wave) => (
+          {levels.map((level) => (
             <button
-              key={wave.key}
+              key={level.key}
               type="button"
-              onClick={() => void onChooseWave(wave.key, wave.label)}
+              onClick={() => void onChooseWave(level.key, level.label)}
               disabled={busy}
-              className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-ink-navy disabled:opacity-60"
+              className={`touch-target rounded-lg border px-3 text-sm font-semibold text-ink-navy disabled:opacity-60 ${
+                level.key === board?.currentWave ? "border-ink-navy bg-border/30" : "border-border"
+              }`}
             >
-              {wave.label}
-              <span className="meta ml-2">
-                {wave.waiting} to do{wave.held ? ` · ${wave.held} waiting turn` : ""}
+              <span className="inline-flex items-center gap-1.5">
+                {level.complete ? <Check className="size-3.5 text-diamond-green" aria-hidden /> : null}
+                {level.label}
+              </span>
+              <span className="meta ml-2 tabular-nums">
+                {level.complete
+                  ? "done"
+                  : `${level.done} done · ${level.waiting} to do${level.held ? ` · ${level.held} waiting turn` : ""}`}
               </span>
             </button>
           ))}
@@ -258,6 +305,7 @@ export function CollectionRunner() {
             Everything at once
           </button>
         </div>
+
       </div>
 
 
