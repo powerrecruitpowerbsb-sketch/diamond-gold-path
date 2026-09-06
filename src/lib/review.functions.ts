@@ -193,8 +193,9 @@ export const sweepReviewQueue = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
-    const { sweepPendingNoise } = await import("@/lib/review.server");
-    return sweepPendingNoise(context.supabase, context.userId, data.apply, data.limit);
+    const { sweepPendingUntilDone } = await import("@/lib/review.server");
+    return sweepPendingUntilDone(context.supabase, context.userId, data.apply);
+
   });
 
 /**

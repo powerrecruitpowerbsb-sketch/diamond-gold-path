@@ -44,9 +44,10 @@ const chunk = <T,>(items: T[], size: number) => {
 export async function sweepDiscoveredLinks(
   supabase: any,
   actorId: string,
-  options: { apply: boolean; limit?: number } = { apply: false },
+  options: { apply: boolean; limit?: number; offset?: number } = { apply: false },
 ): Promise<SweepCounts> {
   const limit = Math.min(Math.max(options.limit ?? 1000, 1), 1000);
+  const offset = Math.max(options.offset ?? 0, 0);
 
   const { count: pendingTotal } = await supabase
     .from("url_discovery_queue")
@@ -62,8 +63,9 @@ export async function sweepDiscoveredLinks(
     .eq("status", "pending_review")
     .not("discovered_url", "is", null)
     .order("created_at", { ascending: true })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
   if (error) throw new Error(error.message);
+
 
   const rows = (data ?? []) as Row[];
   const counts: SweepCounts = {
@@ -74,8 +76,25 @@ export async function sweepDiscoveredLinks(
     byReason: {},
     requeuedSchools: 0,
     failures: 0,
-    moreWaiting: (pendingTotal ?? 0) > rows.length,
+    moreWaiting: (pendingTotal ?? 0) > offset + rows.length,
   };
+
+  // Every athletics site already confirmed for these schools, so a roster or
+  // coaching page on a sibling program's site is recognised too.
+  const schoolIds = [...new Set(rows.map((row) => row.university_id))];
+  const hostsBySchool = new Map<string, string[]>();
+  for (const ids of chunk(schoolIds, 100)) {
+    const { data: programs } = await supabase
+      .from("programs")
+      .select("university_id, athletic_website")
+      .in("university_id", ids)
+      .not("athletic_website", "is", null);
+    for (const program of (programs ?? []) as any[]) {
+      const list = hostsBySchool.get(program.university_id) ?? [];
+      list.push(program.athletic_website);
+      hostsBySchool.set(program.university_id, list);
+    }
+  }
 
   const toApprove: Row[] = [];
   const toReject: { row: Row; verdict: LinkVerdict }[] = [];
@@ -87,6 +106,7 @@ export async function sweepDiscoveredLinks(
       sport: row.programs?.sport ?? null,
       schoolWebsite: row.universities?.website_url ?? null,
       athleticWebsite: row.programs?.athletic_website ?? null,
+      athleticHosts: hostsBySchool.get(row.university_id) ?? [],
     });
     if (verdict.action === "ask") {
       counts.ask += 1;
@@ -101,6 +121,7 @@ export async function sweepDiscoveredLinks(
       toReject.push({ row, verdict });
     }
   }
+
 
   if (!options.apply) return counts;
 
@@ -154,11 +175,70 @@ export async function sweepDiscoveredLinks(
       .eq("university_id", universityId)
       .eq("discovery_type", kind)
       .eq("status", "rejected");
-    if ((rejectedSoFar ?? 0) > REJECT_RESEARCH_LIMIT * 4) continue;
-    const outcome = await requeueSchoolForDiscovery(supabase, universityId);
+    if ((rejectedSoFar ?? 0) >= REJECT_RESEARCH_LIMIT) continue;
+    const outcome = await requeueSchoolForDiscovery(supabase, universityId, kind);
     if (outcome.requeued) counts.requeuedSchools += 1;
     tried.add(universityId);
   }
 
   return counts;
 }
+
+/**
+ * Work the whole pile rather than one batch: repeat passes until nothing is
+ * waiting, a pass decides nothing new, or the time budget runs out. The caller
+ * can run it again to pick up where this left off.
+ */
+export async function sweepLinksUntilDone(
+  supabase: any,
+  actorId: string,
+  options: { apply: boolean; maxPasses?: number; budgetMs?: number } = { apply: false },
+): Promise<SweepCounts & { passes: number }> {
+  const maxPasses = Math.min(Math.max(options.maxPasses ?? 8, 1), 20);
+  const budgetMs = options.budgetMs ?? 45_000;
+  const startedAt = Date.now();
+
+  const total: SweepCounts & { passes: number } = {
+    scanned: 0,
+    approve: 0,
+    reject: 0,
+    ask: 0,
+    byReason: {},
+    requeuedSchools: 0,
+    failures: 0,
+    moreWaiting: false,
+    passes: 0,
+  };
+
+  // Items left for a person stay in the queue, so each pass steps past the ones
+  // the last pass already decided to leave alone.
+  let offset = 0;
+  for (let pass = 0; pass < maxPasses; pass += 1) {
+    const counts = await sweepDiscoveredLinks(supabase, actorId, {
+      apply: options.apply,
+      limit: 1000,
+      offset,
+    });
+    total.passes += 1;
+    total.scanned += counts.scanned;
+    total.approve += counts.approve;
+    total.reject += counts.reject;
+    total.ask += counts.ask;
+    total.requeuedSchools += counts.requeuedSchools;
+    total.failures += counts.failures;
+    total.moreWaiting = counts.moreWaiting;
+    for (const [code, count] of Object.entries(counts.byReason)) {
+      total.byReason[code] = (total.byReason[code] ?? 0) + count;
+    }
+    offset += counts.ask;
+
+    // A preview never changes anything, so one pass is all it can tell us.
+    if (!options.apply) break;
+    if (!counts.moreWaiting || counts.scanned === 0) break;
+    if (Date.now() - startedAt > budgetMs) break;
+  }
+
+
+  return total;
+}
+

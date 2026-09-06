@@ -154,7 +154,7 @@ export const countPendingDiscoveries = createServerFn({ method: "GET" })
     return { pending: withUrl.count ?? 0, unfound: withoutUrl.count ?? 0 };
   });
 
-/** Preview or run the tidy-up pass that clears obviously wrong links. */
+/** Preview, or run the tidy-up pass over the whole pile of waiting links. */
 export const sweepDiscoveredLinksFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input?: { apply?: boolean; limit?: number }) => ({
@@ -163,13 +163,13 @@ export const sweepDiscoveredLinksFn = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
-    const { sweepDiscoveredLinks } = await import("@/lib/link-sweep.server");
-    const counts = await sweepDiscoveredLinks(context.supabase, context.userId, {
+    const { sweepLinksUntilDone } = await import("@/lib/link-sweep.server");
+    const counts = await sweepLinksUntilDone(context.supabase, context.userId, {
       apply: data.apply,
-      limit: data.limit,
     });
     return JSON.parse(JSON.stringify(counts));
   });
+
 
 /** Type in the right link by hand when the search keeps coming up empty. */
 export const setLinkManually = createServerFn({ method: "POST" })

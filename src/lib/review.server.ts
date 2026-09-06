@@ -3,12 +3,15 @@
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
 import {
   coerceForColumn,
+  fieldValueSane,
   isEmptyValue,
   normalizePosition,
   plausibleSeasonYear,
+  rosterKeepable,
   rosterVerdict,
   valuesEquivalent,
 } from "@/lib/data-quality";
+
 
 export const REVIEW_TABLES = ["universities", "programs", "roster_players"] as const;
 export type ReviewTable = (typeof REVIEW_TABLES)[number];
@@ -434,11 +437,25 @@ export async function groupPending(supabase: any, rows: DecoratedRow[]): Promise
 export function pendingVerdict(row: any): {
   kind: "no_change" | "auto_apply" | "needs_review";
   reason: string;
+  /** Set for a roster we keep even though the page was only partly read. */
+  partial?: boolean;
 } {
   if (row.table_name === "roster_players") {
     const verdict = rosterVerdict(row.proposed_value ?? {}, row.source_url);
-    if (verdict.auto) return { kind: "auto_apply", reason: "a complete roster from the team's own page" };
-    return { kind: "needs_review", reason: verdict.reason ?? "needs a look" };
+    if (verdict.auto) {
+      return { kind: "auto_apply", reason: "a complete roster from the team's own page" };
+    }
+    const keepable = rosterKeepable(row.proposed_value ?? {});
+    if (keepable.keep) {
+      return {
+        kind: "auto_apply",
+        reason: keepable.partial
+          ? "only part of the roster was read — saved, with a fuller pull queued"
+          : "a roster from the team's own page",
+        partial: keepable.partial,
+      };
+    }
+    return { kind: "needs_review", reason: keepable.reason ?? verdict.reason ?? "needs a look" };
   }
 
   const field = row.field_name as string;
@@ -456,27 +473,26 @@ export function pendingVerdict(row: any): {
 
   if (!row.recordLabel) return { kind: "needs_review", reason: "we could not load the record" };
 
-  if (!isEmptyValue(field, current)) {
-    return { kind: "needs_review", reason: "would replace a value we already hold" };
+  if (!fieldValueSane(field, proposed)) {
+    return { kind: "needs_review", reason: "that value doesn't look possible for this field" };
   }
 
   if (row.source_type !== "official") {
-    return { kind: "needs_review", reason: "fills a blank field, but not from an official source" };
+    return { kind: "needs_review", reason: "not from the school's own site" };
   }
 
-  if ((row.ai_confidence ?? 0) < 0.7) {
-    return { kind: "needs_review", reason: "the reading of this page looked shaky" };
-  }
-
-  return { kind: "auto_apply", reason: "fills a blank field from an official source" };
+  // The school's own site is treated as the better answer, so it is applied even
+  // when it replaces something we already hold.
+  return {
+    kind: "auto_apply",
+    reason: isEmptyValue(field, current)
+      ? "fills a blank field from the school's own site"
+      : "updates an older value from the school's own site",
+  };
 }
 
-export async function sweepPendingNoise(
-  supabase: any,
-  userId: string,
-  apply: boolean,
-  limit = 1000,
-): Promise<{
+
+export type PendingSweepResult = {
   examined: number;
   noChange: number;
   gapFills: number;
@@ -485,7 +501,25 @@ export async function sweepPendingNoise(
   moreWaiting: boolean;
   reasons: { reason: string; count: number }[];
   samples: { label: string; field: string; reason: string }[];
-}> {
+};
+
+/** Identity of a proposal, so the same fact proposed twice is only decided once. */
+function proposalKey(row: PendingRow): string {
+  return [
+    row.table_name,
+    row.record_id ?? "",
+    row.field_name ?? "",
+    JSON.stringify(row.proposed_value ?? null),
+  ].join("|");
+}
+
+export async function sweepPendingNoise(
+  supabase: any,
+  userId: string,
+  apply: boolean,
+  limit = 1000,
+  offset = 0,
+): Promise<PendingSweepResult> {
   const { data: rows, error } = await supabase
     .from("pending_data_changes")
     .select(
@@ -493,7 +527,7 @@ export async function sweepPendingNoise(
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
   if (error) throw new Error(error.message);
 
   const pending = (rows ?? []) as PendingRow[];
@@ -502,16 +536,26 @@ export async function sweepPendingNoise(
     .from("pending_data_changes")
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
-  const moreWaiting = (openTotal ?? 0) > pending.length;
+  const moreWaiting = (openTotal ?? 0) > offset + pending.length;
   const decorated = await decoratePending(supabase, pending);
 
   const noChangeIds: string[] = [];
   const autoRows: PendingRow[] = [];
+  const repullPrograms = new Set<string>();
   const samples: { label: string; field: string; reason: string }[] = [];
   const reasonCounts = new Map<string, number>();
+  const seen = new Set<string>();
   let remaining = 0;
 
   for (const row of decorated as any[]) {
+    // Duplicates of a proposal we have already handled in this pass are noise.
+    const key = proposalKey(row as PendingRow);
+    if (seen.has(key)) {
+      noChangeIds.push(row.id);
+      continue;
+    }
+    seen.add(key);
+
     const verdict = pendingVerdict(row);
     const field = (row.field_name as string) ?? "roster";
 
@@ -519,6 +563,10 @@ export async function sweepPendingNoise(
       noChangeIds.push(row.id);
     } else if (verdict.kind === "auto_apply") {
       autoRows.push(row as PendingRow);
+      if (verdict.partial) {
+        const programId = (row.proposed_value?.program_id ?? row.record_id) as string | null;
+        if (programId) repullPrograms.add(programId);
+      }
     } else {
       remaining += 1;
       reasonCounts.set(verdict.reason, (reasonCounts.get(verdict.reason) ?? 0) + 1);
@@ -554,6 +602,28 @@ export async function sweepPendingNoise(
         failures += 1;
       }
     }
+
+    // Partly-read rosters are kept, then the program goes back in line so a
+    // later pull can complete it.
+    for (const programId of repullPrograms) {
+      const { data: existing } = await supabase
+        .from("ingest_queue")
+        .select("id")
+        .eq("program_id", programId)
+        .eq("stage", "program_scrape")
+        .maybeSingle();
+      if (existing?.id) {
+        await supabase
+          .from("ingest_queue")
+          .update({ status: "pending", attempts: 0, leased_at: null })
+          .eq("id", existing.id);
+      } else {
+        await supabase
+          .from("ingest_queue")
+          .insert([{ program_id: programId, stage: "program_scrape", status: "pending" }]);
+      }
+    }
+
   }
 
   return {
@@ -569,3 +639,60 @@ export async function sweepPendingNoise(
     samples,
   };
 }
+
+/**
+ * Work the whole waiting pile instead of one batch: repeat passes, stepping past
+ * the items left for a person, until nothing is left or time runs out.
+ */
+export async function sweepPendingUntilDone(
+  supabase: any,
+  userId: string,
+  apply: boolean,
+  options: { maxPasses?: number; budgetMs?: number } = {},
+): Promise<PendingSweepResult & { passes: number }> {
+  const maxPasses = Math.min(Math.max(options.maxPasses ?? 8, 1), 20);
+  const budgetMs = options.budgetMs ?? 45_000;
+  const startedAt = Date.now();
+
+  const total: PendingSweepResult & { passes: number } = {
+    examined: 0,
+    noChange: 0,
+    gapFills: 0,
+    remaining: 0,
+    failures: 0,
+    moreWaiting: false,
+    reasons: [],
+    samples: [],
+    passes: 0,
+  };
+  const reasonCounts = new Map<string, number>();
+  let offset = 0;
+
+  for (let pass = 0; pass < maxPasses; pass += 1) {
+    const result = await sweepPendingNoise(supabase, userId, apply, 1000, offset);
+    total.passes += 1;
+    total.examined += result.examined;
+    total.noChange += result.noChange;
+    total.gapFills += result.gapFills;
+    total.remaining += result.remaining;
+    total.failures += result.failures;
+    total.moreWaiting = result.moreWaiting;
+    for (const { reason, count } of result.reasons) {
+      reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + count);
+    }
+    for (const sample of result.samples) {
+      if (total.samples.length < 10) total.samples.push(sample);
+    }
+    offset += result.remaining;
+
+    if (!apply) break;
+    if (!result.moreWaiting || result.examined === 0) break;
+    if (Date.now() - startedAt > budgetMs) break;
+  }
+
+  total.reasons = [...reasonCounts.entries()]
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count);
+  return total;
+}
+

@@ -165,6 +165,59 @@ export function matchesProgramSport(url: string | null | undefined, sport: strin
   return wanted.some((token) => hasToken(path, token));
 }
 
+/** Subdomains and sections that are never a school's athletics site. */
+const NON_ATHLETICS_HOST_WORDS = [
+  "catalog",
+  "catalogue",
+  "directory",
+  "library",
+  "people",
+  "apply",
+  "admission",
+  "admissions",
+  "registrar",
+  "canvas",
+  "blackboard",
+  "mail",
+  "webmail",
+  "shop",
+  "store",
+  "blogs",
+  "news",
+  "calendar",
+  "jobs",
+];
+
+const isPdf = (url: string) => /\.pdf($|[?#])/i.test(url);
+
+/**
+ * Does this address look like a school's athletics site in its own right?
+ * Athletics sites are almost always a separate nickname domain
+ * (landerbearcats.com), an athletics subdomain, or a hosted platform page
+ * (eastfield.prestosports.com) — never the course catalog or a PDF.
+ */
+export function looksLikeAthleticsHost(
+  url: string | null | undefined,
+  schoolWebsite?: string | null,
+): boolean {
+  if (!url || isPdf(url)) return false;
+  const host = hostOf(url);
+  if (!host || junkHost(url)) return false;
+  if (NON_ATHLETICS_HOST_WORDS.some((word) => host.split(".").includes(word))) return false;
+
+  const segments = pathOf(url).split("?")[0]!.split("/").filter(Boolean);
+  // Athletics home pages sit at the root, or a section or two deep at most.
+  if (segments.length > 2) return false;
+
+  const athleticsSignal = /(athletic|sports|presto|sidearm)/.test(host) || /^go[a-z]{3,}/.test(host);
+  if (athleticsSignal) return true;
+
+  // A nickname domain: not the school's own host, and not a .edu at all.
+  const schoolHost = hostOf(schoolWebsite);
+  if (host === schoolHost) return false;
+  return !host.endsWith(".edu") && !host.endsWith(".gov");
+}
+
 export type LinkVerdict = {
   action: "approve" | "reject" | "ask";
   /** Plain-language reason, safe to show a person. */
@@ -176,6 +229,8 @@ export type LinkVerdict = {
     | "news_page"
     | "junk_host"
     | "school_homepage"
+    | "not_a_web_page"
+    | "athletics_site"
     | "sport_page_on_known_site"
     | "needs_a_look";
 };
@@ -187,6 +242,8 @@ export function classifyLink(input: {
   schoolWebsite?: string | null;
   /** The program's already-saved athletics site, when there is one. */
   athleticWebsite?: string | null;
+  /** Every athletics host already confirmed for this school. */
+  athleticHosts?: string[];
 }): LinkVerdict {
   const { kind, url } = input;
   const ask: LinkVerdict = { action: "ask", reason: "Needs a look.", code: "needs_a_look" };
@@ -196,12 +253,27 @@ export function classifyLink(input: {
     return { action: "reject", reason: "Not a school athletics site.", code: "junk_host" };
   }
 
+  if (isPdf(url)) {
+    return {
+      action: "reject",
+      reason: "This is a document, not a team page.",
+      code: "not_a_web_page",
+    };
+  }
+
   if (kind === "athletic_website") {
     if (isSchoolHomepage(url, input.schoolWebsite)) {
       return {
         action: "reject",
         reason: "This is the school's own homepage, not its athletics site.",
         code: "school_homepage",
+      };
+    }
+    if (looksLikeAthleticsHost(url, input.schoolWebsite)) {
+      return {
+        action: "approve",
+        reason: "This is the school's athletics site.",
+        code: "athletics_site",
       };
     }
     return ask;
@@ -217,17 +289,26 @@ export function classifyLink(input: {
     return { action: "reject", reason: "This is a news story, not a team page.", code: "news_page" };
   }
 
+  const knownHosts = new Set(
+    [input.athleticWebsite, ...(input.athleticHosts ?? [])]
+      .map((entry) => hostOf(entry))
+      .filter(Boolean),
+  );
+  const onKnownSite = knownHosts.has(hostOf(url));
+
   if (
     matchesProgramSport(url, input.sport ?? null) &&
-    input.athleticWebsite &&
-    hostOf(url) === hostOf(input.athleticWebsite)
+    (onKnownSite || looksLikeAthleticsHost(url, input.schoolWebsite))
   ) {
     return {
       action: "approve",
-      reason: "Correct sport, on the school's confirmed athletics site.",
+      reason: onKnownSite
+        ? "Correct sport, on the school's confirmed athletics site."
+        : "Correct sport, on an athletics site.",
       code: "sport_page_on_known_site",
     };
   }
 
   return ask;
 }
+
