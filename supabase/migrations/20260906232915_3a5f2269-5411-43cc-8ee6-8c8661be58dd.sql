@@ -1,0 +1,2 @@
+ALTER TABLE public.ingest_queue DROP CONSTRAINT ingest_queue_status_check;
+ALTER TABLE public.ingest_queue ADD CONSTRAINT ingest_queue_status_check CHECK (status = ANY (ARRAY['pending'::text, 'running'::text, 'done'::text, 'failed'::text, 'skipped'::text, 'blocked'::text, 'held'::text]));
