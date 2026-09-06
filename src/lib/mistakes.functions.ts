@@ -10,7 +10,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { rejectionKey } from "@/lib/rejected-memory";
+import { normalizeRejectedValue } from "@/lib/rejected-memory";
 
 const clean = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
@@ -57,12 +57,7 @@ export const reportProgramMistake = createServerFn({ method: "POST" })
             table_name: "programs",
             record_id: program.id,
             field_name: data.fieldName,
-            normalized_value: rejectionKey({
-              table_name: "programs",
-              record_id: program.id,
-              field_name: data.fieldName,
-              value: current,
-            }),
+            normalized_value: normalizeRejectedValue(current),
             reason: data.note || "Reported as wrong by a person",
             created_by: context.userId,
           },
@@ -91,12 +86,27 @@ export const reportProgramMistake = createServerFn({ method: "POST" })
     // 3. Look again from the official pages.
     const { requeueSchoolForDiscovery } = await import("@/lib/discovery.server");
     const requeue = await requeueSchoolForDiscovery(supabaseAdmin as any, program.university_id);
-    await supabaseAdmin
+    // Re-scrape this program's own pages too. The queue's uniqueness is a
+    // partial index, so look first rather than relying on an upsert.
+    const { data: existing } = await supabaseAdmin
       .from("ingest_queue")
-      .upsert(
-        [{ university_id: program.university_id, stage: "program_scrape", status: "pending", attempts: 0, last_error: null }],
-        { onConflict: "university_id,stage", ignoreDuplicates: false },
-      );
+      .select("id")
+      .eq("program_id", program.id)
+      .eq("stage", "program_scrape")
+      .limit(1);
+    if (existing && existing.length) {
+      await supabaseAdmin
+        .from("ingest_queue")
+        .update({ status: "pending", attempts: 0, last_error: null, leased_at: null })
+        .eq("id", (existing[0] as { id: string }).id);
+    } else {
+      await supabaseAdmin.from("ingest_queue").insert({
+        university_id: program.university_id,
+        program_id: program.id,
+        stage: "program_scrape",
+        status: "pending",
+      });
+    }
 
     return clean({
       cleared: true,
