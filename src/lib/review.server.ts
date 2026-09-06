@@ -269,7 +269,7 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
     const record = key ? live.get(key) : undefined;
     const currentValue =
       row.field_name && record ? (record[row.field_name] ?? null) : null;
-    return {
+    const decorated = {
       ...row,
       recordLabel: key ? (labels.get(key) ?? null) : null,
       currentValue: (currentValue ?? null) as Json,
@@ -277,6 +277,9 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
         ? null
         : (record ?? null)) as Json,
     };
+    // Say on the item itself why a person is being asked — the same judgement the
+    // automatic tidy-up uses, so the screen and the sweep never disagree.
+    return { ...decorated, reviewReason: pendingVerdict(decorated).reason };
   });
 }
 
