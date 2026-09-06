@@ -6,7 +6,7 @@
  */
 
 import { mentionsOtherState } from "@/lib/data-quality";
-import { classifyLink } from "@/lib/link-quality";
+import { classifyLink, isSchoolHomepage } from "@/lib/link-quality";
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
@@ -192,6 +192,34 @@ export async function loadRejectedUrls(
 
 type Candidate = { url: string; title: string };
 
+/** Follow a school website one hop to whatever athletics section lives inside it. */
+async function findAthleticsSection(
+  origin: string,
+  excluded: Set<string>,
+): Promise<string | null> {
+  const found = new Set<string>();
+  for (const term of ["athletics", "sports"]) {
+    try {
+      const payload = await firecrawl("/map", { url: origin, search: term, limit: 150 });
+      for (const link of readMapLinks(payload)) found.add(link);
+    } catch (failure) {
+      console.error("Firecrawl map failed while looking for an athletics section", failure);
+    }
+  }
+
+  const candidates = [...found].filter((url) => {
+    if (excluded.has(normalizeUrl(url))) return false;
+    if (/\.pdf($|[?#])/i.test(url)) return false;
+    return /(athletic|sports|teams)/i.test(url);
+  });
+  if (!candidates.length) return null;
+
+  // Shortest matching path wins: that is the section index rather than a story
+  // or a single team page buried inside it.
+  candidates.sort((a, b) => a.length - b.length);
+  return candidates[0] ?? null;
+}
+
 function readSearchResults(payload: any): Candidate[] {
   const raw = Array.isArray(payload?.data)
     ? payload.data
@@ -210,6 +238,7 @@ export async function discoverAthleticWebsite(
   name: string,
   state: string | null,
   excluded: Set<string> = new Set(),
+  schoolWebsite: string | null = null,
 ): Promise<DiscoveryResult> {
   const query = `${name}${state ? ` ${state}` : ""} official athletics website`;
   const payload = await firecrawl("/search", { query, limit: 8 });
@@ -262,6 +291,33 @@ export async function discoverAthleticWebsite(
       return best.url;
     }
   })();
+
+  // Plenty of smaller schools run athletics inside their own website, so the best
+  // search hit is the school homepage. Take one more step: map that site for its
+  // athletics section and keep the page that actually names teams.
+  if (isSchoolHomepage(origin, schoolWebsite ?? origin)) {
+    const section = await findAthleticsSection(origin, excluded);
+    if (section) {
+      return {
+        discoveryType: "athletic_website",
+        programId: null,
+        sport: null,
+        url: section,
+        confidence: "low",
+        notes:
+          "Athletics sits inside the school's own website — this is the athletics section we found there. Worth a look.",
+      };
+    }
+    return {
+      discoveryType: "athletic_website",
+      programId: null,
+      sport: null,
+      url: null,
+      confidence: "failed",
+      notes:
+        "Only the school's own homepage came back, and no athletics section could be found inside it.",
+    };
+  }
 
   const rivals = scored.filter(
     (row) => row !== best && row.athletics && row.score >= best.score - 0.15,
@@ -446,7 +502,9 @@ export async function discoverUniversityUrls(
   const { data: programs, error: programError } = await supabase
     .from("programs")
     .select("id, sport")
-    .eq("university_id", universityId);
+    .eq("university_id", universityId)
+    // A sport the school doesn't field has no pages to find.
+    .neq("offering_status", "not_offered");
   if (programError) throw new Error(programError.message);
 
   const results: DiscoveryResult[] = [];
@@ -454,7 +512,12 @@ export async function discoverUniversityUrls(
   const excluded = await loadRejectedUrls(supabase, universityId);
 
   try {
-    const site = await discoverAthleticWebsite(name, state, excluded);
+    const site = await discoverAthleticWebsite(
+      name,
+      state,
+      excluded,
+      ((school as any).athletic_site ?? null) as string | null,
+    );
     results.push(site);
     if (site.url) {
       const pageResults = await discoverProgramPages(

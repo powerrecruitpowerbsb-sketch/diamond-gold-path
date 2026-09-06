@@ -14,6 +14,7 @@ import {
   listFederalBlocked,
   listFederalParked,
   listNonSchoolEntries,
+  listUndecidedSports,
   rebuildQueue,
   removeNonSchoolEntry,
   requeueRejected,
@@ -22,6 +23,8 @@ import {
   runDueRefreshes,
 
   runFederalBatch,
+  runSponsorshipCheck,
+  setSportOffering,
   unparkAllFederalSchools,
   unparkFederalSchool,
 } from "@/lib/pipeline.functions";
@@ -101,6 +104,55 @@ function Pipeline() {
   const removeNonSchoolFn = useServerFn(removeNonSchoolEntry);
   const requeueRejectedFn = useServerFn(requeueRejected);
   const dueRefreshFn = useServerFn(runDueRefreshes);
+  const sponsorshipFn = useServerFn(runSponsorshipCheck);
+  const undecidedFn = useServerFn(listUndecidedSports);
+  const setOfferingFn = useServerFn(setSportOffering);
+
+  const onRunSponsorship = async (rounds: number) => {
+    setBusy("sponsorship");
+    try {
+      let offered = 0;
+      let notOffered = 0;
+      let conflicts = 0;
+      let checked = 0;
+      for (let round = 0; round < rounds; round += 1) {
+        const result = (await sponsorshipFn({ data: { limit: 60 } })) as {
+          schoolsChecked: number;
+          offered: number;
+          notOffered: number;
+          conflicts: number;
+        };
+        checked += result.schoolsChecked;
+        offered += result.offered;
+        notOffered += result.notOffered;
+        conflicts += result.conflicts;
+        if (!result.schoolsChecked) break;
+      }
+      toast.success(
+        checked
+          ? `Checked ${checked} school${checked === 1 ? "" : "s"}: ${offered} sport${offered === 1 ? "" : "s"} confirmed, ${notOffered} not offered${conflicts ? `, ${conflicts} left for you` : ""}`
+          : "Every school with a federal ID has already been checked",
+      );
+      await queryClient.invalidateQueries();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not check sponsorship");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onSetOffering = async (programId: string, offered: boolean) => {
+    setBusy(`offering-${programId}`);
+    try {
+      await setOfferingFn({ data: { programId, offered } });
+      toast.success(offered ? "Marked as offered" : "Marked as not offered");
+      await queryClient.invalidateQueries();
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "Could not save that");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const onRunDueRefreshes = async () => {
     setBusy("due-refresh");
@@ -149,6 +201,10 @@ function Pipeline() {
 
 
   const { data: status } = useQuery({ queryKey: ["pipeline-status"], queryFn: () => statusFn() });
+  const { data: undecidedSports } = useQuery({
+    queryKey: ["undecided-sports"],
+    queryFn: () => undecidedFn(),
+  });
   const { data: blocked } = useQuery({ queryKey: ["federal-blocked"], queryFn: () => blockedFn() });
   const { data: parked } = useQuery({ queryKey: ["federal-parked"], queryFn: () => parkedFn() });
   const { data: nonSchools } = useQuery({
@@ -802,6 +858,94 @@ function Pipeline() {
           </div>
         </SectionCard>
       ) : null}
+
+      <SectionCard
+        title="Which schools actually have baseball or softball"
+        blurb="Every college that gives athletic aid files a federal athletics report listing the sports it fields and how many athletes played. That settles each sport slot, so we stop hunting for team pages that don't exist."
+      >
+        <div className="grid gap-2 sm:grid-cols-4">
+          {[
+            { label: "Confirmed offered", value: status?.sponsorship?.offered ?? 0 },
+            { label: "Not offered", value: status?.sponsorship?.notOffered ?? 0 },
+            { label: "Still undecided", value: status?.sponsorship?.undecided ?? 0 },
+            { label: "Checked so far", value: status?.sponsorship?.checked ?? 0 },
+          ].map((tile) => (
+            <div key={tile.label} className="rounded-lg border border-border bg-white p-3">
+              <p className="meta">{tile.label}</p>
+              <p className="mt-0.5 font-display text-2xl font-bold tabular-nums text-graphite">
+                {tile.value}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onRunSponsorship(1)}
+            disabled={busy !== null}
+            className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-graphite disabled:opacity-60"
+          >
+            <RefreshCw className="h-4 w-4" />
+            {busy === "sponsorship" ? "Checking…" : "Check the next 60 schools"}
+          </button>
+          <button
+            type="button"
+            onClick={() => onRunSponsorship(40)}
+            disabled={busy !== null}
+            className="touch-target inline-flex items-center gap-2 rounded-lg bg-seam-red px-3.5 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            Keep going until it's done
+          </button>
+        </div>
+
+        {(undecidedSports as any[] | undefined)?.length ? (
+          <div className="mt-4">
+            <p className="meta mb-2">
+              {(undecidedSports as any[]).length} SPORT SLOTS THE FILING COULDN'T SETTLE
+            </p>
+            <ul className="grid gap-1.5">
+              {(undecidedSports as any[]).map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-white p-3"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-graphite">
+                      {row.schoolName}
+                      {row.state ? ` (${row.state})` : ""} — {row.sport}
+                    </p>
+                    <p className="meta">
+                      {row.conflict
+                        ? "Absent from the federal filing, but we have other evidence"
+                        : row.hasRosterUrl
+                          ? "Has a roster page but no federal filing"
+                          : "No federal filing for this school"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSetOffering(row.id, true)}
+                      disabled={busy !== null}
+                      className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-graphite disabled:opacity-60"
+                    >
+                      Offered
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSetOffering(row.id, false)}
+                      disabled={busy !== null}
+                      className="touch-target rounded-lg border border-border px-3 text-sm font-semibold text-steel disabled:opacity-60"
+                    >
+                      Not offered
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </SectionCard>
 
       <SectionCard
         title="Keeping information current"

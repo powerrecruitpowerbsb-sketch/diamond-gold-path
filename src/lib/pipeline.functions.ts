@@ -79,12 +79,16 @@ export const getPipelineStatus = createServerFn({ method: "GET" })
       ),
     ]);
 
+    const { sponsorshipCoverage } = await import("@/lib/sport-sponsorship.server");
+    const sponsorship = await sponsorshipCoverage(context.supabase);
+
     return clean({
       usingDemoKey: usingDemoKey(),
       coverage,
       schools: { total: schoolsTotal, federalConfirmed, federalNeedsHelp, withCost },
       programs: { total: programsTotal, baseball, softball, withRosterUrl, withCoach },
       refresh: { rostersDueNow, rostersDueSoon, factsDueNow, factsDueSoon },
+      sponsorship,
     });
 
   });
@@ -787,4 +791,82 @@ export const requeueRejected = createServerFn({ method: "POST" })
     }
 
     return clean({ schoolsQueued, cappedSchools, programsQueued });
+  });
+
+/**
+ * Check baseball/softball sponsorship against the federal athletics filing, so
+ * sports a school doesn't field stop generating links and review items.
+ */
+export const runSponsorshipCheck = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { limit?: number; recheck?: boolean }) => ({
+    limit: Number(input?.limit) || 60,
+    recheck: Boolean(input?.recheck),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { syncSponsorshipBatch } = await import("@/lib/sport-sponsorship.server");
+    return clean(
+      await syncSponsorshipBatch(context.supabase, { limit: data.limit, recheck: data.recheck }),
+    );
+  });
+
+/** Sport slots still waiting on a decision, for the short hand-decide list. */
+export const listUndecidedSports = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { data, error } = await context.supabase
+      .from("programs")
+      .select(
+        "id, sport, offering_source, roster_url, sponsorship_checked_at, universities!inner(name, state, ipeds_unitid)",
+      )
+      .eq("offering_status", "unverified")
+      .not("sponsorship_checked_at", "is", null)
+      .order("sport")
+      .limit(60);
+    if (error) throw new Error(error.message);
+
+    return clean(
+      ((data ?? []) as any[]).map((row) => ({
+        id: row.id as string,
+        sport: row.sport as string,
+        schoolName: String(row.universities?.name ?? ""),
+        state: (row.universities?.state ?? null) as string | null,
+        hasFederalId: row.universities?.ipeds_unitid != null,
+        hasRosterUrl: Boolean(row.roster_url),
+        conflict: row.offering_source === "conflict_needs_review",
+      })),
+    );
+  });
+
+/** Staff decision on a single sport slot. */
+export const setSportOffering = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { programId: string; offered: boolean }) => ({
+    programId: String(input?.programId ?? ""),
+    offered: Boolean(input?.offered),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.programId) throw new Error("Pick a sport first");
+    const stamp = new Date().toISOString();
+
+    const { error } = await context.supabase
+      .from("programs")
+      .update({
+        offering_status: data.offered ? "verified" : "not_offered",
+        offering_source: "staff_decision",
+        offering_verified_at: stamp,
+        sponsorship_checked_at: stamp,
+      })
+      .eq("id", data.programId);
+    if (error) throw new Error(error.message);
+
+    if (!data.offered) {
+      const { retireProgram } = await import("@/lib/sport-sponsorship.server");
+      await retireProgram(context.supabase, data.programId, "Staff confirmed this sport isn't offered.");
+    }
+
+    return clean({ ok: true });
   });
