@@ -66,39 +66,151 @@ export const runUrlDiscoveryBatch = createServerFn({ method: "POST" })
     return JSON.parse(JSON.stringify(outcomes));
   });
 
-/** Pending discoveries, low confidence first, then high, then failures. */
+/** One page of links that actually have a URL to decide on, grouped by school. */
 export const listDiscoveredUrls = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input?: { page?: number; pageSize?: number }) => ({
+    page: Math.max(1, Number(input?.page ?? 1)),
+    pageSize: Math.min(Math.max(Number(input?.pageSize ?? 50), 10), 100),
+  }))
+  .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
-    const { data, error } = await context.supabase
+    const from = (data.page - 1) * data.pageSize;
+    const { data: rows, error, count } = await context.supabase
       .from("url_discovery_queue")
       .select(
-        "id, university_id, program_id, discovery_type, discovered_url, confidence, notes, created_at, universities(name, state), programs(sport)",
+        "id, university_id, program_id, discovery_type, discovered_url, confidence, notes, created_at, universities(name, state, website_url), programs(sport, athletic_website)",
+        { count: "exact" },
       )
       .eq("status", "pending_review")
-      .order("created_at", { ascending: false })
-      .limit(500);
+      .not("discovered_url", "is", null)
+      .order("university_id", { ascending: true })
+      .order("created_at", { ascending: true })
+      .range(from, from + data.pageSize - 1);
     if (error) throw new Error(error.message);
 
-    const rank: Record<string, number> = { low: 0, high: 1, failed: 2 };
-    const rows = [...((data ?? []) as any[])].sort(
-      (a, b) => (rank[a.confidence] ?? 3) - (rank[b.confidence] ?? 3),
+    const total = count ?? 0;
+    return JSON.parse(
+      JSON.stringify({
+        rows: rows ?? [],
+        total,
+        page: data.page,
+        pageSize: data.pageSize,
+        totalPages: Math.max(1, Math.ceil(total / data.pageSize)),
+      }),
     );
-    return JSON.parse(JSON.stringify(rows));
+  });
+
+/** Schools where the search came back empty — nothing to approve, retry or paste. */
+export const listUnfoundLinks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input?: { page?: number; pageSize?: number }) => ({
+    page: Math.max(1, Number(input?.page ?? 1)),
+    pageSize: Math.min(Math.max(Number(input?.pageSize ?? 50), 10), 100),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const from = (data.page - 1) * data.pageSize;
+    const { data: rows, error, count } = await context.supabase
+      .from("url_discovery_queue")
+      .select(
+        "id, university_id, program_id, discovery_type, notes, created_at, universities(name, state), programs(sport)",
+        { count: "exact" },
+      )
+      .eq("status", "pending_review")
+      .is("discovered_url", null)
+      .order("university_id", { ascending: true })
+      .range(from, from + data.pageSize - 1);
+    if (error) throw new Error(error.message);
+
+    const total = count ?? 0;
+    return JSON.parse(
+      JSON.stringify({
+        rows: rows ?? [],
+        total,
+        page: data.page,
+        pageSize: data.pageSize,
+        totalPages: Math.max(1, Math.ceil(total / data.pageSize)),
+      }),
+    );
   });
 
 export const countPendingDiscoveries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertSuperadmin(context as any);
-    const { count, error } = await context.supabase
-      .from("url_discovery_queue")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending_review");
-    if (error) throw new Error(error.message);
-    return { pending: count ?? 0 };
+    const base = () =>
+      context.supabase
+        .from("url_discovery_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending_review");
+
+    const [withUrl, withoutUrl] = await Promise.all([
+      base().not("discovered_url", "is", null),
+      base().is("discovered_url", null),
+    ]);
+    if (withUrl.error) throw new Error(withUrl.error.message);
+    if (withoutUrl.error) throw new Error(withoutUrl.error.message);
+    return { pending: withUrl.count ?? 0, unfound: withoutUrl.count ?? 0 };
   });
+
+/** Preview or run the tidy-up pass that clears obviously wrong links. */
+export const sweepDiscoveredLinksFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input?: { apply?: boolean; limit?: number }) => ({
+    apply: Boolean(input?.apply),
+    limit: Math.min(Math.max(Number(input?.limit ?? 1000), 1), 1000),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { sweepDiscoveredLinks } = await import("@/lib/link-sweep.server");
+    const counts = await sweepDiscoveredLinks(context.supabase, context.userId, {
+      apply: data.apply,
+      limit: data.limit,
+    });
+    return JSON.parse(JSON.stringify(counts));
+  });
+
+/** Type in the right link by hand when the search keeps coming up empty. */
+export const setLinkManually = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; url: string }) => ({
+    id: String(input.id),
+    url: String(input.url ?? "").trim(),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!/^https?:\/\/\S+\.\S+/i.test(data.url)) {
+      throw new Error("That doesn't look like a web address — it should start with https://");
+    }
+
+    const { data: row, error } = await context.supabase
+      .from("url_discovery_queue")
+      .select("id, university_id, program_id, discovery_type, status")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    if ((row as any).status !== "pending_review") throw new Error("Already reviewed");
+
+    const { applyDiscoveredUrl } = await import("@/lib/discovery.server");
+    await applyDiscoveredUrl(context.supabase, { ...(row as any), discovered_url: data.url });
+
+    const { error: updateError } = await context.supabase
+      .from("url_discovery_queue")
+      .update({
+        discovered_url: data.url,
+        confidence: "high",
+        status: "confirmed",
+        notes: "Entered by hand.",
+        reviewed_by: context.userId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", data.id)
+      .eq("status", "pending_review");
+    if (updateError) throw new Error(updateError.message);
+    return { ok: true, message: "Saved to live data." };
+  });
+
 
 /** Confirm writes the URL to live data; reject only marks the item rejected. */
 export const reviewDiscoveredUrl = createServerFn({ method: "POST" })
