@@ -2,7 +2,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/admin/form-kit";
@@ -39,9 +38,8 @@ export function AccuracyPanel() {
 
   return (
     <SectionCard
-      icon={ShieldCheck}
       title="Accuracy spot checks"
-      description="We re-read the exact page each head coach name came from and record whether the name is still there."
+      blurb="We re-read the exact page each head coach name came from and record whether the name is still there."
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {[
