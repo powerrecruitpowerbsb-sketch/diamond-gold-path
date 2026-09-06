@@ -9,7 +9,8 @@
  * else is left for a person.
  */
 
-import { classifyLink, type LinkKind, type LinkVerdict } from "@/lib/link-quality";
+import { classifyLink, hostOf, type LinkKind, type LinkVerdict } from "@/lib/link-quality";
+import { pageOwnership, registrableDomain } from "@/lib/program-ownership";
 
 export type SweepCounts = {
   scanned: number;
@@ -29,7 +30,7 @@ type Row = {
   program_id: string | null;
   discovery_type: LinkKind;
   discovered_url: string | null;
-  universities: { website_url: string | null } | null;
+  universities: { name: string | null; website_url: string | null } | null;
   programs: { sport: string | null; athletic_website: string | null } | null;
 };
 
@@ -58,7 +59,7 @@ export async function sweepDiscoveredLinks(
   const { data, error } = await supabase
     .from("url_discovery_queue")
     .select(
-      "id, university_id, program_id, discovery_type, discovered_url, universities(website_url), programs(sport, athletic_website)",
+      "id, university_id, program_id, discovery_type, discovered_url, universities(name, website_url), programs(sport, athletic_website)",
     )
     .eq("status", "pending_review")
     .not("discovered_url", "is", null)
@@ -96,6 +97,56 @@ export async function sweepDiscoveredLinks(
     }
   }
 
+  // Which other schools already hold each of these domains? A page on a domain
+  // that plainly belongs to a different school (Portland State's goviks.com filed
+  // under University of Portland) is a mix-up, not a judgement call.
+  const linkDomains = [
+    ...new Set(rows.map((row) => registrableDomain(hostOf(row.discovered_url))).filter(Boolean)),
+  ];
+  const claimsByDomain = new Map<string, { name: string | null; website: string | null }[]>();
+  for (const domains of chunk(linkDomains, 40)) {
+    const filter = domains.map((domain) => `athletic_website.ilike.%${domain}%`).join(",");
+    const { data: rivals } = await supabase
+      .from("programs")
+      .select("athletic_website, universities(name, website_url)")
+      .or(filter)
+      .limit(2000);
+    for (const entry of (rivals ?? []) as any[]) {
+      const domain = registrableDomain(hostOf(entry.athletic_website));
+      if (!domain || !domains.includes(domain)) continue;
+      const list = claimsByDomain.get(domain) ?? [];
+      const name = entry.universities?.name ?? null;
+      if (name && !list.some((claim) => claim.name === name)) {
+        list.push({ name, website: entry.universities?.website_url ?? null });
+      }
+      claimsByDomain.set(domain, list);
+    }
+  }
+
+  /** True when this domain is proven to belong to some other school, not this one. */
+  function belongsToAnotherSchool(row: Row): string | null {
+    const domain = registrableDomain(hostOf(row.discovered_url));
+    if (!domain) return null;
+    const schoolName = row.universities?.name ?? null;
+    // A school website field that is itself the disputed domain proves nothing —
+    // that is how the mix-up got in.
+    const ownSite = registrableDomain(hostOf(row.universities?.website_url)) === domain
+      ? null
+      : row.universities?.website_url ?? null;
+    const mine = pageOwnership({ url: row.discovered_url, schoolName, schoolWebsite: ownSite });
+    if (mine.score > 0) return null;
+    for (const claim of claimsByDomain.get(domain) ?? []) {
+      if (claim.name === schoolName) continue;
+      const theirs = pageOwnership({
+        url: row.discovered_url,
+        schoolName: claim.name,
+        schoolWebsite: registrableDomain(hostOf(claim.website)) === domain ? null : claim.website,
+      });
+      if (theirs.score > 0) return claim.name ?? "another school";
+    }
+    return null;
+  }
+
   const toApprove: Row[] = [];
   const toReject: { row: Row; verdict: LinkVerdict }[] = [];
 
@@ -109,6 +160,18 @@ export async function sweepDiscoveredLinks(
       athleticHosts: hostsBySchool.get(row.university_id) ?? [],
     });
     if (verdict.action === "ask") {
+      const otherSchool = belongsToAnotherSchool(row);
+      if (otherSchool) {
+        const owned: LinkVerdict = {
+          action: "reject",
+          reason: `This page belongs to ${otherSchool}, not this school.`,
+          code: "wrong_school",
+        };
+        counts.byReason[owned.code] = (counts.byReason[owned.code] ?? 0) + 1;
+        counts.reject += 1;
+        toReject.push({ row, verdict: owned });
+        continue;
+      }
       counts.ask += 1;
       continue;
     }

@@ -262,6 +262,7 @@ export type LinkVerdict = {
     | "news_page"
     | "junk_host"
     | "school_homepage"
+    | "wrong_school"
     | "not_a_web_page"
     | "athletics_site"
     | "sport_page_on_known_site"
