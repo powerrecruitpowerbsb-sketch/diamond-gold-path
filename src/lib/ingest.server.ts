@@ -17,6 +17,8 @@ import {
   rosterVerdict,
   valuesEquivalent,
 } from "@/lib/data-quality";
+import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
+
 
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
@@ -232,6 +234,8 @@ const ROSTER_PROMPT = [
   "home_state is the 2-letter US state abbreviation when the hometown is in the US.",
   "is_juco_transfer is true only when a junior/community college is named as a previous school. is_transfer is true for any named previous four-year school.",
   "season_year is the roster's SEASON heading (e.g. 2026 or the later year of '2025-26'), never a jersey number, a stat, a birth year or an archive year. Return null unless the page clearly states the season.",
+  'Also return "season_label": the season exactly as the page words it (e.g. "2026-27 Baseball Roster"), or null.',
+
 
 ].join("\n");
 
@@ -264,11 +268,13 @@ function countLikelyPlayerRows(markdown: string): number {
 async function extractRoster(markdown: string): Promise<{
   players: ExtractedPlayer[];
   season_year: number | null;
+  season_label: string | null;
   diagnostics: { characters: number; chunks: number; likelyRows: number };
 }> {
   const chunks = chunkMarkdown(markdown);
   const byName = new Map<string, ExtractedPlayer>();
   let seasonYear: number | null = null;
+  let seasonLabel: string | null = null;
   let lastError: Error | null = null;
 
   for (const chunk of chunks) {
@@ -276,9 +282,13 @@ async function extractRoster(markdown: string): Promise<{
       const parsed = await extractJson(ROSTER_PROMPT, chunk);
       if (seasonYear === null) {
         // Jersey numbers, career stats and archive years get mistaken for the
-        // season; only a year inside the live recruiting window is believable.
-        seasonYear = plausibleSeasonYear(parsed?.season_year);
+        // season; a season is only believable inside the live school-year window.
+        seasonYear = canonicalSeasonYear(parsed?.season_year) ?? canonicalSeasonYear(parsed?.season_label);
       }
+      if (!seasonLabel && typeof parsed?.season_label === "string") {
+        seasonLabel = parsed.season_label.trim().slice(0, 120) || null;
+      }
+
       const players = Array.isArray(parsed?.players) ? parsed.players : [];
       for (const player of players) {
         if (!player || typeof player.name !== "string" || !player.name.trim()) continue;
@@ -307,7 +317,13 @@ async function extractRoster(markdown: string): Promise<{
     `Roster extraction: ${byName.size} players from ${diagnostics.characters} chars in ${diagnostics.chunks} chunk(s); ~${diagnostics.likelyRows} roster-looking rows on the page`,
   );
 
-  return { players: [...byName.values()], season_year: seasonYear, diagnostics };
+  return {
+    players: [...byName.values()],
+    season_year: seasonYear,
+    season_label: seasonLabel,
+    diagnostics,
+  };
+
 }
 
 
@@ -637,7 +653,7 @@ export async function ingestProgram(
           detail: rows.length ? `${rows.length} field(s) proposed` : "nothing new found on this page",
         });
       } else {
-        const { players, season_year, diagnostics } = await extractRoster(markdown);
+        const { players, season_year, season_label, diagnostics } = await extractRoster(markdown);
         rosterPlayers = players.length;
         if (!players.length) {
           urlResults.push({
@@ -650,10 +666,13 @@ export async function ingestProgram(
         }
 
         const summary = summarizeRoster(players);
-        const seasonYear = season_year ?? new Date().getFullYear();
+        // Seasons follow the school year: an unlabelled page is treated as the
+        // season we're recruiting for, and the page's own wording is kept as-is.
+        const seasonYear = season_year ?? currentSeasonYear();
         // Judge the roster on the roster: the page it came from, the season it
         // claims, the squad size and whether the names read like real players.
         const verdict = rosterVerdict({ season_year: seasonYear, players }, target.url);
+
         const suspicious = !verdict.auto;
         if (suspicious) {
           rosterWarning = `This roster needs a look: ${verdict.reason}.`;
@@ -680,7 +699,9 @@ export async function ingestProgram(
           proposed_value: {
             program_id: programId,
             season_year: seasonYear,
+            season_label: season_label,
             players,
+
             incomplete_scrape: suspicious,
             review_reason: verdict.reason,
             scrape_diagnostics: diagnostics,

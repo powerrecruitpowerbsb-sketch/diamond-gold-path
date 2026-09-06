@@ -13,6 +13,8 @@ import {
   valuesEquivalent,
 } from "@/lib/data-quality";
 import { rejectionKey } from "@/lib/rejected-memory";
+import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
+
 
 
 export const REVIEW_TABLES = ["universities", "programs", "roster_players"] as const;
@@ -106,14 +108,20 @@ async function applyRosterProposal(supabase: any, row: PendingRow) {
   if (!players || !players.length) throw new Error("Roster proposal contains no players");
   if (!programId) throw new Error("Roster proposal is missing its program");
   // A season read off a jersey number or an archive page is not a season.
-  const seasonYear = plausibleSeasonYear(payload?.season_year) ?? new Date().getFullYear();
+  const seasonYear = canonicalSeasonYear(payload?.season_year) ?? currentSeasonYear();
+  const seasonLabel =
+    typeof payload?.season_label === "string" && payload.season_label.trim()
+      ? payload.season_label.trim().slice(0, 120)
+      : null;
 
   const rows = players.map((player: any) => {
     const position = pickEnum(normalizePosition(player?.position), POSITIONS);
     return {
       program_id: programId,
       season_year: seasonYear,
+      season_label: seasonLabel,
       name: String(player?.name ?? "").trim(),
+
       position,
       class_year: pickEnum(player?.class_year, CLASS_YEARS),
       bats: pickEnum(player?.bats, ["R", "L", "S"]),

@@ -7,6 +7,12 @@
  * default-value fill never reaches the review queue as if it were real news.
  */
 
+import {
+  acceptableSeasonYears as seasonWindow,
+  canonicalSeasonYear,
+} from "@/lib/season";
+
+
 const URL_FIELDS = new Set([
   "website_url",
   "admissions_url",
@@ -202,12 +208,10 @@ export function isUnknownConference(value: unknown): boolean {
  * is not a season.
  */
 export function plausibleSeasonYear(value: unknown): number | null {
-  const year = Number(value);
-  if (!Number.isFinite(year)) return null;
-  const current = new Date().getFullYear();
-  if (year < current - 2 || year > current + 3) return null;
-  return Math.trunc(year);
+  // Seasons follow the school year, so all season reasoning lives in one place.
+  return canonicalSeasonYear(value);
 }
+
 
 /** Governing bodies whose divisions are D1/D2/D3 vs the ones with no divisions. */
 const DIVISIONED_BODIES = new Set(["NCAA", "NJCAA"]);
@@ -348,13 +352,13 @@ export function mentionsOtherState(text: string, state: string | null): boolean 
 // --- Roster acceptance rules -------------------------------------------------
 
 /**
- * The season years a freshly scraped roster may legitimately carry: the current
- * one, plus next year's once the new academic year has started.
+ * The seasons a freshly scraped roster may legitimately carry: the school year
+ * we're recruiting for, plus the one just finished.
  */
 export function acceptableSeasonYears(now: Date = new Date()): number[] {
-  const year = now.getFullYear();
-  return now.getMonth() >= 6 ? [year, year + 1] : [year - 1, year];
+  return seasonWindow(now);
 }
+
 
 export type RosterVerdict = { auto: boolean; reason: string | null };
 
