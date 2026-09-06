@@ -190,6 +190,24 @@ export function CompletionBoard() {
               ))}
             </ul>
           ) : null}
+
+          {(ownership.data as any)?.standoffs?.length ? (
+            <div className="mt-4 rounded-xl border border-border p-3 text-sm">
+              <p className="font-semibold text-graphite">Needs your eyes: two schools, one site</p>
+              <p className="mt-1 text-steel">
+                The address doesn't name either school, so nothing was changed. Tell me which school
+                each site belongs to and I'll clear the other.
+              </p>
+              <ul className="mt-2 space-y-1 text-steel">
+                {(ownership.data as any).standoffs.slice(0, 12).map((row: any) => (
+                  <li key={row.domain}>
+                    <span className="font-semibold text-graphite">{row.domain}</span> — claimed by{" "}
+                    {row.schools.join(" and ")}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </>
       ) : null}
     </SectionCard>
