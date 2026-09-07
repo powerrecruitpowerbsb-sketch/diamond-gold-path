@@ -56,6 +56,7 @@ function AdminLayout() {
     queryFn: () => discoveryCountFn(),
     enabled: Boolean(data?.isSuperadmin),
   });
+  // A count we can't produce shows nothing at all — never an estimate.
   const pendingCount = pending?.pending ?? 0;
   const discoveryCount = pendingDiscoveries?.pending ?? 0;
 

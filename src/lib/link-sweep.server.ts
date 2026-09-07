@@ -20,6 +20,8 @@ export type SweepCounts = {
   byReason: Record<string, number>;
   requeuedSchools: number;
   failures: number;
+  /** Waiting rows with no address at all — nothing here can be judged. */
+  skippedNoUrl: number;
   /** True when more pending links remain than this pass looked at. */
   moreWaiting: boolean;
 };
@@ -56,6 +58,15 @@ export async function sweepDiscoveredLinks(
     .eq("status", "pending_review")
     .not("discovered_url", "is", null);
 
+  // Rows where the search came back empty can't be judged here; they belong to
+  // the "couldn't find" list. Counted so the report explains itself.
+  const { count: noUrlTotal } = await supabase
+    .from("url_discovery_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending_review")
+    .is("discovered_url", null);
+
+
   const { data, error } = await supabase
     .from("url_discovery_queue")
     .select(
@@ -77,6 +88,7 @@ export async function sweepDiscoveredLinks(
     byReason: {},
     requeuedSchools: 0,
     failures: 0,
+    skippedNoUrl: noUrlTotal ?? 0,
     moreWaiting: (pendingTotal ?? 0) > offset + rows.length,
   };
 
@@ -281,6 +293,7 @@ export async function sweepLinksUntilDone(
     byReason: {},
     requeuedSchools: 0,
     failures: 0,
+    skippedNoUrl: 0,
     moreWaiting: false,
     passes: 0,
   };
@@ -302,6 +315,7 @@ export async function sweepLinksUntilDone(
     total.requeuedSchools += counts.requeuedSchools;
     total.failures += counts.failures;
     total.moreWaiting = counts.moreWaiting;
+    total.skippedNoUrl = counts.skippedNoUrl;
     for (const [code, count] of Object.entries(counts.byReason)) {
       total.byReason[code] = (total.byReason[code] ?? 0) + count;
     }

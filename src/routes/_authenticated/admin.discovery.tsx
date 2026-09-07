@@ -74,6 +74,7 @@ type Sweep = {
   byReason: Record<string, number>;
   requeuedSchools: number;
   failures: number;
+  skippedNoUrl: number;
   moreWaiting: boolean;
 };
 
@@ -244,6 +245,18 @@ function DiscoveryQueue() {
               Looked at {preview.scanned} links: {preview.reject} clearly wrong, {preview.approve} clearly
               right, {preview.ask} need you.
             </p>
+            {preview.skippedNoUrl ? (
+              <p className="mt-1 text-steel">
+                {preview.skippedNoUrl} more rows had no address at all — nothing to judge, so they sit in
+                "Couldn't find these pages" below instead of your decision count.
+              </p>
+            ) : null}
+            {!preview.scanned ? (
+              <p className="mt-1 text-steel">
+                Nothing was left that the rules could decide — everything waiting needs a person or a
+                fresh search.
+              </p>
+            ) : null}
             <ul className="mt-2 grid gap-1 text-steel">
               {Object.entries(preview.byReason).map(([code, total]) => (
                 <li key={code} className="tabular-nums">
@@ -385,7 +398,7 @@ function DiscoveryQueue() {
 
       <SectionCard
         title="Couldn't find these pages"
-        blurb="The search came back empty for these. Try again, or paste the right address in yourself."
+        blurb={`${counts.data?.unfound ?? "—"} searches came back empty. These aren't decisions — nothing was found to approve or reject. Search again, or paste the right address in yourself.`}
       >
         {unfound.isPending ? (
           <div className="h-24 animate-pulse rounded-xl bg-muted" />

@@ -185,22 +185,15 @@ export const countPendingChanges = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertSuperadmin(context as any);
 
-    // Exact counts can time out on a large table — fall back to a planned
-    // estimate instead of failing the whole page.
-    let pending = 0;
+    // Only ever report a real number. A rough database estimate used to stand in
+    // when this was slow, which showed thousands of items waiting when there
+    // were a handful; now an indexed count is used, and an unknown stays unknown.
+    let pending: number | null = null;
     const exact = await context.supabase
       .from("pending_data_changes")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending");
-    if (exact.error) {
-      const planned = await context.supabase
-        .from("pending_data_changes")
-        .select("id", { count: "planned", head: true })
-        .eq("status", "pending");
-      pending = planned.count ?? 0;
-    } else {
-      pending = exact.count ?? 0;
-    }
+    if (!exact.error) pending = exact.count ?? 0;
 
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { count: autoCount } = await context.supabase

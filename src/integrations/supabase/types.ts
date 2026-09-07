@@ -971,6 +971,63 @@ export type Database = {
           },
         ]
       }
+      pending_data_changes_archive: {
+        Row: {
+          ai_confidence: number | null
+          archived_at: string
+          created_at: string
+          decided_via: string
+          field_name: string | null
+          id: string
+          original_value: Json | null
+          proposed_value: Json
+          record_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_type: Database["public"]["Enums"]["source_type"]
+          source_url: string | null
+          status: Database["public"]["Enums"]["pending_change_status"]
+          table_name: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          archived_at?: string
+          created_at?: string
+          decided_via?: string
+          field_name?: string | null
+          id: string
+          original_value?: Json | null
+          proposed_value: Json
+          record_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_type: Database["public"]["Enums"]["source_type"]
+          source_url?: string | null
+          status: Database["public"]["Enums"]["pending_change_status"]
+          table_name: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          archived_at?: string
+          created_at?: string
+          decided_via?: string
+          field_name?: string | null
+          id?: string
+          original_value?: Json | null
+          proposed_value?: Json
+          record_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_type?: Database["public"]["Enums"]["source_type"]
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["pending_change_status"]
+          table_name?: string
+        }
+        Relationships: []
+      }
       program_relationships: {
         Row: {
           created_at: string
