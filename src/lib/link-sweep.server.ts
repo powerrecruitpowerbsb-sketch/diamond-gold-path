@@ -336,12 +336,24 @@ export type RetireEmptyResult = {
   retired: number;
   programsQueued: number;
   moreWaiting: boolean;
+  /** Rows closed because the page they were looking for is already on file. */
+  alreadyOnFile: number;
+};
+
+/** Which saved column answers a given kind of search. */
+const SATISFIED_BY: Partial<Record<LinkKind, "roster_url" | "coaching_staff_url">> = {
+  roster_page: "roster_url",
+  coaching_staff_page: "coaching_staff_url",
 };
 
 /**
  * A waiting row with no address at all is a search that came back empty — there
  * is nothing for a person to decide. Retire those rows and put the team back in
  * line for a fresh search instead of leaving them in the review list.
+ *
+ * A search recorded as empty for a page the team already has on file is not a
+ * gap at all — somebody, or an earlier pass, already answered it. Those rows are
+ * closed quietly so they never show up as work.
  */
 export async function retireEmptyDiscoveryRows(
   supabase: any,
@@ -351,11 +363,17 @@ export async function retireEmptyDiscoveryRows(
   const limit = Math.min(Math.max(options.limit ?? 2000, 1), 5000);
 
   // The Data API caps a single read at 1,000 rows, so walk the pile in pages.
-  const rows: { id: string; university_id: string; program_id: string | null }[] = [];
+  const rows: {
+    id: string;
+    university_id: string;
+    program_id: string | null;
+    discovery_type: LinkKind;
+    programs: { roster_url: string | null; coaching_staff_url: string | null } | null;
+  }[] = [];
   for (let page = 0; page <= limit; page += 500) {
     const { data, error } = await supabase
       .from("url_discovery_queue")
-      .select("id, university_id, program_id")
+      .select("id, university_id, program_id, discovery_type, programs(roster_url, coaching_staff_url)")
       .eq("status", "pending_review")
       .is("discovered_url", null)
       .order("created_at", { ascending: true })
@@ -367,15 +385,42 @@ export async function retireEmptyDiscoveryRows(
   }
 
   const moreWaiting = rows.length > limit;
-  const batch = rows.slice(0, limit);
+  const all = rows.slice(0, limit);
+
+  const satisfied = all.filter((row) => {
+    const column = SATISFIED_BY[row.discovery_type];
+    return Boolean(column && row.programs?.[column]);
+  });
+  const batch = all.filter((row) => !satisfied.includes(row));
 
   const result: RetireEmptyResult = {
     found: batch.length,
     retired: 0,
     programsQueued: 0,
     moreWaiting,
+    alreadyOnFile: satisfied.length,
   };
-  if (!batch.length || !options.apply) return result;
+  if (!options.apply) return result;
+
+  if (satisfied.length) {
+    const closedAt = new Date().toISOString();
+    for (const ids of chunk(satisfied.map((row) => row.id), 200)) {
+      const { error: closeError } = await supabase
+        .from("url_discovery_queue")
+        .update({
+          status: "confirmed",
+          reviewed_by: actorId,
+          reviewed_at: closedAt,
+          notes: "This page is already saved on the team — nothing to decide.",
+        })
+        .in("id", ids)
+        .eq("status", "pending_review");
+      if (closeError) throw new Error(closeError.message);
+    }
+  }
+
+  if (!batch.length) return result;
+
 
   const now = new Date().toISOString();
   for (const ids of chunk(batch.map((row) => row.id), 200)) {
