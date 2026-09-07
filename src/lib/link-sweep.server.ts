@@ -178,8 +178,14 @@ export async function sweepDiscoveredLinks(
     counts.byReason[verdict.code] = (counts.byReason[verdict.code] ?? 0) + 1;
     if (verdict.action === "approve") {
       counts.approve += 1;
-      toApprove.push(row);
+      // A single team's page proves the athletics site; keep the site's home page.
+      toApprove.push(
+        verdict.normalizedUrl
+          ? ({ ...row, discovered_url: verdict.normalizedUrl } as Row)
+          : row,
+      );
     } else {
+
       counts.reject += 1;
       toReject.push({ row, verdict });
     }
@@ -199,7 +205,12 @@ export async function sweepDiscoveredLinks(
       await applyDiscoveredUrl(supabase, row as any);
       await supabase
         .from("url_discovery_queue")
-        .update({ status: "confirmed", reviewed_by: actorId, reviewed_at: now })
+        .update({
+          status: "confirmed",
+          reviewed_by: actorId,
+          reviewed_at: now,
+          discovered_url: row.discovered_url,
+        })
         .eq("id", row.id)
         .eq("status", "pending_review");
     } catch {
@@ -207,6 +218,7 @@ export async function sweepDiscoveredLinks(
       counts.approve -= 1;
     }
   }
+
 
   // --- Declines: mark in bulk, then send each school back once --------------
   const rejectIds = toReject.map((entry) => entry.row.id);

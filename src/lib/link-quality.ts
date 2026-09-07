@@ -82,7 +82,12 @@ const JUNK_HOST_FRAGMENTS = [
   "smartcatalogiq",
   "wikipedia.org",
   "facebook.com",
+  "bkstr.com",
+  "college-tour.com",
+  "indeed.com",
+  "ziprecruiter.com",
   "twitter.com",
+
   "x.com",
   "instagram.com",
   "youtube.com",
@@ -118,7 +123,13 @@ export function hostOf(url: string | null | undefined): string {
   }
 }
 
+/** "https://x.com/" and "https://x.com" are the same address. */
+function stripTrailingSlash(url: string | null | undefined): string {
+  return String(url ?? "").replace(/\/+$/, "");
+}
+
 function pathOf(url: string | null | undefined): string {
+
   if (!url) return "";
   try {
     const parsed = new URL(url);
@@ -245,10 +256,44 @@ export function looksLikeAthleticsHost(
   const athleticsSignal = /(athletic|sports|presto|sidearm)/.test(host) || /^go[a-z]{3,}/.test(host);
   if (athleticsSignal) return true;
 
-  // A nickname domain: not the school's own host, and not a .edu at all.
   const schoolHost = hostOf(schoolWebsite);
   if (host === schoolHost) return false;
+  // Some schools tuck athletics into their own domain: wildcats.sunypoly.edu.
+  if (schoolHost && host.endsWith(`.${schoolHost}`)) return true;
+  // A nickname domain: not the school's own host, and not a .edu at all.
   return !host.endsWith(".edu") && !host.endsWith(".gov");
+
+}
+
+/** Sections of a site that are never the athletics home page. */
+const SITE_SECTION_JUNK =
+  /(^|\/)(news[a-z-]*|tags?|stor(y|ies)[a-z-]*|articles?|blogs?[a-z-]*|categor(y|ies)|press[a-z-]*|shop|store[a-z-]*|jobs|careers|employment|calendar|tickets|donate|give|camps?)(\/|$)/;
+
+
+export function junkSectionPath(url: string | null | undefined): boolean {
+  const path = pathOf(url);
+  return path ? SITE_SECTION_JUNK.test(path.split("?")[0]!) : false;
+}
+
+/**
+ * Discovery often lands on one team's page ("…/sports/cross-country") on the
+ * school's real athletics site. That page proves the site, but it is not the
+ * address to keep — so trim it back to the athletics home page.
+ * Returns null when the address isn't on an athletics site in its own right.
+ */
+export function athleticsHomeFor(
+  url: string | null | undefined,
+  schoolWebsite?: string | null,
+): string | null {
+  if (!url || isPdf(url) || junkHost(url)) return null;
+  let origin = "";
+  try {
+    origin = new URL(String(url)).origin;
+  } catch {
+    return null;
+  }
+  if (!looksLikeAthleticsHost(origin, schoolWebsite)) return null;
+  return origin;
 }
 
 export type LinkVerdict = {
@@ -261,13 +306,18 @@ export type LinkVerdict = {
     | "old_season"
     | "news_page"
     | "junk_host"
+    | "junk_section"
     | "school_homepage"
     | "wrong_school"
     | "not_a_web_page"
     | "athletics_site"
+    | "athletics_site_trimmed"
     | "sport_page_on_known_site"
     | "needs_a_look";
+  /** When set, save this address instead of the one that was found. */
+  normalizedUrl?: string;
 };
+
 
 export function classifyLink(input: {
   kind: LinkKind;
@@ -303,7 +353,31 @@ export function classifyLink(input: {
         code: "school_homepage",
       };
     }
+    if (newsPath(url)) {
+      return {
+        action: "reject",
+        reason: "This is a news story, not an athletics site.",
+        code: "news_page",
+      };
+    }
+    if (junkSectionPath(url)) {
+      return {
+        action: "reject",
+        reason: "This is a news, store or listings page, not the athletics home page.",
+        code: "junk_section",
+      };
+    }
+    const home = athleticsHomeFor(url, input.schoolWebsite);
+    if (home && home !== stripTrailingSlash(url)) {
+      return {
+        action: "approve",
+        reason: "Athletics site found on a single team's page — saving the athletics home page.",
+        code: "athletics_site_trimmed",
+        normalizedUrl: home,
+      };
+    }
     if (looksLikeAthleticsHost(url, input.schoolWebsite)) {
+
       return {
         action: "approve",
         reason: "This is the school's athletics site.",
@@ -312,6 +386,7 @@ export function classifyLink(input: {
     }
     return ask;
   }
+
 
   if (wrongSportPath(url)) {
     return { action: "reject", reason: "This page is for a different sport.", code: "wrong_sport" };
