@@ -364,17 +364,17 @@ export function classifyLink(input: {
         code: "junk_section",
       };
     }
+    const home = athleticsHomeFor(url, input.schoolWebsite);
+    if (home && home !== stripTrailingSlash(url)) {
+      return {
+        action: "approve",
+        reason: "Athletics site found on a single team's page — saving the athletics home page.",
+        code: "athletics_site_trimmed",
+        normalizedUrl: home,
+      };
+    }
     if (looksLikeAthleticsHost(url, input.schoolWebsite)) {
-      const home = athleticsHomeFor(url, input.schoolWebsite);
-      const trimmed = home && home !== stripTrailingSlash(url) ? home : null;
-      if (trimmed) {
-        return {
-          action: "approve",
-          reason: "Athletics site found on a single team's page — saving the athletics home page.",
-          code: "athletics_site_trimmed",
-          normalizedUrl: trimmed,
-        };
-      }
+
       return {
         action: "approve",
         reason: "This is the school's athletics site.",
