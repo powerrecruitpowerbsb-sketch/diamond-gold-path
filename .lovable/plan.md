@@ -71,16 +71,26 @@ links in the database, program by program:
 - Each page is fetched once and its own school name compared with the record.
 - A page that names a different school, or a JV/club/developmental team, is cleared,
   remembered as declined, and the program re-searched inside its correct athletics domain.
-- Anything the check cannot settle is listed for you rather than guessed at.
+
+**Nothing here waits on your approval.** The page either proves whose team it is or it
+doesn't, and the sweep acts on that proof by itself — clearing wrong links, keeping right
+ones, re-searching what it cleared. You are not asked to confirm corrections one at a
+time, and neither is your 536-row file: it loads in full without a review pass.
+
+The only things that reach you are the ones no page can settle — the duplicate and
+misnamed school records in step 2, and any program where the search comes back with
+nothing readable at all. Based on your sample that's a list in the dozens, not thousands,
+and it arrives as one file you can work through or ignore.
 
 It runs unattended in the background with the existing stop button and progress board, so
-it can work through the whole database without you sitting on the page. You get one
-report at the end: how many links were confirmed live and correct, how many were wrong and
-have been re-searched, and the short list needing your eyes. That report is the real error
-rate for the database.
+it works through the whole database without you sitting on the page. You get one report at
+the end: how many links were confirmed correct, how many were wrong and have been
+re-searched, and that short exception list. That report is the real error rate for the
+database.
 
 The programs touched in step 1 ride along in the same pass, so their corrected pages get
 confirmed and their rosters pulled at the same time.
+
 
 
 ## Notes for the record
