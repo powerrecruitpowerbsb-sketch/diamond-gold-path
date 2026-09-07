@@ -730,14 +730,18 @@ export async function ingestProgram(
           detail: rows.length ? `${rows.length} field(s) proposed` : "nothing new found on this page",
         });
       } else {
-        const { players, season_year, season_label, diagnostics } = await extractRoster(markdown);
+        const { players, season_year, season_label, dropped, diagnostics } =
+          await extractRoster(markdown);
         rosterPlayers = players.length;
+        const droppedNote = dropped.length
+          ? ` (${dropped.length} name(s) were discarded because the page doesn't list them)`
+          : "";
         if (!players.length) {
           urlResults.push({
             url: target.url,
             purpose: target.purpose,
             status: "empty",
-            detail: `no players could be read from this page (${diagnostics.characters} characters scraped)`,
+            detail: `no players could be read from this page (${diagnostics.characters} characters scraped)${droppedNote}`,
           });
           continue;
         }
@@ -749,10 +753,17 @@ export async function ingestProgram(
         // Judge the roster on the roster: the page it came from, the season it
         // claims, the squad size and whether the names read like real players.
         const verdict = rosterVerdict({ season_year: seasonYear, players }, target.url);
+        // A read that invented a large share of its players is never trusted,
+        // even when what survived looks like a normal squad.
+        const dropRatio = diagnostics.read ? dropped.length / diagnostics.read : 0;
+        const invented = dropRatio > 0.2;
 
-        const suspicious = !verdict.auto;
+        const suspicious = !verdict.auto || invented;
+        const reason = invented
+          ? `${dropped.length} of ${diagnostics.read} names read were not on the page`
+          : verdict.reason;
         if (suspicious) {
-          rosterWarning = `This roster needs a look: ${verdict.reason}.`;
+          rosterWarning = `This roster needs a look: ${reason}.`;
         }
 
         const { error: snapshotError } = await supabase.from("roster_snapshots").insert({
@@ -780,13 +791,14 @@ export async function ingestProgram(
             players,
 
             incomplete_scrape: suspicious,
-            review_reason: verdict.reason,
+            review_reason: reason,
+            dropped_names: dropped.slice(0, 40),
             scrape_diagnostics: diagnostics,
           } as any,
           source_url: target.url,
           source_type: "official",
           ai_confidence: suspicious ? 0.3 : 0.95,
-          gap_fill: verdict.auto,
+          gap_fill: verdict.auto && !invented,
         });
 
         urlResults.push({
@@ -794,9 +806,10 @@ export async function ingestProgram(
           purpose: target.purpose,
           status: "scraped",
           detail: suspicious
-            ? `${players.length} players read but held for review (${verdict.reason}); snapshot saved for ${seasonYear}`
-            : `${players.length} players read; snapshot saved for ${seasonYear}`,
+            ? `read ${diagnostics.read}, kept ${players.length}, dropped ${dropped.length} not found on the page — held for review (${reason}); snapshot saved for ${seasonYear}`
+            : `read ${diagnostics.read}, kept ${players.length} players${droppedNote}; snapshot saved for ${seasonYear}`,
         });
+
       }
     } catch (failure) {
       urlResults.push({
