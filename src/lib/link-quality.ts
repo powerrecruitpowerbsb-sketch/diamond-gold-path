@@ -338,7 +338,31 @@ export function classifyLink(input: {
         code: "school_homepage",
       };
     }
+    if (newsPath(url)) {
+      return {
+        action: "reject",
+        reason: "This is a news story, not an athletics site.",
+        code: "news_page",
+      };
+    }
+    if (junkSectionPath(url)) {
+      return {
+        action: "reject",
+        reason: "This is a news, store or listings page, not the athletics home page.",
+        code: "junk_section",
+      };
+    }
     if (looksLikeAthleticsHost(url, input.schoolWebsite)) {
+      const home = athleticsHomeFor(url, input.schoolWebsite);
+      const trimmed = home && home !== stripTrailingSlash(url) ? home : null;
+      if (trimmed) {
+        return {
+          action: "approve",
+          reason: "Athletics site found on a single team's page — saving the athletics home page.",
+          code: "athletics_site_trimmed",
+          normalizedUrl: trimmed,
+        };
+      }
       return {
         action: "approve",
         reason: "This is the school's athletics site.",
@@ -347,6 +371,7 @@ export function classifyLink(input: {
     }
     return ask;
   }
+
 
   if (wrongSportPath(url)) {
     return { action: "reject", reason: "This page is for a different sport.", code: "wrong_sport" };
