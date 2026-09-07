@@ -266,11 +266,78 @@ function countLikelyPlayerRows(markdown: string): number {
   return matches ? matches.length : 0;
 }
 
+/**
+ * Does this piece of the page contain anything roster-like at all? A menu-only or
+ * footer-only piece is never read: asked for a roster, the model fills the gap
+ * with invented players rather than returning nothing.
+ */
+export function hasRosterSignal(chunk: string): boolean {
+  if (countLikelyPlayerRows(chunk) > 0) return true;
+  if (/\b(freshman|sophomore|junior|senior|graduate|redshirt)\b/i.test(chunk)) return true;
+  if (/\b(RHP|LHP|INF|OF|SS|catcher|pitcher|infielder|outfielder)\b/.test(chunk)) return true;
+  return false;
+}
+
+/** Strip accents, punctuation and case so page text and a read name compare fairly. */
+function flatten(text: string): string {
+  return text
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Keep only players whose name is actually written on the page. A name the page
+ * never mentions was invented, and an invented player must never be stored.
+ */
+export function verifyAgainstSource(
+  players: ExtractedPlayer[],
+  markdown: string,
+): { kept: ExtractedPlayer[]; dropped: string[] } {
+  const haystack = flatten(markdown);
+  const kept: ExtractedPlayer[] = [];
+  const dropped: string[] = [];
+
+  for (const player of players) {
+    const parts = flatten(String(player.name ?? ""))
+      .split(" ")
+      .filter((part) => part.length > 1);
+    if (!parts.length) {
+      dropped.push(String(player.name ?? ""));
+      continue;
+    }
+    const first = parts[0]!;
+    const last = parts[parts.length - 1]!;
+
+    let proven = false;
+    if (first === last) {
+      proven = haystack.includes(first);
+    } else {
+      // Both halves of the name have to sit close together, so unrelated words
+      // scattered around the page can't vouch for a player who isn't listed.
+      let at = haystack.indexOf(last);
+      while (at !== -1 && !proven) {
+        const window = haystack.slice(Math.max(0, at - 60), at + last.length + 60);
+        if (window.includes(first)) proven = true;
+        at = haystack.indexOf(last, at + 1);
+      }
+    }
+
+    if (proven) kept.push(player);
+    else dropped.push(String(player.name ?? ""));
+  }
+
+  return { kept, dropped };
+}
+
 async function extractRoster(markdown: string): Promise<{
   players: ExtractedPlayer[];
   season_year: number | null;
   season_label: string | null;
-  diagnostics: { characters: number; chunks: number; likelyRows: number };
+  dropped: string[];
+  diagnostics: { characters: number; chunks: number; likelyRows: number; read: number; dropped: number };
 }> {
   const chunks = chunkMarkdown(markdown);
   const byName = new Map<string, ExtractedPlayer>();
@@ -279,6 +346,7 @@ async function extractRoster(markdown: string): Promise<{
   let lastError: Error | null = null;
 
   for (const chunk of chunks) {
+    if (!hasRosterSignal(chunk)) continue;
     try {
       const parsed = await extractJson(ROSTER_PROMPT, chunk);
       if (seasonYear === null) {
@@ -309,23 +377,31 @@ async function extractRoster(markdown: string): Promise<{
 
   if (!byName.size && lastError) throw lastError;
 
+  const read = byName.size;
+  // Every name is checked back against the page it supposedly came from.
+  const { kept, dropped } = verifyAgainstSource([...byName.values()], markdown);
+
   const diagnostics = {
     characters: markdown.length,
     chunks: chunks.length,
     likelyRows: countLikelyPlayerRows(markdown),
+    read,
+    dropped: dropped.length,
   };
   console.log(
-    `Roster extraction: ${byName.size} players from ${diagnostics.characters} chars in ${diagnostics.chunks} chunk(s); ~${diagnostics.likelyRows} roster-looking rows on the page`,
+    `Roster extraction: read ${read}, kept ${kept.length}, dropped ${dropped.length} not found on the page (${diagnostics.characters} chars, ${diagnostics.chunks} chunk(s), ~${diagnostics.likelyRows} roster-looking rows)`,
   );
 
   return {
-    players: [...byName.values()],
+    players: kept,
     season_year: seasonYear,
     season_label: seasonLabel,
+    dropped,
     diagnostics,
   };
 
 }
+
 
 
 /** Coerce an AI value into something the column will accept, or null to skip. */
