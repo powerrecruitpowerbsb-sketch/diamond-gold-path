@@ -1037,3 +1037,16 @@ export const recheckRosters = createServerFn({ method: "POST" })
     });
     return clean(result);
   });
+
+/**
+ * Put every confirmed team with no official roster or staff page back in line to
+ * have those pages found. Nothing else can be filled in without them.
+ */
+export const requeueMissingLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+    const { requeueMissingLinkWork } = await import("@/lib/ingest-queue.server");
+    return clean(await requeueMissingLinkWork(context.supabase));
+  });
+
