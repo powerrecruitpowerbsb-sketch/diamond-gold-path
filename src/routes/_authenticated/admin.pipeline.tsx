@@ -57,7 +57,7 @@ function Pipeline() {
     queryFn: () => nonSchoolsFn(),
   });
 
-  const facts = typeof reviewCount === "number" ? reviewCount : null;
+  const facts = reviewCount?.pending ?? 0;
   const links = discoveries?.pending ?? 0;
   const unfound = discoveries?.unfound ?? 0;
   const matches = status?.schools.federalNeedsHelp ?? 0;
