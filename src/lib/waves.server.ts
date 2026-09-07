@@ -152,6 +152,8 @@ export type WaveStatus = {
   running: number;
   /** Finished for this level. */
   done: number;
+  /** Tried the full three times and never worked — needs a person, not another pass. */
+  givenUp: number;
   /** Every job this level has, finished or not. */
   total: number;
   complete: boolean;
