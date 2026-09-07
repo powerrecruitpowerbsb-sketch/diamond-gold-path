@@ -256,10 +256,13 @@ export function looksLikeAthleticsHost(
   const athleticsSignal = /(athletic|sports|presto|sidearm)/.test(host) || /^go[a-z]{3,}/.test(host);
   if (athleticsSignal) return true;
 
-  // A nickname domain: not the school's own host, and not a .edu at all.
   const schoolHost = hostOf(schoolWebsite);
   if (host === schoolHost) return false;
+  // Some schools tuck athletics into their own domain: wildcats.sunypoly.edu.
+  if (schoolHost && host.endsWith(`.${schoolHost}`)) return true;
+  // A nickname domain: not the school's own host, and not a .edu at all.
   return !host.endsWith(".edu") && !host.endsWith(".gov");
+
 }
 
 /** Sections of a site that are never the athletics home page. */
