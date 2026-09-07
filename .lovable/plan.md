@@ -62,12 +62,26 @@ just fetched and compare it with the record:
 
 This runs at fetch time, so it protects every future refresh, not just this batch.
 
-## 4. Then re-read only what changed
+## 4. Then run the same check across every stored link
 
-The programs touched in step 1 (and any wrong-school link the new check declines) go
-through the scraper. That confirms the corrected pages are live, pulls the current
-rosters, and only then are the records marked verified. Nothing else in the database is
-disturbed.
+You are right that this was a small sample and it found a lot — so the check does not stop
+at your 536 rows. Once step 3 is in place, it runs over all ~5,600 stored roster and staff
+links in the database, program by program:
+
+- Each page is fetched once and its own school name compared with the record.
+- A page that names a different school, or a JV/club/developmental team, is cleared,
+  remembered as declined, and the program re-searched inside its correct athletics domain.
+- Anything the check cannot settle is listed for you rather than guessed at.
+
+It runs unattended in the background with the existing stop button and progress board, so
+it can work through the whole database without you sitting on the page. You get one
+report at the end: how many links were confirmed live and correct, how many were wrong and
+have been re-searched, and the short list needing your eyes. That report is the real error
+rate for the database.
+
+The programs touched in step 1 ride along in the same pass, so their corrected pages get
+confirmed and their rosters pulled at the same time.
+
 
 ## Notes for the record
 
