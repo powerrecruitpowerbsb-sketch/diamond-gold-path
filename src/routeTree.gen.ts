@@ -21,6 +21,7 @@ import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
+import { Route as AuthenticatedAdminBuildRouteImport } from './routes/_authenticated/admin.build'
 import { Route as AuthenticatedAdminDiscoveryRouteImport } from './routes/_authenticated/admin.discovery'
 import { Route as AuthenticatedAdminFederalDecisionsRouteImport } from './routes/_authenticated/admin.federal-decisions'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
@@ -104,6 +105,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
 const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminBuildRoute = AuthenticatedAdminBuildRouteImport.update({
+  id: '/build',
+  path: '/build',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
 const AuthenticatedAdminDiscoveryRoute =
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/family': typeof AuthenticatedFamilyRoute
   '/search': typeof AuthenticatedSearchRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/build': typeof AuthenticatedAdminBuildRoute
   '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
@@ -300,6 +307,7 @@ export interface FileRoutesByTo {
   '/family': typeof AuthenticatedFamilyRoute
   '/search': typeof AuthenticatedSearchRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/build': typeof AuthenticatedAdminBuildRoute
   '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/build': typeof AuthenticatedAdminBuildRoute
   '/_authenticated/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/_authenticated/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
@@ -380,6 +389,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/search'
     | '/admin/audit'
+    | '/admin/build'
     | '/admin/discovery'
     | '/admin/federal-decisions'
     | '/admin/majors'
@@ -417,6 +427,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/search'
     | '/admin/audit'
+    | '/admin/build'
     | '/admin/discovery'
     | '/admin/federal-decisions'
     | '/admin/majors'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/_authenticated/family'
     | '/_authenticated/search'
     | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/build'
     | '/_authenticated/admin/discovery'
     | '/_authenticated/admin/federal-decisions'
     | '/_authenticated/admin/majors'
@@ -578,6 +590,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/admin/audit'
       preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/build': {
+      id: '/_authenticated/admin/build'
+      path: '/build'
+      fullPath: '/admin/build'
+      preLoaderRoute: typeof AuthenticatedAdminBuildRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/discovery': {
@@ -760,6 +779,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminBuildRoute: typeof AuthenticatedAdminBuildRoute
   AuthenticatedAdminDiscoveryRoute: typeof AuthenticatedAdminDiscoveryRoute
   AuthenticatedAdminFederalDecisionsRoute: typeof AuthenticatedAdminFederalDecisionsRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
@@ -780,6 +800,7 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminBuildRoute: AuthenticatedAdminBuildRoute,
   AuthenticatedAdminDiscoveryRoute: AuthenticatedAdminDiscoveryRoute,
   AuthenticatedAdminFederalDecisionsRoute:
     AuthenticatedAdminFederalDecisionsRoute,

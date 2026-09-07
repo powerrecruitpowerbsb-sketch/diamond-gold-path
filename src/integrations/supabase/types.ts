@@ -203,6 +203,45 @@ export type Database = {
           },
         ]
       }
+      build_stages: {
+        Row: {
+          changed: number
+          checked: number
+          cursor: string | null
+          failed: number
+          finished_at: string | null
+          last_message: string | null
+          stage: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          changed?: number
+          checked?: number
+          cursor?: string | null
+          failed?: number
+          finished_at?: string | null
+          last_message?: string | null
+          stage: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          changed?: number
+          checked?: number
+          cursor?: string | null
+          failed?: number
+          finished_at?: string | null
+          last_message?: string | null
+          stage?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       classifications: {
         Row: {
           ai_suggested_value: string | null

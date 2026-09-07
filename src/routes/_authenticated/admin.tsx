@@ -11,6 +11,7 @@ import { AuthButton } from "@/components/brand/AuthButton";
 
 const ADMIN_NAV = [
   { to: "/admin", label: "Console", exact: true },
+  { to: "/admin/build", label: "Build progress", exact: false },
   { to: "/admin/universities", label: "Schools", exact: false },
   { to: "/admin/programs", label: "Programs (Baseball / Softball)", exact: false },
   { to: "/admin/review", label: "Review queue", exact: false },
