@@ -9,7 +9,9 @@ import { rosterKeepable } from "@/lib/data-quality";
 import { replaceRoster } from "@/lib/review.server";
 
 export type RecheckRow = {
+  key: string;
   school: string;
+
   sport: string;
   season: number | null;
   before: number;
@@ -63,6 +65,8 @@ export async function recheckRosterSizes(
     max?: number;
     limit?: number;
     budgetMs?: number;
+    /** "programId:season" keys already looked at, so repeat passes move on. */
+    skipKeys?: string[];
   },
 ): Promise<RecheckResult> {
   const min = options.min ?? 50;
@@ -77,13 +81,17 @@ export async function recheckRosterSizes(
   });
   if (error) throw new Error(error.message);
 
-  const all = (groups ?? []) as { program_id: string; season_year: number | null; player_count: number }[];
+  const skip = new Set(options.skipKeys ?? []);
+  const all = ((groups ?? []) as { program_id: string; season_year: number | null; player_count: number }[]).filter(
+    (group) => !skip.has(`${group.program_id}:${group.season_year ?? ""}`),
+  );
   const rows: RecheckRow[] = [];
   let replaced = 0;
   let droppedPlayers = 0;
 
   for (const group of all) {
     if (rows.length >= limit || Date.now() - startedAt > budgetMs) break;
+
 
     const { data: program } = await supabase
       .from("programs")
@@ -94,7 +102,9 @@ export async function recheckRosterSizes(
     const school = (program?.universities as any)?.name ?? "Unknown school";
     const sport = String(program?.sport ?? "");
     const base = {
+      key: `${group.program_id}:${group.season_year ?? ""}`,
       school,
+
       sport,
       season: group.season_year,
       before: Number(group.player_count),
@@ -140,8 +150,16 @@ export async function recheckRosterSizes(
     }
 
     const targetSeason = group.season_year ?? seasonYear;
-    const verdict = rosterKeepable({ season_year: targetSeason, players: kept });
+    // Every name was found in the page's own text, so a big squad is the page's
+    // squad, not a padded one — large junior-college and NAIA rosters are real.
+    const fullyProven = dropped.length === 0 && read > 0 && kept.length === read;
+    const verdict = rosterKeepable(
+      { season_year: targetSeason, players: kept },
+      new Date(),
+      fullyProven ? 95 : 60,
+    );
     if (!verdict.keep) {
+
       if (options.apply) await requeueProgram(supabase, group.program_id);
       rows.push({
         ...base,
