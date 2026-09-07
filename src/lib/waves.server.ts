@@ -9,6 +9,8 @@
 
 const HELD = "held";
 const RELEASABLE = ["pending", "failed", HELD];
+/** Matches the runner's retry limit in ingest-queue.server.ts. */
+const MAX_ATTEMPTS = 3;
 
 export type WaveKey =
   | "all"
