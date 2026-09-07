@@ -9,7 +9,9 @@ import {
   getCompletionBoard,
   queueRemainingWork,
   recheckRosters,
+  requeueMissingLinks,
 } from "@/lib/pipeline.functions";
+
 import { seasonLabel } from "@/lib/season";
 
 /**
