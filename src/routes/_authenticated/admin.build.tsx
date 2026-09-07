@@ -137,15 +137,17 @@ function BuildProgress() {
                   <p className="mt-1 max-w-2xl text-sm text-steel">{stage.blurb}</p>
                 </div>
 
-                {running && (stage.key === "rosters" || stage.key === "coaches") ? (
+                {running ? (
                   <button
                     type="button"
-                    onClick={() => void onStop()}
+                    onClick={() =>
+                      void (stage.key === "pages" ? onRun(stage.key, stage.title) : onStop())
+                    }
                     disabled={busy !== null}
                     className="touch-target inline-flex shrink-0 items-center gap-2 rounded-lg border border-seam-red/40 px-4 text-sm font-semibold text-seam-red disabled:opacity-60"
                   >
                     <Square className="size-4" aria-hidden />
-                    {busy === "stop" ? "Stopping…" : "Stop"}
+                    {busy === "stop" || isBusy ? "Stopping…" : "Stop"}
                   </button>
                 ) : stage.state === "locked" || stage.state === "blocked" ? (
                   <span className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-steel">
@@ -179,7 +181,8 @@ function BuildProgress() {
               {stage.message ? <p className="meta mt-1">{stage.message}</p> : null}
               {stage.state === "running" && stage.key === "pages" ? (
                 <p className="meta mt-1">
-                  Press the button again to check the next batch — it always carries on from here.
+                  Going on its own — a batch every minute. You can close this page; the count keeps
+                  climbing.
                 </p>
               ) : null}
             </li>
