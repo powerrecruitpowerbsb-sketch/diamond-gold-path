@@ -34,12 +34,23 @@ export const runBuildStage = createServerFn({ method: "POST" })
   .inputValidator((input: { stage: string }) => ({ stage: String(input?.stage ?? "") }))
   .handler(async ({ data, context }) => {
     await assertSuperadmin(context as any);
-    const { runPagesPass, runLeftoversPass, startCollectingFor, startCoaches } = await import(
-      "@/lib/build-stages.server"
-    );
+    const {
+      runLeftoversPass,
+      startCollectingFor,
+      startCoaches,
+      startPagesCheck,
+      stopPagesCheck,
+      pagesCheckIsOn,
+    } = await import("@/lib/build-stages.server");
 
     if (data.stage === "pages") {
-      return clean({ stage: "pages", result: await runPagesPass(context.supabase, context.userId) });
+      // The same button pauses it while it is going.
+      if (await pagesCheckIsOn(context.supabase)) {
+        await stopPagesCheck(context.supabase);
+        return clean({ stage: "pages", result: { running: false } });
+      }
+      await startPagesCheck(context.supabase);
+      return clean({ stage: "pages", result: { running: true } });
     }
     if (data.stage === "rosters") {
       return clean({
