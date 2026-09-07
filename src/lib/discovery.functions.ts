@@ -124,7 +124,7 @@ export const listUnfoundLinks = createServerFn({ method: "GET" })
     const { data: rows, error, count } = await context.supabase
       .from("url_discovery_queue")
       .select(
-        "id, university_id, program_id, discovery_type, notes, created_at, universities(name, state), programs(sport)",
+        "id, university_id, program_id, discovery_type, notes, created_at, universities(name, state, website_url), programs(sport)",
         { count: "exact" },
       )
       .eq("status", "pending_review")
