@@ -20,6 +20,8 @@ export type SweepCounts = {
   byReason: Record<string, number>;
   requeuedSchools: number;
   failures: number;
+  /** Waiting rows with no address at all — nothing here can be judged. */
+  skippedNoUrl: number;
   /** True when more pending links remain than this pass looked at. */
   moreWaiting: boolean;
 };
