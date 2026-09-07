@@ -195,27 +195,37 @@ export async function waveProgress(supabase: any): Promise<WaveBoard> {
   const programs = await allPrograms(supabase);
   const byProgram = new Map(programs.map((p) => [p.id, p]));
 
-  const counts = new Map<WaveKey, { waiting: number; held: number; running: number; done: number }>();
-  for (const wave of WAVES) counts.set(wave.key, { waiting: 0, held: 0, running: 0, done: 0 });
+  const counts = new Map<
+    WaveKey,
+    { waiting: number; held: number; running: number; done: number; givenUp: number }
+  >();
+  for (const wave of WAVES) counts.set(wave.key, { waiting: 0, held: 0, running: 0, done: 0, givenUp: 0 });
 
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase
       .from("ingest_queue")
-      .select("program_id, status")
+      .select("program_id, status, attempts")
       .in("status", [...RELEASABLE, "running", "done", "skipped", "blocked"])
       .order("id", { ascending: true })
       .range(from, from + 999);
     if (error) throw new Error(error.message);
-    const page = (data ?? []) as { program_id: string | null; status: string }[];
+    const page = (data ?? []) as { program_id: string | null; status: string; attempts: number | null }[];
     for (const row of page) {
       if (!row.program_id) continue;
       const program = byProgram.get(row.program_id);
       if (!program) continue;
+      // Three tries is the limit, so a job at that count is never picked up
+      // again. Counting it as "still to do" would keep its level unfinished for
+      // good and the run would never move on.
+      const exhausted =
+        (row.attempts ?? 0) >= MAX_ATTEMPTS &&
+        (row.status === "pending" || row.status === "failed" || row.status === HELD);
       for (const wave of WAVES) {
         if (wave.key === "all") continue;
         if (!inWave(wave.key, program.governing_body, program.division)) continue;
         const bucket = counts.get(wave.key)!;
-        if (row.status === HELD) bucket.held += 1;
+        if (exhausted) bucket.givenUp += 1;
+        else if (row.status === HELD) bucket.held += 1;
         else if (row.status === "running") bucket.running += 1;
         else if (row.status === "pending" || row.status === "failed") bucket.waiting += 1;
         else bucket.done += 1;
@@ -234,7 +244,8 @@ export async function waveProgress(supabase: any): Promise<WaveBoard> {
       held: bucket.held,
       running: bucket.running,
       done: bucket.done,
-      total: waiting + bucket.held + bucket.done,
+      givenUp: bucket.givenUp,
+      total: waiting + bucket.held + bucket.done + bucket.givenUp,
       complete: waiting === 0 && bucket.held === 0,
     };
   });
