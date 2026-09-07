@@ -730,7 +730,9 @@ export async function ingestProgram(
           PROGRAM_EXTRACTABLE,
           extracted,
           target.url,
+          markdown,
         );
+
         proposals.push(...rows);
         urlResults.push({
           url: target.url,
