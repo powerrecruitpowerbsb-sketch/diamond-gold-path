@@ -23,10 +23,10 @@ describe("hasRosterSignal", () => {
 describe("verifyAgainstSource", () => {
   it("keeps names written on the page, accents and apostrophes included", () => {
     const { kept, dropped } = verifyAgainstSource(
-      [{ name: "Jorge Ramirez" }, { name: "Danny OConnell" }, { name: "Sam Carter" }],
+      [{ name: "Jorge Ramirez" }, { name: "Danny O’Connell" }, { name: "Sam Carter" }],
       PAGE,
     );
-    expect(kept.map((p) => p.name)).toEqual(["Jorge Ramirez", "Danny OConnell", "Sam Carter"]);
+    expect(kept.map((p) => p.name)).toEqual(["Jorge Ramirez", "Danny O’Connell", "Sam Carter"]);
     expect(dropped).toEqual([]);
   });
 
