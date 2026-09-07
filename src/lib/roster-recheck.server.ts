@@ -172,6 +172,15 @@ export async function recheckRosterSizes(
     }
 
     try {
+      // The re-read may land on a different season heading; clear the stored
+      // season first so a padded list can never be left behind beside the new one.
+      if (group.season_year !== null && group.season_year !== undefined) {
+        await supabase
+          .from("roster_players")
+          .delete()
+          .eq("program_id", group.program_id)
+          .eq("season_year", group.season_year);
+      }
       await replaceRoster(supabase, {
         program_id: group.program_id,
         season_year: targetSeason ?? seasonYear,
