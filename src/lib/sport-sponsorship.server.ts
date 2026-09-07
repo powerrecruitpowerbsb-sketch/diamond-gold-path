@@ -299,6 +299,7 @@ async function pickSchools(
   supabase: any,
   limit: number,
   recheck: boolean,
+  onlyUnverified = false,
 ): Promise<{ id: string; name: string; ipeds_unitid: number }[]> {
   // Drive off programs so a school whose slots are all checked drops out.
   let query = supabase
@@ -307,6 +308,9 @@ async function pickSchools(
     .not("universities.ipeds_unitid", "is", null)
     .limit(limit * 4);
   if (!recheck) query = query.is("sponsorship_checked_at", null);
+  // The teams we still can't say yes or no about, whenever they were last looked at.
+  if (onlyUnverified) query = query.eq("offering_status", "unverified");
+
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
