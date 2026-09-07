@@ -1832,6 +1832,14 @@ export type Database = {
         }[]
       }
       reclaim_stale_leases: { Args: { _minutes?: number }; Returns: number }
+      roster_size_groups: {
+        Args: { _max?: number; _min?: number }
+        Returns: {
+          player_count: number
+          program_id: string
+          season_year: number
+        }[]
+      }
       trigger_collection_runner: { Args: never; Returns: undefined }
     }
     Enums: {

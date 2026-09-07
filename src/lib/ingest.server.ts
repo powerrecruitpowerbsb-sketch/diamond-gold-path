@@ -226,7 +226,8 @@ const ROSTER_PROMPT = [
   "You extract a college baseball/softball roster from an official roster page.",
   "Return ONLY a single JSON object. No prose, no markdown fences.",
   'Shape: { "season_year": number|null, "players": [ { "name", "position", "class_year", "bats", "throws", "hometown", "home_state", "is_transfer", "is_juco_transfer" } ] }',
-  "Include EVERY player listed in the text you are given — a full roster is usually 30-45 players. Do not stop early, do not summarize, do not sample.",
+  "Include every player the text you are given actually lists. Returning fewer players than a full squad is CORRECT when the text only lists a few — inventing a player who is not written in the text is a failure. Never fill the list out to a typical squad size, never repeat names, never carry over players from any other school.",
+  "If the text you are given contains no roster at all, return an empty players array.",
   "name is required; omit any other key you cannot read for that player.",
   "position: copy the page's own wording (e.g. 'INF', 'LF', 'RHP', 'Catcher'). Never guess a position the page doesn't state — omit it instead. Do NOT use UTIL as a catch-all.",
   "class_year must be one of FR, SO, JR, SR, GR (map Freshman/Redshirt Freshman to FR, Sophomore SO, Junior JR, Senior SR, Graduate GR).",
@@ -265,11 +266,87 @@ function countLikelyPlayerRows(markdown: string): number {
   return matches ? matches.length : 0;
 }
 
-async function extractRoster(markdown: string): Promise<{
+/**
+ * Does this piece of the page contain anything roster-like at all? A menu-only or
+ * footer-only piece is never read: asked for a roster, the model fills the gap
+ * with invented players rather than returning nothing.
+ */
+export function hasRosterSignal(chunk: string): boolean {
+  if (countLikelyPlayerRows(chunk) > 0) return true;
+  if (/\b(freshman|sophomore|junior|senior|graduate|redshirt)\b/i.test(chunk)) return true;
+  if (/\b(RHP|LHP|INF|OF|SS|catcher|pitcher|infielder|outfielder)\b/.test(chunk)) return true;
+  return false;
+}
+
+/** Strip accents, punctuation and case so page text and a read name compare fairly. */
+function flatten(text: string): string {
+  return text
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Keep only players whose name is actually written on the page. A name the page
+ * never mentions was invented, and an invented player must never be stored.
+ */
+export function verifyAgainstSource(
+  players: ExtractedPlayer[],
+  markdown: string,
+): { kept: ExtractedPlayer[]; dropped: string[] } {
+  const words = flatten(markdown).split(" ").filter(Boolean);
+  const positions = new Map<string, number[]>();
+  words.forEach((word, index) => {
+    const list = positions.get(word);
+    if (list) list.push(index);
+    else positions.set(word, [index]);
+  });
+
+  const kept: ExtractedPlayer[] = [];
+  const dropped: string[] = [];
+
+  for (const player of players) {
+    const parts = flatten(String(player.name ?? ""))
+      .split(" ")
+      .filter((part) => part.length > 1);
+    if (!parts.length) {
+      dropped.push(String(player.name ?? ""));
+      continue;
+    }
+    const first = parts[0]!;
+    const last = parts[parts.length - 1]!;
+
+    let proven = false;
+    if (first === last) {
+      proven = positions.has(first);
+    } else {
+      const firstAt = positions.get(first) ?? [];
+      const lastAt = new Set(positions.get(last) ?? []);
+      // The two halves of a name sit next to each other on a roster page; allowing
+      // a word or two between covers a middle name, and nothing more.
+      for (const at of firstAt) {
+        if (lastAt.has(at + 1) || lastAt.has(at + 2) || lastAt.has(at + 3)) {
+          proven = true;
+          break;
+        }
+      }
+    }
+
+    if (proven) kept.push(player);
+    else dropped.push(String(player.name ?? ""));
+  }
+
+  return { kept, dropped };
+}
+
+export async function extractRoster(markdown: string): Promise<{
   players: ExtractedPlayer[];
   season_year: number | null;
   season_label: string | null;
-  diagnostics: { characters: number; chunks: number; likelyRows: number };
+  dropped: string[];
+  diagnostics: { characters: number; chunks: number; likelyRows: number; read: number; dropped: number };
 }> {
   const chunks = chunkMarkdown(markdown);
   const byName = new Map<string, ExtractedPlayer>();
@@ -278,6 +355,7 @@ async function extractRoster(markdown: string): Promise<{
   let lastError: Error | null = null;
 
   for (const chunk of chunks) {
+    if (!hasRosterSignal(chunk)) continue;
     try {
       const parsed = await extractJson(ROSTER_PROMPT, chunk);
       if (seasonYear === null) {
@@ -308,23 +386,31 @@ async function extractRoster(markdown: string): Promise<{
 
   if (!byName.size && lastError) throw lastError;
 
+  const read = byName.size;
+  // Every name is checked back against the page it supposedly came from.
+  const { kept, dropped } = verifyAgainstSource([...byName.values()], markdown);
+
   const diagnostics = {
     characters: markdown.length,
     chunks: chunks.length,
     likelyRows: countLikelyPlayerRows(markdown),
+    read,
+    dropped: dropped.length,
   };
   console.log(
-    `Roster extraction: ${byName.size} players from ${diagnostics.characters} chars in ${diagnostics.chunks} chunk(s); ~${diagnostics.likelyRows} roster-looking rows on the page`,
+    `Roster extraction: read ${read}, kept ${kept.length}, dropped ${dropped.length} not found on the page (${diagnostics.characters} chars, ${diagnostics.chunks} chunk(s), ~${diagnostics.likelyRows} roster-looking rows)`,
   );
 
   return {
-    players: [...byName.values()],
+    players: kept,
     season_year: seasonYear,
     season_label: seasonLabel,
+    dropped,
     diagnostics,
   };
 
 }
+
 
 
 /** Coerce an AI value into something the column will accept, or null to skip. */
@@ -653,14 +739,18 @@ export async function ingestProgram(
           detail: rows.length ? `${rows.length} field(s) proposed` : "nothing new found on this page",
         });
       } else {
-        const { players, season_year, season_label, diagnostics } = await extractRoster(markdown);
+        const { players, season_year, season_label, dropped, diagnostics } =
+          await extractRoster(markdown);
         rosterPlayers = players.length;
+        const droppedNote = dropped.length
+          ? ` (${dropped.length} name(s) were discarded because the page doesn't list them)`
+          : "";
         if (!players.length) {
           urlResults.push({
             url: target.url,
             purpose: target.purpose,
             status: "empty",
-            detail: `no players could be read from this page (${diagnostics.characters} characters scraped)`,
+            detail: `no players could be read from this page (${diagnostics.characters} characters scraped)${droppedNote}`,
           });
           continue;
         }
@@ -672,10 +762,17 @@ export async function ingestProgram(
         // Judge the roster on the roster: the page it came from, the season it
         // claims, the squad size and whether the names read like real players.
         const verdict = rosterVerdict({ season_year: seasonYear, players }, target.url);
+        // A read that invented a large share of its players is never trusted,
+        // even when what survived looks like a normal squad.
+        const dropRatio = diagnostics.read ? dropped.length / diagnostics.read : 0;
+        const invented = dropRatio > 0.2;
 
-        const suspicious = !verdict.auto;
+        const suspicious = !verdict.auto || invented;
+        const reason = invented
+          ? `${dropped.length} of ${diagnostics.read} names read were not on the page`
+          : verdict.reason;
         if (suspicious) {
-          rosterWarning = `This roster needs a look: ${verdict.reason}.`;
+          rosterWarning = `This roster needs a look: ${reason}.`;
         }
 
         const { error: snapshotError } = await supabase.from("roster_snapshots").insert({
@@ -703,13 +800,14 @@ export async function ingestProgram(
             players,
 
             incomplete_scrape: suspicious,
-            review_reason: verdict.reason,
+            review_reason: reason,
+            dropped_names: dropped.slice(0, 40),
             scrape_diagnostics: diagnostics,
           } as any,
           source_url: target.url,
           source_type: "official",
           ai_confidence: suspicious ? 0.3 : 0.95,
-          gap_fill: verdict.auto,
+          gap_fill: verdict.auto && !invented,
         });
 
         urlResults.push({
@@ -717,9 +815,10 @@ export async function ingestProgram(
           purpose: target.purpose,
           status: "scraped",
           detail: suspicious
-            ? `${players.length} players read but held for review (${verdict.reason}); snapshot saved for ${seasonYear}`
-            : `${players.length} players read; snapshot saved for ${seasonYear}`,
+            ? `read ${diagnostics.read}, kept ${players.length}, dropped ${dropped.length} not found on the page — held for review (${reason}); snapshot saved for ${seasonYear}`
+            : `read ${diagnostics.read}, kept ${players.length} players${droppedNote}; snapshot saved for ${seasonYear}`,
         });
+
       }
     } catch (failure) {
       urlResults.push({
