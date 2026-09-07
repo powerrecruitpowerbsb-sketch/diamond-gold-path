@@ -159,7 +159,7 @@ export type SponsorshipOutcome = {
  */
 export async function syncSponsorshipBatch(
   supabase: any,
-  options: { limit?: number; recheck?: boolean } = {},
+  options: { limit?: number; recheck?: boolean; onlyUnverified?: boolean } = {},
 ): Promise<SponsorshipOutcome> {
   const limit = Math.max(1, Math.min(300, options.limit ?? 60));
 
@@ -173,8 +173,14 @@ export async function syncSponsorshipBatch(
     samples: [],
   };
 
-  const schools = await pickSchools(supabase, limit, Boolean(options.recheck));
+  const schools = await pickSchools(
+    supabase,
+    limit,
+    Boolean(options.recheck) || Boolean(options.onlyUnverified),
+    Boolean(options.onlyUnverified),
+  );
   if (!schools.length) return outcome;
+
 
   const workers = 6;
   let cursor = 0;
