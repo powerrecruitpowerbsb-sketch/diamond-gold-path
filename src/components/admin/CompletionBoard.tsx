@@ -8,6 +8,7 @@ import {
   clearBacklog,
   getCompletionBoard,
   queueRemainingWork,
+  recheckRosters,
 } from "@/lib/pipeline.functions";
 import { seasonLabel } from "@/lib/season";
 
