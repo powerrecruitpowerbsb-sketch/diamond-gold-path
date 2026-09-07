@@ -88,6 +88,7 @@ export async function sweepDiscoveredLinks(
     byReason: {},
     requeuedSchools: 0,
     failures: 0,
+    skippedNoUrl: noUrlTotal ?? 0,
     moreWaiting: (pendingTotal ?? 0) > offset + rows.length,
   };
 
