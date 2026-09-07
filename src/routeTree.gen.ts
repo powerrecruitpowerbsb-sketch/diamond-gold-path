@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated/admin.pipeline'
 import { Route as AuthenticatedAdminReviewRouteImport } from './routes/_authenticated/admin.review'
 import { Route as AuthenticatedAdminSeedImportRouteImport } from './routes/_authenticated/admin.seed-import'
+import { Route as AuthenticatedAdminToolsRouteImport } from './routes/_authenticated/admin.tools'
 import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
 import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenticated/roster.index'
 import { Route as AuthenticatedRosterIdRouteImport } from './routes/_authenticated/roster.$id'
@@ -141,6 +142,11 @@ const AuthenticatedAdminSeedImportRoute =
     path: '/seed-import',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminToolsRoute = AuthenticatedAdminToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedProgramsIdRoute = AuthenticatedProgramsIdRouteImport.update({
   id: '/programs/$id',
   path: '/programs/$id',
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
+  '/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
+  '/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
@@ -338,6 +346,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/_authenticated/admin/review': typeof AuthenticatedAdminReviewRoute
   '/_authenticated/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
+  '/_authenticated/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/_authenticated/roster/$id': typeof AuthenticatedRosterIdRoute
   '/_authenticated/roster/import': typeof AuthenticatedRosterImportRoute
@@ -377,6 +386,7 @@ export interface FileRouteTypes {
     | '/admin/pipeline'
     | '/admin/review'
     | '/admin/seed-import'
+    | '/admin/tools'
     | '/programs/$id'
     | '/roster/$id'
     | '/roster/import'
@@ -413,6 +423,7 @@ export interface FileRouteTypes {
     | '/admin/pipeline'
     | '/admin/review'
     | '/admin/seed-import'
+    | '/admin/tools'
     | '/programs/$id'
     | '/roster/$id'
     | '/roster/import'
@@ -451,6 +462,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/pipeline'
     | '/_authenticated/admin/review'
     | '/_authenticated/admin/seed-import'
+    | '/_authenticated/admin/tools'
     | '/_authenticated/programs/$id'
     | '/_authenticated/roster/$id'
     | '/_authenticated/roster/import'
@@ -610,6 +622,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSeedImportRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/tools': {
+      id: '/_authenticated/admin/tools'
+      path: '/tools'
+      fullPath: '/admin/tools'
+      preLoaderRoute: typeof AuthenticatedAdminToolsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/programs/$id': {
       id: '/_authenticated/programs/$id'
       path: '/programs/$id'
@@ -747,6 +766,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminPipelineRoute: typeof AuthenticatedAdminPipelineRoute
   AuthenticatedAdminReviewRoute: typeof AuthenticatedAdminReviewRoute
   AuthenticatedAdminSeedImportRoute: typeof AuthenticatedAdminSeedImportRoute
+  AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminProgramsIdRoute: typeof AuthenticatedAdminProgramsIdRoute
   AuthenticatedAdminProgramsNewRoute: typeof AuthenticatedAdminProgramsNewRoute
@@ -767,6 +787,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminPipelineRoute: AuthenticatedAdminPipelineRoute,
   AuthenticatedAdminReviewRoute: AuthenticatedAdminReviewRoute,
   AuthenticatedAdminSeedImportRoute: AuthenticatedAdminSeedImportRoute,
+  AuthenticatedAdminToolsRoute: AuthenticatedAdminToolsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminProgramsIdRoute: AuthenticatedAdminProgramsIdRoute,
   AuthenticatedAdminProgramsNewRoute: AuthenticatedAdminProgramsNewRoute,
