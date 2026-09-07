@@ -1,32 +1,41 @@
-# The schools are sound — the missing piece was links, and most of that just closed
+# Check the team links first, then the six steps to a real database
 
-## What the numbers actually say
+## Short answer on the audit: yes — but you don't need to check 5,600 links
 
-Your school list is not off:
+I measured what's actually on file for the 3,108 sponsored programs:
 
-- 1,826 of 1,885 schools are confirmed against the federal school directory. 52 are genuinely not in it (very small or recently opened), 7 you matched by hand. Nothing is unaccounted for.
-- Every sponsored program but 8 now has an athletics address.
-- Roster page links: 2,796 of 3,108. Coach page links: 2,752 of 3,108.
+- 2,828 roster links, 2,784 coach links.
+- 2,826 of the 2,828 roster links name baseball or softball in the address itself. Only 2 don't.
+- 49 coach links don't name the sport (some are legitimate whole-staff directory pages).
+- 312 roster links sit on a different domain than the athletics site we hold for that school — the single most likely place for a wrong-school link.
+- 70 roster links are pinned to a 2024 season or older; 579 are pinned to 2025, which is normal for spring sports right now.
 
-So the 380 schools you filled in by hand were not missing schools — they were schools whose athletics section lives *inside* the main school website (no separate `go...` domain), which is exactly the case automatic search is worst at. They are heavily small-college: NJCAA, NAIA, CCCAA and NWAC schools are where the gap concentrated.
+So the links are in far better shape than the missing-page pile suggested. Rather than a 5,600-row file, **Step 0 gives you about 580 rows worth checking** — every link that fails one of those tests, plus a random 150 of the confident ones so we can measure the true error rate rather than assume it.
 
-The coach and roster gaps have a different, known cause:
+## Why so many real sites were missing in the first place
 
-- 1,832 programs have a good coach page saved but no coach name stored — because automatic coach writing is still switched **off** after the Big 12 mistake. That is a switch we haven't turned back on, not missing data.
-- 878 programs have a good roster page saved but no 2026-27 roster read yet — the run finished its queue before these newly-corrected links existed. Plus spring sports legitimately still show 2025-26 on many sites.
+Not a database problem. Your 380 schools were schools whose athletics section lives *inside* the main school website — no separate nickname domain — which is exactly what automatic web search is worst at, and it concentrates in NJCAA, NAIA, CCCAA and NWAC. The schools themselves check out: 1,826 of 1,885 confirmed against the federal school directory, 52 genuinely absent from it, 7 matched by hand.
 
-## The order of work from here
+The coach gap has a different cause again: 1,832 programs already have a good coach page saved and no name stored, because automatic coach writing is still switched **off** after the Big 12 mistake. That's a switch, not missing data.
 
-1. **Accept the confident links.** 567 pages found from your corrected addresses are waiting on "Links to check". Run the tidy pass so they save to the programs; only the unsure ones stay for you.
-2. **Queue the newly linked programs.** Everything that just gained a roster or coach page goes back into the collection queue, along with the 190 jobs currently parked and the 20 still pending. Then restart the run so it finishes NWAC and works the new backlog unattended.
-3. **Turn coach reading back on, in two stages.** First a 25-program pass you hand-check against the official pages, using the evidence rules already built (sport proved on the page, school's own domain, "Head Coach" stated in words, name sanity, blank never overwrites a name). If all 25 are right, open it to the full 1,832 with the same rules and the mistake-report/undo path in place.
-4. **Read the rosters.** Pull the 878 programs that have a page and no current roster, accepting a 2025-26 page as valid interim evidence for spring sports and re-checking those later in the year.
-5. **Close the last uncertainty.** 200 programs whose baseball/softball sponsorship is still unproven, and the 365 searches that found nothing at all — worked through the one-at-a-time card, same as you've been doing.
-6. **Keep score.** Weekly random accuracy checks so drift shows up as a number rather than a surprise.
+## Step 0 — the audit file (before anything else)
+
+A CSV of roughly 580 rows: school, state, sport, the athletics site, the stored roster link, the stored coach link, why it was flagged, and two blank columns for your corrections. You mark what's wrong; corrections load back the same way your athletics-site file did — wrong links remembered as declined, and only the affected pages re-searched.
+
+The random 150 give us a number: if they come back clean, the remaining ~2,200 unflagged links are trustworthy and we move on. If they don't, we widen the audit before building on top of them.
+
+## Then the six steps
+
+1. **Accept the confident links.** 567 pages found from your corrected addresses are waiting on "Links to check". Run the tidy pass; only the unsure ones stay for you.
+2. **Queue the newly linked programs**, plus the 190 parked and 20 pending jobs, and restart the unattended run so it finishes NWAC and works the backlog.
+3. **Turn coach reading back on, in two stages.** First 25 programs you hand-check against the official pages, using the guards already built (sport proved on the page, school's own domain, "Head Coach" stated in words, name sanity, blank never overwrites a name). All 25 right → open it to the full 1,832.
+4. **Read the rosters** for the 878 programs that have a page and no current roster, accepting a 2025-26 page as valid interim evidence for spring sports and re-checking later in the year.
+5. **Close the last uncertainty:** 200 programs whose sponsorship is unproven and the 365 searches that found nothing, through the one-at-a-time card.
+6. **Keep score** with weekly random accuracy checks.
 
 ## Technical notes
 
-- Steps 1, 2, 4 use existing paths: `sweepDiscoveredLinks`, `requeueMissingLinks`, `enqueue_due_refreshes` / `ingest_queue`, and the cron-driven runner plus watchdog. No schema change.
-- Step 3 flips the coach auto-apply guard in the ingest write path, gated on `coach-quality.ts` (`headCoachStated`, host/sport proof, name sanity) with the existing regression fixtures (UCF, Texas Tech, Kansas, Cincinnati-absence) run first.
-- Step 5 reuses `markSportNotOffered` and `setAthleticsSiteByHand`; both stay reversible.
+- Step 0 is a read-only export plus a loader that reuses `setAthleticsSiteByHand` / `applyDiscoveredUrl` and the rejected-URL memory. Flags come from `link-quality.ts` (`matchesProgramSport`, `archiveSeasonPath`, host comparison against `programs.athletic_website`), so the file and the live rules can't disagree.
+- Steps 1, 2, 4 use existing paths: `sweepDiscoveredLinks`, `requeueMissingLinks`, `ingest_queue` / `enqueue_due_refreshes`, and the cron runner plus watchdog. No schema change.
+- Step 3 flips the coach auto-apply guard in the ingest write path, gated on `coach-quality.ts` with the existing UCF / Texas Tech / Kansas / Cincinnati-absence fixtures run first.
 - Coach writes stay off until the 25-program pass is verified by hand.
