@@ -178,8 +178,14 @@ export async function sweepDiscoveredLinks(
     counts.byReason[verdict.code] = (counts.byReason[verdict.code] ?? 0) + 1;
     if (verdict.action === "approve") {
       counts.approve += 1;
-      toApprove.push(row);
+      // A single team's page proves the athletics site; keep the site's home page.
+      toApprove.push(
+        verdict.normalizedUrl
+          ? ({ ...row, discovered_url: verdict.normalizedUrl } as Row)
+          : row,
+      );
     } else {
+
       counts.reject += 1;
       toReject.push({ row, verdict });
     }
