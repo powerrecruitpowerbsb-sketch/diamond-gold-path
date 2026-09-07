@@ -377,7 +377,7 @@ export function rosterVerdict(
   if (players.length < 18) {
     return { auto: false, reason: `only ${players.length} players read from the page` };
   }
-  if (players.length > 70) {
+  if (players.length > 60) {
     return { auto: false, reason: `${players.length} players is more than a real roster` };
   }
 
@@ -421,7 +421,7 @@ export function rosterKeepable(
   const players = Array.isArray(payload?.players) ? (payload.players as any[]) : [];
   const named = players.filter((player) => normalizeText(player?.name).length > 2);
   if (!named.length) return { keep: false, partial: false, reason: "no player names were read" };
-  if (players.length > 70) {
+  if (players.length > 60) {
     return { keep: false, partial: false, reason: `${players.length} players is more than a real roster` };
   }
   const season = plausibleSeasonYear(payload?.season_year);
