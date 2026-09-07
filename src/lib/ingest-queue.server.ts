@@ -202,8 +202,9 @@ export async function requeueMissingLinkWork(
   return { programs: programs.length, revived: reviveIds.length, created: inserts.length };
 }
 
-
+/**
  * Claim up to `limit` items for one stage. Leasing is best-effort optimistic:
+
  * we re-check the status on update, so a row another run already took is
  * dropped rather than worked twice.
  */
