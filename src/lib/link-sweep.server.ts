@@ -293,6 +293,7 @@ export async function sweepLinksUntilDone(
     byReason: {},
     requeuedSchools: 0,
     failures: 0,
+    skippedNoUrl: 0,
     moreWaiting: false,
     passes: 0,
   };
