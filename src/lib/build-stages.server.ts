@@ -364,7 +364,7 @@ export async function runLeftoversPass(
   await retireEmptyDiscoveryRows(supabase, actorId, { apply: true });
   const links = await sweepLinksUntilDone(supabase, actorId, { apply: true, budgetMs: 8_000 });
 
-  const factsSettled = Number(facts.applied ?? 0);
+  const factsSettled = Number(facts.noChange ?? 0) + Number(facts.gapFills ?? 0);
   const linksSettled = Number(links.approve ?? 0) + Number(links.reject ?? 0);
   const moved = sponsorship.schoolsChecked + factsSettled + linksSettled;
   const finished = moved === 0;
