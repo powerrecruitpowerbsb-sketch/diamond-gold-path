@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { coachEvidenceVerdict, coachNameSane } from "@/lib/coach-quality";
+import { coachEvidenceVerdict, coachNameSane, headCoachStated } from "@/lib/coach-quality";
 import { pageOwnership } from "@/lib/program-ownership";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
