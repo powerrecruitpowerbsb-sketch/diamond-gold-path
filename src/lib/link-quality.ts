@@ -251,6 +251,36 @@ export function looksLikeAthleticsHost(
   return !host.endsWith(".edu") && !host.endsWith(".gov");
 }
 
+/** Sections of a site that are never the athletics home page. */
+const SITE_SECTION_JUNK =
+  /(^|\/)(news|tag|tags|story|stories|article|articles|blog|blogs|category|categories|shop|store|jobs|careers|employment|calendar|tickets|donate|give|camps?)(\/|$)/;
+
+export function junkSectionPath(url: string | null | undefined): boolean {
+  const path = pathOf(url);
+  return path ? SITE_SECTION_JUNK.test(path.split("?")[0]!) : false;
+}
+
+/**
+ * Discovery often lands on one team's page ("…/sports/cross-country") on the
+ * school's real athletics site. That page proves the site, but it is not the
+ * address to keep — so trim it back to the athletics home page.
+ * Returns null when the address isn't on an athletics site in its own right.
+ */
+export function athleticsHomeFor(
+  url: string | null | undefined,
+  schoolWebsite?: string | null,
+): string | null {
+  if (!url || isPdf(url) || junkHost(url)) return null;
+  let origin = "";
+  try {
+    origin = new URL(String(url)).origin;
+  } catch {
+    return null;
+  }
+  if (!looksLikeAthleticsHost(origin, schoolWebsite)) return null;
+  return origin;
+}
+
 export type LinkVerdict = {
   action: "approve" | "reject" | "ask";
   /** Plain-language reason, safe to show a person. */
@@ -261,13 +291,18 @@ export type LinkVerdict = {
     | "old_season"
     | "news_page"
     | "junk_host"
+    | "junk_section"
     | "school_homepage"
     | "wrong_school"
     | "not_a_web_page"
     | "athletics_site"
+    | "athletics_site_trimmed"
     | "sport_page_on_known_site"
     | "needs_a_look";
+  /** When set, save this address instead of the one that was found. */
+  normalizedUrl?: string;
 };
+
 
 export function classifyLink(input: {
   kind: LinkKind;
