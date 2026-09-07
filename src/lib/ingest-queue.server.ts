@@ -133,7 +133,78 @@ export async function enqueueMissingWork(supabase: any): Promise<Record<QueueSta
 
 
 /**
+ * Put every confirmed team that still has no official roster page or staff page
+ * back in line to have those pages found. Unlike enqueueMissingWork this revives
+ * finished/failed rows, because "we looked once and found nothing" is exactly the
+ * case that needs another try — nothing else can be filled in without a page.
+ */
+export async function requeueMissingLinkWork(
+  supabase: any,
+): Promise<{ programs: number; revived: number; created: number }> {
+  const programs = (
+    await fetchAll(
+      supabase,
+      "programs",
+      "id, university_id, roster_url, coaching_staff_url, offering_status",
+    )
+  ).filter(
+    (program) =>
+      program.offering_status === "verified" &&
+      (!program.roster_url?.trim() || !program.coaching_staff_url?.trim()),
+  );
+  if (!programs.length) return { programs: 0, revived: 0, created: 0 };
+
+  const existing = await fetchAll(supabase, "ingest_queue", "id, program_id, stage, status");
+  const discoveryByProgram = new Map<string, { id: string; status: string }>();
+  for (const row of existing) {
+    if (row.stage !== "url_discovery" || !row.program_id) continue;
+    discoveryByProgram.set(row.program_id, { id: row.id, status: row.status });
+  }
+
+  const reviveIds: string[] = [];
+  const inserts: any[] = [];
+  for (const program of programs) {
+    const row = discoveryByProgram.get(program.id);
+    if (!row) {
+      inserts.push({
+        university_id: program.university_id,
+        program_id: program.id,
+        stage: "url_discovery",
+        status: "pending",
+      });
+      continue;
+    }
+    // Leave work that is already lined up or in flight alone.
+    if (row.status === "pending" || row.status === "running" || row.status === "held") continue;
+    reviveIds.push(row.id);
+  }
+
+  for (let i = 0; i < reviveIds.length; i += 200) {
+    const chunk = reviveIds.slice(i, i + 200);
+    const { error } = await supabase
+      .from("ingest_queue")
+      .update({
+        status: "pending",
+        attempts: 0,
+        leased_at: null,
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .in("id", chunk);
+    if (error) throw new Error(error.message);
+  }
+
+  for (const row of inserts) {
+    const { error } = await supabase.from("ingest_queue").insert(row);
+    if (error && !/duplicate key/i.test(error.message)) throw new Error(error.message);
+  }
+
+  return { programs: programs.length, revived: reviveIds.length, created: inserts.length };
+}
+
+/**
  * Claim up to `limit` items for one stage. Leasing is best-effort optimistic:
+
  * we re-check the status on update, so a row another run already took is
  * dropped rather than worked twice.
  */

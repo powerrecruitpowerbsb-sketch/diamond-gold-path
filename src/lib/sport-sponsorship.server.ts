@@ -159,7 +159,7 @@ export type SponsorshipOutcome = {
  */
 export async function syncSponsorshipBatch(
   supabase: any,
-  options: { limit?: number; recheck?: boolean } = {},
+  options: { limit?: number; recheck?: boolean; onlyUnverified?: boolean } = {},
 ): Promise<SponsorshipOutcome> {
   const limit = Math.max(1, Math.min(300, options.limit ?? 60));
 
@@ -173,8 +173,14 @@ export async function syncSponsorshipBatch(
     samples: [],
   };
 
-  const schools = await pickSchools(supabase, limit, Boolean(options.recheck));
+  const schools = await pickSchools(
+    supabase,
+    limit,
+    Boolean(options.recheck) || Boolean(options.onlyUnverified),
+    Boolean(options.onlyUnverified),
+  );
   if (!schools.length) return outcome;
+
 
   const workers = 6;
   let cursor = 0;
@@ -299,6 +305,7 @@ async function pickSchools(
   supabase: any,
   limit: number,
   recheck: boolean,
+  onlyUnverified = false,
 ): Promise<{ id: string; name: string; ipeds_unitid: number }[]> {
   // Drive off programs so a school whose slots are all checked drops out.
   let query = supabase
@@ -307,6 +314,9 @@ async function pickSchools(
     .not("universities.ipeds_unitid", "is", null)
     .limit(limit * 4);
   if (!recheck) query = query.is("sponsorship_checked_at", null);
+  // The teams we still can't say yes or no about, whenever they were last looked at.
+  if (onlyUnverified) query = query.eq("offering_status", "unverified");
+
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);

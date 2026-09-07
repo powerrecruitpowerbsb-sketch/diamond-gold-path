@@ -469,7 +469,9 @@ export function buildFieldProposals(
   allowed: readonly string[],
   extracted: any,
   sourceUrl: string,
+  pageText?: string | null,
 ): ProposalRow[] {
+
   const fields = (extracted?.fields ?? extracted) as Record<string, unknown>;
   const confidence = (extracted?.confidence ?? {}) as Record<string, unknown>;
   if (!fields || typeof fields !== "object") return [];
@@ -497,8 +499,11 @@ export function buildFieldProposals(
         athleticWebsite: liveRecord["athletic_website"] as string | null,
         coachingStaffUrl: liveRecord["coaching_staff_url"] as string | null,
         schoolWebsite: (liveRecord["universities"] as any)?.website_url ?? null,
+        pageText: pageText ?? null,
+        field: key,
       });
       if (!evidence.ok && evidence.severity === "reject") continue;
+
     }
 
     const score = Number(confidence[key]);
@@ -730,7 +735,9 @@ export async function ingestProgram(
           PROGRAM_EXTRACTABLE,
           extracted,
           target.url,
+          markdown,
         );
+
         proposals.push(...rows);
         urlResults.push({
           url: target.url,

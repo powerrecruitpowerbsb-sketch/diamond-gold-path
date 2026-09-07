@@ -9,7 +9,9 @@ import {
   getCompletionBoard,
   queueRemainingWork,
   recheckRosters,
+  requeueMissingLinks,
 } from "@/lib/pipeline.functions";
+
 import { seasonLabel } from "@/lib/season";
 
 /**
@@ -23,7 +25,9 @@ export function CompletionBoard() {
   const ownershipFn = useServerFn(auditPageOwnership);
   const backlogFn = useServerFn(clearBacklog);
   const recheckFn = useServerFn(recheckRosters);
+  const missingLinksFn = useServerFn(requeueMissingLinks);
   const queryClient = useQueryClient();
+
 
   const board = useQuery({
     queryKey: ["completion-board"],
@@ -82,11 +86,29 @@ export function CompletionBoard() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const missingLinks = useMutation({
+    mutationFn: () => missingLinksFn(),
+    onSuccess: (result: any) => {
+      toast.success(
+        `${Number(result.revived + result.created).toLocaleString()} team(s) lined up to have their official pages found.`,
+      );
+      refresh();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const data = board.data as any;
   const done = data?.done ?? 0;
   const sponsored = data?.sponsored ?? 0;
   const percent = sponsored ? Math.round((done / sponsored) * 100) : 0;
-  const busy = queueWork.isPending || ownership.isPending || backlog.isPending || recheck.isPending;
+  const busy =
+    queueWork.isPending ||
+    ownership.isPending ||
+    backlog.isPending ||
+    recheck.isPending ||
+    missingLinks.isPending;
+
+
 
 
   return (
@@ -170,11 +192,20 @@ export function CompletionBoard() {
             <button
               type="button"
               disabled={busy}
+              onClick={() => missingLinks.mutate()}
+              className="inline-flex touch-target items-center rounded-lg border border-border px-4 text-sm font-semibold text-graphite disabled:opacity-60"
+            >
+              {missingLinks.isPending ? "Lining up…" : "Find the missing official pages"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
               onClick={() => backlog.mutate(true)}
               className="inline-flex touch-target items-center rounded-lg border border-border px-4 text-sm font-semibold text-graphite disabled:opacity-60"
             >
               {backlog.isPending ? "Working through…" : "Work through the waiting items"}
             </button>
+
             <button
               type="button"
               disabled={busy}
