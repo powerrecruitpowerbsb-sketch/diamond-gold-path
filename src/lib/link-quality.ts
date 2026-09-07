@@ -82,7 +82,12 @@ const JUNK_HOST_FRAGMENTS = [
   "smartcatalogiq",
   "wikipedia.org",
   "facebook.com",
+  "bkstr.com",
+  "college-tour.com",
+  "indeed.com",
+  "ziprecruiter.com",
   "twitter.com",
+
   "x.com",
   "instagram.com",
   "youtube.com",
