@@ -10,7 +10,7 @@ type Step = {
   title: string;
   state: "done" | "working" | "waiting";
   detail: string;
-  action?: { to: "/admin/discovery" | "/admin/review" | "/admin/federal-decisions" | "/admin/tools"; label: string };
+  action?: undefined | { to: "/admin/discovery" | "/admin/review" | "/admin/federal-decisions" | "/admin/tools"; label: string };
 };
 
 const n = (value: unknown) => Number(value ?? 0).toLocaleString();
