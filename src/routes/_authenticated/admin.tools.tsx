@@ -91,7 +91,7 @@ const STAGE_LABELS: Record<string, string> = {
   program_scrape: "Coaches & roster scrape",
 };
 
-function Pipeline() {
+function Tools() {
   const statusFn = useServerFn(getPipelineStatus);
   const importFn = useServerFn(importNcaaSlice);
   const wikiImportFn = useServerFn(importWikiSlice);
