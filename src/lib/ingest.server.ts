@@ -341,7 +341,7 @@ export function verifyAgainstSource(
   return { kept, dropped };
 }
 
-async function extractRoster(markdown: string): Promise<{
+export async function extractRoster(markdown: string): Promise<{
   players: ExtractedPlayer[];
   season_year: number | null;
   season_label: string | null;
