@@ -66,9 +66,9 @@ function BuildProgress() {
       const result = outcome?.result ?? {};
       if (stage === "pages") {
         toast.success(
-          result.finished
-            ? "Every page on file has now been checked."
-            : `Checked ${n(result.checked)} more pages — keep pressing to carry on.`,
+          result.running === false
+            ? "Paused — it will carry on from here when you start it again."
+            : "Started — it keeps checking pages on its own, you can close this page.",
         );
       } else if (stage === "coaches" && result.started === false) {
         toast.error("Held back — the safety cases did not all pass, so no coach was saved.");
