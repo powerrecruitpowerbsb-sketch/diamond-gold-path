@@ -499,8 +499,11 @@ export function buildFieldProposals(
         athleticWebsite: liveRecord["athletic_website"] as string | null,
         coachingStaffUrl: liveRecord["coaching_staff_url"] as string | null,
         schoolWebsite: (liveRecord["universities"] as any)?.website_url ?? null,
+        pageText: pageText ?? null,
+        field: key,
       });
       if (!evidence.ok && evidence.severity === "reject") continue;
+
     }
 
     const score = Number(confidence[key]);
