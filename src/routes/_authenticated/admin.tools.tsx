@@ -6,7 +6,6 @@ import { Building2, Database, Download, Landmark, RefreshCw } from "lucide-react
 import { toast } from "sonner";
 
 import { AccuracyPanel } from "@/components/admin/AccuracyPanel";
-import { CollectionRunner } from "@/components/admin/CollectionRunner";
 import { CompletionBoard } from "@/components/admin/CompletionBoard";
 
 import { SectionCard } from "@/components/admin/form-kit";
@@ -33,26 +32,27 @@ import {
 } from "@/lib/pipeline.functions";
 
 
-export const Route = createFileRoute("/_authenticated/admin/pipeline")({
+export const Route = createFileRoute("/_authenticated/admin/tools")({
   head: () => ({
     meta: [
-      { title: "Data collection — Power Recruit" },
+      { title: "Collection tools — Power Recruit" },
       {
         name: "description",
         content:
-          "Build the national program list from governing-body directories, then enrich every school with federal data.",
+          "Hands-on tools behind the collection process: pull membership lists, fill school facts, and clean up stray records.",
       },
-      { property: "og:title", content: "Data collection — Power Recruit" },
+      { property: "og:title", content: "Collection tools — Power Recruit" },
       {
         property: "og:description",
-        content: "Automated collection: governing-body membership lists, federal school facts, and scrape coverage.",
+        content: "Staff tools for pulling membership lists and tidying the college database.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Pipeline,
+  component: Tools,
 });
+
 
 const NCAA_SLICES = [
   { division: "I", sport: "baseball", label: "D1 baseball" },
