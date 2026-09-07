@@ -398,7 +398,7 @@ function DiscoveryQueue() {
 
       <SectionCard
         title="Couldn't find these pages"
-        blurb="The search came back empty for these. Try again, or paste the right address in yourself."
+        blurb={`${counts.data?.unfound ?? "—"} searches came back empty. These aren't decisions — nothing was found to approve or reject. Search again, or paste the right address in yourself.`}
       >
         {unfound.isPending ? (
           <div className="h-24 animate-pulse rounded-xl bg-muted" />
