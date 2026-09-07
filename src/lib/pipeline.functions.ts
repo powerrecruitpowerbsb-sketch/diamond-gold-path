@@ -1012,3 +1012,28 @@ export const setCoachManually = createServerFn({ method: "POST" })
 
     return clean({ ok: true, name: data.name });
   });
+
+/**
+ * Re-read stored rosters against their own page and keep only players the page
+ * actually lists. Bounded per call so it can be run repeatedly.
+ */
+export const recheckRosters = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input?: { apply?: boolean; min?: number; max?: number; limit?: number }) => ({
+    apply: Boolean(input?.apply),
+    min: Number.isFinite(input?.min) ? Number(input?.min) : 50,
+    max: Number.isFinite(input?.max) ? Number(input?.max) : 1000,
+    limit: Number.isFinite(input?.limit) ? Number(input?.limit) : 12,
+  }))
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context as any);
+    const { recheckRosterSizes } = await import("@/lib/roster-recheck.server");
+    const result = await recheckRosterSizes(context.supabase, {
+      apply: data.apply,
+      min: data.min,
+      max: data.max,
+      limit: data.limit,
+      budgetMs: 25_000,
+    });
+    return clean(result);
+  });
