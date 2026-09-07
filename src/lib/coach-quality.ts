@@ -144,6 +144,32 @@ export function coachPageProven(input: {
   return { ok: true, reason: null, severity: "ok" };
 }
 
+/**
+ * Does the page itself say, in its own words, that this person is the head coach?
+ *
+ * The address can prove a page is the right team's staff list, but only the text
+ * can prove which of the people on it holds the job. We require the name and a
+ * head-coach title to sit within the same short stretch of text, so a pitching
+ * coach listed two rows below can never be promoted by accident.
+ */
+export function headCoachStated(pageText: string | null | undefined, value: unknown): boolean {
+  const text = String(pageText ?? "").replace(/\s+/g, " ");
+  const name = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (!text || name.length < 4) return false;
+
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const title = /head\s+(baseball\s+|softball\s+|women'?s\s+|men'?s\s+)?coach/i;
+  const nameHits = [...text.matchAll(new RegExp(escaped, "gi"))];
+  if (!nameHits.length) return false;
+
+  for (const hit of nameHits) {
+    const start = Math.max(0, (hit.index ?? 0) - 120);
+    const window = text.slice(start, (hit.index ?? 0) + name.length + 120);
+    if (title.test(window)) return true;
+  }
+  return false;
+}
+
 /** Both guards together: the only path by which a coach name may be stored. */
 export function coachEvidenceVerdict(input: {
   value: unknown;
@@ -152,9 +178,30 @@ export function coachEvidenceVerdict(input: {
   athleticWebsite?: string | null;
   coachingStaffUrl?: string | null;
   schoolWebsite?: string | null;
+  /**
+   * The page's own text, when the caller has it. Given text, the head-coach
+   * title must be stated next to the name; without it the address checks stand
+   * alone (used by the audit, which re-reads pages separately).
+   */
+  pageText?: string | null;
+  /** Which field this is — only the head coach needs the title stated. */
+  field?: string;
 }): CoachEvidence {
   const name = coachNameSane(input.value);
   if (!name.ok) return { ...name, severity: "reject" };
-  return coachPageProven(input);
+  const page = coachPageProven(input);
+  if (!page.ok) return page;
+
+  const needsTitle = !input.field || input.field === "head_coach_name";
+  if (needsTitle && input.pageText != null && !headCoachStated(input.pageText, input.value)) {
+    return {
+      ok: false,
+      reason: "the page doesn't say this person is the head coach",
+      severity: "reject",
+    };
+  }
+
+  return { ok: true, reason: null, severity: "ok" };
 }
+
 
