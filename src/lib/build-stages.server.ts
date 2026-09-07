@@ -129,7 +129,8 @@ export async function stageBoard(supabase: any): Promise<StageBoard> {
     done: pagesRow.checked,
     notOffered: 0,
     left: pagesDone ? 0 : Math.max(board.withRosterPage + board.withStaffPage - pagesRow.checked, 0),
-    buttonLabel: pagesDone ? "Check them again" : "Check the pages",
+    buttonLabel:
+      pagesRow.status === "running" ? "Stop" : pagesDone ? "Check them again" : "Check the pages",
     message: pagesRow.last_message,
   };
 
@@ -230,37 +231,48 @@ export async function stageBoard(supabase: any): Promise<StageBoard> {
   };
 }
 
+/** True while the page check is switched on, so the scheduled runner keeps going. */
+export async function pagesCheckIsOn(supabase: any): Promise<boolean> {
+  const { data } = await supabase
+    .from("build_stages")
+    .select("status")
+    .eq("stage", "pages")
+    .maybeSingle();
+  return (data as { status?: string } | null)?.status === "running";
+}
+
 /**
- * One bounded pass of the page check. Its position is saved, so closing the page
- * loses nothing and pressing the button again carries on rather than restarting.
+ * One bounded slice of the page check. Its position is saved, so an interrupted
+ * slice loses nothing and the next one carries on rather than restarting. The
+ * every-minute schedule calls this while the stage is switched on.
  */
-export async function runPagesPass(
+export async function runPagesSlice(
   supabase: any,
   actorId: string | null,
+  options: { limit?: number; budgetMs?: number } = {},
 ): Promise<{ checked: number; cleared: number; unclear: number; failed: number; finished: boolean }> {
   const rows = await readRows(supabase);
   const { auditStoredLinks } = await import("@/lib/link-audit.server");
 
-  await writeRow(supabase, "pages", { status: "running", started_at: new Date().toISOString() });
-
   const result = await auditStoredLinks(supabase, {
     apply: true,
-    limit: 25,
-    budgetMs: 22_000,
+    limit: options.limit ?? 25,
+    budgetMs: options.budgetMs ?? 22_000,
     cursor: rows.pages.cursor,
     actorId,
   });
 
   const finished = !result.moreWaiting;
+  const checked = rows.pages.checked + result.checked;
   await writeRow(supabase, "pages", {
     status: finished ? "done" : "running",
     cursor: finished ? null : result.nextCursor,
-    checked: rows.pages.checked + result.checked,
+    checked,
     changed: rows.pages.changed + result.cleared,
     failed: rows.pages.failed + result.failed,
     last_message: finished
       ? "Every stored page has been checked."
-      : `Checked ${result.checked} more page${result.checked === 1 ? "" : "s"}.`,
+      : `${checked.toLocaleString()} pages checked so far — still going on its own.`,
     finished_at: finished ? new Date().toISOString() : null,
   });
 
@@ -271,6 +283,30 @@ export async function runPagesPass(
     failed: result.failed,
     finished,
   };
+}
+
+/**
+ * Switch the page check on and make sure the every-minute schedule is live, then
+ * return straight away. From here it carries on with no page open.
+ */
+export async function startPagesCheck(supabase: any): Promise<{ started: boolean }> {
+  await writeRow(supabase, "pages", {
+    status: "running",
+    started_at: new Date().toISOString(),
+    finished_at: null,
+    last_message: "Started — checking pages on its own, a batch a minute.",
+  });
+  const { error } = await supabase.rpc("collection_cron_start");
+  if (error) throw new Error(error.message);
+  return { started: true };
+}
+
+/** Pause the page check. Its position is kept, so starting again carries on. */
+export async function stopPagesCheck(supabase: any): Promise<void> {
+  await writeRow(supabase, "pages", {
+    status: "idle",
+    last_message: "Paused — it will carry on from here when you start it again.",
+  });
 }
 
 /**

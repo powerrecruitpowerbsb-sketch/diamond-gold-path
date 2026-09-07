@@ -70,11 +70,25 @@ export const Route = createFileRoute("/api/public/collection-runner")({
           return Response.json({ ok: false, reason: "no superadmin account" }, { status: 503 });
         }
 
+        // Step one of the build — checking every stored roster and staff page —
+        // runs here too, so pressing the button once is enough.
+        const { pagesCheckIsOn, runPagesSlice } = await import("@/lib/build-stages.server");
+        let pages: unknown = null;
+        if (await pagesCheckIsOn(supabase)) {
+          try {
+            pages = await runPagesSlice(supabase, actorId, { limit: 25, budgetMs: 20_000 });
+          } catch (failure) {
+            console.error("Page check slice failed", failure);
+            pages = { error: failure instanceof Error ? failure.message : "failed" };
+          }
+        }
+
         const state = await readCollectionState(supabase);
         if (!state.isRunning || state.stopRequested) {
           if (state.isRunning) await markCollectionFinished(supabase, "Stopped by request");
-          return Response.json({ ok: true, running: false, idle: true });
+          return Response.json({ ok: true, running: false, idle: true, pages });
         }
+
 
         const url = new URL(request.url);
         const num = (name: string, fallback: number) => {
