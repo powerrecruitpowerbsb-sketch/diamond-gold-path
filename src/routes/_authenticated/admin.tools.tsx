@@ -506,6 +506,20 @@ function Tools() {
 
   return (
     <div className="grid gap-5">
+      <div className="rounded-xl border border-border bg-white p-4">
+        <h2 className="font-display text-lg font-bold text-graphite">Collection tools</h2>
+        <p className="mt-1 text-sm text-steel">
+          Hands-on jobs you only need now and then: pull the membership lists, fill in school facts,
+          and tidy up stray records. Day-to-day, you don't need this page.
+        </p>
+        <Link
+          to="/admin/pipeline"
+          className="meta mt-2 inline-flex text-org-primary underline"
+        >
+          Back to the collection status page
+        </Link>
+      </div>
+
       <SectionCard
         title="What we have"
         blurb="Where the national database stands right now."
