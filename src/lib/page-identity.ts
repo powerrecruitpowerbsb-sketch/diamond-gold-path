@@ -153,9 +153,14 @@ function institutionCheck(
   if (names.some((name) => sameInstitution(name, schoolName)))
     return { ours: true, other: null, stranger: null };
 
-  const ourWords = new Set(distinctiveWords(schoolName));
+  const ourWords = distinctiveWords(schoolName);
+  // A look-alike either shares a word with us or contains one of ours inside a
+  // longer word: Campbellsville against Campbell, Jacksonville State against
+  // Jacksonville.
   const lookAlike = names.find((name) =>
-    distinctiveWords(name).some((word) => ourWords.has(word)),
+    distinctiveWords(name).some((word) =>
+      ourWords.some((ourWord) => word === ourWord || word.startsWith(ourWord) || ourWord.startsWith(word)),
+    ),
   );
   return { ours: false, other: lookAlike ?? null, stranger: names[0]! };
 }

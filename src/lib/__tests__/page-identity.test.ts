@@ -39,7 +39,8 @@ describe("verifyPageIdentity", () => {
       name: "Portland State holding Penn State's page",
       text: page("Penn State Nittany Lions Baseball 2026 Roster"),
       school: "Portland State University",
-      expected: "wrong_school",
+      // An unrelated school's name alone is not proof: it goes on the exception list.
+      expected: "unclear",
     },
     {
       name: "Campbell holding Campbellsville",
