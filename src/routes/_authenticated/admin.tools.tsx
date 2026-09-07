@@ -994,64 +994,7 @@ function Pipeline() {
   );
 }
 
-/** The short list of things a person still has to decide. */
-function NeedsYou({ decisions, notSchools }: { decisions: number; notSchools: number }) {
-  const items = [
-    decisions
-      ? {
-          to: "/admin/federal-decisions" as const,
-          label: `${decisions} school${decisions === 1 ? "" : "s"} need a match decision`,
-          hint: "Each one is shown beside its closest national record.",
-          cta: "Decide these schools",
-        }
-      : null,
-    {
-      to: "/admin/review" as const,
-      label: "Proposed changes waiting for a yes or no",
-      hint: "Collected values that would change something already saved.",
-      cta: "Open the review queue",
-    },
-    notSchools
-      ? {
-          to: null,
-          label: `${notSchools} entr${notSchools === 1 ? "y" : "ies"} that aren't schools`,
-          hint: "Listed under the hands-on tools below, ready to remove.",
-          cta: null,
-        }
-      : null,
-  ].filter(Boolean) as {
-    to: "/admin/federal-decisions" | "/admin/review" | null;
-    label: string;
-    hint: string;
-    cta: string | null;
-  }[];
 
-  return (
-    <SectionCard title="What needs you" blurb="Everything else runs on its own.">
-      <div className="grid gap-2">
-        {items.map((item) => (
-          <div
-            key={item.label}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-white p-3"
-          >
-            <div>
-              <p className="text-sm font-semibold text-graphite">{item.label}</p>
-              <p className="meta">{item.hint}</p>
-            </div>
-            {item.to && item.cta ? (
-              <Link
-                to={item.to}
-                className="touch-target inline-flex items-center rounded-lg bg-org-primary px-3.5 text-sm font-semibold text-white"
-              >
-                {item.cta}
-              </Link>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    </SectionCard>
-  );
-}
 
 function Stat({
   icon,
