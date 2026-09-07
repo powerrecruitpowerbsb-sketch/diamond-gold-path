@@ -42,14 +42,19 @@ Coach saving has been off since a Big 12 name came back wrong, which is why only
 - Clear the 52 link decisions and 1 fact decision.
 - Then it runs itself: rosters re-pulled twice a year, school facts yearly, and a weekly random accuracy spot-check.
 
-## One screen for your decisions
+## One screen, one button per stage
 
-Today there are several admin pages doing overlapping things. Consolidate to a single **Build progress** page with exactly:
+Today several admin pages overlap. Replace them with a single **Build progress** page laid out as the four stages above, top to bottom:
 
-1. **Status line** — what's running, what stage, how much is left, an ETA.
-2. **Four progress bars** — schools, pages, rosters, coaches — each showing done / not-offered / left.
-3. **Needs you** — one card at a time, only when a decision genuinely can't be made automatically, with the school, sport, what's missing, and buttons: Save this page, Search again, No baseball program, No softball program, Skip.
-4. **Report a mistake** — for anything you spot in the app that's wrong, which clears the value and re-searches it.
+1. **Status line** — what's running, which stage, how much is left, an ETA.
+2. **Four stage rows**, each with a progress bar (done / not offered / left) and exactly one button:
+   - Stage 1 — "Check the pages we have" → Running… (live counts)
+   - Stage 2 — "Finish rosters" → starts collection and drains the queue
+   - Stage 3 — "Turn coaches on" → runs the 25-program test, then fills coaches if it passes
+   - Stage 4 — "Close out the leftovers" → decides the unknown teams and clears remaining decisions
+   Each button is greyed out with a short reason ("waiting on Stage 1") until the stage before it finishes, turns into a live "Running… / Stop" state while working, and shows a green "Done" line after. If a stage is already partly complete it picks up where it left off — nothing is re-done.
+3. **Needs you** — one card at a time, only when a decision genuinely can't be made automatically: school, sport, what's missing, and buttons Save this page, Search again, No baseball program, No softball program, Skip.
+4. **Report a mistake** — for anything wrong you spot in the app; it clears the value and re-searches it.
 
 Everything else (raw queues, logs, collection internals) moves behind a "Details" link so it's out of the way.
 
@@ -64,3 +69,4 @@ For every one of the ~3,111 confirmed teams: the school's athletics site, a rost
 - Stage 3: add fixtures under `src/lib/__tests__/` for the 25 programs; gate saving in the coach path on athletics-host + sport-term + explicit head-coach-label proof; store provenance so every write is reversible.
 - Stage 4: extend the existing offering-status sync for the 172 unknowns; keep refresh cadence on the existing `*_refresh_due_at` columns and `pg_cron`.
 - UI: one route (`/admin/build`) composing the existing `RunningNow` / `BuildChecklist` / one-at-a-time decision card; the other admin routes stay reachable but are demoted.
+- Stage buttons: one server fn per stage (`startStage1..4`) plus a shared `getBuildStages` status read that returns each stage's counts, `state` (`locked` | `ready` | `running` | `done`), and a lock reason. Stage 2 reuses `startCollection`; Stage 3 runs the fixtures first and refuses to enable coach writes if any fail; Stage 4 reuses the offering-status sync and existing sweeps. Buttons are idempotent — clicking a running stage is a no-op, and re-clicking a finished one only picks up new work.
