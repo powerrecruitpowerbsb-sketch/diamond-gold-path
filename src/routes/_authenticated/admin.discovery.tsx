@@ -581,7 +581,7 @@ function DiscoveryQueue() {
                 {current.program_id ? (
                   <Button
                     variant="ghost"
-                    className="touch-target text-clay"
+                    className="touch-target text-destructive"
                     disabled={busy}
                     onClick={() => {
                       const sport = current.programs?.sport ?? "this sport";
