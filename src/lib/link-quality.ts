@@ -118,7 +118,13 @@ export function hostOf(url: string | null | undefined): string {
   }
 }
 
+/** "https://x.com/" and "https://x.com" are the same address. */
+function stripTrailingSlash(url: string | null | undefined): string {
+  return String(url ?? "").replace(/\/+$/, "");
+}
+
 function pathOf(url: string | null | undefined): string {
+
   if (!url) return "";
   try {
     const parsed = new URL(url);
