@@ -25,6 +25,7 @@ type Level = {
   held: number;
   running: number;
   done: number;
+  givenUp: number;
   total: number;
   complete: boolean;
 };
@@ -291,8 +292,8 @@ export function CollectionRunner() {
               </span>
               <span className="meta ml-2 tabular-nums">
                 {level.complete
-                  ? "done"
-                  : `${level.done} done · ${level.waiting} to do${level.held ? ` · ${level.held} waiting turn` : ""}`}
+                  ? `done${level.givenUp ? ` · ${level.givenUp} couldn't be read` : ""}`
+                  : `${level.done} done · ${level.waiting} to do${level.held ? ` · ${level.held} waiting turn` : ""}${level.givenUp ? ` · ${level.givenUp} couldn't be read` : ""}`}
               </span>
             </button>
           ))}
