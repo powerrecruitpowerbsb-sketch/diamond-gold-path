@@ -563,11 +563,40 @@ function DiscoveryQueue() {
                 <Button
                   variant="outline"
                   className="touch-target"
+                  disabled={busy || !(manual[current.id] ?? "").trim()}
+                  onClick={() =>
+                    saveSite.mutate({ id: current.id, url: (manual[current.id] ?? "").trim() })
+                  }
+                >
+                  This is the school's athletics site
+                </Button>
+                <Button
+                  variant="outline"
+                  className="touch-target"
                   disabled={busy}
                   onClick={() => retry.mutate({ id: current.id, decision: "reject" })}
                 >
                   Search again
                 </Button>
+                {current.program_id ? (
+                  <Button
+                    variant="ghost"
+                    className="touch-target text-clay"
+                    disabled={busy}
+                    onClick={() => {
+                      const sport = current.programs?.sport ?? "this sport";
+                      if (
+                        window.confirm(
+                          `Mark ${current.universities?.name ?? "this school"} as not having ${sport}? It stops all searching for that sport and can be undone later.`,
+                        )
+                      ) {
+                        noSport.mutate({ programId: String(current.program_id) });
+                      }
+                    }}
+                  >
+                    No {current.programs?.sport ?? "such"} program here
+                  </Button>
+                ) : null}
                 <Button
                   variant="ghost"
                   className="touch-target"
@@ -577,6 +606,10 @@ function DiscoveryQueue() {
                   Skip for now
                 </Button>
               </div>
+              <p className="meta mt-2">
+                Pasting the athletics site saves it for every sport at this school and looks for the
+                roster and staff pages inside it.
+              </p>
             </div>
             {skipped.length ? (
               <button
