@@ -988,6 +988,8 @@ function Pipeline() {
         </SectionCard>
       ) : null}
       </div>
+    </div>
+
 
   );
 }
