@@ -583,23 +583,12 @@ function Pipeline() {
         </details>
       </SectionCard>
 
-      <NeedsYou
-        decisions={status?.schools.federalNeedsHelp ?? 0}
-        notSchools={nonSchools?.entries?.length ?? 0}
-      />
-
       <CompletionBoard />
-
-      <CollectionRunner />
 
       <AccuracyPanel />
 
+      <div className="grid gap-5">
 
-      <details className="rounded-xl border border-border bg-white p-4">
-        <summary className="cursor-pointer font-semibold text-graphite">
-          Hands-on tools — pull lists, fill school facts, clean up
-        </summary>
-        <div className="mt-4 grid gap-5">
 
       <SectionCard
         title="Look again at everything you declined"
