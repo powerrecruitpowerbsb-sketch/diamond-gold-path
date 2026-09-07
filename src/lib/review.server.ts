@@ -98,13 +98,15 @@ function pickEnum(value: unknown, options: string[]): string | null {
 }
 
 /**
- * A roster proposal replaces the stored roster for one program + season in a
- * single reviewed step, rather than one queue item per player.
+ * Replace the stored roster for one program + season. Used by an approved
+ * proposal and by the roster re-check, so both take exactly one path.
  */
-async function applyRosterProposal(supabase: any, row: PendingRow) {
-  const payload = row.proposed_value as any;
+export async function replaceRoster(
+  supabase: any,
+  payload: { program_id: string; season_year?: unknown; season_label?: unknown; players: any[] },
+) {
   const players = Array.isArray(payload?.players) ? payload.players : null;
-  const programId = payload?.program_id ?? row.record_id;
+  const programId = payload?.program_id;
   if (!players || !players.length) throw new Error("Roster proposal contains no players");
   if (!programId) throw new Error("Roster proposal is missing its program");
   // A season read off a jersey number or an archive page is not a season.
@@ -146,7 +148,23 @@ async function applyRosterProposal(supabase: any, row: PendingRow) {
 
   const { error: insertError } = await supabase.from("roster_players").insert(rows);
   if (insertError) throw new Error(insertError.message);
+  return rows.length;
 }
+
+/**
+ * A roster proposal replaces the stored roster for one program + season in a
+ * single reviewed step, rather than one queue item per player.
+ */
+async function applyRosterProposal(supabase: any, row: PendingRow) {
+  const payload = row.proposed_value as any;
+  await replaceRoster(supabase, {
+    program_id: payload?.program_id ?? row.record_id,
+    season_year: payload?.season_year,
+    season_label: payload?.season_label,
+    players: Array.isArray(payload?.players) ? payload.players : [],
+  });
+}
+
 
 /**
  * Apply one pending proposal to live data, then mark it approved.
