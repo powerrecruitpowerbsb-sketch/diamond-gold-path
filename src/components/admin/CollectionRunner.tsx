@@ -25,6 +25,7 @@ type Level = {
   held: number;
   running: number;
   done: number;
+  givenUp: number;
   total: number;
   complete: boolean;
 };
