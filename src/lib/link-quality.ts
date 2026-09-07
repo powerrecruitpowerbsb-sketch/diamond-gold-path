@@ -264,7 +264,8 @@ export function looksLikeAthleticsHost(
 
 /** Sections of a site that are never the athletics home page. */
 const SITE_SECTION_JUNK =
-  /(^|\/)(news|tag|tags|story|stories|article|articles|blog|blogs|category|categories|shop|store|jobs|careers|employment|calendar|tickets|donate|give|camps?)(\/|$)/;
+  /(^|\/)(news[a-z-]*|tags?|stor(y|ies)[a-z-]*|articles?|blogs?[a-z-]*|categor(y|ies)|press[a-z-]*|shop|store[a-z-]*|jobs|careers|employment|calendar|tickets|donate|give|camps?)(\/|$)/;
+
 
 export function junkSectionPath(url: string | null | undefined): boolean {
   const path = pathOf(url);
