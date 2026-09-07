@@ -95,6 +95,8 @@ function DiscoveryQueue() {
   const reviewManyFn = useServerFn(reviewDiscoveredUrls);
   const sweepFn = useServerFn(sweepDiscoveredLinksFn);
   const manualFn = useServerFn(setLinkManually);
+  const athleticsFn = useServerFn(setAthleticsSite);
+  const notOfferedFn = useServerFn(markSportNotOffered);
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
