@@ -22,6 +22,7 @@ export function CompletionBoard() {
   const queueFn = useServerFn(queueRemainingWork);
   const ownershipFn = useServerFn(auditPageOwnership);
   const backlogFn = useServerFn(clearBacklog);
+  const recheckFn = useServerFn(recheckRosters);
   const queryClient = useQueryClient();
 
   const board = useQuery({
@@ -190,7 +191,39 @@ export function CompletionBoard() {
             >
               Clear the mix-ups
             </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => recheck.mutate({ apply: true, min: 50, max: 1000 })}
+              className="inline-flex touch-target items-center rounded-lg border border-border px-4 text-sm font-semibold text-graphite disabled:opacity-60"
+            >
+              {recheck.isPending ? "Rechecking rosters…" : "Recheck the oversized rosters"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => recheck.mutate({ apply: false, min: 30, max: 49 })}
+              className="inline-flex touch-target items-center rounded-lg border border-border px-4 text-sm font-semibold text-graphite disabled:opacity-60"
+            >
+              Spot-check normal rosters
+            </button>
           </div>
+
+          {(recheck.data as any)?.rows?.length ? (
+            <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
+              {(recheck.data as any).rows.map((row: any, index: number) => (
+                <li key={`${row.school}-${row.season}-${index}`} className="p-3 text-sm">
+                  <span className="font-semibold text-graphite">{row.school}</span>{" "}
+                  <span className="text-steel">
+                    ({row.sport} {row.season ?? "—"}) — {row.before} stored, {row.kept} proven on the
+                    page
+                    {row.dropped ? `, ${row.dropped} name(s) not on the page` : ""}
+                    {row.detail ? `. ${row.detail}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           {(ownership.data as any)?.problems?.length ? (
             <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
