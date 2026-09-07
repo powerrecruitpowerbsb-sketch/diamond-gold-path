@@ -60,7 +60,7 @@ type UnfoundRow = {
   university_id: string;
   discovery_type: Kind;
   notes: string | null;
-  universities: { name: string; state: string | null } | null;
+  universities: { name: string; state: string | null; website_url?: string | null } | null;
   programs: { sport: string | null } | null;
 };
 
