@@ -315,6 +315,7 @@ export async function sweepLinksUntilDone(
     total.requeuedSchools += counts.requeuedSchools;
     total.failures += counts.failures;
     total.moreWaiting = counts.moreWaiting;
+    total.skippedNoUrl = counts.skippedNoUrl;
     for (const [code, count] of Object.entries(counts.byReason)) {
       total.byReason[code] = (total.byReason[code] ?? 0) + count;
     }
