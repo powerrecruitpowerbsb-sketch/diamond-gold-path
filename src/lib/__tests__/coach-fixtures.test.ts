@@ -88,6 +88,49 @@ describe("real official staff pages", () => {
     expect(coachEvidenceVerdict({ value: "Head Coach", ...UCF }).ok).toBe(false);
   });
 
+  it("accepts Kansas' head baseball coach as stated on the school's own page", () => {
+    const page = fixture("kansas-baseball-staff.txt");
+    expect(page).toContain("Dan Fitzgerald");
+    expect(headCoachStated(page, "Dan Fitzgerald")).toBe(true);
+    expect(
+      coachEvidenceVerdict({
+        value: "Dan Fitzgerald",
+        sport: "baseball",
+        sourceUrl: "https://kuathletics.com/sports/baseball/coaches",
+        athleticWebsite: "https://kuathletics.com",
+        coachingStaffUrl: "https://kuathletics.com/sports/baseball/coaches",
+        schoolWebsite: "https://kuathletics.com",
+        pageText: page,
+        field: "head_coach_name",
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("writes nothing from Cincinnati's baseball coaches page, which states no coach", () => {
+    const page = fixture("cincinnati-baseball-coaches.txt");
+    expect(headCoachStated(page, "Tom Winske")).toBe(false);
+    const verdict = coachEvidenceVerdict({
+      value: "Tom Winske",
+      sport: "baseball",
+      sourceUrl: "https://gobearcats.com/sports/baseball/coaches",
+      athleticWebsite: "https://gobearcats.com/",
+      coachingStaffUrl: "https://gobearcats.com/staff-directory/department/baseball",
+      schoolWebsite: "https://gobearcats.com",
+      pageText: page,
+      field: "head_coach_name",
+    });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.severity).toBe("reject");
+  });
+
+  it("will not promote an assistant listed further down a staff page", () => {
+    const page =
+      "Dan Fitzgerald Head Baseball Coach ... ... ... ... ... ... ... ... ... ... ... ... " +
+      "... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... " +
+      "Ryan Graves Pitching Coach";
+    expect(headCoachStated(page, "Ryan Graves")).toBe(false);
+  });
+
   it("keeps the Ocala junior college from claiming UCF's athletics site", () => {
     const jc = pageOwnership({
       url: "https://ucfknights.com/staff-directory/department/baseball",
@@ -102,3 +145,4 @@ describe("real official staff pages", () => {
     expect(ucf.score).toBeGreaterThan(jc.score);
   });
 });
+
