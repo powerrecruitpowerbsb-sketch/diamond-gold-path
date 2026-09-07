@@ -682,3 +682,173 @@ export async function requeueSchoolForDiscovery(
   if (error) return { requeued: false, reason: error.message };
   return { requeued: true, reason: "Queued for a fresh search." };
 }
+
+/**
+ * A person typed in the school's real athletics site (search kept guessing the
+ * wrong domain). Save it for every sport the school fields, forget the wrong
+ * guesses, then look for that school's roster and staff pages inside the
+ * correct site only.
+ */
+export async function setAthleticsSiteByHand(
+  supabase: any,
+  universityId: string,
+  url: string,
+  userId: string | null,
+): Promise<{ programs: number; found: number; searched: boolean; message: string }> {
+  const site = (() => {
+    try {
+      return new URL(url).origin;
+    } catch {
+      return url;
+    }
+  })();
+
+  const { data: programs, error: programError } = await supabase
+    .from("programs")
+    .select("id, sport")
+    .eq("university_id", universityId)
+    .neq("offering_status", "not_offered");
+  if (programError) throw new Error(programError.message);
+
+  const list = (programs ?? []) as { id: string; sport: string }[];
+  if (list.length) {
+    const { error } = await supabase
+      .from("programs")
+      .update({ athletic_website: site })
+      .in(
+        "id",
+        list.map((program) => program.id),
+      );
+    if (error) throw new Error(error.message);
+  }
+
+  const now = new Date().toISOString();
+
+  // Declining the open guesses is also how they're remembered: a rejected link
+  // for this school is never suggested again.
+  await supabase
+    .from("url_discovery_queue")
+    .update({
+      status: "rejected",
+      reviewed_by: userId,
+      reviewed_at: now,
+      notes: "Replaced by the athletics site entered by hand.",
+    })
+    .eq("university_id", universityId)
+    .eq("discovery_type", "athletic_website")
+    .eq("status", "pending_review");
+
+  let results: DiscoveryResult[] = [];
+  let searched = false;
+  try {
+    const excluded = await loadRejectedUrls(supabase, universityId);
+    results = await discoverProgramPages(site, list, excluded);
+    searched = true;
+  } catch (failure) {
+    console.error("Could not map the hand-entered athletics site", failure);
+  }
+
+  const { data: schoolRow } = await supabase
+    .from("universities")
+    .select("website_url")
+    .eq("id", universityId)
+    .maybeSingle();
+
+  for (const result of results) {
+    if (!result.url) continue;
+    const verdict = classifyLink({
+      kind: result.discoveryType,
+      url: result.url,
+      sport: result.sport ?? null,
+      schoolWebsite: (schoolRow as any)?.website_url ?? null,
+    });
+    if (verdict.action === "reject") {
+      result.url = null;
+      result.confidence = "failed";
+      result.notes = `Discarded automatically: ${verdict.reason}`;
+    } else if (verdict.normalizedUrl) {
+      result.url = verdict.normalizedUrl;
+    }
+  }
+
+  for (const result of results) {
+    await supabase
+      .from("url_discovery_queue")
+      .delete()
+      .eq("university_id", universityId)
+      .eq("discovery_type", result.discoveryType)
+      .eq("status", "pending_review")
+      .filter("program_id", result.programId ? "eq" : "is", result.programId ?? null);
+
+    const { error: insertError } = await supabase.from("url_discovery_queue").insert({
+      university_id: universityId,
+      program_id: result.programId,
+      discovery_type: result.discoveryType,
+      discovered_url: result.url,
+      confidence: result.confidence,
+      notes: result.notes,
+    });
+    if (insertError) console.error("Could not queue discovered URL", insertError.message);
+  }
+
+  const found = results.filter((result) => Boolean(result.url)).length;
+  return {
+    programs: list.length,
+    found,
+    searched,
+    message: searched
+      ? `Saved for ${list.length} program${list.length === 1 ? "" : "s"} — found ${found} roster/staff page${found === 1 ? "" : "s"} on that site.`
+      : `Saved for ${list.length} program${list.length === 1 ? "" : "s"} — the follow-up search couldn't run just now.`,
+  };
+}
+
+/**
+ * The school simply doesn't field this sport. Keep the record so the decision is
+ * visible and reversible, and close every outstanding job for it.
+ */
+export async function markProgramNotOffered(
+  supabase: any,
+  programId: string,
+  userId: string | null,
+): Promise<{ sport: string | null; closedLinks: number; closedJobs: number }> {
+  const now = new Date().toISOString();
+
+  const { data: program, error } = await supabase
+    .from("programs")
+    .update({
+      offering_status: "not_offered",
+      offering_source: "manual",
+      offering_evidence: { decided_by: userId, decided_at: now, note: "Staff confirmed by hand" },
+      offering_verified_at: now,
+      sponsorship_checked_at: now,
+    })
+    .eq("id", programId)
+    .select("id, sport")
+    .single();
+  if (error) throw new Error(error.message);
+
+  const { data: links } = await supabase
+    .from("url_discovery_queue")
+    .update({
+      status: "rejected",
+      reviewed_by: userId,
+      reviewed_at: now,
+      notes: "The school doesn't field this sport.",
+    })
+    .eq("program_id", programId)
+    .eq("status", "pending_review")
+    .select("id");
+
+  const { data: jobs } = await supabase
+    .from("ingest_queue")
+    .update({ status: "skipped", leased_at: null, last_error: null })
+    .eq("program_id", programId)
+    .in("status", ["pending", "running", "failed", "held"])
+    .select("id");
+
+  return {
+    sport: ((program as any)?.sport ?? null) as string | null,
+    closedLinks: (links ?? []).length,
+    closedJobs: (jobs ?? []).length,
+  };
+}
