@@ -11,8 +11,10 @@ import {
   countPendingDiscoveries,
   listDiscoveredUrls,
   listUnfoundLinks,
+  markSportNotOffered,
   reviewDiscoveredUrl,
   reviewDiscoveredUrls,
+  setAthleticsSite,
   setLinkManually,
   sweepDiscoveredLinksFn,
 } from "@/lib/discovery.functions";
