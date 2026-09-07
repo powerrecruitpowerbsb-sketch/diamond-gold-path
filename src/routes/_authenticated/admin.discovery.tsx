@@ -98,6 +98,9 @@ function DiscoveryQueue() {
   const [unfoundPage, setUnfoundPage] = useState(1);
   const [preview, setPreview] = useState<Sweep | null>(null);
   const [manual, setManual] = useState<Record<string, string>>({});
+  const [showAll, setShowAll] = useState(false);
+  const [skipped, setSkipped] = useState<string[]>([]);
+
 
   const counts = useQuery({
     queryKey: ["pending-discoveries-count"],
