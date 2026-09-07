@@ -60,6 +60,7 @@ type Row = {
 type UnfoundRow = {
   id: string;
   university_id: string;
+  program_id: string | null;
   discovery_type: Kind;
   notes: string | null;
   universities: { name: string; state: string | null; website_url?: string | null } | null;
