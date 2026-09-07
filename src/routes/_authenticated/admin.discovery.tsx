@@ -74,6 +74,7 @@ type Sweep = {
   byReason: Record<string, number>;
   requeuedSchools: number;
   failures: number;
+  skippedNoUrl: number;
   moreWaiting: boolean;
 };
 
