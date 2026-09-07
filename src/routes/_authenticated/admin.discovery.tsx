@@ -117,6 +117,12 @@ function DiscoveryQueue() {
     queryFn: () => unfoundFn({ data: { page: unfoundPage, pageSize: 50 } }) as Promise<Page<UnfoundRow>>,
   });
 
+  // In one-at-a-time mode the skipped rows step aside without being decided.
+  const rowsLeft = (unfound.data?.rows ?? []).filter((row) => !skipped.includes(row.id));
+  const current = rowsLeft[0] ?? null;
+
+
+
   /** Decided links leave the list at once; the fresh read follows quietly. */
   const dropDecided = (ids: string[]) => {
     const gone = new Set(ids);
