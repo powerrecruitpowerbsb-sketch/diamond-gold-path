@@ -296,7 +296,14 @@ export function verifyAgainstSource(
   players: ExtractedPlayer[],
   markdown: string,
 ): { kept: ExtractedPlayer[]; dropped: string[] } {
-  const haystack = flatten(markdown);
+  const words = flatten(markdown).split(" ").filter(Boolean);
+  const positions = new Map<string, number[]>();
+  words.forEach((word, index) => {
+    const list = positions.get(word);
+    if (list) list.push(index);
+    else positions.set(word, [index]);
+  });
+
   const kept: ExtractedPlayer[] = [];
   const dropped: string[] = [];
 
@@ -313,15 +320,17 @@ export function verifyAgainstSource(
 
     let proven = false;
     if (first === last) {
-      proven = haystack.includes(first);
+      proven = positions.has(first);
     } else {
-      // Both halves of the name have to sit close together, so unrelated words
-      // scattered around the page can't vouch for a player who isn't listed.
-      let at = haystack.indexOf(last);
-      while (at !== -1 && !proven) {
-        const window = haystack.slice(Math.max(0, at - 60), at + last.length + 60);
-        if (window.includes(first)) proven = true;
-        at = haystack.indexOf(last, at + 1);
+      const firstAt = positions.get(first) ?? [];
+      const lastAt = new Set(positions.get(last) ?? []);
+      // The two halves of a name sit next to each other on a roster page; allowing
+      // a word or two between covers a middle name, and nothing more.
+      for (const at of firstAt) {
+        if (lastAt.has(at + 1) || lastAt.has(at + 2) || lastAt.has(at + 3)) {
+          proven = true;
+          break;
+        }
       }
     }
 
@@ -332,7 +341,7 @@ export function verifyAgainstSource(
   return { kept, dropped };
 }
 
-export async function extractRoster(markdown: string): Promise<{
+async function extractRoster(markdown: string): Promise<{
   players: ExtractedPlayer[];
   season_year: number | null;
   season_label: string | null;
