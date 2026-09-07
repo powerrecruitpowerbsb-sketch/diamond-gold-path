@@ -245,6 +245,18 @@ function DiscoveryQueue() {
               Looked at {preview.scanned} links: {preview.reject} clearly wrong, {preview.approve} clearly
               right, {preview.ask} need you.
             </p>
+            {preview.skippedNoUrl ? (
+              <p className="mt-1 text-steel">
+                {preview.skippedNoUrl} more rows had no address at all — nothing to judge, so they sit in
+                "Couldn't find these pages" below instead of your decision count.
+              </p>
+            ) : null}
+            {!preview.scanned ? (
+              <p className="mt-1 text-steel">
+                Nothing was left that the rules could decide — everything waiting needs a person or a
+                fresh search.
+              </p>
+            ) : null}
             <ul className="mt-2 grid gap-1 text-steel">
               {Object.entries(preview.byReason).map(([code, total]) => (
                 <li key={code} className="tabular-nums">
