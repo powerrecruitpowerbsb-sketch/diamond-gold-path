@@ -2,63 +2,81 @@
 
 ## Right now, in plain terms
 
-The collection run is going by itself. It is working through NCAA Division III at the
-moment, has 388 teams waiting, 5 in progress, 233 parked for later levels, and nothing
-failed. You do not need to keep a page open, and you do not need to click anything for
-it to keep going.
+The collection run is going by itself. It is working through NCAA Division III, has
+388 teams waiting, 5 in progress, 233 parked for later levels, and nothing failed. You do
+not need to keep a page open for it to keep going.
 
-What is already solid:
+Already solid:
 - 1,885 schools, checked against the federal school database.
 - 3,115 teams confirmed to actually play baseball or softball; 210 still undecided.
-- Rosters for most teams (spring-sport pages that still show 2025-26 are fine for now).
-- Coach names are now only saved when the team's own page says in writing that the
-  person is the head coach. Four real school pages are locked in as tests so that
-  cannot silently break again.
+- Rosters for most teams (a page still showing 2025-26 is fine for a spring sport).
+- Coach names are only saved when the team's own page says in writing that the person is
+  the head coach, with four real school pages locked in as tests.
 
-What is still missing:
-- 2,192 confirmed teams have no head coach saved.
-- 566 confirmed teams are missing an official roster page or staff page.
-- 938 found links and 14 data points are waiting on a yes/no from a person.
+Still missing:
+- 2,192 confirmed teams with no head coach saved.
+- 566 confirmed teams missing an official roster page or staff page.
+- 938 found links and 14 data points waiting on a person.
 - 210 teams where we still cannot tell whether the sport is played.
 
-## What you should be doing: nothing but one decision
+## Your only job right now
 
-Your only job right now is to approve the coach pilot below. Everything else is either
-running or waiting on that.
+Approve this plan. Then the only hands-on thing is spot-checking 25 coach names in Step 2.
 
-## Step 1 - Coach pilot, 25 teams, hand-checked (needs your OK)
+## Step 1 - Fix the "athletics site" links that point at one sport
 
-Fill in head coaches for 25 confirmed teams using the new proof rule, then show you all
-25 side by side with the page each name came from. You spot-check them. If all 25 are
-right, we turn coach filling on for the whole country. If even one is wrong, we stop and
-fix the rule instead.
+You are right, and it is a big chunk of the queue. Of 240 athletics-site links waiting,
+most are not the athletics home page at all: `sewaneetigers.com/sports/sball/index`,
+`calvinknights.com/sports/msoc`, `mutigers.com/sports/cross-country`, plus news
+categories, tag pages, blog posts and even a campus bookstore.
 
-## Step 2 - Let the run finish the levels
+Fix, applied to the waiting ones and to every future pull:
+- When the address is on a genuine athletics site but the path is a single sport or an
+  inside section, trim it back to that site's home page and use that. A tennis page still
+  proves the athletics site — just not as the address to keep.
+- Where the path names baseball or softball, keep it as that team's page too, not only as
+  the athletics site.
+- Reject outright: news/tag/blog/category pages, stores, job listings, and unrelated hosts.
+- Only genuinely unclear ones reach you, grouped by school.
 
-Nothing for you to do. D3, then NAIA, NJCAA, CCCAA, NWAC. As it goes it also fills in the
-566 missing official pages.
+Expected effect: the 240 athletics-site decisions drop to a small handful, and this stops
+refilling.
 
-## Step 3 - Clear the 952 waiting decisions, mostly without you
+## Step 2 - Coach pilot, 25 teams, hand-checked
 
-Sort the 938 links and 14 data points into three piles automatically: clearly right,
-clearly wrong, and genuinely unclear. Only the unclear pile reaches you, and it gets
-grouped by school so you decide once per school rather than once per link.
+Fill head coaches for 25 confirmed teams under the new proof rule, then show you all 25
+side by side with the page each name came from. If all 25 are right, coach filling turns on
+nationwide. If even one is wrong, we stop and fix the rule instead.
 
-## Step 4 - The 210 undecided sports
+## Step 3 - Let the run finish the levels
 
-Re-run the sport check on those with the newer evidence rules, then hand you whatever is
-left as a short list with a yes/no button per team.
+Nothing for you to do. D3, then NAIA, NJCAA, CCCAA, NWAC — filling in the 566 missing
+official pages as it goes.
 
-## Step 5 - Keep it honest
+## Step 4 - Clear the rest of the waiting decisions
+
+Sort what is left into clearly right, clearly wrong, and genuinely unclear, and only show
+you the unclear pile, one card per school.
+
+## Step 5 - The 210 undecided sports
+
+Re-run the sport check with the newer evidence rules, then hand you a short yes/no list for
+whatever is left.
+
+## Step 6 - Keep it honest
 
 Weekly random accuracy check, twice-yearly roster refresh, and a 2026-27 roster sweep in
-January-March when schools publish their spring pages.
+January-March when schools publish spring pages.
 
 ## Technical notes
 
-- Coach writes stay off until the pilot in Step 1 passes review; `coach-audit --apply`
-  and broad coach sweeps remain prohibited until then.
+- Step 1 lives in `src/lib/link-quality.ts` (new `athleticsHomeFor(url)` normalisation plus
+  reject codes for news/store/jobs paths), consumed by `classifyLink`, so discovery
+  (`src/lib/discovery.server.ts`), the link sweep and the review screen all agree. Then a
+  bounded re-sweep of pending `athletic_website` rows rewrites or rejects in place; no
+  schema change.
+- Coach writes stay off until the Step 2 pilot passes review; `coach-audit --apply` and
+  broad coach sweeps remain prohibited until then.
 - Pilot runs through the existing ingest path so `coachEvidenceVerdict` gates every write,
-  with provenance rows in `data_field_sources` and reversible updates.
-- Step 3 reuses the existing link classifiers and bulk decision endpoints; no new schema.
-- Step 4 reuses `syncSponsorshipBatch` with `recheck: true`.
+  with `data_field_sources` provenance and reversible updates.
+- Step 5 reuses `syncSponsorshipBatch` with `recheck: true`.
