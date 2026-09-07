@@ -235,7 +235,13 @@ function DiscoveryQueue() {
   });
 
   const busy =
-    review.isPending || reviewMany.isPending || sweep.isPending || saveManual.isPending || retry.isPending;
+    review.isPending ||
+    reviewMany.isPending ||
+    sweep.isPending ||
+    saveManual.isPending ||
+    retry.isPending ||
+    saveSite.isPending ||
+    noSport.isPending;
 
   const rows = list.data?.rows ?? [];
   const groups = new Map<string, Row[]>();
