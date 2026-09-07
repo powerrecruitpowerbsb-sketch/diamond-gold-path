@@ -11,8 +11,10 @@ import {
   countPendingDiscoveries,
   listDiscoveredUrls,
   listUnfoundLinks,
+  markSportNotOffered,
   reviewDiscoveredUrl,
   reviewDiscoveredUrls,
+  setAthleticsSite,
   setLinkManually,
   sweepDiscoveredLinksFn,
 } from "@/lib/discovery.functions";
@@ -58,6 +60,7 @@ type Row = {
 type UnfoundRow = {
   id: string;
   university_id: string;
+  program_id: string | null;
   discovery_type: Kind;
   notes: string | null;
   universities: { name: string; state: string | null; website_url?: string | null } | null;
@@ -92,6 +95,8 @@ function DiscoveryQueue() {
   const reviewManyFn = useServerFn(reviewDiscoveredUrls);
   const sweepFn = useServerFn(sweepDiscoveredLinksFn);
   const manualFn = useServerFn(setLinkManually);
+  const athleticsFn = useServerFn(setAthleticsSite);
+  const notOfferedFn = useServerFn(markSportNotOffered);
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
@@ -197,6 +202,28 @@ function DiscoveryQueue() {
       toast.error(failure instanceof Error ? failure.message : "Could not queue that search"),
   });
 
+  const saveSite = useMutation({
+    mutationFn: (input: { id: string; url: string }) =>
+      athleticsFn({ data: input }) as Promise<{ message: string }>,
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await refreshAll();
+    },
+    onError: (failure: unknown) =>
+      toast.error(failure instanceof Error ? failure.message : "Could not save that athletics site"),
+  });
+
+  const noSport = useMutation({
+    mutationFn: (input: { programId: string }) =>
+      notOfferedFn({ data: input }) as Promise<{ message: string }>,
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await refreshAll();
+    },
+    onError: (failure: unknown) =>
+      toast.error(failure instanceof Error ? failure.message : "Could not save that decision"),
+  });
+
   const saveManual = useMutation({
     mutationFn: (input: { id: string; url: string }) => manualFn({ data: input }),
     onSuccess: async () => {
@@ -208,7 +235,13 @@ function DiscoveryQueue() {
   });
 
   const busy =
-    review.isPending || reviewMany.isPending || sweep.isPending || saveManual.isPending || retry.isPending;
+    review.isPending ||
+    reviewMany.isPending ||
+    sweep.isPending ||
+    saveManual.isPending ||
+    retry.isPending ||
+    saveSite.isPending ||
+    noSport.isPending;
 
   const rows = list.data?.rows ?? [];
   const groups = new Map<string, Row[]>();
@@ -530,11 +563,40 @@ function DiscoveryQueue() {
                 <Button
                   variant="outline"
                   className="touch-target"
+                  disabled={busy || !(manual[current.id] ?? "").trim()}
+                  onClick={() =>
+                    saveSite.mutate({ id: current.id, url: (manual[current.id] ?? "").trim() })
+                  }
+                >
+                  This is the school's athletics site
+                </Button>
+                <Button
+                  variant="outline"
+                  className="touch-target"
                   disabled={busy}
                   onClick={() => retry.mutate({ id: current.id, decision: "reject" })}
                 >
                   Search again
                 </Button>
+                {current.program_id ? (
+                  <Button
+                    variant="ghost"
+                    className="touch-target text-destructive"
+                    disabled={busy}
+                    onClick={() => {
+                      const sport = current.programs?.sport ?? "this sport";
+                      if (
+                        window.confirm(
+                          `Mark ${current.universities?.name ?? "this school"} as not having ${sport}? It stops all searching for that sport and can be undone later.`,
+                        )
+                      ) {
+                        noSport.mutate({ programId: String(current.program_id) });
+                      }
+                    }}
+                  >
+                    No {current.programs?.sport ?? "such"} program here
+                  </Button>
+                ) : null}
                 <Button
                   variant="ghost"
                   className="touch-target"
@@ -544,6 +606,10 @@ function DiscoveryQueue() {
                   Skip for now
                 </Button>
               </div>
+              <p className="meta mt-2">
+                Pasting the athletics site saves it for every sport at this school and looks for the
+                roster and staff pages inside it.
+              </p>
             </div>
             {skipped.length ? (
               <button

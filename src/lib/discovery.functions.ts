@@ -324,3 +324,48 @@ export const reviewDiscoveredUrls = createServerFn({ method: "POST" })
 
     return { ok: true, done, failed, requeued };
   });
+
+/** The search kept guessing the wrong domain — save the real athletics site. */
+export const setAthleticsSite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; url: string }) => ({
+    id: String(input.id),
+    url: String(input.url ?? "").trim(),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!/^https?:\/\/\S+\.\S+/i.test(data.url)) {
+      throw new Error("That doesn't look like a web address — it should start with https://");
+    }
+
+    const { data: row, error } = await context.supabase
+      .from("url_discovery_queue")
+      .select("id, university_id")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+
+    const { setAthleticsSiteByHand } = await import("@/lib/discovery.server");
+    const outcome = await setAthleticsSiteByHand(
+      context.supabase,
+      String((row as any).university_id),
+      data.url,
+      context.userId,
+    );
+    return { ok: true, ...outcome };
+  });
+
+/** This school doesn't field that sport, so its pages are never coming. */
+export const markSportNotOffered = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { programId: string }) => ({ programId: String(input.programId) }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    const { markProgramNotOffered } = await import("@/lib/discovery.server");
+    const outcome = await markProgramNotOffered(context.supabase, data.programId, context.userId);
+    return {
+      ok: true,
+      ...outcome,
+      message: `Marked as not offered — ${outcome.closedLinks} link request${outcome.closedLinks === 1 ? "" : "s"} closed.`,
+    };
+  });
