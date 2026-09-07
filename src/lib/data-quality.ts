@@ -417,13 +417,20 @@ export function rosterVerdict(
 export function rosterKeepable(
   payload: { season_year?: unknown; players?: unknown },
   now: Date = new Date(),
+  /**
+   * Ceiling on squad size. The default guards against padded lists; a caller that
+   * has already proved every single name against the page's own text may raise it,
+   * because big NAIA and junior-college squads are real.
+   */
+  maxPlayers = 60,
 ): { keep: boolean; partial: boolean; reason: string | null } {
   const players = Array.isArray(payload?.players) ? (payload.players as any[]) : [];
   const named = players.filter((player) => normalizeText(player?.name).length > 2);
   if (!named.length) return { keep: false, partial: false, reason: "no player names were read" };
-  if (players.length > 60) {
+  if (players.length > maxPlayers) {
     return { keep: false, partial: false, reason: `${players.length} players is more than a real roster` };
   }
+
   const season = plausibleSeasonYear(payload?.season_year);
   if (!season || !acceptableSeasonYears(now).includes(season)) {
     return {
