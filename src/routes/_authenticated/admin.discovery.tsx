@@ -200,6 +200,28 @@ function DiscoveryQueue() {
       toast.error(failure instanceof Error ? failure.message : "Could not queue that search"),
   });
 
+  const saveSite = useMutation({
+    mutationFn: (input: { id: string; url: string }) =>
+      athleticsFn({ data: input }) as Promise<{ message: string }>,
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await refreshAll();
+    },
+    onError: (failure: unknown) =>
+      toast.error(failure instanceof Error ? failure.message : "Could not save that athletics site"),
+  });
+
+  const noSport = useMutation({
+    mutationFn: (input: { programId: string }) =>
+      notOfferedFn({ data: input }) as Promise<{ message: string }>,
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await refreshAll();
+    },
+    onError: (failure: unknown) =>
+      toast.error(failure instanceof Error ? failure.message : "Could not save that decision"),
+  });
+
   const saveManual = useMutation({
     mutationFn: (input: { id: string; url: string }) => manualFn({ data: input }),
     onSuccess: async () => {
