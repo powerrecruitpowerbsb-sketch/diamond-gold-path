@@ -202,7 +202,7 @@ function BuildProgress() {
           </Link>
           <Link
             to="/admin/review"
-            search={{}}
+            search={{ program: undefined }}
             className="touch-target inline-flex items-center rounded-lg border border-border px-3.5 text-sm font-semibold text-graphite"
           >
             Proposed changes to say yes or no to
