@@ -205,7 +205,12 @@ export async function sweepDiscoveredLinks(
       await applyDiscoveredUrl(supabase, row as any);
       await supabase
         .from("url_discovery_queue")
-        .update({ status: "confirmed", reviewed_by: actorId, reviewed_at: now })
+        .update({
+          status: "confirmed",
+          reviewed_by: actorId,
+          reviewed_at: now,
+          discovered_url: row.discovered_url,
+        })
         .eq("id", row.id)
         .eq("status", "pending_review");
     } catch {
@@ -213,6 +218,7 @@ export async function sweepDiscoveredLinks(
       counts.approve -= 1;
     }
   }
+
 
   // --- Declines: mark in bulk, then send each school back once --------------
   const rejectIds = toReject.map((entry) => entry.row.id);
