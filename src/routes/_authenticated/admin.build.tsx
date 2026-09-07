@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin/build")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: BuildProgress;
+  component: BuildProgress,
 });
 
 type Board = Awaited<ReturnType<typeof getBuildStages>>;
