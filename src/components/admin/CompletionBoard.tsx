@@ -86,11 +86,29 @@ export function CompletionBoard() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const missingLinks = useMutation({
+    mutationFn: () => missingLinksFn(),
+    onSuccess: (result: any) => {
+      toast.success(
+        `${Number(result.revived + result.created).toLocaleString()} team(s) lined up to have their official pages found.`,
+      );
+      refresh();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const data = board.data as any;
   const done = data?.done ?? 0;
   const sponsored = data?.sponsored ?? 0;
   const percent = sponsored ? Math.round((done / sponsored) * 100) : 0;
-  const busy = queueWork.isPending || ownership.isPending || backlog.isPending || recheck.isPending;
+  const busy =
+    queueWork.isPending ||
+    ownership.isPending ||
+    backlog.isPending ||
+    recheck.isPending ||
+    missingLinks.isPending;
+
+
 
 
   return (
