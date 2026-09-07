@@ -58,6 +58,15 @@ export async function sweepDiscoveredLinks(
     .eq("status", "pending_review")
     .not("discovered_url", "is", null);
 
+  // Rows where the search came back empty can't be judged here; they belong to
+  // the "couldn't find" list. Counted so the report explains itself.
+  const { count: noUrlTotal } = await supabase
+    .from("url_discovery_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending_review")
+    .is("discovered_url", null);
+
+
   const { data, error } = await supabase
     .from("url_discovery_queue")
     .select(
