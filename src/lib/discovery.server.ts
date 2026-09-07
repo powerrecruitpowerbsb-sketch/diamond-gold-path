@@ -552,7 +552,11 @@ export async function discoverUniversityUrls(
         result.url = null;
         result.confidence = "failed";
         result.notes = `Discarded automatically: ${verdict.reason}`;
+      } else if (verdict.normalizedUrl) {
+        // Found on one team's page — keep the athletics home page instead.
+        result.url = verdict.normalizedUrl;
       }
+
     }
   }
 
