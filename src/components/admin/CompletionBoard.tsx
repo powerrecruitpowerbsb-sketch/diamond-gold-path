@@ -25,7 +25,9 @@ export function CompletionBoard() {
   const ownershipFn = useServerFn(auditPageOwnership);
   const backlogFn = useServerFn(clearBacklog);
   const recheckFn = useServerFn(recheckRosters);
+  const missingLinksFn = useServerFn(requeueMissingLinks);
   const queryClient = useQueryClient();
+
 
   const board = useQuery({
     queryKey: ["completion-board"],
