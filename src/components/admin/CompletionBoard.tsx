@@ -192,11 +192,20 @@ export function CompletionBoard() {
             <button
               type="button"
               disabled={busy}
+              onClick={() => missingLinks.mutate()}
+              className="inline-flex touch-target items-center rounded-lg border border-border px-4 text-sm font-semibold text-graphite disabled:opacity-60"
+            >
+              {missingLinks.isPending ? "Lining up…" : "Find the missing official pages"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
               onClick={() => backlog.mutate(true)}
               className="inline-flex touch-target items-center rounded-lg border border-border px-4 text-sm font-semibold text-graphite disabled:opacity-60"
             >
               {backlog.isPending ? "Working through…" : "Work through the waiting items"}
             </button>
+
             <button
               type="button"
               disabled={busy}
