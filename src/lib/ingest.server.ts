@@ -18,6 +18,8 @@ import {
   valuesEquivalent,
 } from "@/lib/data-quality";
 import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
+import { clearWrongLink } from "@/lib/link-repair.server";
+import { verifyPageIdentity } from "@/lib/page-identity";
 
 
 
@@ -28,7 +30,7 @@ const AI_MODEL = "google/gemini-2.5-flash";
 export type UrlResult = {
   url: string;
   purpose: string;
-  status: "scraped" | "scrape_failed" | "extract_failed" | "empty";
+  status: "scraped" | "scrape_failed" | "extract_failed" | "empty" | "rejected";
   detail?: string;
 };
 
@@ -708,7 +710,40 @@ export async function ingestProgram(
       continue;
     }
 
+    // Before reading anything off an athletics page, make the page prove whose
+    // team it is. Look-alike schools share mascot-style addresses, so the only
+    // reliable witness is the school name printed on the page itself.
+    if (target.kind !== "university") {
+      const identity = verifyPageIdentity({
+        text: markdown,
+        url: target.url,
+        schoolName: university?.["name"] ?? null,
+        schoolWebsite: university?.["website_url"] ?? null,
+      });
+      if (identity.verdict === "wrong_school" || identity.verdict === "non_varsity") {
+        const field = target.kind === "roster" ? "roster_url" : null;
+        urlResults.push({
+          url: target.url,
+          purpose: target.purpose,
+          status: "rejected",
+          detail: identity.reason,
+        });
+        if (field || target.purpose === "Coaching staff") {
+          await clearWrongLink(supabase, {
+            programId,
+            universityId: university["id"],
+            field: field ?? "coaching_staff_url",
+            url: target.url,
+            reason: identity.reason,
+            actorId: userId,
+          });
+        }
+        continue;
+      }
+    }
+
     try {
+
       if (target.kind === "university") {
         const extracted = await extractUniversityFields(markdown);
         const rows = buildFieldProposals(
