@@ -398,16 +398,25 @@ function DiscoveryQueue() {
 
       <SectionCard
         title="Couldn't find these pages"
-        blurb={`${counts.data?.unfound ?? "—"} searches came back empty. These aren't decisions — nothing was found to approve or reject. Search again, or paste the right address in yourself.`}
+        blurb={`${counts.data?.unfound ?? "—"} searches came back empty. Nothing was found to approve or reject — paste in the right address, or send it back for another search.`}
+        aside={
+          <Button variant="ghost" className="touch-target" onClick={() => setShowAll((on) => !on)}>
+            {showAll ? "Show one at a time" : "Show the whole list"}
+          </Button>
+        }
       >
         {unfound.isPending ? (
           <div className="h-24 animate-pulse rounded-xl bg-muted" />
-        ) : !(unfound.data?.rows ?? []).length ? (
-          <p className="text-sm text-steel">Nothing outstanding.</p>
-        ) : (
+        ) : !rowsLeft.length ? (
+          <p className="text-sm text-steel">
+            {(unfound.data?.total ?? 0) > 0
+              ? "You've been through this page. Fetching the next few…"
+              : "Nothing outstanding."}
+          </p>
+        ) : showAll ? (
           <>
             <ul className="divide-y divide-border">
-              {(unfound.data?.rows ?? []).map((row) => (
+              {rowsLeft.map((row) => (
                 <li key={row.id} className="grid gap-2 py-3">
                   <div>
                     <p className="text-sm font-semibold text-graphite">
@@ -452,8 +461,94 @@ function DiscoveryQueue() {
               disabled={busy}
             />
           </>
-        )}
+        ) : current ? (
+          <div className="grid gap-4">
+            <p className="meta">
+              {(unfound.data?.total ?? 0).toLocaleString()} left · working on one at a time
+            </p>
+            <div className="rounded-xl border border-border bg-white p-4">
+              <h3 className="font-display text-xl font-bold text-graphite">
+                {current.universities?.name ?? "School"}
+                {current.universities?.state ? (
+                  <span className="ml-2 text-base font-semibold text-steel">
+                    {current.universities.state}
+                  </span>
+                ) : null}
+              </h3>
+              <p className="mt-1 text-sm text-steel">
+                We need this school's{" "}
+                <strong className="text-graphite">
+                  {TYPE_LABELS[current.discovery_type].toLowerCase()}
+                </strong>
+                {current.programs?.sport ? ` for ${current.programs.sport}` : ""}. Searching didn't turn
+                one up.
+              </p>
+              {current.notes ? <p className="meta mt-1">{current.notes}</p> : null}
+              {current.universities?.website_url ? (
+                <a
+                  href={current.universities.website_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="meta mt-2 inline-flex text-org-primary underline"
+                >
+                  Open the school's website to look
+                </a>
+              ) : null}
+
+              <label className="mt-4 block text-sm font-semibold text-graphite" htmlFor="focus-url">
+                Paste the address of that page
+              </label>
+              <input
+                id="focus-url"
+                value={manual[current.id] ?? ""}
+                onChange={(event) =>
+                  setManual((state) => ({ ...state, [current.id]: event.target.value }))
+                }
+                placeholder="https://…"
+                className="mt-1 h-11 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
+              />
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  className="touch-target"
+                  disabled={busy || !(manual[current.id] ?? "").trim()}
+                  onClick={() =>
+                    saveManual.mutate({ id: current.id, url: (manual[current.id] ?? "").trim() })
+                  }
+                >
+                  Save and next
+                </Button>
+                <Button
+                  variant="outline"
+                  className="touch-target"
+                  disabled={busy}
+                  onClick={() => retry.mutate({ id: current.id, decision: "reject" })}
+                >
+                  Search again
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="touch-target"
+                  disabled={busy}
+                  onClick={() => setSkipped((state) => [...state, current.id])}
+                >
+                  Skip for now
+                </Button>
+              </div>
+            </div>
+            {skipped.length ? (
+              <button
+                type="button"
+                className="meta w-fit underline"
+                onClick={() => setSkipped([])}
+              >
+                Bring back the {skipped.length} I skipped
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </SectionCard>
+
     </div>
   );
 }
