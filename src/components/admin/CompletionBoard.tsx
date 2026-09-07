@@ -69,11 +69,24 @@ export function CompletionBoard() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const recheck = useMutation({
+    mutationFn: (input: { apply: boolean; min: number; max: number }) =>
+      recheckFn({ data: { ...input, limit: 12 } }),
+    onSuccess: (result: any) => {
+      toast.success(
+        `${result.applied ? "Rechecked and fixed" : "Checked"} ${result.checked} roster(s) of ${result.groupsFound} oversized — removed ${result.droppedPlayers} player(s) the pages don't list.`,
+      );
+      refresh();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const data = board.data as any;
   const done = data?.done ?? 0;
   const sponsored = data?.sponsored ?? 0;
   const percent = sponsored ? Math.round((done / sponsored) * 100) : 0;
-  const busy = queueWork.isPending || ownership.isPending || backlog.isPending;
+  const busy = queueWork.isPending || ownership.isPending || backlog.isPending || recheck.isPending;
+
 
   return (
     <SectionCard
