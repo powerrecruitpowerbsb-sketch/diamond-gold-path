@@ -70,18 +70,10 @@ export const Route = createFileRoute("/api/public/collection-runner")({
           return Response.json({ ok: false, reason: "no superadmin account" }, { status: 503 });
         }
 
-        // Step one of the build — checking every stored roster and staff page —
-        // runs here too, so pressing the button once is enough.
-        const { pagesCheckIsOn, runPagesSlice } = await import("@/lib/build-stages.server");
-        let pages: unknown = null;
-        if (await pagesCheckIsOn(supabase)) {
-          try {
-            pages = await runPagesSlice(supabase, actorId, { limit: 120, budgetMs: 45_000 });
-          } catch (failure) {
-            console.error("Page check slice failed", failure);
-            pages = { error: failure instanceof Error ? failure.message : "failed" };
-          }
-        }
+        // The page check no longer runs on this schedule. It now requires an
+        // explicit list of schools, so a whole-database pass can never start on
+        // its own; it is run deliberately for a named set of schools instead.
+        const pages: unknown = null;
 
         const state = await readCollectionState(supabase);
         if (!state.isRunning || state.stopRequested) {
