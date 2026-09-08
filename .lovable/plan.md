@@ -12,14 +12,14 @@ I will still hand you the list so you can see what was thrown out:
 
 ## The 427 that could not be read
 
-These were never written down anywhere — only counted — so there is no list to hand over yet. Most of them are very likely temporary: a slow site, a timeout, or a page that blocks automated reading. A page that fails once often reads fine the second time.
+These were only counted, never written down, so there is no list yet — and that does mean one more read-through of the stored pages to find out which ones they were. It is a much lighter pass than the first run: it only tries to open each page, and does the fuller school-name check on the ones that now open.
 
 Plan:
 
-1. Record failures from now on. Add a small unreadable-pages table so every failed read is stored with school, sport, page, URL, error and time, instead of only being counted.
-2. Re-read those pages once, unattended, using the same helper that ran Step 1. Anything that reads fine is checked normally (kept or cleared like any other page) and drops off the list.
-3. Split what is left into two groups and export them:
-   - `/mnt/documents/unreadable-pages.csv` — pages that still cannot be read after the retry, with the reason. These are the only ones needing a human look, and most will be "site blocks readers" rather than a bad link.
+1. Record failures from now on. Add a small unreadable-pages table so every failed read is stored with school, sport, page, URL, error and time, instead of only being counted. This is the last time a re-read is needed to answer this question.
+2. Run one open-only pass over the stored pages, unattended on the existing every-minute helper. A page that opens is checked normally (kept or cleared like any other page); a page that fails is written to the new table.
+3. Then export what is left:
+   - `/mnt/documents/unreadable-pages.csv` — pages that still cannot be read, with the reason. These are the only ones needing a human look, and most will be "the site blocks automated readers" rather than a bad link.
    - Pages whose site is gone entirely get their link cleared and the team sent back to search, same as any wrong page.
 4. Show the count on the build screen next to Step 1 so this never becomes an invisible number again.
 
