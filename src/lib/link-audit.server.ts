@@ -189,6 +189,7 @@ export async function auditStoredLinks(
         cleared: options.apply,
       });
     }
+    }
   }
 
   return result;
