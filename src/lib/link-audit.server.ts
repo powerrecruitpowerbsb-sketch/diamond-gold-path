@@ -115,11 +115,26 @@ export async function auditStoredLinks(
     return pages.get(url)!;
   };
 
-  for (const program of programs) {
+  // Fetch pages side by side, a group of programs at a time, so a batch is not
+  // spent waiting on one slow site. Verdict rules below are unchanged.
+  const groups: ProgramRow[][] = [];
+  for (let i = 0; i < programs.length; i += 10) groups.push(programs.slice(i, i + 10));
+
+  for (const group of groups) {
     if (Date.now() - startedAt > budgetMs) {
       result.moreWaiting = true;
       break;
     }
+    await Promise.all(
+      group.flatMap((program) =>
+        (["roster_url", "coaching_staff_url"] as LinkField[])
+          .map((field) => (program[field] ?? "").trim())
+          .filter(Boolean)
+          .map((url) => read(url)),
+      ),
+    );
+
+    for (const program of group) {
     result.nextCursor = program.id;
     const school = program.universities?.name ?? "Unknown school";
 
