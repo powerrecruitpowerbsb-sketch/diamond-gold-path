@@ -1920,6 +1920,7 @@ export type Database = {
       is_linked_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       is_org_manager: { Args: never; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
+      pages_check_on: { Args: never; Returns: boolean }
       program_roster_summary: {
         Args: { _program_id: string }
         Returns: {

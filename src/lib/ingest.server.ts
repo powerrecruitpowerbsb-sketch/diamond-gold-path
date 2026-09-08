@@ -112,15 +112,28 @@ export async function scrape(url: string): Promise<string> {
   // Lovable-managed allowance. Auth still rides the connector gateway.
   const firecrawlKey = requireEnv("FIRECRAWL_API_KEY_1");
 
-  const response = await fetch(`${GATEWAY_FIRECRAWL}/scrape`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": firecrawlKey,
-    },
-    body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
-  });
+  // A hard ceiling per page. Without it one unresponsive site holds a whole
+  // batch open indefinitely, so nothing that batch found ever gets saved.
+  let response: Response;
+  try {
+    response = await fetch(`${GATEWAY_FIRECRAWL}/scrape`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": firecrawlKey,
+      },
+      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
+      signal: AbortSignal.timeout(25_000),
+    });
+  } catch (failure) {
+    const reason = failure instanceof Error ? failure.name : "";
+    if (reason === "TimeoutError" || reason === "AbortError") {
+      throw new Error("the page took too long to answer");
+    }
+    throw failure;
+  }
+
 
   if (!response.ok) {
     const body = await response.text();
