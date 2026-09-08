@@ -12,8 +12,9 @@ A single new module, `safeFetch`, becomes the only way any part of the system op
 - **30 seconds** allowed per request, up from 25.
 - **Three tries** on failure, waiting 5s, then 15s, then 45s. A "page does not exist" (404) is not retried — that is a real dead link.
 - **Normal desktop browser headers**, because several hosts are closing the connection rather than answering, which is bot-blocking.
-- **A second attempt with full page rendering** when a page opens but comes back with no roster or staff content, since some roster tables are drawn by the page's own scripts.
-- A structured answer — worked or not, the response code, the page text, and a failure category — so nothing has to read error wording to know what happened.
+- **A second attempt through the rendering service** whenever the direct request is refused or useless: a blocked or closed connection, a 403, or a page that opens but comes back with no roster or staff content. Those hosts are refusing the plain request specifically, which is exactly what the service is there to get past.
+- A structured answer — worked or not, the response code, the page text, a failure category, and **which path succeeded** (`direct` or `rendered`) — so nothing has to read error wording to know what happened.
+
 - A comment at the top recording *why* the per-site pause exists: parallel requests to one athletics host caused 157 false failures on 2026-09-08. Without that note someone removes it later.
 
 ### 2. Everything routed through it
