@@ -255,8 +255,20 @@ export async function pagesCheckIsOn(supabase: any): Promise<boolean> {
 export async function runPagesSlice(
   supabase: any,
   actorId: string | null,
-  options: { limit?: number; budgetMs?: number } = {},
+  options: {
+    limit?: number;
+    budgetMs?: number;
+    /** Required: the schools this slice may look at. No "everything" default. */
+    schoolIds?: string[] | null;
+    schoolNames?: string[] | null;
+    onlyPreviouslyFailed?: boolean;
+  },
 ): Promise<{ checked: number; cleared: number; unclear: number; failed: number; finished: boolean }> {
+  if (!options.schoolIds?.length && !options.schoolNames?.length) {
+    throw new Error(
+      "The page check needs a list of schools to look at. There is no setting that means every school.",
+    );
+  }
   const rows = await readRows(supabase);
   const { auditStoredLinks } = await import("@/lib/link-audit.server");
 
@@ -266,6 +278,9 @@ export async function runPagesSlice(
     budgetMs: options.budgetMs ?? 22_000,
     cursor: rows.pages.cursor,
     actorId,
+    schoolIds: options.schoolIds ?? null,
+    schoolNames: options.schoolNames ?? null,
+    onlyPreviouslyFailed: options.onlyPreviouslyFailed ?? false,
   });
 
   const finished = !result.moreWaiting;

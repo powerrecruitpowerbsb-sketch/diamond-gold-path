@@ -13,9 +13,10 @@
  * doesn't. Only pages that name nobody recognisable are listed for a person.
  */
 
-import { scrape } from "@/lib/ingest.server";
+import { scrapePage } from "@/lib/ingest.server";
 import { clearWrongLink, type LinkField } from "@/lib/link-repair.server";
 import { verifyPageIdentity, type IdentityVerdict } from "@/lib/page-identity";
+import type { FailureCategory, FetchMethod, SafeFetchResult } from "@/lib/safe-fetch.server";
 
 export { clearWrongLink };
 export type { LinkField };
@@ -30,6 +31,8 @@ export type AuditRow = {
   verdict: IdentityVerdict | "failed";
   reason: string;
   cleared: boolean;
+  failureCategory?: FailureCategory | null;
+  fetchMethod?: FetchMethod | null;
 };
 
 export type AuditResult = {
@@ -55,30 +58,104 @@ type ProgramRow = {
   universities: { name: string | null; website_url: string | null } | null;
 };
 
+/** En dashes, em dashes and stray spacing all become one plain hyphen. */
+export function normalizeSchoolName(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\s*-\s*/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/** Turn a list of school names into ids, matching with dashes normalised first. */
+export async function schoolIdsForNames(supabase: any, names: string[]): Promise<{ ids: string[]; missing: string[] }> {
+  const wanted = new Map<string, string>();
+  for (const name of names) wanted.set(normalizeSchoolName(name), name);
+
+  const ids: string[] = [];
+  const found = new Set<string>();
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("universities")
+      .select("id, name")
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as { id: string; name: string | null }[];
+    for (const row of rows) {
+      const key = normalizeSchoolName(row.name ?? "");
+      if (wanted.has(key) && !found.has(key)) {
+        found.add(key);
+        ids.push(row.id);
+      }
+    }
+    if (rows.length < pageSize) break;
+  }
+
+  const missing = [...wanted.entries()].filter(([key]) => !found.has(key)).map(([, original]) => original);
+  return { ids, missing };
+}
+
+export type AuditOptions = {
+  apply: boolean;
+  /** Required target. There is no default that means "the whole database". */
+  schoolIds?: string[] | null;
+  schoolNames?: string[] | null;
+  /** Only re-read pages currently sitting in the couldn't-be-read log. */
+  onlyPreviouslyFailed?: boolean;
+  limit?: number;
+  budgetMs?: number;
+  /** Program id the previous pass stopped after. */
+  cursor?: string | null;
+  actorId?: string | null;
+};
+
 /**
- * Walk stored links in a stable order, a bounded slice at a time, so the sweep
- * can cover the whole database across repeated passes.
+ * Walk stored links for an explicitly named set of schools, a bounded slice at a
+ * time. A missing or empty target throws before any network call — a run that
+ * covers everything by accident is exactly what we are guarding against.
  */
-export async function auditStoredLinks(
-  supabase: any,
-  options: {
-    apply: boolean;
-    limit?: number;
-    budgetMs?: number;
-    /** Program id the previous pass stopped after. */
-    cursor?: string | null;
-    actorId?: string | null;
-  },
-): Promise<AuditResult> {
+export async function auditStoredLinks(supabase: any, options: AuditOptions): Promise<AuditResult> {
+  let schoolIds = (options.schoolIds ?? []).filter(Boolean);
+  if (!schoolIds.length && options.schoolNames?.length) {
+    const resolved = await schoolIdsForNames(supabase, options.schoolNames);
+    schoolIds = resolved.ids;
+  }
+  if (!schoolIds.length) {
+    throw new Error(
+      "The page check needs a list of schools to look at. There is no setting that means every school.",
+    );
+  }
+
   const limit = Math.min(Math.max(options.limit ?? 10, 1), 200);
   const budgetMs = options.budgetMs ?? 25_000;
   const startedAt = Date.now();
+
+  // When re-reading only past failures, the target narrows to the exact pages in
+  // the couldn't-be-read log rather than everything those schools hold.
+  let failedOnly: Set<string> | null = null;
+  if (options.onlyPreviouslyFailed) {
+    failedOnly = new Set<string>();
+    const { data, error } = await supabase
+      .from("unreadable_pages")
+      .select("program_id, field")
+      .is("resolved_at", null)
+      .in("university_id", schoolIds);
+    if (error) throw new Error(error.message);
+    for (const row of (data ?? []) as { program_id: string; field: string }[]) {
+      failedOnly.add(`${row.program_id}:${row.field}`);
+    }
+  }
 
   let query = supabase
     .from("programs")
     .select(
       "id, university_id, sport, athletic_website, roster_url, coaching_staff_url, universities(name, website_url)",
     )
+    .in("university_id", schoolIds)
     .eq("offering_status", "verified")
     .or("roster_url.not.is.null,coaching_staff_url.not.is.null")
     .order("id", { ascending: true })
@@ -101,26 +178,98 @@ export async function auditStoredLinks(
     moreWaiting: programs.length === limit,
   };
 
-  // One fetch per page, cached within the pass so two programs sharing a staff
-  // page (a combined baseball/softball directory) are not fetched twice.
-  const pages = new Map<string, string | Error>();
+  // One read per page, cached within the pass so two programs sharing a staff
+  // page (a combined baseball/softball directory) are not read twice. Pacing,
+  // retries and the rendering fallback all live in safeFetch, so nothing here
+  // fires two requests at one host — that is what caused the false timeouts.
+  const pages = new Map<string, SafeFetchResult>();
   const read = async (url: string) => {
-    if (!pages.has(url)) {
-      try {
-        pages.set(url, await scrape(url));
-      } catch (failure) {
-        pages.set(url, failure as Error);
-      }
+    const cached = pages.get(url);
+    if (cached) return cached;
+    const fetched = await scrapePage(url);
+    pages.set(url, fetched);
+    return fetched;
+  };
+
+  /** One running health record per program and page, updated in place. */
+  const recordHealth = async (
+    program: ProgramRow,
+    field: LinkField,
+    url: string,
+    page: SafeFetchResult,
+  ) => {
+    if (!options.apply) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: existing } = await supabase
+      .from("link_health")
+      .select("id, consecutive_failures, failure_dates, not_found_runs")
+      .eq("program_id", program.id)
+      .eq("field", field)
+      .maybeSingle();
+    const previous = existing as
+      | { id: string; consecutive_failures: number; failure_dates: string[] | null; not_found_runs: number }
+      | null;
+
+    if (page.ok) {
+      await supabase.from("link_health").upsert(
+        {
+          program_id: program.id,
+          field,
+          url,
+          link_status: "verified",
+          last_verified_ok_at: new Date().toISOString(),
+          fetch_method: page.fetch_method,
+          consecutive_failures: 0,
+          failure_dates: [],
+          not_found_runs: 0,
+          last_failure_category: null,
+          last_error: null,
+        },
+        { onConflict: "program_id,field" },
+      );
+      return;
     }
-    return pages.get(url)!;
+
+    const days = new Set(previous?.failure_dates ?? []);
+    days.add(today);
+    const notFound = page.failure_category === "not_found";
+    const notFoundRuns = (previous?.not_found_runs ?? 0) + (notFound ? 1 : 0);
+    const failures = (previous?.consecutive_failures ?? 0) + 1;
+
+    // A slow or blocked site never demotes a good link: only a missing page, or
+    // failures on three separate days, changes the status.
+    let status: "verified" | "unverified" | "dead" | null = null;
+    if (notFoundRuns >= 2) status = "dead";
+    else if (notFound || days.size >= 3) status = "unverified";
+
+    await supabase.from("link_health").upsert(
+      {
+        program_id: program.id,
+        field,
+        url,
+        ...(status ? { link_status: status } : {}),
+        consecutive_failures: failures,
+        failure_dates: [...days].sort(),
+        not_found_runs: notFoundRuns,
+        last_failure_category: page.failure_category,
+        last_error: (page.error ?? "").slice(0, 500),
+      },
+      { onConflict: "program_id,field" },
+    );
   };
 
   /**
    * A page that can't be opened used to be counted and forgotten, so nobody
-   * could see which ones they were. Every failure is written down now, and a
-   * page that opens on a later pass is marked resolved.
+   * could see which ones they were. Every failure is written down now, with the
+   * reason it failed, and a page that opens on a later pass is marked resolved.
    */
-  const recordUnreadable = async (program: ProgramRow, field: LinkField, url: string, error: string) => {
+  const recordUnreadable = async (
+    program: ProgramRow,
+    field: LinkField,
+    url: string,
+    error: string,
+    category: FailureCategory | null,
+  ) => {
     if (!options.apply) return;
     const now = new Date().toISOString();
     const existing = await supabase
@@ -135,6 +284,7 @@ export async function auditStoredLinks(
         .from("unreadable_pages")
         .update({
           error: error.slice(0, 500),
+          failure_category: category,
           attempts: (existing.data.attempts ?? 1) + 1,
           last_seen_at: now,
           resolved_at: null,
@@ -148,6 +298,7 @@ export async function auditStoredLinks(
       field,
       url,
       error: error.slice(0, 500),
+      failure_category: category,
       first_seen_at: now,
       last_seen_at: now,
     });
@@ -164,46 +315,53 @@ export async function auditStoredLinks(
       .is("resolved_at", null);
   };
 
-  // Fetch pages side by side, a group of programs at a time, so a batch is not
-  // spent waiting on one slow site. Verdict rules below are unchanged.
-  const groups: ProgramRow[][] = [];
-  for (let i = 0; i < programs.length; i += 10) groups.push(programs.slice(i, i + 10));
+  // Start every page in the slice at once. safeFetch keeps one request at a time
+  // per website with a pause between them, so this is fast across DIFFERENT
+  // sites without ever double-hitting the same one.
+  const wanted = programs.flatMap((program) =>
+    (["roster_url", "coaching_staff_url"] as LinkField[])
+      .filter((field) => !failedOnly || failedOnly.has(`${program.id}:${field}`))
+      .map((field) => (program[field] ?? "").trim())
+      .filter(Boolean),
+  );
+  await Promise.allSettled([...new Set(wanted)].map((url) => read(url)));
 
-  for (const group of groups) {
+  for (const program of programs) {
     if (Date.now() - startedAt > budgetMs) {
       result.moreWaiting = true;
       break;
     }
-    await Promise.all(
-      group.flatMap((program) =>
-        (["roster_url", "coaching_staff_url"] as LinkField[])
-          .map((field) => (program[field] ?? "").trim())
-          .filter(Boolean)
-          .map((url) => read(url)),
-      ),
-    );
-
-    for (const program of group) {
     result.nextCursor = program.id;
     const school = program.universities?.name ?? "Unknown school";
 
     for (const field of ["roster_url", "coaching_staff_url"] as LinkField[]) {
       const url = (program[field] ?? "").trim();
       if (!url) continue;
+      if (failedOnly && !failedOnly.has(`${program.id}:${field}`)) continue;
 
       const base = { key: `${program.id}:${field}`, programId: program.id, school, sport: program.sport, field, url };
       const page = await read(url);
-      if (page instanceof Error) {
+      await recordHealth(program, field, url, page);
+
+      if (!page.ok || !page.markdown) {
+        const reason = page.error ?? "the page could not be read";
         result.failed += 1;
-        await recordUnreadable(program, field, url, page.message);
-        result.rows.push({ ...base, verdict: "failed", reason: page.message, cleared: false });
+        await recordUnreadable(program, field, url, reason, page.failure_category);
+        result.rows.push({
+          ...base,
+          verdict: "failed",
+          reason,
+          cleared: false,
+          failureCategory: page.failure_category,
+          fetchMethod: null,
+        });
         continue;
       }
 
       result.checked += 1;
       await clearUnreadable(program, field, url);
       const identity = verifyPageIdentity({
-        text: page,
+        text: page.markdown,
         url,
         schoolName: school,
         schoolWebsite: program.universities?.website_url ?? null,
@@ -212,13 +370,25 @@ export async function auditStoredLinks(
 
       if (identity.verdict === "confirmed") {
         result.confirmed += 1;
-        result.rows.push({ ...base, verdict: identity.verdict, reason: identity.reason, cleared: false });
+        result.rows.push({
+          ...base,
+          verdict: identity.verdict,
+          reason: identity.reason,
+          cleared: false,
+          fetchMethod: page.fetch_method,
+        });
         continue;
       }
 
       if (identity.verdict === "unclear") {
         result.unclear += 1;
-        result.rows.push({ ...base, verdict: identity.verdict, reason: identity.reason, cleared: false });
+        result.rows.push({
+          ...base,
+          verdict: identity.verdict,
+          reason: identity.reason,
+          cleared: false,
+          fetchMethod: page.fetch_method,
+        });
         continue;
       }
 
@@ -238,8 +408,8 @@ export async function auditStoredLinks(
         verdict: identity.verdict,
         reason: identity.reason,
         cleared: options.apply,
+        fetchMethod: page.fetch_method,
       });
-    }
     }
   }
 

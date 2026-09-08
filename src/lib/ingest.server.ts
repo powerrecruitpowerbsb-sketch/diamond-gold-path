@@ -20,10 +20,11 @@ import {
 import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
 import { clearWrongLink } from "@/lib/link-repair.server";
 import { verifyPageIdentity } from "@/lib/page-identity";
+import { safeFetch, type SafeFetchResult } from "@/lib/safe-fetch.server";
 
-
-
-const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
+// The AI Gateway below is a rate-limited data service, not an athletics host: it
+// deliberately bypasses safeFetch (no per-host pacing or rendering fallback
+// applies to it). Do not fold it in later.
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-2.5-flash";
 
@@ -105,53 +106,24 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * Read one page and hand back its text plus how it went. Every athletics page
+ * read in this codebase goes through safeFetch, which owns pacing, timeouts,
+ * retries and the rendering fallback — nothing here talks to a host directly.
+ */
+export async function scrapePage(url: string): Promise<SafeFetchResult> {
+  return safeFetch(url);
+}
+
 /** Scrape a single page to markdown. Throws with a readable reason on failure. */
 export async function scrape(url: string): Promise<string> {
-  const lovableKey = requireEnv("LOVABLE_API_KEY");
-  // Power's own Firecrawl account — scrape credits bill to that plan, not the
-  // Lovable-managed allowance. Auth still rides the connector gateway.
-  const firecrawlKey = requireEnv("FIRECRAWL_API_KEY_1");
-
-  // A hard ceiling per page. Without it one unresponsive site holds a whole
-  // batch open indefinitely, so nothing that batch found ever gets saved.
-  let response: Response;
-  try {
-    response = await fetch(`${GATEWAY_FIRECRAWL}/scrape`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": firecrawlKey,
-      },
-      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
-      signal: AbortSignal.timeout(25_000),
-    });
-  } catch (failure) {
-    const reason = failure instanceof Error ? failure.name : "";
-    if (reason === "TimeoutError" || reason === "AbortError") {
-      throw new Error("the page took too long to answer");
-    }
-    throw failure;
+  const result = await safeFetch(url);
+  if (!result.ok || !result.markdown) {
+    throw new Error(result.error ?? "page returned no readable content");
   }
-
-
-  if (!response.ok) {
-    const body = await response.text();
-    console.error(`Firecrawl scrape failed [${response.status}] ${url}: ${body}`);
-    if (response.status === 402 || /credit limit reached|not enough credits/i.test(body)) {
-      throw new Error(
-        "the Firecrawl scraping account is out of credits — top it up before running more pulls",
-      );
-    }
-    throw new Error(`scrape returned ${response.status}: ${body.slice(0, 300)}`);
-  }
-
-  const payload = (await response.json()) as any;
-  const markdown: string | undefined = payload?.markdown ?? payload?.data?.markdown;
-  if (!markdown || !markdown.trim()) throw new Error("page returned no readable content");
   // Roster tables sit at the BOTTOM of sidearm-style pages, so keep the window
   // wide enough that a 40-player roster is never silently truncated away.
-  return markdown.slice(0, 90000);
+  return result.markdown.slice(0, 90000);
 }
 
 /** Call the AI Gateway and parse a strict-JSON object out of the reply. */

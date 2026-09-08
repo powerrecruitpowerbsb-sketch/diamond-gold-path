@@ -623,6 +623,71 @@ export type Database = {
           },
         ]
       }
+      link_health: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          failure_dates: string[]
+          fetch_method: Database["public"]["Enums"]["fetch_method"] | null
+          field: string
+          id: string
+          last_error: string | null
+          last_failure_category:
+            | Database["public"]["Enums"]["page_failure_category"]
+            | null
+          last_verified_ok_at: string | null
+          link_status: Database["public"]["Enums"]["link_health_status"]
+          not_found_runs: number
+          program_id: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          failure_dates?: string[]
+          fetch_method?: Database["public"]["Enums"]["fetch_method"] | null
+          field: string
+          id?: string
+          last_error?: string | null
+          last_failure_category?:
+            | Database["public"]["Enums"]["page_failure_category"]
+            | null
+          last_verified_ok_at?: string | null
+          link_status?: Database["public"]["Enums"]["link_health_status"]
+          not_found_runs?: number
+          program_id: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          failure_dates?: string[]
+          fetch_method?: Database["public"]["Enums"]["fetch_method"] | null
+          field?: string
+          id?: string
+          last_error?: string | null
+          last_failure_category?:
+            | Database["public"]["Enums"]["page_failure_category"]
+            | null
+          last_verified_ok_at?: string | null
+          link_status?: Database["public"]["Enums"]["link_health_status"]
+          not_found_runs?: number
+          program_id?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_health_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       majors: {
         Row: {
           id: string
@@ -1763,6 +1828,9 @@ export type Database = {
           attempts: number
           created_at: string
           error: string | null
+          failure_category:
+            | Database["public"]["Enums"]["page_failure_category"]
+            | null
           field: string
           first_seen_at: string
           id: string
@@ -1777,6 +1845,9 @@ export type Database = {
           attempts?: number
           created_at?: string
           error?: string | null
+          failure_category?:
+            | Database["public"]["Enums"]["page_failure_category"]
+            | null
           field: string
           first_seen_at?: string
           id?: string
@@ -1791,6 +1862,9 @@ export type Database = {
           attempts?: number
           created_at?: string
           error?: string | null
+          failure_category?:
+            | Database["public"]["Enums"]["page_failure_category"]
+            | null
           field?: string
           first_seen_at?: string
           id?: string
@@ -2018,6 +2092,7 @@ export type Database = {
         | "school_size"
         | "geographic_region"
         | "campus_setting"
+      fetch_method: "direct" | "rendered"
       governing_body: "NCAA" | "NAIA" | "NJCAA" | "CCCAA" | "NWAC"
       intel_field_type:
         | "style_of_play"
@@ -2029,6 +2104,13 @@ export type Database = {
         | "geographic_tendencies"
         | "recruiting_timeline"
         | "roster_construction_tendencies"
+      link_health_status: "verified" | "unverified" | "dead"
+      page_failure_category:
+        | "timeout"
+        | "connection_blocked"
+        | "http_error"
+        | "empty_content"
+        | "not_found"
       pending_change_status: "pending" | "approved" | "rejected"
       player_position:
         | "C"
@@ -2207,6 +2289,7 @@ export const Constants = {
         "geographic_region",
         "campus_setting",
       ],
+      fetch_method: ["direct", "rendered"],
       governing_body: ["NCAA", "NAIA", "NJCAA", "CCCAA", "NWAC"],
       intel_field_type: [
         "style_of_play",
@@ -2218,6 +2301,14 @@ export const Constants = {
         "geographic_tendencies",
         "recruiting_timeline",
         "roster_construction_tendencies",
+      ],
+      link_health_status: ["verified", "unverified", "dead"],
+      page_failure_category: [
+        "timeout",
+        "connection_blocked",
+        "http_error",
+        "empty_content",
+        "not_found",
       ],
       pending_change_status: ["pending", "approved", "rejected"],
       player_position: [
