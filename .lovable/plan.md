@@ -58,7 +58,8 @@ One pass over **only** the pages currently sitting in the couldn't-be-read log f
 
 ## Technical notes
 
-- `safeFetch(url, opts)` → `{ ok, status, html, markdown, failure_category, attempts }`. Per-host queue is a module-level `Map<string, Promise>` singleton; global concurrency limited by a semaphore. Rendering fallback uses the scraping service's wait-for-render option; the first attempt uses a plain request with Chrome headers.
+- `safeFetch(url, opts)` → `{ ok, status, html, markdown, failure_category, fetch_method, attempts }`. Per-host queue is a module-level `Map<string, Promise>` singleton; global concurrency limited by a semaphore. First attempt is a plain request with Chrome headers; the rendering-service fallback triggers on `connection_blocked`, 403, or `empty_content`, using the wait-for-render option.
 - `auditStoredLinks(supabase, { schoolIds, ... })` gains a required target; `runPagesSlice` and the public runner pass it through. Missing/empty target throws before any network call.
-- Migration: `link_health` (program_id, field, last_verified_ok_at, consecutive_failures, link_status enum, distinct-day failure tracking, timestamps) plus grants, RLS (superadmin read, service role write), and the updated-at trigger, following the existing pattern; `unreadable_pages` gains `failure_category`.
+- Migration: `link_health` (program_id, field, `UNIQUE (program_id, field)`, last_verified_ok_at, consecutive_failures, link_status enum, fetch_method, distinct-day failure tracking, timestamps) plus grants, RLS (superadmin read, service role write), and the updated-at trigger, following the existing pattern; writes go through `upsert ... on conflict (program_id, field)`. `unreadable_pages` gains `failure_category`.
+
 - Tests cover per-host serialisation ordering, 404 short-circuit, backoff sequence, en-dash name matching, and the rule that a timeout never changes `link_status`.
