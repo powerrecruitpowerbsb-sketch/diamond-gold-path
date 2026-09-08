@@ -290,7 +290,12 @@ export async function runPagesSlice(
  * return straight away. From here it carries on with no page open.
  */
 export async function startPagesCheck(supabase: any): Promise<{ started: boolean }> {
+  const rows = await readRows(supabase);
+  // A finished stage started again is a fresh pass over everything, so its
+  // running totals start from zero rather than adding to the last pass.
+  const fresh = rows.pages.status === "done" ? { checked: 0, changed: 0, failed: 0, cursor: null } : {};
   await writeRow(supabase, "pages", {
+    ...fresh,
     status: "running",
     started_at: new Date().toISOString(),
     finished_at: null,
