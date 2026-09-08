@@ -76,7 +76,7 @@ export const Route = createFileRoute("/api/public/collection-runner")({
         let pages: unknown = null;
         if (await pagesCheckIsOn(supabase)) {
           try {
-            pages = await runPagesSlice(supabase, actorId, { limit: 12, budgetMs: 15_000 });
+            pages = await runPagesSlice(supabase, actorId, { limit: 120, budgetMs: 45_000 });
           } catch (failure) {
             console.error("Page check slice failed", failure);
             pages = { error: failure instanceof Error ? failure.message : "failed" };
