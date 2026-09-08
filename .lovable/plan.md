@@ -31,9 +31,10 @@ After this, **no code path reads an athletics page outside `safeFetch`.** The on
 
 ### 3. Never let a slow site demote a good link
 
-New table `link_health`, one row per program and page (roster or staff):
+New table `link_health`, **exactly one row per program and page** (roster or staff) — a unique key on that pair, which the crawler updates in place rather than adding a row each run, so the failure count keeps its meaning:
 
-- `last_verified_ok_at`, `consecutive_failures` (default 0), `link_status` (`verified` / `unverified` / `dead`).
+- `last_verified_ok_at`, `consecutive_failures` (default 0), `link_status` (`verified` / `unverified` / `dead`), and `fetch_method` (`direct` / `rendered`) recording which path last worked. A site that only ever succeeds through the rendering service is a bot-block we can then see over time and route straight there, skipping the wasted first attempt.
+
 
 Rules:
 - A successful read sets `verified`, stamps the time, and resets the failure count to 0.
