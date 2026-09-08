@@ -3,8 +3,7 @@
 ## Now
 - [x] Export the list of wrong pages cleared in the page check (`/mnt/documents/wrong-pages-cleared.csv`)
 - [x] Record every page that can't be read (new `unreadable_pages` record) instead of only counting it
-- [ ] Re-read the stored pages once so the unreadable ones are named, then export `/mnt/documents/unreadable-pages.csv`
-  - Blocked on: pressing "Check the pages" on /admin/build (starts the every-minute helper) and Publishing once so the helper runs the new code
+- [x] Re-read the stored pages so the unreadable ones are named, then export `/mnt/documents/unreadable-pages.csv` (170 pages still unreadable)
 
 ## Next
 - [ ] Step 2: finish rosters (drain pending/stuck roster work)
