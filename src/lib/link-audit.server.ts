@@ -195,11 +195,13 @@ export async function auditStoredLinks(
       const page = await read(url);
       if (page instanceof Error) {
         result.failed += 1;
+        await recordUnreadable(program, field, url, page.message);
         result.rows.push({ ...base, verdict: "failed", reason: page.message, cleared: false });
         continue;
       }
 
       result.checked += 1;
+      await clearUnreadable(program, field, url);
       const identity = verifyPageIdentity({
         text: page,
         url,
