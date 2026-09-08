@@ -88,7 +88,7 @@ const n = (value: number) => value.toLocaleString();
 
 /** Counts of the things still waiting on a person. */
 async function decisionCounts(supabase: any) {
-  const [facts, links] = await Promise.all([
+  const [facts, links, unreadable] = await Promise.all([
     supabase
       .from("pending_data_changes")
       .select("id", { count: "exact", head: true })
@@ -98,8 +98,12 @@ async function decisionCounts(supabase: any) {
       .select("id", { count: "exact", head: true })
       .eq("status", "pending_review")
       .not("discovered_url", "is", null),
+    supabase
+      .from("unreadable_pages")
+      .select("id", { count: "exact", head: true })
+      .is("resolved_at", null),
   ]);
-  return { facts: facts.count ?? 0, links: links.count ?? 0 };
+  return { facts: facts.count ?? 0, links: links.count ?? 0, unreadable: unreadable.count ?? 0 };
 }
 
 /** Everything the screen shows, worked out in one read. */
@@ -124,7 +128,9 @@ export async function stageBoard(supabase: any): Promise<StageBoard> {
     state: pagesRow.status === "running" ? "running" : pagesDone ? "done" : "ready",
     lockedReason: null,
     detail: pagesRow.checked
-      ? `${n(pagesRow.checked)} pages checked · ${n(pagesRow.changed)} were the wrong school and were cleared · ${n(pagesRow.failed)} couldn't be read`
+      ? `${n(pagesRow.checked)} pages checked · ${n(pagesRow.changed)} were the wrong school and were cleared · ${n(pagesRow.failed)} couldn't be read${
+          decisions.unreadable ? ` (${n(decisions.unreadable)} listed by name)` : ""
+        }`
       : `${n(board.withRosterPage)} roster pages and ${n(board.withStaffPage)} staff pages on file to check`,
     done: pagesRow.checked,
     notOffered: 0,
@@ -290,7 +296,12 @@ export async function runPagesSlice(
  * return straight away. From here it carries on with no page open.
  */
 export async function startPagesCheck(supabase: any): Promise<{ started: boolean }> {
+  const rows = await readRows(supabase);
+  // A finished stage started again is a fresh pass over everything, so its
+  // running totals start from zero rather than adding to the last pass.
+  const fresh = rows.pages.status === "done" ? { checked: 0, changed: 0, failed: 0, cursor: null } : {};
   await writeRow(supabase, "pages", {
+    ...fresh,
     status: "running",
     started_at: new Date().toISOString(),
     finished_at: null,

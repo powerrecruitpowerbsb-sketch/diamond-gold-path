@@ -1758,6 +1758,66 @@ export type Database = {
           },
         ]
       }
+      unreadable_pages: {
+        Row: {
+          attempts: number
+          created_at: string
+          error: string | null
+          field: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          program_id: string | null
+          resolved_at: string | null
+          university_id: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          field: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          program_id?: string | null
+          resolved_at?: string | null
+          university_id?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          field?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          program_id?: string | null
+          resolved_at?: string | null
+          university_id?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unreadable_pages_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unreadable_pages_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       url_discovery_queue: {
         Row: {
           confidence: Database["public"]["Enums"]["url_discovery_confidence"]

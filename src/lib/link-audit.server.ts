@@ -115,6 +115,55 @@ export async function auditStoredLinks(
     return pages.get(url)!;
   };
 
+  /**
+   * A page that can't be opened used to be counted and forgotten, so nobody
+   * could see which ones they were. Every failure is written down now, and a
+   * page that opens on a later pass is marked resolved.
+   */
+  const recordUnreadable = async (program: ProgramRow, field: LinkField, url: string, error: string) => {
+    if (!options.apply) return;
+    const now = new Date().toISOString();
+    const existing = await supabase
+      .from("unreadable_pages")
+      .select("id, attempts")
+      .eq("program_id", program.id)
+      .eq("field", field)
+      .eq("url", url)
+      .maybeSingle();
+    if (existing.data?.id) {
+      await supabase
+        .from("unreadable_pages")
+        .update({
+          error: error.slice(0, 500),
+          attempts: (existing.data.attempts ?? 1) + 1,
+          last_seen_at: now,
+          resolved_at: null,
+        })
+        .eq("id", existing.data.id);
+      return;
+    }
+    await supabase.from("unreadable_pages").insert({
+      program_id: program.id,
+      university_id: program.university_id,
+      field,
+      url,
+      error: error.slice(0, 500),
+      first_seen_at: now,
+      last_seen_at: now,
+    });
+  };
+
+  const clearUnreadable = async (program: ProgramRow, field: LinkField, url: string) => {
+    if (!options.apply) return;
+    await supabase
+      .from("unreadable_pages")
+      .update({ resolved_at: new Date().toISOString() })
+      .eq("program_id", program.id)
+      .eq("field", field)
+      .eq("url", url)
+      .is("resolved_at", null);
+  };
+
   // Fetch pages side by side, a group of programs at a time, so a batch is not
   // spent waiting on one slow site. Verdict rules below are unchanged.
   const groups: ProgramRow[][] = [];
@@ -146,11 +195,13 @@ export async function auditStoredLinks(
       const page = await read(url);
       if (page instanceof Error) {
         result.failed += 1;
+        await recordUnreadable(program, field, url, page.message);
         result.rows.push({ ...base, verdict: "failed", reason: page.message, cleared: false });
         continue;
       }
 
       result.checked += 1;
+      await clearUnreadable(program, field, url);
       const identity = verifyPageIdentity({
         text: page,
         url,
