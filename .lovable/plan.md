@@ -12,8 +12,9 @@ A single new module, `safeFetch`, becomes the only way any part of the system op
 - **30 seconds** allowed per request, up from 25.
 - **Three tries** on failure, waiting 5s, then 15s, then 45s. A "page does not exist" (404) is not retried — that is a real dead link.
 - **Normal desktop browser headers**, because several hosts are closing the connection rather than answering, which is bot-blocking.
-- **A second attempt with full page rendering** when a page opens but comes back with no roster or staff content, since some roster tables are drawn by the page's own scripts.
-- A structured answer — worked or not, the response code, the page text, and a failure category — so nothing has to read error wording to know what happened.
+- **A second attempt through the rendering service** whenever the direct request is refused or useless: a blocked or closed connection, a 403, or a page that opens but comes back with no roster or staff content. Those hosts are refusing the plain request specifically, which is exactly what the service is there to get past.
+- A structured answer — worked or not, the response code, the page text, a failure category, and **which path succeeded** (`direct` or `rendered`) — so nothing has to read error wording to know what happened.
+
 - A comment at the top recording *why* the per-site pause exists: parallel requests to one athletics host caused 157 false failures on 2026-09-08. Without that note someone removes it later.
 
 ### 2. Everything routed through it
@@ -30,9 +31,10 @@ After this, **no code path reads an athletics page outside `safeFetch`.** The on
 
 ### 3. Never let a slow site demote a good link
 
-New table `link_health`, one row per program and page (roster or staff):
+New table `link_health`, **exactly one row per program and page** (roster or staff) — a unique key on that pair, which the crawler updates in place rather than adding a row each run, so the failure count keeps its meaning:
 
-- `last_verified_ok_at`, `consecutive_failures` (default 0), `link_status` (`verified` / `unverified` / `dead`).
+- `last_verified_ok_at`, `consecutive_failures` (default 0), `link_status` (`verified` / `unverified` / `dead`), and `fetch_method` (`direct` / `rendered`) recording which path last worked. A site that only ever succeeds through the rendering service is a bot-block we can then see over time and route straight there, skipping the wasted first attempt.
+
 
 Rules:
 - A successful read sets `verified`, stamps the time, and resets the failure count to 0.
@@ -56,7 +58,8 @@ One pass over **only** the pages currently sitting in the couldn't-be-read log f
 
 ## Technical notes
 
-- `safeFetch(url, opts)` → `{ ok, status, html, markdown, failure_category, attempts }`. Per-host queue is a module-level `Map<string, Promise>` singleton; global concurrency limited by a semaphore. Rendering fallback uses the scraping service's wait-for-render option; the first attempt uses a plain request with Chrome headers.
+- `safeFetch(url, opts)` → `{ ok, status, html, markdown, failure_category, fetch_method, attempts }`. Per-host queue is a module-level `Map<string, Promise>` singleton; global concurrency limited by a semaphore. First attempt is a plain request with Chrome headers; the rendering-service fallback triggers on `connection_blocked`, 403, or `empty_content`, using the wait-for-render option.
 - `auditStoredLinks(supabase, { schoolIds, ... })` gains a required target; `runPagesSlice` and the public runner pass it through. Missing/empty target throws before any network call.
-- Migration: `link_health` (program_id, field, last_verified_ok_at, consecutive_failures, link_status enum, distinct-day failure tracking, timestamps) plus grants, RLS (superadmin read, service role write), and the updated-at trigger, following the existing pattern; `unreadable_pages` gains `failure_category`.
+- Migration: `link_health` (program_id, field, `UNIQUE (program_id, field)`, last_verified_ok_at, consecutive_failures, link_status enum, fetch_method, distinct-day failure tracking, timestamps) plus grants, RLS (superadmin read, service role write), and the updated-at trigger, following the existing pattern; writes go through `upsert ... on conflict (program_id, field)`. `unreadable_pages` gains `failure_category`.
+
 - Tests cover per-host serialisation ordering, 404 short-circuit, backoff sequence, en-dash name matching, and the rule that a timeout never changes `link_status`.
