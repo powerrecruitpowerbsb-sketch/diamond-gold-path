@@ -118,14 +118,16 @@ const byUniversity = new Map<string, Program[]>();
 for (const p of programs) byUniversity.set(p.university_id, [...(byUniversity.get(p.university_id) ?? []), p]);
 
 // ---- 1. duplicate detection ------------------------------------------------
-type Pair = { a: School; b: School; signal: string; evidence: string };
+type Pair = { a: School; b: School; signal: string; evidence: string; strength: "strong" | "candidate" };
 const pairs: Pair[] = [];
 const seenPair = new Set<string>();
-const addPair = (a: School, b: School, signal: string, evidence: string) => {
+const addPair = (
+  a: School, b: School, signal: string, evidence: string, strength: "strong" | "candidate",
+) => {
   const key = [a.id, b.id].sort().join("|");
   if (seenPair.has(key)) return;
   seenPair.add(key);
-  pairs.push({ a, b, signal, evidence });
+  pairs.push({ a, b, signal, evidence, strength });
 };
 
 // signal 1: same unit id
@@ -137,7 +139,7 @@ for (const [unit, group] of byUnit) {
   sharedUnitIds += 1;
   for (let i = 0; i < group.length; i += 1)
     for (let j = i + 1; j < group.length; j += 1)
-      addPair(group[i]!, group[j]!, "same federal unit id", `unitid ${unit}`);
+      addPair(group[i]!, group[j]!, "same federal unit id", `unitid ${unit}`, "strong");
 }
 
 // signal 2: same federal website host, different unit ids
@@ -152,7 +154,7 @@ for (const [h, group] of byFedHost) {
   if (group.length < 2) continue;
   for (let i = 0; i < group.length; i += 1)
     for (let j = i + 1; j < group.length; j += 1)
-      addPair(group[i]!, group[j]!, "same federal website", h);
+      addPair(group[i]!, group[j]!, "same federal website", h, "strong");
 }
 
 // signal 3: a no-id row matching the federal name or alias of an id-holder
@@ -169,7 +171,7 @@ for (const s of noId) {
   for (const holder of aliasIndex.get(norm(s.name)) ?? []) {
     const f = fed.get(holder.ipeds_unitid!)!;
     addPair(s, holder, "name matches the federal name or alias of a record that holds the id",
-      `${f.name}${f.alias ? ` (alias ${f.alias})` : ""} — unitid ${f.unitid}`);
+      `${f.name}${f.alias ? ` (alias ${f.alias})` : ""} — unitid ${f.unitid}`, "strong");
   }
 }
 // and the reverse: a no-id row's athletics host shared with an id-holder whose
@@ -202,7 +204,7 @@ for (const [h, uniIds] of athleticsHosts) {
         return inter === ot.size || inter === nt.size;
       });
       if (alias) addPair(other, holder, "shares an athletics domain and the federal alias covers both names",
-        `${h}; ${f.name}${f.alias ? ` (alias ${f.alias})` : ""}`);
+        `${h}; ${f.name}${f.alias ? ` (alias ${f.alias})` : ""}`, "strong");
     }
   }
 }
@@ -214,12 +216,13 @@ for (const a of schools) {
     if (st(a.state) !== st(b.state) || !st(a.state)) continue;
     const an = norm(a.name); const bn = norm(b.name);
     if (an === bn || (an.length > 8 && bn.includes(an)) || (bn.length > 8 && an.includes(bn)))
-      addPair(a, b, "one name contained in the other, same state", `${a.name} / ${b.name}`);
+      addPair(a, b, "one name contained in the other, same state — needs a human look",
+        `${a.name} / ${b.name}`, "candidate");
   }
 }
 
 const dupRows: string[][] = [[
-  "signal", "evidence",
+  "strength", "signal", "evidence",
   "record_a", "a_university_id", "a_unitid", "a_state", "a_programs", "a_athletics",
   "record_b", "b_university_id", "b_unitid", "b_state", "b_programs", "b_athletics",
 ]];
@@ -227,7 +230,7 @@ const athleticsOf = (id: string) =>
   [...new Set((byUniversity.get(id) ?? []).map((p) => host(p.athletic_website)).filter(Boolean))].join(" ");
 for (const p of pairs) {
   dupRows.push([
-    p.signal, p.evidence,
+    p.strength, p.signal, p.evidence,
     p.a.name, p.a.id, String(p.a.ipeds_unitid ?? ""), st(p.a.state), String((byUniversity.get(p.a.id) ?? []).length), athleticsOf(p.a.id),
     p.b.name, p.b.id, String(p.b.ipeds_unitid ?? ""), st(p.b.state), String((byUniversity.get(p.b.id) ?? []).length), athleticsOf(p.b.id),
   ]);
@@ -237,6 +240,7 @@ write("/mnt/documents/step7-duplicate-records.csv", dupRows);
 // duplicate school ids, for the reclassification below
 const dupPartners = new Map<string, Set<string>>();
 for (const p of pairs) {
+  if (p.strength !== "strong") continue;
   dupPartners.set(p.a.id, new Set([...(dupPartners.get(p.a.id) ?? []), p.b.id]));
   dupPartners.set(p.b.id, new Set([...(dupPartners.get(p.b.id) ?? []), p.a.id]));
 }
@@ -386,6 +390,8 @@ console.log(JSON.stringify({
   schools: schools.length,
   ipedsIdsOnMoreThanOneRecord: sharedUnitIds,
   duplicatePairs: pairs.length,
+  strongPairs: pairs.filter((p) => p.strength === "strong").length,
+  candidatePairs: pairs.filter((p) => p.strength === "candidate").length,
   bySignal: pairs.reduce<Record<string, number>>((a, p) => ({ ...a, [p.signal]: (a[p.signal] ?? 0) + 1 }), {}),
   groups: groups.size, ...counts,
   actions: tally,
