@@ -3,9 +3,19 @@
  * web search (never model recall), then map that site for sport-specific roster
  * and coaching pages. Everything lands in url_discovery_queue for staff review —
  * live records are never written here.
+ *
+ * Identity rule: a candidate address is only ever offered for a school whose
+ * federal institution record it can be tied back to. Name-token overlap is used
+ * to order candidates, never to accept one.
  */
 
 import { mentionsOtherState } from "@/lib/data-quality";
+import {
+  loadInstitution,
+  verifyCandidateForInstitution,
+  type Institution,
+  type MatchEvidence,
+} from "@/lib/institution-identity.server";
 import { classifyLink, isSchoolHomepage } from "@/lib/link-quality";
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
@@ -20,6 +30,8 @@ export type DiscoveryResult = {
   url: string | null;
   confidence: Confidence;
   notes: string;
+  /** Which identity check justified (or refused) this address. */
+  evidence?: MatchEvidence | null;
 };
 
 export type DiscoveryOutcome = {
