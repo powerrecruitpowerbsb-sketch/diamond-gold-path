@@ -270,3 +270,111 @@ export async function institutionLinksTo(
     return false;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Tiebreaking between institutions that contend for the same address  *
+ * ------------------------------------------------------------------ */
+
+export type Contender = {
+  universityId: string;
+  unitid: number | null;
+  name: string;
+  storedState: string | null;
+  storedCity: string | null;
+  federalState: string | null;
+  federalCity: string | null;
+  federalWebsite: string | null;
+  federalTwoYear: boolean | null;
+  /** Whether the school's leagues are two-year (NJCAA/CCCAA/NWAC). */
+  leagueTwoYear: boolean | null;
+};
+
+export type OwnerDecision = {
+  ownerUniversityId: string | null;
+  confidence: "resolved" | "ambiguous";
+  evidence: string;
+};
+
+const norm = (v: string | null | undefined) =>
+  String(v ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * Two or more institutions hold the same domain or page address; at most one
+ * can be right. Decide by, in order: the address sitting on a candidate's own
+ * federal website domain; then state agreement between the address text and
+ * the candidate; then city; then level (two-year vs four-year) as the last
+ * separator. If nothing separates them, say so instead of guessing.
+ */
+export function pickOwnerAmongCandidates(
+  url: string,
+  candidates: Contender[],
+  context: { title?: string | null } = {},
+): OwnerDecision {
+  if (candidates.length === 0) return { ownerUniversityId: null, confidence: "ambiguous", evidence: "No candidates." };
+  if (candidates.length === 1)
+    return { ownerUniversityId: candidates[0]!.universityId, confidence: "resolved", evidence: "Only one school attached." };
+
+  const candidateDomain = registrableDomain(hostOf(url)) || "";
+
+  // 1. Federal website domain match — the strongest signal there is.
+  const onOwnDomain = candidates.filter(
+    (c) => c.federalWebsite && registrableDomain(hostOf(c.federalWebsite)) === candidateDomain && candidateDomain,
+  );
+  if (onOwnDomain.length === 1)
+    return {
+      ownerUniversityId: onOwnDomain[0]!.universityId,
+      confidence: "resolved",
+      evidence: `${candidateDomain} is the institution's own federal website domain.`,
+    };
+
+  const pool = onOwnDomain.length > 1 ? onOwnDomain : candidates;
+
+  // 2. State named in the address or page title.
+  const haystack = `${context.title ?? ""} ${url}`.toLowerCase();
+  const claimed = new Set<string>();
+  for (const [name, code] of NAME_TO_CODE) if (haystack.includes(name)) claimed.add(code);
+  for (const code of Object.keys(US_STATE_NAMES)) if (new RegExp(`(^|[^a-z])${code.toLowerCase()}([^a-z]|$)`).test(haystack)) claimed.add(code);
+  if (claimed.size) {
+    const stateHits = pool.filter((c) => {
+      const code = stateCode(c.federalState ?? c.storedState);
+      return code ? claimed.has(code) : false;
+    });
+    if (stateHits.length === 1)
+      return {
+        ownerUniversityId: stateHits[0]!.universityId,
+        confidence: "resolved",
+        evidence: `The address names ${[...claimed].join(", ")}, matching only this school's state.`,
+      };
+  }
+
+  // 3. City named in the address.
+  const cityHits = pool.filter((c) => {
+    const city = norm(c.federalCity ?? c.storedCity);
+    return city.length >= 4 && haystack.replace(/[^a-z0-9]+/g, " ").includes(city);
+  });
+  if (cityHits.length === 1)
+    return {
+      ownerUniversityId: cityHits[0]!.universityId,
+      confidence: "resolved",
+      evidence: `The address names this school's city (${cityHits[0]!.federalCity ?? cityHits[0]!.storedCity}).`,
+    };
+
+  // 4. Level, last: only separates when the address itself reads as a
+  //    community/junior college and exactly one candidate is two-year.
+  const readsTwoYear = /(community|junior|\bcc\b|jc)/.test(haystack);
+  if (readsTwoYear) {
+    const levelHits = pool.filter((c) => c.leagueTwoYear === true || c.federalTwoYear === true);
+    if (levelHits.length === 1)
+      return {
+        ownerUniversityId: levelHits[0]!.universityId,
+        confidence: "resolved",
+        evidence: "The address reads as a two-year college and only this candidate is one.",
+      };
+  }
+
+  return {
+    ownerUniversityId: null,
+    confidence: "ambiguous",
+    evidence: `${pool.length} schools remain indistinguishable on website, state, city and level.`,
+  };
+}
