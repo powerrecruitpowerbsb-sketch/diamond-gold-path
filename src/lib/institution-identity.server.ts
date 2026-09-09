@@ -214,21 +214,13 @@ export async function verifyCandidateForInstitution(
     );
   }
 
-  // Hard filter: level. A two-year institution's pages never belong to a
-  // four-year one, whatever the names look like.
-  if (
-    inst.federalTwoYear !== null &&
-    inst.ourTwoYear !== null &&
-    inst.federalTwoYear !== inst.ourTwoYear
-  ) {
-    return evidence(
-      "level_disagrees",
-      false,
-      "Our record and the federal record disagree on whether this is a two-year school — identity must be settled first.",
-      inst,
-      candidateDomain,
-    );
-  }
+  // Level is NOT a pass/fail gate. The federal two-year flag counts any
+  // bachelor's-granting school as four-year, and many community colleges now
+  // grant a BAS, so comparing a school's league to its own federal level
+  // rejects perfectly correct NJCAA/CCCAA records. Level is only useful as a
+  // tiebreaker between two institutions contending for the same address —
+  // see pickOwnerAmongCandidates below.
+
 
   if (candidateDomain === institutionDomain) {
     const host = hostOf(url);
