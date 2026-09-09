@@ -109,54 +109,93 @@ export async function sweepDiscoveredLinks(
     }
   }
 
-  // Which other schools already hold each of these domains? A page on a domain
-  // that plainly belongs to a different school (Portland State's goviks.com filed
-  // under University of Portland) is a mix-up, not a judgement call.
+  // Ownership is an ID question, not a string-similarity question.
+  //
+  // Two things settle it: the federal record of the institution that owns the
+  // domain, and the institution ID already holding it in our own data. Names are
+  // only used to say who, in the message a person reads.
   const linkDomains = [
     ...new Set(rows.map((row) => registrableDomain(hostOf(row.discovered_url))).filter(Boolean)),
   ];
-  const claimsByDomain = new Map<string, { name: string | null; website: string | null }[]>();
+
+  const platformDomains = new Set<string>();
+  {
+    const { data: platforms } = await supabase.from("link_platform_hosts").select("host");
+    for (const entry of (platforms ?? []) as { host: string }[]) platformDomains.add(entry.host);
+  }
+
+  /** Institution IDs (ours) already holding each domain, with a name for display. */
+  const holdersByDomain = new Map<string, { universityId: string; name: string | null }[]>();
   for (const domains of chunk(linkDomains, 40)) {
     const filter = domains.map((domain) => `athletic_website.ilike.%${domain}%`).join(",");
     const { data: rivals } = await supabase
       .from("programs")
-      .select("athletic_website, universities(name, website_url)")
+      .select("university_id, athletic_website, universities(name)")
       .or(filter)
       .limit(2000);
     for (const entry of (rivals ?? []) as any[]) {
       const domain = registrableDomain(hostOf(entry.athletic_website));
       if (!domain || !domains.includes(domain)) continue;
-      const list = claimsByDomain.get(domain) ?? [];
-      const name = entry.universities?.name ?? null;
-      if (name && !list.some((claim) => claim.name === name)) {
-        list.push({ name, website: entry.universities?.website_url ?? null });
+      const list = holdersByDomain.get(domain) ?? [];
+      if (!list.some((claim) => claim.universityId === entry.university_id)) {
+        list.push({ universityId: entry.university_id, name: entry.universities?.name ?? null });
       }
-      claimsByDomain.set(domain, list);
+      holdersByDomain.set(domain, list);
     }
   }
 
-  /** True when this domain is proven to belong to some other school, not this one. */
+  /** Which institution does the federal directory say owns each domain? */
+  const federalOwner = new Map<string, { unitid: number; name: string; state: string | null }>();
+  for (const domains of chunk(linkDomains, 20)) {
+    for (const domain of domains) {
+      if (platformDomains.has(domain)) continue;
+      const { data } = await supabase
+        .from("federal_directory")
+        .select("unitid, name, state, website")
+        .not("website", "is", null)
+        .ilike("website", `%${domain}%`)
+        .limit(10);
+      const hit = ((data ?? []) as any[]).find(
+        (entry) => registrableDomain(hostOf(String(entry.website))) === domain,
+      );
+      if (hit) {
+        federalOwner.set(domain, {
+          unitid: Number(hit.unitid),
+          name: String(hit.name ?? ""),
+          state: hit.state ?? null,
+        });
+      }
+    }
+  }
+
+  /** Institution IDs for the schools in this batch. */
+  const unitidBySchool = new Map<string, number | null>();
+  for (const ids of chunk(schoolIds, 200)) {
+    const { data } = await supabase.from("universities").select("id, ipeds_unitid").in("id", ids);
+    for (const entry of (data ?? []) as any[]) {
+      unitidBySchool.set(entry.id, entry.ipeds_unitid ? Number(entry.ipeds_unitid) : null);
+    }
+  }
+
+  /** The other school this domain belongs to, decided on institution IDs. */
   function belongsToAnotherSchool(row: Row): string | null {
     const domain = registrableDomain(hostOf(row.discovered_url));
-    if (!domain) return null;
-    const schoolName = row.universities?.name ?? null;
-    // A school website field that is itself the disputed domain proves nothing —
-    // that is how the mix-up got in.
-    const ownSite = registrableDomain(hostOf(row.universities?.website_url)) === domain
-      ? null
-      : row.universities?.website_url ?? null;
-    const mine = pageOwnership({ url: row.discovered_url, schoolName, schoolWebsite: ownSite });
-    if (mine.score > 0) return null;
-    for (const claim of claimsByDomain.get(domain) ?? []) {
-      if (claim.name === schoolName) continue;
-      const theirs = pageOwnership({
-        url: row.discovered_url,
-        schoolName: claim.name,
-        schoolWebsite: registrableDomain(hostOf(claim.website)) === domain ? null : claim.website,
-      });
-      if (theirs.score > 0) return claim.name ?? "another school";
+    if (!domain || platformDomains.has(domain)) return null;
+
+    // Federal record first: it is the authority on who owns a domain.
+    const owner = federalOwner.get(domain);
+    const ourUnitid = unitidBySchool.get(row.university_id) ?? null;
+    if (owner) {
+      if (ourUnitid && owner.unitid === ourUnitid) return null;
+      return owner.state ? `${owner.name} (${owner.state})` : owner.name;
     }
-    return null;
+
+    // Otherwise: is another institution ID already holding it?
+    const holders = (holdersByDomain.get(domain) ?? []).filter(
+      (claim) => claim.universityId !== row.university_id,
+    );
+    if (!holders.length) return null;
+    return holders[0]!.name ?? "another school";
   }
 
   const toApprove: Row[] = [];
