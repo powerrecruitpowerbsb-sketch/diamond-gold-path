@@ -3,9 +3,19 @@
  * web search (never model recall), then map that site for sport-specific roster
  * and coaching pages. Everything lands in url_discovery_queue for staff review —
  * live records are never written here.
+ *
+ * Identity rule: a candidate address is only ever offered for a school whose
+ * federal institution record it can be tied back to. Name-token overlap is used
+ * to order candidates, never to accept one.
  */
 
 import { mentionsOtherState } from "@/lib/data-quality";
+import {
+  loadInstitution,
+  verifyCandidateForInstitution,
+  type Institution,
+  type MatchEvidence,
+} from "@/lib/institution-identity.server";
 import { classifyLink, isSchoolHomepage } from "@/lib/link-quality";
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
@@ -20,6 +30,8 @@ export type DiscoveryResult = {
   url: string | null;
   confidence: Confidence;
   notes: string;
+  /** Which identity check justified (or refused) this address. */
+  evidence?: MatchEvidence | null;
 };
 
 export type DiscoveryOutcome = {
@@ -233,13 +245,35 @@ function readSearchResults(payload: any): Candidate[] {
     .filter((row: Candidate) => /^https?:\/\//i.test(row.url));
 }
 
-/** Search the web for the school's athletics site and score the best candidate. */
+/**
+ * Search the web for the school's athletics site, then verify candidates against
+ * the school's federal institution record. Name-token overlap only decides the
+ * order in which candidates are checked; acceptance is an identity question.
+ */
 export async function discoverAthleticWebsite(
-  name: string,
-  state: string | null,
+  supabase: any,
+  inst: Institution,
   excluded: Set<string> = new Set(),
   schoolWebsite: string | null = null,
 ): Promise<DiscoveryResult> {
+  const name = inst.federalName ?? inst.storedName;
+  const state = inst.federalState ?? inst.storedState;
+
+  // No institution ID means there is nothing to verify against. The result goes
+  // to review; it never reaches the record.
+  if (!inst.unitid) {
+    return {
+      discoveryType: "athletic_website",
+      programId: null,
+      sport: null,
+      url: null,
+      confidence: "failed",
+      notes:
+        "This school has no federal institution ID yet. Its identity has to be settled before any website can be attached.",
+      evidence: null,
+    };
+  }
+
   const query = `${name}${state ? ` ${state}` : ""} official athletics website`;
   const payload = await firecrawl("/search", { query, limit: 8 });
   const isBlocked = (url: string) => {
@@ -254,8 +288,6 @@ export async function discoverAthleticWebsite(
     (row) => !isNonOfficial(row.url) && !isBlocked(row.url),
   );
 
-
-
   if (!candidates.length) {
     return {
       discoveryType: "athletic_website",
@@ -264,6 +296,7 @@ export async function discoverAthleticWebsite(
       url: null,
       confidence: "failed",
       notes: "Web search returned no plausible official athletics site.",
+      evidence: null,
     };
   }
 
@@ -283,64 +316,77 @@ export async function discoverAthleticWebsite(
         b.score - a.score,
     );
 
-  const best = scored[0]!;
-  const origin = (() => {
+  const originOf = (url: string) => {
     try {
-      return new URL(best.url).origin;
+      return new URL(url).origin;
     } catch {
-      return best.url;
+      return url;
     }
-  })();
+  };
 
-  // Plenty of smaller schools run athletics inside their own website, so the best
-  // search hit is the school homepage. Take one more step: map that site for its
-  // athletics section and keep the page that actually names teams.
-  if (isSchoolHomepage(origin, schoolWebsite ?? origin)) {
-    const section = await findAthleticsSection(origin, excluded);
-    if (section) {
+  // Walk candidates in order and keep the first one the institution record can
+  // actually vouch for. A candidate that fails is refused, not downgraded.
+  let lastRefusal: MatchEvidence | null = null;
+  for (const row of scored) {
+    const origin = originOf(row.url);
+
+    // Athletics inside the school's own website: step into the athletics section.
+    if (isSchoolHomepage(origin, schoolWebsite ?? origin)) {
+      const section = await findAthleticsSection(origin, excluded);
+      const target = section ?? null;
+      if (!target) continue;
+      const verdict = await verifyCandidateForInstitution(supabase, inst, target, {
+        title: row.title,
+      });
+      if (!verdict.ok) {
+        lastRefusal = verdict.evidence;
+        continue;
+      }
       return {
         discoveryType: "athletic_website",
         programId: null,
         sport: null,
-        url: section,
-        confidence: "low",
-        notes:
-          "Athletics sits inside the school's own website — this is the athletics section we found there. Worth a look.",
+        url: target,
+        confidence: "high",
+        notes: `Athletics sits inside the school's own website. ${verdict.evidence.detail}`,
+        evidence: verdict.evidence,
       };
     }
+
+    const verdict = await verifyCandidateForInstitution(supabase, inst, origin, {
+      title: row.title,
+    });
+    if (!verdict.ok) {
+      lastRefusal = verdict.evidence;
+      continue;
+    }
+
+    const reasons: string[] = [];
+    if (!row.athletics) reasons.push("the domain doesn't look like an athletics site");
     return {
       discoveryType: "athletic_website",
       programId: null,
       sport: null,
-      url: null,
-      confidence: "failed",
-      notes:
-        "Only the school's own homepage came back, and no athletics section could be found inside it.",
+      url: origin,
+      confidence: reasons.length ? "low" : "high",
+      notes: reasons.length
+        ? `${verdict.evidence.detail} Still worth a look: ${reasons.join("; ")}.`
+        : verdict.evidence.detail,
+      evidence: verdict.evidence,
     };
   }
-
-  const rivals = scored.filter(
-    (row) => row !== best && row.athletics && row.score >= best.score - 0.15,
-  );
-
-  const reasons: string[] = [];
-  if (!best.athletics) reasons.push("domain doesn't look like an athletics site");
-  if (best.score < 0.7) reasons.push("school name only loosely matches the domain");
-  if (best.wrongState)
-    reasons.push("the page names a different state than this school — it may be another school");
-  if (rivals.length) reasons.push(`${rivals.length} other similar candidate(s) came back`);
 
   return {
     discoveryType: "athletic_website",
     programId: null,
     sport: null,
-    url: origin,
-    confidence: reasons.length ? "low" : "high",
-    notes: reasons.length
-      ? `Needs a look: ${reasons.join("; ")}.`
-      : `Athletics domain matches the school name (${Math.round(best.score * 100)}% of name words).`,
+    url: null,
+    confidence: "failed",
+    notes: lastRefusal
+      ? `No candidate could be tied to this institution. Closest attempt: ${lastRefusal.detail}`
+      : "No candidate could be tied to this institution's own website.",
+    evidence: lastRefusal,
   };
-
 }
 
 const ROSTER_PATTERN = /roster/i;
@@ -439,13 +485,38 @@ function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
 }
 
 
-/** Map the athletics site and pick roster + coaching pages per sport program. */
+/**
+ * Map the athletics site and pick roster + coaching pages per sport program.
+ * Every pick is verified against the school's institution record before it is
+ * offered, exactly as the athletics domain is.
+ */
 export async function discoverProgramPages(
+  supabase: any,
+  inst: Institution,
   athleticSite: string,
   programs: { id: string; sport: string }[],
   excluded: Set<string> = new Set(),
 ): Promise<DiscoveryResult[]> {
   const results: DiscoveryResult[] = [];
+
+  if (!inst.unitid) {
+    for (const program of programs) {
+      for (const discoveryType of ["roster_page", "coaching_staff_page"] as DiscoveryType[]) {
+        results.push({
+          discoveryType,
+          programId: program.id,
+          sport: program.sport,
+          url: null,
+          confidence: "failed",
+          notes:
+            "This school has no federal institution ID yet, so pages can't be tied to it. Settle the identity first.",
+          evidence: null,
+        });
+      }
+    }
+    return results;
+  }
+
   const links = new Set<string>();
 
   for (const term of ["roster", "coaches"]) {
@@ -466,17 +537,35 @@ export async function discoverProgramPages(
       const candidate = all.length ? pickPageUrl(all, program.sport, kind) : null;
       const pick = candidate && excluded.has(normalizeUrl(candidate.url)) ? null : candidate;
 
+      let evidence: MatchEvidence | null = null;
+      let url = pick?.url ?? null;
+      let confidence: Confidence = pick?.confidence ?? "failed";
+      let notes =
+        pick?.note ??
+        (all.length
+          ? `No ${kind === "roster" ? "roster" : "coaching staff"} page found for ${program.sport}.`
+          : "The athletics site returned no mappable links.");
+
+      if (url) {
+        const verdict = await verifyCandidateForInstitution(supabase, inst, url);
+        evidence = verdict.evidence;
+        if (verdict.ok) {
+          notes = `${notes} ${verdict.evidence.detail}`.trim();
+        } else {
+          url = null;
+          confidence = "failed";
+          notes = `Refused: ${verdict.evidence.detail}`;
+        }
+      }
+
       results.push({
         discoveryType,
         programId: program.id,
         sport: program.sport,
-        url: pick?.url ?? null,
-        confidence: pick?.confidence ?? "failed",
-        notes:
-          pick?.note ??
-          (all.length
-            ? `No ${kind === "roster" ? "roster" : "coaching staff"} page found for ${program.sport}.`
-            : "The athletics site returned no mappable links."),
+        url,
+        confidence,
+        notes,
+        evidence,
       });
     }
   }
@@ -496,8 +585,9 @@ export async function discoverUniversityUrls(
     .single();
   if (error) throw new Error(error.message);
 
+  // Identity first: everything below is judged against the institution record.
+  const inst = await loadInstitution(supabase, universityId);
   const name = String((school as any).name ?? "");
-  const state = ((school as any).state ?? null) as string | null;
 
   const { data: programs, error: programError } = await supabase
     .from("programs")
@@ -513,14 +603,16 @@ export async function discoverUniversityUrls(
 
   try {
     const site = await discoverAthleticWebsite(
-      name,
-      state,
+      supabase,
+      inst,
       excluded,
       ((school as any).athletic_site ?? null) as string | null,
     );
     results.push(site);
     if (site.url) {
       const pageResults = await discoverProgramPages(
+        supabase,
+        inst,
         site.url,
         (programs ?? []) as { id: string; sport: string }[],
         excluded,
@@ -578,6 +670,7 @@ export async function discoverUniversityUrls(
       discovered_url: result.url,
       confidence: result.confidence,
       notes: result.notes,
+      match_evidence: result.evidence ?? null,
     });
     if (insertError) console.error("Could not queue discovered URL", insertError.message);
   }
@@ -585,7 +678,13 @@ export async function discoverUniversityUrls(
   return { universityId, universityName: name, results, errorMessage };
 }
 
-/** Write a confirmed URL into the live field it belongs to. */
+/**
+ * Write a confirmed URL into the live field it belongs to.
+ *
+ * This is the last gate before a live record changes, so the identity check runs
+ * again here — a proposal raised before the school's institution ID was resolved,
+ * or one confirmed by hand, still has to be tied to the institution.
+ */
 export async function applyDiscoveredUrl(
   supabase: any,
   row: {
@@ -598,6 +697,28 @@ export async function applyDiscoveredUrl(
 ) {
   if (!row.discovered_url) throw new Error("There's no URL on this item to confirm");
 
+  const inst = await loadInstitution(supabase, row.university_id);
+  if (!inst.unitid) {
+    throw new Error(
+      "This school has no federal institution ID yet — settle its identity before attaching a website.",
+    );
+  }
+  const verdict = await verifyCandidateForInstitution(supabase, inst, row.discovered_url);
+  if (!verdict.ok) {
+    // Refused, and the refusal is kept where a person can see it.
+    await supabase
+      .from("url_discovery_queue")
+      .update({
+        status: "pending_review",
+        notes: `Refused on save: ${verdict.evidence.detail}`,
+        match_evidence: verdict.evidence,
+      })
+      .eq("id", row.id);
+    throw new Error(`Refused: ${verdict.evidence.detail}`);
+  }
+
+  const evidence = verdict.evidence;
+
   if (row.discovery_type === "athletic_website") {
     const { error } = await supabase
       .from("universities")
@@ -608,7 +729,7 @@ export async function applyDiscoveredUrl(
     // The school's athletics site is also the program-level athletics link.
     const { error: programError } = await supabase
       .from("programs")
-      .update({ athletic_website: row.discovered_url })
+      .update({ athletic_website: row.discovered_url, link_evidence: evidence })
       .eq("university_id", row.university_id)
       .is("athletic_website", null);
     if (programError) throw new Error(programError.message);
@@ -619,7 +740,7 @@ export async function applyDiscoveredUrl(
   const field = row.discovery_type === "roster_page" ? "roster_url" : "coaching_staff_url";
   const { error } = await supabase
     .from("programs")
-    .update({ [field]: row.discovered_url })
+    .update({ [field]: row.discovered_url, link_evidence: evidence })
     .eq("id", row.program_id);
   if (error) throw new Error(error.message);
 }
@@ -742,7 +863,8 @@ export async function setAthleticsSiteByHand(
   let searched = false;
   try {
     const excluded = await loadRejectedUrls(supabase, universityId);
-    results = await discoverProgramPages(site, list, excluded);
+    const inst = await loadInstitution(supabase, universityId);
+    results = await discoverProgramPages(supabase, inst, site, list, excluded);
     searched = true;
   } catch (failure) {
     console.error("Could not map the hand-entered athletics site", failure);

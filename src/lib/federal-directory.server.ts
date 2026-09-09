@@ -19,11 +19,20 @@ const DIRECTORY_FIELDS = [
   "school.city",
   "school.state",
   "school.main_campus",
+  // The institution's own website and its level: the two facts every link check
+  // is judged against. 2 = predominantly associate degrees, i.e. a two-year school.
+  "school.school_url",
+  "school.degrees_awarded.predominant",
   "latest.student.size",
 ].join(",");
 
 type DirectoryRow = Record<string, unknown>;
-type DirectoryEntry = Omit<ScoredCandidate, "score">;
+type DirectoryEntry = Omit<ScoredCandidate, "score"> & {
+  /** The institution's own website, per the federal record. */
+  website?: string | null;
+  /** True when the institution predominantly awards associate degrees. */
+  twoYear?: boolean | null;
+};
 
 let cached: DirectoryEntry[] | null = null;
 
@@ -38,6 +47,8 @@ function text(value: unknown): string | null {
 
 function entryOf(row: DirectoryRow): DirectoryEntry {
   const main = row["school.main_campus"];
+  const site = text(row["school.school_url"]);
+  const predominant = row["school.degrees_awarded.predominant"];
   return {
     unitid: Number(row["id"]),
     name: text(row["school.name"]) ?? "",
@@ -46,6 +57,9 @@ function entryOf(row: DirectoryRow): DirectoryEntry {
     state: text(row["school.state"]),
     mainCampus: main === null || main === undefined ? null : Number(main) === 1,
     enrollment: Number(row["latest.student.size"]) || null,
+    website: site ? (/^https?:\/\//i.test(site) ? site : `https://${site}`) : null,
+    twoYear:
+      predominant === null || predominant === undefined ? null : Number(predominant) === 2,
   };
 }
 
@@ -107,10 +121,12 @@ export async function refreshDirectoryTable(): Promise<{ stored: number }> {
       state: entry.state ?? null,
       main_campus: entry.mainCampus ?? null,
       enrollment: entry.enrollment ?? null,
+      website: entry.website ?? null,
+      two_year: entry.twoYear ?? null,
 
       updated_at: now,
     }));
-    const { error } = await supabaseAdmin.from("federal_directory").upsert(chunk, { onConflict: "unitid" });
+    const { error } = await supabaseAdmin.from("federal_directory").upsert(chunk as any, { onConflict: "unitid" });
     if (error) throw new Error(error.message);
   }
 
@@ -124,7 +140,7 @@ export async function loadStoredDirectory(supabase: any): Promise<DirectoryEntry
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("federal_directory")
-      .select("unitid, name, alias, city, state, main_campus, enrollment")
+      .select("unitid, name, alias, city, state, main_campus, enrollment, website, two_year")
       .order("unitid")
       .range(from, from + PAGE - 1);
     if (error) throw new Error(error.message);
@@ -138,6 +154,8 @@ export async function loadStoredDirectory(supabase: any): Promise<DirectoryEntry
         state: row.state ?? null,
         mainCampus: row.main_campus ?? null,
         enrollment: row.enrollment ?? null,
+        website: row.website ?? null,
+        twoYear: row.two_year ?? null,
       });
     }
     if (rows.length < PAGE) break;
