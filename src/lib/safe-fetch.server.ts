@@ -34,7 +34,12 @@ export type SafeFetchResult = {
   markdown: string | null;
   failure_category: FailureCategory | null;
   fetch_method: FetchMethod | null;
+  /** Every path tried, in order — present even when all of them failed. */
+  attempted_methods: FetchMethod[];
+  /** Did any attempt run through the stealth proxy? */
+  stealth_used: boolean;
   attempts: number;
+
   error: string | null;
 };
 
@@ -258,10 +263,22 @@ function requireEnv(name: string): string {
 }
 
 /**
- * The rendering service. Used when a host refuses the plain request (blocked,
- * closed, 403) or hands back a shell page whose content its own scripts draw.
+ * The rendering service. Used whenever the plain request fails for any reason
+ * other than a confirmed 404.
+ *
+ * WHY STEALTH MODE IS ON THE FALLBACK PATH — do not trim it:
+ * on 2026-09-08, 94 pages were logged as timeouts. A raw capture on 2026-09-09
+ * showed what actually arrives from those hosts: HTTP 202 from CloudFront with
+ * `x-amzn-waf-action: challenge`, in 0.07s. That is a bot firewall, not a slow
+ * site, and a plain render never clears it, so the fallback goes through the
+ * rendering service's stealth proxy instead.
+ *
+ * WHY THE CEILING IS 58s AND NOT HIGHER: the request goes through the shared
+ * connector gateway, which cuts every scrape off at 60s and answers 502. Asking
+ * for 90s produced a 502 at exactly 60.1s, three times out of three. A higher
+ * ceiling needs a direct scraping-service key, not a bigger number here.
  */
-async function renderedAttempt(url: string): Promise<Attempt> {
+async function renderedAttempt(url: string, stealth = false): Promise<Attempt> {
   try {
     const response = await fetch(`${GATEWAY_FIRECRAWL}/scrape`, {
       method: "POST",
@@ -274,11 +291,10 @@ async function renderedAttempt(url: string): Promise<Attempt> {
         url,
         formats: ["markdown"],
         onlyMainContent: true,
-        waitFor: 4000,
+        waitFor: stealth ? 8000 : 4000,
+        ...(stealth ? { proxy: "stealth", timeout: 55_000 } : {}),
       }),
-      // The rendering service is capped upstream at about a minute, so waiting
-      // longer than this only burns time it can never use.
-      signal: AbortSignal.timeout(55_000),
+      signal: AbortSignal.timeout(58_000),
     });
 
     if (!response.ok) {
@@ -290,12 +306,26 @@ async function renderedAttempt(url: string): Promise<Attempt> {
       if (/404|not found/i.test(body)) {
         return { ok: false, status: 404, html: null, text: null, category: "not_found", error: "page not found" };
       }
+      // The gateway gives up on the render at 60s and answers 502/504. Calling
+      // that a "timeout" is what hid 94 bot-firewall blocks behind a slow-site
+      // label, so it is reported as the block it is.
+      if (response.status === 502 || response.status === 504 || /upstream_request_failed|bad gateway/i.test(body)) {
+        return {
+          ok: false,
+          status: response.status,
+          html: null,
+          text: null,
+          category: "connection_blocked",
+          error: "the site's bot protection did not release the page within the rendering time limit",
+        };
+      }
       return {
         ok: false,
         status: response.status,
         html: null,
         text: null,
         category: "http_error",
+
         error: `rendered read returned ${response.status}`,
       };
     }
@@ -325,17 +355,29 @@ export type SafeFetchOptions = {
 /**
  * Read one web page. Never throws for an unreachable page — the caller gets a
  * structured result and never has to read error wording to know what happened.
+ *
+ * The rendering fallback fires on ANY failure except a confirmed 404. It used to
+ * be limited to blocked/empty answers, which meant a page recorded as a timeout
+ * never got the second path at all — the single biggest cause of false failures
+ * in the 2026-09-08 pass.
  */
 export async function safeFetch(url: string, options: SafeFetchOptions = {}): Promise<SafeFetchResult> {
   const tries = Math.min(Math.max(options.tries ?? 3, 1), 3);
   let attempts = 0;
   let last: Attempt = { ok: false, status: null, html: null, text: null, category: "timeout", error: "not attempted" };
   let method: FetchMethod = options.preferRendered ? "rendered" : "direct";
+  let stealthUsed = false;
+  const attemptedMethods: FetchMethod[] = [];
 
   for (let round = 0; round < tries; round += 1) {
     attempts += 1;
     const useRendered = method === "rendered";
-    last = await queueByHost(url, () => (useRendered ? renderedAttempt(url) : directAttempt(url)));
+    // Every rendered attempt reached from a failed direct read is a fallback, so
+    // it runs through the stealth proxy with the raised ceiling.
+    const stealth = useRendered;
+    if (stealth) stealthUsed = true;
+    attemptedMethods.push(useRendered ? "rendered" : "direct");
+    last = await queueByHost(url, () => (useRendered ? renderedAttempt(url, stealth) : directAttempt(url)));
 
     if (last.ok) {
       return {
@@ -345,6 +387,8 @@ export async function safeFetch(url: string, options: SafeFetchOptions = {}): Pr
         markdown: last.text,
         failure_category: null,
         fetch_method: useRendered ? "rendered" : "direct",
+        attempted_methods: attemptedMethods,
+        stealth_used: stealthUsed,
         attempts,
         error: null,
       };
@@ -353,16 +397,20 @@ export async function safeFetch(url: string, options: SafeFetchOptions = {}): Pr
     // A missing page is a real dead link, not a flaky read. Report it at once.
     if (last.category === "not_found") break;
 
-    // A rendered read that ran out of time will not do better on a second go —
-    // it is a minute of paid rendering each time. Report it rather than retry.
-    if (useRendered && last.category === "timeout") break;
-
-    // The host refused the plain request or handed back a shell page: that is
-    // exactly what the rendering service is for, so switch paths and retry now.
-    if (!useRendered && (last.category === "connection_blocked" || last.category === "empty_content")) {
+    // Any other failure of the plain request earns the rendering service — a
+    // timeout included, because a bot firewall answers instantly and still ends
+    // up looking like a hang further down the chain.
+    if (!useRendered) {
       method = "rendered";
       continue;
     }
+
+    // A stealth render that ran out of time, or that a bot firewall refused,
+    // will not do better on an identical second go — and each go is a minute of
+    // paid rendering. Only a shell page (which may just have rendered slowly)
+    // earns another try.
+    if (last.category !== "empty_content") break;
+
 
     if (round < tries - 1) await sleep(BACKOFF_MS[round] ?? 45_000);
   }
@@ -374,10 +422,13 @@ export async function safeFetch(url: string, options: SafeFetchOptions = {}): Pr
     markdown: last.text,
     failure_category: last.category ?? "timeout",
     fetch_method: null,
+    attempted_methods: attemptedMethods,
+    stealth_used: stealthUsed,
     attempts,
     error: last.error,
   };
 }
+
 
 /** Reset the shared queue. Tests only. */
 export function __resetSafeFetchQueue(): void {
