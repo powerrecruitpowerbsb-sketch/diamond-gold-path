@@ -464,6 +464,45 @@ export type Database = {
         }
         Relationships: []
       }
+      host_protection: {
+        Row: {
+          detections: number
+          evidence: string | null
+          first_detected_at: string
+          host: string
+          last_confirmed_at: string
+          last_probe_at: string | null
+          lifted_at: string | null
+          probe_status: string | null
+          protection_kind: string
+          updated_at: string
+        }
+        Insert: {
+          detections?: number
+          evidence?: string | null
+          first_detected_at?: string
+          host: string
+          last_confirmed_at?: string
+          last_probe_at?: string | null
+          lifted_at?: string | null
+          probe_status?: string | null
+          protection_kind: string
+          updated_at?: string
+        }
+        Update: {
+          detections?: number
+          evidence?: string | null
+          first_detected_at?: string
+          host?: string
+          last_confirmed_at?: string
+          last_probe_at?: string | null
+          lifted_at?: string | null
+          probe_status?: string | null
+          protection_kind?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingest_queue: {
         Row: {
           attempts: number
@@ -1622,6 +1661,111 @@ export type Database = {
           },
         ]
       }
+      sweep_runs: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          id: string
+          label: string | null
+          last_host: string | null
+          last_message: string | null
+          run_key: string
+          started_at: string | null
+          status: string
+          totals: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          label?: string | null
+          last_host?: string | null
+          last_message?: string | null
+          run_key: string
+          started_at?: string | null
+          status?: string
+          totals?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          label?: string | null
+          last_host?: string | null
+          last_message?: string | null
+          run_key?: string
+          started_at?: string | null
+          status?: string
+          totals?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sweep_targets: {
+        Row: {
+          checked_at: string | null
+          created_at: string
+          detail: string | null
+          field: string
+          host: string
+          id: string
+          outcome: string | null
+          program_id: string
+          run_key: string
+          status: string
+          university_id: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          checked_at?: string | null
+          created_at?: string
+          detail?: string | null
+          field: string
+          host: string
+          id?: string
+          outcome?: string | null
+          program_id: string
+          run_key: string
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          checked_at?: string | null
+          created_at?: string
+          detail?: string | null
+          field?: string
+          host?: string
+          id?: string
+          outcome?: string | null
+          program_id?: string
+          run_key?: string
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sweep_targets_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sweep_targets_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_athletes: {
         Row: {
           created_at: string
@@ -2127,7 +2271,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      link_verification_state: {
+        Row: {
+          conflicted: boolean | null
+          field: string | null
+          host: string | null
+          host_protected: boolean | null
+          last_failure_category:
+            | Database["public"]["Enums"]["page_failure_category"]
+            | null
+          last_verified_ok_at: string | null
+          link_status: Database["public"]["Enums"]["link_health_status"] | null
+          program_id: string | null
+          sport: string | null
+          state_detail: string | null
+          university_id: string | null
+          url: string | null
+          verification_state: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       active_season_id: { Args: never; Returns: string }
@@ -2219,6 +2382,7 @@ export type Database = {
         | "http_error"
         | "empty_content"
         | "not_found"
+        | "blocked_by_host"
       pending_change_status: "pending" | "approved" | "rejected"
       player_position:
         | "C"
@@ -2417,6 +2581,7 @@ export const Constants = {
         "http_error",
         "empty_content",
         "not_found",
+        "blocked_by_host",
       ],
       pending_change_status: ["pending", "approved", "rejected"],
       player_position: [

@@ -16,12 +16,17 @@
  * reading the same host must still serialise against each other.
  */
 
+import { detectHostProtection, protectionLabel, type ProtectionSignal } from "@/lib/host-protection";
+
+
 export type FailureCategory =
   | "timeout"
   | "connection_blocked"
   | "http_error"
   | "empty_content"
-  | "not_found";
+  | "not_found"
+  /** The site's own firewall refuses automated reads. Its own state, on purpose. */
+  | "blocked_by_host";
 
 export type FetchMethod = "direct" | "rendered";
 
@@ -62,6 +67,42 @@ const BROWSER_HEADERS: Record<string, string> = {
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/* ------------------------------------------------------- protected hosts */
+
+/**
+ * Hosts whose firewall has been confirmed to refuse automated reads. Held in the
+ * module so every caller shares one view of it, and loaded from
+ * `host_protection` by `host-protection.server.ts`. A host in here is never
+ * fetched and never rendered: it is answered straight away with
+ * `blocked_by_host`, which costs nothing and tells the truth.
+ */
+const protectedHosts = new Map<string, string>();
+let onProtectionDetected: ((host: string, signal: ProtectionSignal) => void) | null = null;
+
+export function setProtectedHosts(entries: Array<{ host: string; protection_kind: string }>): void {
+  protectedHosts.clear();
+  for (const entry of entries) protectedHosts.set(entry.host.toLowerCase().replace(/^www\./, ""), entry.protection_kind);
+}
+
+export function isHostProtected(url: string): boolean {
+  return protectedHosts.has(hostOf(url));
+}
+
+export function protectedHostCount(): number {
+  return protectedHosts.size;
+}
+
+/** Called the moment a firewall signature is seen, so it can be written down. */
+export function setProtectionReporter(reporter: ((host: string, signal: ProtectionSignal) => void) | null): void {
+  onProtectionDetected = reporter;
+}
+
+function noteProtection(url: string, signal: ProtectionSignal): void {
+  const host = hostOf(url);
+  protectedHosts.set(host, signal.kind);
+  onProtectionDetected?.(host, signal);
+}
 
 /* ---------------------------------------------------------------- scheduling */
 
@@ -198,6 +239,8 @@ type Attempt = {
   text: string | null;
   category: FailureCategory | null;
   error: string | null;
+  /** A confirmed firewall signature, so the host can be quarantined. */
+  protection?: ProtectionSignal | null;
 };
 
 async function directAttempt(url: string): Promise<Attempt> {
@@ -211,16 +254,32 @@ async function directAttempt(url: string): Promise<Attempt> {
     if (response.status === 404 || response.status === 410) {
       return { ok: false, status: response.status, html: null, text: null, category: "not_found", error: `page not found (${response.status})` };
     }
-    // Amazon's firewall answers a bot with a 202 "challenge" and no page. That is
-    // a block, not a slow site, and calling it a timeout hid the real reason.
-    if (response.headers.get("x-amzn-waf-action") || response.status === 202) {
+
+    // A firewall challenge is an answer, not a hang. Read the short body so a
+    // Cloudflare "just a moment" page is recognised as well as Amazon's header.
+    const challengeStatus =
+      response.status === 202 || response.status === 403 || response.status === 503 || Boolean(response.headers.get("x-amzn-waf-action"));
+    const preview = challengeStatus ? await response.clone().text().catch(() => "") : "";
+    const protection = detectHostProtection({ status: response.status, headers: response.headers, body: preview });
+    if (protection) {
+      return {
+        ok: false,
+        status: response.status,
+        html: null,
+        text: null,
+        category: "blocked_by_host",
+        error: `this site blocks automated reading (${protectionLabel(protection.kind)})`,
+        protection,
+      };
+    }
+    if (response.status === 202) {
       return {
         ok: false,
         status: response.status,
         html: null,
         text: null,
         category: "connection_blocked",
-        error: "the site's bot protection blocked the request (firewall challenge)",
+        error: "the site answered a challenge page instead of the page itself",
       };
     }
     if (response.status === 403 || response.status === 401 || response.status === 429) {
@@ -350,7 +409,30 @@ export type SafeFetchOptions = {
   preferRendered?: boolean;
   /** Attempts including the first. Default 3. */
   tries?: number;
+  /**
+   * Read a host that is on the protected list anyway. Used only by the one cheap
+   * probe per sweep that asks whether the protection has lifted.
+   */
+  ignoreProtection?: boolean;
 };
+
+/** The instant answer for a host whose firewall has already been confirmed. */
+function blockedByHost(url: string): SafeFetchResult {
+  const host = hostOf(url);
+  return {
+    ok: false,
+    status: null,
+    html: null,
+    markdown: null,
+    failure_category: "blocked_by_host",
+    fetch_method: null,
+    attempted_methods: [],
+    stealth_used: false,
+    attempts: 0,
+    error: `${host} blocks automated reading (${protectionLabel(protectedHosts.get(host) ?? "")}) — not read`,
+  };
+}
+
 
 /**
  * Read one web page. Never throws for an unreachable page — the caller gets a
@@ -362,6 +444,11 @@ export type SafeFetchOptions = {
  * in the 2026-09-08 pass.
  */
 export async function safeFetch(url: string, options: SafeFetchOptions = {}): Promise<SafeFetchResult> {
+  // A host we have already proved refuses machines is not read again. No request,
+  // no paid render: the page is reported as blocked by the site and its stored
+  // address is left exactly as it is.
+  if (!options.ignoreProtection && isHostProtected(url)) return blockedByHost(url);
+
   const tries = Math.min(Math.max(options.tries ?? 3, 1), 3);
   let attempts = 0;
   let last: Attempt = { ok: false, status: null, html: null, text: null, category: "timeout", error: "not attempted" };
@@ -394,8 +481,27 @@ export async function safeFetch(url: string, options: SafeFetchOptions = {}): Pr
       };
     }
 
+    // A confirmed firewall challenge ends the read here. Rendering cannot solve a
+    // human check, so the host is written down and left alone from now on.
+    if (last.protection) {
+      noteProtection(url, last.protection);
+      return {
+        ok: false,
+        status: last.status,
+        html: null,
+        markdown: null,
+        failure_category: "blocked_by_host",
+        fetch_method: null,
+        attempted_methods: attemptedMethods,
+        stealth_used: stealthUsed,
+        attempts,
+        error: last.error,
+      };
+    }
+
     // A missing page is a real dead link, not a flaky read. Report it at once.
     if (last.category === "not_found") break;
+
 
     // Any other failure of the plain request earns the rendering service — a
     // timeout included, because a bot firewall answers instantly and still ends

@@ -1,0 +1,1 @@
+ALTER TYPE public.page_failure_category ADD VALUE IF NOT EXISTS 'blocked_by_host';

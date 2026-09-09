@@ -41,6 +41,8 @@ export type AuditResult = {
   confirmed: number;
   cleared: number;
   unclear: number;
+  /** Pages skipped or refused because the site blocks automated reading. */
+  blocked: number;
   failed: number;
   rows: AuditRow[];
   /** Pass this back to carry on where this pass stopped. */
@@ -111,6 +113,8 @@ export type AuditOptions = {
   /** Program id the previous pass stopped after. */
   cursor?: string | null;
   actorId?: string | null;
+  /** Check exactly these pages and nothing else. Used by the resumable sweep. */
+  targets?: { programId: string; field: LinkField }[] | null;
 };
 
 /**
@@ -150,6 +154,12 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
     }
   }
 
+  // An explicit target list wins over everything else: the resumable sweep hands
+  // over the exact pages it still owes, host by host.
+  if (options.targets?.length) {
+    failedOnly = new Set(options.targets.map((target) => `${target.programId}:${target.field}`));
+  }
+
   let query = supabase
     .from("programs")
     .select(
@@ -160,6 +170,9 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
     .or("roster_url.not.is.null,coaching_staff_url.not.is.null")
     .order("id", { ascending: true })
     .limit(limit);
+  if (options.targets?.length) {
+    query = query.in("id", [...new Set(options.targets.map((target) => target.programId))]);
+  }
   if (options.cursor) query = query.gt("id", options.cursor);
 
   const { data, error } = await query;
@@ -172,6 +185,7 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
     confirmed: 0,
     cleared: 0,
     unclear: 0,
+    blocked: 0,
     failed: 0,
     rows: [],
     nextCursor: options.cursor ?? null,
@@ -224,6 +238,23 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
           not_found_runs: 0,
           last_failure_category: null,
           last_error: null,
+        },
+        { onConflict: "program_id,field" },
+      );
+      return;
+    }
+
+    // A page on a site that refuses machines is recorded as exactly that, and
+    // nothing else moves: no failure tally, no status change, no address touched.
+    // It is not the link's fault and must never look like a bad link.
+    if (page.failure_category === "blocked_by_host") {
+      await supabase.from("link_health").upsert(
+        {
+          program_id: program.id,
+          field,
+          url,
+          last_failure_category: "blocked_by_host",
+          last_error: (page.error ?? "").slice(0, 500),
         },
         { onConflict: "program_id,field" },
       );
@@ -345,8 +376,12 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
 
       if (!page.ok || !page.markdown) {
         const reason = page.error ?? "the page could not be read";
-        result.failed += 1;
-        await recordUnreadable(program, field, url, reason, page.failure_category);
+        const blocked = page.failure_category === "blocked_by_host";
+        if (blocked) result.blocked += 1;
+        else result.failed += 1;
+        // Blocked-by-the-site is not "unreadable": it says nothing about the page
+        // and belongs in its own state, so it stays out of that log.
+        if (!blocked) await recordUnreadable(program, field, url, reason, page.failure_category);
         result.rows.push({
           ...base,
           verdict: "failed",
