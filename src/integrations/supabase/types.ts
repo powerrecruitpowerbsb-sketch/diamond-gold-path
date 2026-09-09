@@ -623,6 +623,80 @@ export type Database = {
           },
         ]
       }
+      link_conflicts: {
+        Row: {
+          attempted_url: string
+          created_at: string
+          detail: string | null
+          field: string
+          holder_program_id: string | null
+          holder_university_id: string | null
+          id: string
+          normalized_key: string
+          program_id: string | null
+          status: string
+          university_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempted_url: string
+          created_at?: string
+          detail?: string | null
+          field: string
+          holder_program_id?: string | null
+          holder_university_id?: string | null
+          id?: string
+          normalized_key: string
+          program_id?: string | null
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempted_url?: string
+          created_at?: string
+          detail?: string | null
+          field?: string
+          holder_program_id?: string | null
+          holder_university_id?: string | null
+          id?: string
+          normalized_key?: string
+          program_id?: string | null
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_conflicts_holder_program_id_fkey"
+            columns: ["holder_program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_conflicts_holder_university_id_fkey"
+            columns: ["holder_university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_conflicts_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_conflicts_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       link_health: {
         Row: {
           consecutive_failures: number
@@ -687,6 +761,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      link_platform_hosts: {
+        Row: {
+          created_at: string
+          host: string
+          note: string | null
+        }
+        Insert: {
+          created_at?: string
+          host: string
+          note?: string | null
+        }
+        Update: {
+          created_at?: string
+          host?: string
+          note?: string | null
+        }
+        Relationships: []
       }
       majors: {
         Row: {
@@ -2053,7 +2145,10 @@ export type Database = {
       invite_code_valid: { Args: { _code: string }; Returns: boolean }
       is_linked_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       is_org_manager: { Args: never; Returns: boolean }
+      is_platform_host: { Args: { _host: string }; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
+      link_host: { Args: { _url: string }; Returns: string }
+      link_host_only: { Args: { _url: string }; Returns: string }
       pages_check_on: { Args: never; Returns: boolean }
       program_roster_summary: {
         Args: { _program_id: string }
