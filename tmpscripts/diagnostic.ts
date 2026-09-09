@@ -151,9 +151,9 @@ const sample = `
 with strata as (
   select pr.id, u.name as school, u.state,
     case
-      when pr.governing_body = 'NCAA' and pr.division ilike '%I%' and pr.division not ilike '%II%' and pr.division not ilike '%III%' then 'NCAA D1'
-      when pr.governing_body = 'NCAA' and pr.division ilike '%III%' then 'NCAA D3'
-      when pr.governing_body = 'NCAA' and pr.division ilike '%II%' then 'NCAA D2'
+      when pr.governing_body = 'NCAA' and upper(coalesce(pr.division,'')) in ('D3','DIII','III') then 'NCAA D3'
+      when pr.governing_body = 'NCAA' and upper(coalesce(pr.division,'')) in ('D2','DII','II') then 'NCAA D2'
+      when pr.governing_body = 'NCAA' and upper(coalesce(pr.division,'')) in ('D1','DI','I') then 'NCAA D1'
       when pr.governing_body = 'NCAA' then 'NCAA (division unknown)'
       when pr.governing_body = 'NAIA' then 'NAIA'
       when pr.governing_body in ('NJCAA','CCCAA','NWAC') then 'JUCO'
@@ -163,9 +163,9 @@ with strata as (
     pr.athletic_website as athletics_site, pr.roster_url, pr.coaching_staff_url as staff_url,
     row_number() over (partition by
       case
-        when pr.governing_body = 'NCAA' and pr.division ilike '%I%' and pr.division not ilike '%II%' and pr.division not ilike '%III%' then 'NCAA D1'
-        when pr.governing_body = 'NCAA' and pr.division ilike '%III%' then 'NCAA D3'
-        when pr.governing_body = 'NCAA' and pr.division ilike '%II%' then 'NCAA D2'
+        when pr.governing_body = 'NCAA' and upper(coalesce(pr.division,'')) in ('D3','DIII','III') then 'NCAA D3'
+        when pr.governing_body = 'NCAA' and upper(coalesce(pr.division,'')) in ('D2','DII','II') then 'NCAA D2'
+        when pr.governing_body = 'NCAA' and upper(coalesce(pr.division,'')) in ('D1','DI','I') then 'NCAA D1'
         when pr.governing_body = 'NCAA' then 'NCAA (division unknown)'
         when pr.governing_body = 'NAIA' then 'NAIA'
         when pr.governing_body in ('NJCAA','CCCAA','NWAC') then 'JUCO'
