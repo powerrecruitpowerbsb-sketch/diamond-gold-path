@@ -670,6 +670,7 @@ export async function discoverUniversityUrls(
       discovered_url: result.url,
       confidence: result.confidence,
       notes: result.notes,
+      match_evidence: result.evidence ?? null,
     });
     if (insertError) console.error("Could not queue discovered URL", insertError.message);
   }
@@ -677,7 +678,13 @@ export async function discoverUniversityUrls(
   return { universityId, universityName: name, results, errorMessage };
 }
 
-/** Write a confirmed URL into the live field it belongs to. */
+/**
+ * Write a confirmed URL into the live field it belongs to.
+ *
+ * This is the last gate before a live record changes, so the identity check runs
+ * again here — a proposal raised before the school's institution ID was resolved,
+ * or one confirmed by hand, still has to be tied to the institution.
+ */
 export async function applyDiscoveredUrl(
   supabase: any,
   row: {
@@ -690,6 +697,28 @@ export async function applyDiscoveredUrl(
 ) {
   if (!row.discovered_url) throw new Error("There's no URL on this item to confirm");
 
+  const inst = await loadInstitution(supabase, row.university_id);
+  if (!inst.unitid) {
+    throw new Error(
+      "This school has no federal institution ID yet — settle its identity before attaching a website.",
+    );
+  }
+  const verdict = await verifyCandidateForInstitution(supabase, inst, row.discovered_url);
+  if (!verdict.ok) {
+    // Refused, and the refusal is kept where a person can see it.
+    await supabase
+      .from("url_discovery_queue")
+      .update({
+        status: "pending_review",
+        notes: `Refused on save: ${verdict.evidence.detail}`,
+        match_evidence: verdict.evidence,
+      })
+      .eq("id", row.id);
+    throw new Error(`Refused: ${verdict.evidence.detail}`);
+  }
+
+  const evidence = verdict.evidence;
+
   if (row.discovery_type === "athletic_website") {
     const { error } = await supabase
       .from("universities")
@@ -700,7 +729,7 @@ export async function applyDiscoveredUrl(
     // The school's athletics site is also the program-level athletics link.
     const { error: programError } = await supabase
       .from("programs")
-      .update({ athletic_website: row.discovered_url })
+      .update({ athletic_website: row.discovered_url, link_evidence: evidence })
       .eq("university_id", row.university_id)
       .is("athletic_website", null);
     if (programError) throw new Error(programError.message);
@@ -711,7 +740,7 @@ export async function applyDiscoveredUrl(
   const field = row.discovery_type === "roster_page" ? "roster_url" : "coaching_staff_url";
   const { error } = await supabase
     .from("programs")
-    .update({ [field]: row.discovered_url })
+    .update({ [field]: row.discovered_url, link_evidence: evidence })
     .eq("id", row.program_id);
   if (error) throw new Error(error.message);
 }
