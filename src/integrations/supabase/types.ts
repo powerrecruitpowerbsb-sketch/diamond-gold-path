@@ -433,8 +433,10 @@ export type Database = {
           main_campus: boolean | null
           name: string
           state: string | null
+          two_year: boolean | null
           unitid: number
           updated_at: string
+          website: string | null
         }
         Insert: {
           alias?: string | null
@@ -443,8 +445,10 @@ export type Database = {
           main_campus?: boolean | null
           name: string
           state?: string | null
+          two_year?: boolean | null
           unitid: number
           updated_at?: string
+          website?: string | null
         }
         Update: {
           alias?: string | null
@@ -453,8 +457,10 @@ export type Database = {
           main_campus?: boolean | null
           name?: string
           state?: string | null
+          two_year?: boolean | null
           unitid?: number
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -1282,6 +1288,7 @@ export type Database = {
           id: string
           last_roster_pull_at: string | null
           last_verified_at: string | null
+          link_evidence: Json | null
           offering_evidence: Json | null
           offering_source: string | null
           offering_status: Database["public"]["Enums"]["program_offering_status"]
@@ -1308,6 +1315,7 @@ export type Database = {
           id?: string
           last_roster_pull_at?: string | null
           last_verified_at?: string | null
+          link_evidence?: Json | null
           offering_evidence?: Json | null
           offering_source?: string | null
           offering_status?: Database["public"]["Enums"]["program_offering_status"]
@@ -1334,6 +1342,7 @@ export type Database = {
           id?: string
           last_roster_pull_at?: string | null
           last_verified_at?: string | null
+          link_evidence?: Json | null
           offering_evidence?: Json | null
           offering_source?: string | null
           offering_status?: Database["public"]["Enums"]["program_offering_status"]
@@ -1991,6 +2000,7 @@ export type Database = {
           discovered_url: string | null
           discovery_type: Database["public"]["Enums"]["url_discovery_type"]
           id: string
+          match_evidence: Json | null
           notes: string | null
           program_id: string | null
           reviewed_at: string | null
@@ -2005,6 +2015,7 @@ export type Database = {
           discovered_url?: string | null
           discovery_type: Database["public"]["Enums"]["url_discovery_type"]
           id?: string
+          match_evidence?: Json | null
           notes?: string | null
           program_id?: string | null
           reviewed_at?: string | null
@@ -2019,6 +2030,7 @@ export type Database = {
           discovered_url?: string | null
           discovery_type?: Database["public"]["Enums"]["url_discovery_type"]
           id?: string
+          match_evidence?: Json | null
           notes?: string | null
           program_id?: string | null
           reviewed_at?: string | null
@@ -2149,6 +2161,7 @@ export type Database = {
       is_superadmin: { Args: never; Returns: boolean }
       link_host: { Args: { _url: string }; Returns: string }
       link_host_only: { Args: { _url: string }; Returns: string }
+      link_key: { Args: { _url: string }; Returns: string }
       pages_check_on: { Args: never; Returns: boolean }
       program_roster_summary: {
         Args: { _program_id: string }
