@@ -405,9 +405,12 @@ export async function safeFetch(url: string, options: SafeFetchOptions = {}): Pr
       continue;
     }
 
-    // A stealth render that ran out of time will not do better on a second go,
-    // and each go is minutes of paid rendering. Report it rather than retry.
-    if (last.category === "timeout") break;
+    // A stealth render that ran out of time, or that a bot firewall refused,
+    // will not do better on an identical second go — and each go is a minute of
+    // paid rendering. Only a shell page (which may just have rendered slowly)
+    // earns another try.
+    if (last.category !== "empty_content") break;
+
 
     if (round < tries - 1) await sleep(BACKOFF_MS[round] ?? 45_000);
   }
