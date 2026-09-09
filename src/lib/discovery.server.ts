@@ -585,8 +585,9 @@ export async function discoverUniversityUrls(
     .single();
   if (error) throw new Error(error.message);
 
+  // Identity first: everything below is judged against the institution record.
+  const inst = await loadInstitution(supabase, universityId);
   const name = String((school as any).name ?? "");
-  const state = ((school as any).state ?? null) as string | null;
 
   const { data: programs, error: programError } = await supabase
     .from("programs")
@@ -602,14 +603,16 @@ export async function discoverUniversityUrls(
 
   try {
     const site = await discoverAthleticWebsite(
-      name,
-      state,
+      supabase,
+      inst,
       excluded,
       ((school as any).athletic_site ?? null) as string | null,
     );
     results.push(site);
     if (site.url) {
       const pageResults = await discoverProgramPages(
+        supabase,
+        inst,
         site.url,
         (programs ?? []) as { id: string; sport: string }[],
         excluded,
