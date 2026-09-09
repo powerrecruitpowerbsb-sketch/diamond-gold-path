@@ -485,13 +485,38 @@ function pickPageUrl(links: string[], sport: string, kind: "roster" | "coach") {
 }
 
 
-/** Map the athletics site and pick roster + coaching pages per sport program. */
+/**
+ * Map the athletics site and pick roster + coaching pages per sport program.
+ * Every pick is verified against the school's institution record before it is
+ * offered, exactly as the athletics domain is.
+ */
 export async function discoverProgramPages(
+  supabase: any,
+  inst: Institution,
   athleticSite: string,
   programs: { id: string; sport: string }[],
   excluded: Set<string> = new Set(),
 ): Promise<DiscoveryResult[]> {
   const results: DiscoveryResult[] = [];
+
+  if (!inst.unitid) {
+    for (const program of programs) {
+      for (const discoveryType of ["roster_page", "coaching_staff_page"] as DiscoveryType[]) {
+        results.push({
+          discoveryType,
+          programId: program.id,
+          sport: program.sport,
+          url: null,
+          confidence: "failed",
+          notes:
+            "This school has no federal institution ID yet, so pages can't be tied to it. Settle the identity first.",
+          evidence: null,
+        });
+      }
+    }
+    return results;
+  }
+
   const links = new Set<string>();
 
   for (const term of ["roster", "coaches"]) {
@@ -512,17 +537,35 @@ export async function discoverProgramPages(
       const candidate = all.length ? pickPageUrl(all, program.sport, kind) : null;
       const pick = candidate && excluded.has(normalizeUrl(candidate.url)) ? null : candidate;
 
+      let evidence: MatchEvidence | null = null;
+      let url = pick?.url ?? null;
+      let confidence: Confidence = pick?.confidence ?? "failed";
+      let notes =
+        pick?.note ??
+        (all.length
+          ? `No ${kind === "roster" ? "roster" : "coaching staff"} page found for ${program.sport}.`
+          : "The athletics site returned no mappable links.");
+
+      if (url) {
+        const verdict = await verifyCandidateForInstitution(supabase, inst, url);
+        evidence = verdict.evidence;
+        if (verdict.ok) {
+          notes = `${notes} ${verdict.evidence.detail}`.trim();
+        } else {
+          url = null;
+          confidence = "failed";
+          notes = `Refused: ${verdict.evidence.detail}`;
+        }
+      }
+
       results.push({
         discoveryType,
         programId: program.id,
         sport: program.sport,
-        url: pick?.url ?? null,
-        confidence: pick?.confidence ?? "failed",
-        notes:
-          pick?.note ??
-          (all.length
-            ? `No ${kind === "roster" ? "roster" : "coaching staff"} page found for ${program.sport}.`
-            : "The athletics site returned no mappable links."),
+        url,
+        confidence,
+        notes,
+        evidence,
       });
     }
   }
