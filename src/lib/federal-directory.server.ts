@@ -121,6 +121,8 @@ export async function refreshDirectoryTable(): Promise<{ stored: number }> {
       state: entry.state ?? null,
       main_campus: entry.mainCampus ?? null,
       enrollment: entry.enrollment ?? null,
+      website: entry.website ?? null,
+      two_year: entry.twoYear ?? null,
 
       updated_at: now,
     }));
@@ -138,7 +140,7 @@ export async function loadStoredDirectory(supabase: any): Promise<DirectoryEntry
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("federal_directory")
-      .select("unitid, name, alias, city, state, main_campus, enrollment")
+      .select("unitid, name, alias, city, state, main_campus, enrollment, website, two_year")
       .order("unitid")
       .range(from, from + PAGE - 1);
     if (error) throw new Error(error.message);
@@ -152,6 +154,8 @@ export async function loadStoredDirectory(supabase: any): Promise<DirectoryEntry
         state: row.state ?? null,
         mainCampus: row.main_campus ?? null,
         enrollment: row.enrollment ?? null,
+        website: row.website ?? null,
+        twoYear: row.two_year ?? null,
       });
     }
     if (rows.length < PAGE) break;
