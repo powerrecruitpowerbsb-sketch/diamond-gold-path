@@ -10,7 +10,7 @@
  */
 
 import { classifyLink, hostOf, type LinkKind, type LinkVerdict } from "@/lib/link-quality";
-import { pageOwnership, registrableDomain } from "@/lib/program-ownership";
+import { registrableDomain } from "@/lib/program-ownership";
 
 export type SweepCounts = {
   scanned: number;

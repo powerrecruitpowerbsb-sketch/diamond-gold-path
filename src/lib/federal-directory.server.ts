@@ -126,7 +126,7 @@ export async function refreshDirectoryTable(): Promise<{ stored: number }> {
 
       updated_at: now,
     }));
-    const { error } = await supabaseAdmin.from("federal_directory").upsert(chunk, { onConflict: "unitid" });
+    const { error } = await supabaseAdmin.from("federal_directory").upsert(chunk as any, { onConflict: "unitid" });
     if (error) throw new Error(error.message);
   }
 
