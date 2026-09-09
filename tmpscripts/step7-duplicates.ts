@@ -118,11 +118,12 @@ const byUniversity = new Map<string, Program[]>();
 for (const p of programs) byUniversity.set(p.university_id, [...(byUniversity.get(p.university_id) ?? []), p]);
 
 // ---- 1. duplicate detection ------------------------------------------------
-type Pair = { a: School; b: School; signal: string; evidence: string; strength: "strong" | "candidate" };
+type Strength = "strong" | "campus" | "candidate";
+type Pair = { a: School; b: School; signal: string; evidence: string; strength: Strength };
 const pairs: Pair[] = [];
 const seenPair = new Set<string>();
 const addPair = (
-  a: School, b: School, signal: string, evidence: string, strength: "strong" | "candidate",
+  a: School, b: School, signal: string, evidence: string, strength: Strength,
 ) => {
   const key = [a.id, b.id].sort().join("|");
   if (seenPair.has(key)) return;
@@ -154,7 +155,7 @@ for (const [h, group] of byFedHost) {
   if (group.length < 2) continue;
   for (let i = 0; i < group.length; i += 1)
     for (let j = i + 1; j < group.length; j += 1)
-      addPair(group[i]!, group[j]!, "same federal website", h, "strong");
+      addPair(group[i]!, group[j]!, "shares an institutional website but holds its own federal id — campus of one system, not a duplicate", h, "campus");
 }
 
 // signal 3: a no-id row matching the federal name or alias of an id-holder
@@ -167,10 +168,29 @@ for (const s of withId) {
   const keys = [f.name, ...String(f.alias ?? "").split(/[|;,]/)].map(norm).filter(Boolean);
   for (const k of new Set(keys)) aliasIndex.set(k, [...(aliasIndex.get(k) ?? []), s]);
 }
+/** Does `name` describe the same institution as the federal record, with no
+ *  extra campus word of its own? "California Polytechnic State University" does;
+ *  "Coastal Alabama Community College Brewton" does not. */
+const sameInstitution = (name: string, f: Fed): boolean => {
+  const mine = tokens(name);
+  if (!mine.size) return false;
+  const names = [f.name, ...String(f.alias ?? "").split(/[|;,]/)].filter(Boolean);
+  return names.some((candidate) => {
+    const theirs = tokens(candidate);
+    if (theirs.size < 2) return false;
+    const extra = [...mine].filter((t) => !theirs.has(t));
+    const shared = [...mine].filter((t) => theirs.has(t)).length;
+    return extra.length === 0 && shared >= Math.min(2, theirs.size);
+  });
+};
+
 for (const s of noId) {
-  for (const holder of aliasIndex.get(norm(s.name)) ?? []) {
-    const f = fed.get(holder.ipeds_unitid!)!;
-    addPair(s, holder, "name matches the federal name or alias of a record that holds the id",
+  for (const holder of withId) {
+    const f = fed.get(holder.ipeds_unitid!);
+    if (!f) continue;
+    if (st(s.state) && st(f.state ?? null) && st(s.state) !== st(f.state ?? null)) continue;
+    if (!sameInstitution(s.name, f)) continue;
+    addPair(s, holder, "no federal id, and the name is the federal institution's own name",
       `${f.name}${f.alias ? ` (alias ${f.alias})` : ""} — unitid ${f.unitid}`, "strong");
   }
 }
@@ -195,15 +215,8 @@ for (const [h, uniIds] of athleticsHosts) {
       if (!holder || !other) continue;
       const f = fed.get(holder.ipeds_unitid!);
       if (!f) continue;
-      const names = [f.name, ...String(f.alias ?? "").split(/[|;,]/)].map(norm).filter(Boolean);
-      const ot = tokens(other.name);
-      const alias = names.some((n) => {
-        const nt = tokens(n);
-        if (!nt.size || !ot.size) return false;
-        const inter = [...ot].filter((t) => nt.has(t)).length;
-        return inter === ot.size || inter === nt.size;
-      });
-      if (alias) addPair(other, holder, "shares an athletics domain and the federal alias covers both names",
+      const alias = sameInstitution(other.name, f);
+      if (alias) addPair(other, holder, "shares an athletics domain and carries the federal institution's own name",
         `${h}; ${f.name}${f.alias ? ` (alias ${f.alias})` : ""}`, "strong");
     }
   }
@@ -239,10 +252,18 @@ write("/mnt/documents/step7-duplicate-records.csv", dupRows);
 
 // duplicate school ids, for the reclassification below
 const dupPartners = new Map<string, Set<string>>();
+const campusPartners = new Map<string, Set<string>>();
 for (const p of pairs) {
-  if (p.strength !== "strong") continue;
-  dupPartners.set(p.a.id, new Set([...(dupPartners.get(p.a.id) ?? []), p.b.id]));
-  dupPartners.set(p.b.id, new Set([...(dupPartners.get(p.b.id) ?? []), p.a.id]));
+  const target = p.strength === "strong" ? dupPartners : p.strength === "campus" ? campusPartners : null;
+  if (!target) continue;
+  target.set(p.a.id, new Set([...(target.get(p.a.id) ?? []), p.b.id]));
+  target.set(p.b.id, new Set([...(target.get(p.b.id) ?? []), p.a.id]));
+}
+// Campus rows of one system that all sit under the same federal id are the same
+// institution twice over, so they belong with the duplicates.
+for (const [unit, group] of byUnit) {
+  void unit;
+  if (group.length < 2) continue;
 }
 
 // ---- 2/4. reclassify the resolved groups and re-issue the change list -------
@@ -266,8 +287,11 @@ const out: string[][] = [[
 const kinds: string[][] = [["group_id", "group_type", "shared_address", "group_kind", "group_status", "why", "members"]];
 
 let groupId = 0;
-const tally = { clear: 0, keep: 0, flag: 0, merge: 0 };
-const counts = { resolvedCollision: 0, resolvedDuplicate: 0, ambiguousCollision: 0, ambiguousDuplicate: 0 };
+const tally = { clear: 0, keep: 0, flag: 0, merge: 0, hold: 0 };
+const counts = {
+  resolvedCollision: 0, resolvedDuplicate: 0, resolvedCampus: 0,
+  ambiguousCollision: 0, ambiguousDuplicate: 0, ambiguousCampus: 0,
+};
 const clearedSchools = new Set<string>();
 const mergeGroups: Row[][] = [];
 
@@ -280,16 +304,27 @@ for (const [key, members] of groups) {
 
   // duplicate group: every member is a known duplicate of every other
   const memberIds = members.map((m) => m["university_id"] ?? "");
-  const duplicate = memberIds.length > 1 && memberIds.every((id) =>
-    memberIds.every((other) => other === id || (dupPartners.get(id)?.has(other) ?? false)));
-  const kind = duplicate ? "duplicate records (one institution)" : "collision (distinct institutions)";
-  if (duplicate) mergeGroups.push(members);
-  if (resolved) duplicate ? (counts.resolvedDuplicate += 1) : (counts.resolvedCollision += 1);
-  else duplicate ? (counts.ambiguousDuplicate += 1) : (counts.ambiguousCollision += 1);
+  const allPairs = (map: Map<string, Set<string>>) => memberIds.length > 1 && memberIds.every((id) =>
+    memberIds.every((other) => other === id || (map.get(id)?.has(other) ?? false)));
+  const duplicate = allPairs(dupPartners);
+  const campus = !duplicate && memberIds.length > 1 && memberIds.every((id) =>
+    memberIds.every((other) => other === id
+      || (campusPartners.get(id)?.has(other) ?? false)
+      || (dupPartners.get(id)?.has(other) ?? false)));
+  const kind = duplicate
+    ? "duplicate records (one institution)"
+    : campus
+      ? "campuses of one system — needs a human call"
+      : "collision (distinct institutions)";
+  if (duplicate || campus) mergeGroups.push(members);
+  const bucket = duplicate ? "Duplicate" : campus ? "Campus" : "Collision";
+  counts[`${resolved ? "resolved" : "ambiguous"}${bucket}` as keyof typeof counts] += 1;
 
   const summary = members.map((m) => `${m["school"]} (${m["state"] || "?"}) = ${m["determination"]}`).join(" | ");
   kinds.push([String(groupId), type!, address!, kind, resolved ? "resolved" : "ambiguous",
-    duplicate ? "all members are the same institution under different names" : "members are different institutions",
+    duplicate ? "all members are the same institution under different names"
+      : campus ? "members are campuses of one system, each with its own federal id"
+      : "members are different institutions",
     summary]);
 
   for (const member of members) {
@@ -307,11 +342,13 @@ for (const [key, members] of groups) {
         const matches = isDomainGroup ? host(value) === targetKey : pageKey(value) === targetKey;
         if (!matches) continue;
 
-        let action: "clear" | "keep" | "flag" | "merge";
+        let action: "clear" | "keep" | "flag" | "merge" | "hold";
         let resulting: string;
-        if (duplicate) {
-          action = "merge";
-          resulting = "held for merge — the address is right, the second record is not";
+        if (duplicate || campus) {
+          action = duplicate ? "merge" : "hold";
+          resulting = duplicate
+            ? "held for merge — the address is right, the second record is not"
+            : "held — campuses of one system, your call before anything is cleared";
         } else if (!resolved) {
           action = "flag"; resulting = "conflicted — kept, withheld from the product";
         } else if (determination === "rightful owner") {
