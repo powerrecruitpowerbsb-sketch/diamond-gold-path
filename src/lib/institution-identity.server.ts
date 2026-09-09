@@ -104,7 +104,7 @@ export type MatchEvidence = {
     | "no_federal_website"
     | "domain_belongs_to_other_institution"
     | "state_disagrees"
-    | "level_disagrees"
+    | "lost_tiebreak_to_other_institution"
     | "unproven";
   passed: boolean;
   detail: string;
