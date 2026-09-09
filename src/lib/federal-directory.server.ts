@@ -19,6 +19,10 @@ const DIRECTORY_FIELDS = [
   "school.city",
   "school.state",
   "school.main_campus",
+  // The institution's own website and its level: the two facts every link check
+  // is judged against. 2 = predominantly associate degrees, i.e. a two-year school.
+  "school.school_url",
+  "school.degrees_awarded.predominant",
   "latest.student.size",
 ].join(",");
 

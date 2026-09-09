@@ -863,7 +863,8 @@ export async function setAthleticsSiteByHand(
   let searched = false;
   try {
     const excluded = await loadRejectedUrls(supabase, universityId);
-    results = await discoverProgramPages(site, list, excluded);
+    const inst = await loadInstitution(supabase, universityId);
+    results = await discoverProgramPages(supabase, inst, site, list, excluded);
     searched = true;
   } catch (failure) {
     console.error("Could not map the hand-entered athletics site", failure);
