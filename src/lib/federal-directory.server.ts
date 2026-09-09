@@ -27,7 +27,12 @@ const DIRECTORY_FIELDS = [
 ].join(",");
 
 type DirectoryRow = Record<string, unknown>;
-type DirectoryEntry = Omit<ScoredCandidate, "score">;
+type DirectoryEntry = Omit<ScoredCandidate, "score"> & {
+  /** The institution's own website, per the federal record. */
+  website?: string | null;
+  /** True when the institution predominantly awards associate degrees. */
+  twoYear?: boolean | null;
+};
 
 let cached: DirectoryEntry[] | null = null;
 
@@ -42,6 +47,8 @@ function text(value: unknown): string | null {
 
 function entryOf(row: DirectoryRow): DirectoryEntry {
   const main = row["school.main_campus"];
+  const site = text(row["school.school_url"]);
+  const predominant = row["school.degrees_awarded.predominant"];
   return {
     unitid: Number(row["id"]),
     name: text(row["school.name"]) ?? "",
@@ -50,6 +57,9 @@ function entryOf(row: DirectoryRow): DirectoryEntry {
     state: text(row["school.state"]),
     mainCampus: main === null || main === undefined ? null : Number(main) === 1,
     enrollment: Number(row["latest.student.size"]) || null,
+    website: site ? (/^https?:\/\//i.test(site) ? site : `https://${site}`) : null,
+    twoYear:
+      predominant === null || predominant === undefined ? null : Number(predominant) === 2,
   };
 }
 
