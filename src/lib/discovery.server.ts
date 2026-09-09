@@ -245,13 +245,35 @@ function readSearchResults(payload: any): Candidate[] {
     .filter((row: Candidate) => /^https?:\/\//i.test(row.url));
 }
 
-/** Search the web for the school's athletics site and score the best candidate. */
+/**
+ * Search the web for the school's athletics site, then verify candidates against
+ * the school's federal institution record. Name-token overlap only decides the
+ * order in which candidates are checked; acceptance is an identity question.
+ */
 export async function discoverAthleticWebsite(
-  name: string,
-  state: string | null,
+  supabase: any,
+  inst: Institution,
   excluded: Set<string> = new Set(),
   schoolWebsite: string | null = null,
 ): Promise<DiscoveryResult> {
+  const name = inst.federalName ?? inst.storedName;
+  const state = inst.federalState ?? inst.storedState;
+
+  // No institution ID means there is nothing to verify against. The result goes
+  // to review; it never reaches the record.
+  if (!inst.unitid) {
+    return {
+      discoveryType: "athletic_website",
+      programId: null,
+      sport: null,
+      url: null,
+      confidence: "failed",
+      notes:
+        "This school has no federal institution ID yet. Its identity has to be settled before any website can be attached.",
+      evidence: null,
+    };
+  }
+
   const query = `${name}${state ? ` ${state}` : ""} official athletics website`;
   const payload = await firecrawl("/search", { query, limit: 8 });
   const isBlocked = (url: string) => {
@@ -266,8 +288,6 @@ export async function discoverAthleticWebsite(
     (row) => !isNonOfficial(row.url) && !isBlocked(row.url),
   );
 
-
-
   if (!candidates.length) {
     return {
       discoveryType: "athletic_website",
@@ -276,6 +296,7 @@ export async function discoverAthleticWebsite(
       url: null,
       confidence: "failed",
       notes: "Web search returned no plausible official athletics site.",
+      evidence: null,
     };
   }
 
@@ -295,64 +316,77 @@ export async function discoverAthleticWebsite(
         b.score - a.score,
     );
 
-  const best = scored[0]!;
-  const origin = (() => {
+  const originOf = (url: string) => {
     try {
-      return new URL(best.url).origin;
+      return new URL(url).origin;
     } catch {
-      return best.url;
+      return url;
     }
-  })();
+  };
 
-  // Plenty of smaller schools run athletics inside their own website, so the best
-  // search hit is the school homepage. Take one more step: map that site for its
-  // athletics section and keep the page that actually names teams.
-  if (isSchoolHomepage(origin, schoolWebsite ?? origin)) {
-    const section = await findAthleticsSection(origin, excluded);
-    if (section) {
+  // Walk candidates in order and keep the first one the institution record can
+  // actually vouch for. A candidate that fails is refused, not downgraded.
+  let lastRefusal: MatchEvidence | null = null;
+  for (const row of scored) {
+    const origin = originOf(row.url);
+
+    // Athletics inside the school's own website: step into the athletics section.
+    if (isSchoolHomepage(origin, schoolWebsite ?? origin)) {
+      const section = await findAthleticsSection(origin, excluded);
+      const target = section ?? null;
+      if (!target) continue;
+      const verdict = await verifyCandidateForInstitution(supabase, inst, target, {
+        title: row.title,
+      });
+      if (!verdict.ok) {
+        lastRefusal = verdict.evidence;
+        continue;
+      }
       return {
         discoveryType: "athletic_website",
         programId: null,
         sport: null,
-        url: section,
-        confidence: "low",
-        notes:
-          "Athletics sits inside the school's own website — this is the athletics section we found there. Worth a look.",
+        url: target,
+        confidence: "high",
+        notes: `Athletics sits inside the school's own website. ${verdict.evidence.detail}`,
+        evidence: verdict.evidence,
       };
     }
+
+    const verdict = await verifyCandidateForInstitution(supabase, inst, origin, {
+      title: row.title,
+    });
+    if (!verdict.ok) {
+      lastRefusal = verdict.evidence;
+      continue;
+    }
+
+    const reasons: string[] = [];
+    if (!row.athletics) reasons.push("the domain doesn't look like an athletics site");
     return {
       discoveryType: "athletic_website",
       programId: null,
       sport: null,
-      url: null,
-      confidence: "failed",
-      notes:
-        "Only the school's own homepage came back, and no athletics section could be found inside it.",
+      url: origin,
+      confidence: reasons.length ? "low" : "high",
+      notes: reasons.length
+        ? `${verdict.evidence.detail} Still worth a look: ${reasons.join("; ")}.`
+        : verdict.evidence.detail,
+      evidence: verdict.evidence,
     };
   }
-
-  const rivals = scored.filter(
-    (row) => row !== best && row.athletics && row.score >= best.score - 0.15,
-  );
-
-  const reasons: string[] = [];
-  if (!best.athletics) reasons.push("domain doesn't look like an athletics site");
-  if (best.score < 0.7) reasons.push("school name only loosely matches the domain");
-  if (best.wrongState)
-    reasons.push("the page names a different state than this school — it may be another school");
-  if (rivals.length) reasons.push(`${rivals.length} other similar candidate(s) came back`);
 
   return {
     discoveryType: "athletic_website",
     programId: null,
     sport: null,
-    url: origin,
-    confidence: reasons.length ? "low" : "high",
-    notes: reasons.length
-      ? `Needs a look: ${reasons.join("; ")}.`
-      : `Athletics domain matches the school name (${Math.round(best.score * 100)}% of name words).`,
+    url: null,
+    confidence: "failed",
+    notes: lastRefusal
+      ? `No candidate could be tied to this institution. Closest attempt: ${lastRefusal.detail}`
+      : "No candidate could be tied to this institution's own website.",
+    evidence: lastRefusal,
   };
-
 }
 
 const ROSTER_PATTERN = /roster/i;
