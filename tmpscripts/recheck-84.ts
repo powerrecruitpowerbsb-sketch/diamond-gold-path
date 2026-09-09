@@ -96,8 +96,8 @@ Wallace State Community College`
   .map((line) => line.trim())
   .filter(Boolean);
 
-const logPath = "/tmp/recheck-84.log";
-const csvPath = "/mnt/documents/recheck-84-results.csv";
+const logPath = "/tmp/recheck-84-v2.log";
+const csvPath = "/mnt/documents/recheck-84-results-v2.csv";
 
 const supabase = createClient(process.env["SUPABASE_URL"]!, process.env["SUPABASE_SERVICE_ROLE_KEY"]!, {
   auth: { persistSession: false, autoRefreshToken: false },
