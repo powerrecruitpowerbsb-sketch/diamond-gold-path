@@ -404,8 +404,9 @@ for (const [key, members] of groups) {
             heldNoIdOwner += 1;
             resulting = "held — this record has no resolved institution id, so it cannot own or displace anything";
           }
-
+        } else if (!resolvedOwner) {
           action = "flag"; resulting = "conflicted — kept, withheld from the product";
+
         } else if (determination === "rightful owner") {
           action = "keep"; resulting = "unverified — kept, page not yet read";
         } else if (!schoolById.get(universityId)?.ipeds_unitid) {
