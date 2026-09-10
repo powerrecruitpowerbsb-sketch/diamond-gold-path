@@ -351,14 +351,19 @@ export async function discoverAthleticWebsite(
     if (isSchoolHomepage(origin, schoolWebsite ?? origin)) {
       const section = await findAthleticsSection(origin, excluded);
       const target = section ?? null;
-      if (!target) continue;
+      if (!target) {
+        trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "rejected", reason: "school website has no athletics section that could be found" });
+        continue;
+      }
       const verdict = await verifyCandidateForInstitution(supabase, inst, target, {
         title: row.title,
       });
       if (!verdict.ok) {
         lastRefusal = verdict.evidence;
+        trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "rejected", reason: verdict.evidence.detail });
         continue;
       }
+      trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "accepted", reason: verdict.evidence.detail });
       return {
         discoveryType: "athletic_website",
         programId: null,
