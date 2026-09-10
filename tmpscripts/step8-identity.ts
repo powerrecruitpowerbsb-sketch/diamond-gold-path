@@ -426,7 +426,7 @@ for (const [key, members] of groups) {
         out.push([
           String(groupId), type!, address!, kind, resolved ? "resolved" : "ambiguous", String(members.length),
           school?.name ?? member["school"] ?? "", universityId, String(school?.ipeds_unitid ?? member["ipeds_unitid"] ?? ""),
-          st(school?.state ?? member["state"] ?? null), determination, member["basis"] ?? "",
+          st(school?.state ?? member["state"] ?? null), label, member["basis"] ?? "",
           program.id, program.sport, field, value, action, resulting, summary,
         ]);
       }
