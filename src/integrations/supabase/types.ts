@@ -668,6 +668,66 @@ export type Database = {
           },
         ]
       }
+      link_clear_archive: {
+        Row: {
+          created_at: string
+          determination: string | null
+          evidence: string | null
+          field: string
+          group_id: string | null
+          id: string
+          prior_value: string
+          program_id: string
+          restored_at: string | null
+          run_id: string
+          shared_address: string | null
+          university_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          determination?: string | null
+          evidence?: string | null
+          field: string
+          group_id?: string | null
+          id?: string
+          prior_value: string
+          program_id: string
+          restored_at?: string | null
+          run_id: string
+          shared_address?: string | null
+          university_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          determination?: string | null
+          evidence?: string | null
+          field?: string
+          group_id?: string | null
+          id?: string
+          prior_value?: string
+          program_id?: string
+          restored_at?: string | null
+          run_id?: string
+          shared_address?: string | null
+          university_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_clear_archive_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_clear_archive_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       link_conflicts: {
         Row: {
           attempted_url: string
