@@ -272,14 +272,16 @@ for (const s of noId) {
       s.name, s.id, "", st(s.state), String((byUniversity.get(s.id) ?? []).length), athleticsOf(s.id),
       holder.name, holder.id, String(holder.ipeds_unitid), st(holder.state), String((byUniversity.get(holder.id) ?? []).length), athleticsOf(holder.id),
     ]);
-  } else if (matches.length > 1) {
+  } else if (ambiguous) {
+    const all = [...new Set([...matches, ...loose])];
     ambigRows.push([
       s.name, s.id, st(s.state), athleticsOf(s.id),
-      matches.map((m) => `${m.name} (unitid ${m.ipeds_unitid}, ${fed.get(m.ipeds_unitid!)?.city ?? "?"})`).join("; "),
-      String(matches.length),
+      all.map((m) => `${m.name} (unitid ${m.ipeds_unitid}, ${fed.get(m.ipeds_unitid!)?.city ?? "?"})`).join("; "),
+      String(all.length),
       "name matching alone cannot identify this record — not treated as a duplicate of anything",
     ]);
   }
+
 }
 write("/mnt/documents/step8-duplicate-records.csv", dupRows);
 write("/mnt/documents/step8-ambiguous-name-matches.csv", ambigRows);
