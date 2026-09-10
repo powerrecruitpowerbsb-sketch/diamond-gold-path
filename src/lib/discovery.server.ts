@@ -380,11 +380,13 @@ export async function discoverAthleticWebsite(
     });
     if (!verdict.ok) {
       lastRefusal = verdict.evidence;
+      trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "rejected", reason: verdict.evidence.detail });
       continue;
     }
 
     const reasons: string[] = [];
     if (!row.athletics) reasons.push("the domain doesn't look like an athletics site");
+    trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "accepted", reason: verdict.evidence.detail });
     return {
       discoveryType: "athletic_website",
       programId: null,
