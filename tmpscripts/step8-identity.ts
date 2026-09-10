@@ -437,4 +437,7 @@ console.log(JSON.stringify({
   mergeCandidates: mergeRows.length - 1,
   groups: groups.size, kindCount, actions: tally,
   schoolsLosingALink: clearedSchools.size,
+  heldBecauseClaimedOwnerHasNoId: heldNoIdOwner,
+  heldBecauseGroupHasMislabeledId: heldMislabeled,
+
 }, null, 1));
