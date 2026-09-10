@@ -250,11 +250,20 @@ function readSearchResults(payload: any): Candidate[] {
  * the school's federal institution record. Name-token overlap only decides the
  * order in which candidates are checked; acceptance is an identity question.
  */
+export type CandidateTrace = (row: {
+  stage: DiscoveryType;
+  sport: string | null;
+  url: string;
+  outcome: "accepted" | "rejected" | "skipped";
+  reason: string;
+}) => void;
+
 export async function discoverAthleticWebsite(
   supabase: any,
   inst: Institution,
   excluded: Set<string> = new Set(),
   schoolWebsite: string | null = null,
+  trace?: CandidateTrace,
 ): Promise<DiscoveryResult> {
   const name = inst.federalName ?? inst.storedName;
   const state = inst.federalState ?? inst.storedState;
