@@ -361,7 +361,15 @@ for (const [key, members] of groups) {
       : someDuplicate ? "two members are the same institution; the rest are different institutions"
       : "members are different institutions", summary]);
 
-  const ownerIds = members.filter((m) => m["determination"] === "rightful owner").map((m) => m["university_id"] ?? "");
+  const namedOwnerIds = members.filter((m) => m["determination"] === "rightful owner").map((m) => m["university_id"] ?? "");
+  // RULE: a record with no resolved institution ID cannot be a rightful owner, and cannot
+  // cause any other record's link to be cleared.
+  const ownerIds = namedOwnerIds.filter((id) => Boolean(schoolById.get(id)?.ipeds_unitid));
+  const ownerUnidentified = namedOwnerIds.length > 0 && ownerIds.length === 0;
+  // A group holding a record whose federal id belongs to a different institution must have
+  // the id fixed first; clearing links would only move the error.
+  const groupMislabeled = memberIds.some((id) => badId.has(id));
+  const resolvedOwner = ownerIds.length > 0 && !groupMislabeled;
 
   for (const member of members) {
     const universityId = member["university_id"] ?? "";
@@ -380,13 +388,25 @@ for (const [key, members] of groups) {
         if (allDuplicates || dupOfOwner) {
           action = "hold-record-fix";
           resulting = "held — same school as the other record; fix the record, not the link";
-        } else if (!resolved) {
+        } else if (groupMislabeled) {
+          action = "hold-record-fix";
+          heldMislabeled += 1;
+          resulting = "held — a record in this group carries another institution's federal id; fix the id first";
+        } else if (ownerUnidentified) {
+          action = "hold-record-fix";
+          heldNoIdOwner += 1;
+          resulting = "held — the only claimed owner has no resolved institution id, so it cannot own or displace anything";
+        } else if (!resolvedOwner) {
           action = "flag"; resulting = "conflicted — kept, withheld from the product";
         } else if (determination === "rightful owner") {
           action = "keep"; resulting = "unverified — kept, page not yet read";
+        } else if (!schoolById.get(universityId)?.ipeds_unitid) {
+          action = "hold-record-fix";
+          resulting = "held — this record has no resolved institution id; fix the record before touching its links";
         } else {
           action = "clear"; resulting = "removed — queued to look for its own page (held)";
         }
+
         tally[action] = (tally[action] ?? 0) + 1;
         if (action === "clear") clearedSchools.add(universityId);
         const school = schoolById.get(universityId);
