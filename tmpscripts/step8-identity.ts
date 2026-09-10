@@ -377,6 +377,10 @@ for (const [key, members] of groups) {
   for (const member of members) {
     const universityId = member["university_id"] ?? "";
     const determination = member["determination"] ?? "unknown";
+    // LABEL: a record with no resolved institution id can never be called the rightful
+    // owner — the label must match the rule that governs its action.
+    const label = determination === "rightful owner" && !schoolById.get(universityId)?.ipeds_unitid
+      ? "unidentified" : determination;
     const dupOfOwner = ownerIds.some((o) => o !== universityId && (dupPartners.get(universityId)?.has(o) ?? false));
     const fields: Array<"athletic_website" | "roster_url" | "coaching_staff_url"> = isDomainGroup
       ? ["athletic_website", "roster_url", "coaching_staff_url"]
