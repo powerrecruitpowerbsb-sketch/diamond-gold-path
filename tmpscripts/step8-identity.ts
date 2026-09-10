@@ -338,6 +338,9 @@ let groupId = 0;
 const tally: Record<string, number> = { clear: 0, keep: 0, flag: 0, "hold-record-fix": 0 };
 const kindCount: Record<string, number> = {};
 const clearedSchools = new Set<string>();
+let heldNoIdOwner = 0;
+let heldMislabeled = 0;
+
 
 for (const [key, members] of groups) {
   groupId += 1;
