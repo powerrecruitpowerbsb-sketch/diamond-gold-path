@@ -293,9 +293,17 @@ export async function discoverAthleticWebsite(
       return false;
     }
   };
-  const candidates = readSearchResults(payload).filter(
-    (row) => !isNonOfficial(row.url) && !isBlocked(row.url),
-  );
+  const candidates = readSearchResults(payload).filter((row) => {
+    if (isNonOfficial(row.url)) {
+      trace?.({ stage: "athletic_website", sport: null, url: row.url, outcome: "skipped", reason: "not an official school address (aggregator, social or directory site)" });
+      return false;
+    }
+    if (isBlocked(row.url)) {
+      trace?.({ stage: "athletic_website", sport: null, url: row.url, outcome: "skipped", reason: "already declined for this school" });
+      return false;
+    }
+    return true;
+  });
 
   if (!candidates.length) {
     return {
