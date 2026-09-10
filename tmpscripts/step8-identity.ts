@@ -396,10 +396,15 @@ for (const [key, members] of groups) {
           heldMislabeled += 1;
           resulting = "held — a record in this group carries another institution's federal id; fix the id first";
         } else if (ownerUnidentified) {
-          action = "hold-record-fix";
-          heldNoIdOwner += 1;
-          resulting = "held — the only claimed owner has no resolved institution id, so it cannot own or displace anything";
-        } else if (!resolvedOwner) {
+          if (schoolById.get(universityId)?.ipeds_unitid) {
+            action = "keep";
+            resulting = "unverified — kept; the only rival claim comes from a record with no institution id";
+          } else {
+            action = "hold-record-fix";
+            heldNoIdOwner += 1;
+            resulting = "held — this record has no resolved institution id, so it cannot own or displace anything";
+          }
+
           action = "flag"; resulting = "conflicted — kept, withheld from the product";
         } else if (determination === "rightful owner") {
           action = "keep"; resulting = "unverified — kept, page not yet read";
