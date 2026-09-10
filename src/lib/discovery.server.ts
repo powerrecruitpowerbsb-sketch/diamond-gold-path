@@ -250,11 +250,20 @@ function readSearchResults(payload: any): Candidate[] {
  * the school's federal institution record. Name-token overlap only decides the
  * order in which candidates are checked; acceptance is an identity question.
  */
+export type CandidateTrace = (row: {
+  stage: DiscoveryType;
+  sport: string | null;
+  url: string;
+  outcome: "accepted" | "rejected" | "skipped";
+  reason: string;
+}) => void;
+
 export async function discoverAthleticWebsite(
   supabase: any,
   inst: Institution,
   excluded: Set<string> = new Set(),
   schoolWebsite: string | null = null,
+  trace?: CandidateTrace,
 ): Promise<DiscoveryResult> {
   const name = inst.federalName ?? inst.storedName;
   const state = inst.federalState ?? inst.storedState;
@@ -284,9 +293,17 @@ export async function discoverAthleticWebsite(
       return false;
     }
   };
-  const candidates = readSearchResults(payload).filter(
-    (row) => !isNonOfficial(row.url) && !isBlocked(row.url),
-  );
+  const candidates = readSearchResults(payload).filter((row) => {
+    if (isNonOfficial(row.url)) {
+      trace?.({ stage: "athletic_website", sport: null, url: row.url, outcome: "skipped", reason: "not an official school address (aggregator, social or directory site)" });
+      return false;
+    }
+    if (isBlocked(row.url)) {
+      trace?.({ stage: "athletic_website", sport: null, url: row.url, outcome: "skipped", reason: "already declined for this school" });
+      return false;
+    }
+    return true;
+  });
 
   if (!candidates.length) {
     return {
@@ -334,14 +351,19 @@ export async function discoverAthleticWebsite(
     if (isSchoolHomepage(origin, schoolWebsite ?? origin)) {
       const section = await findAthleticsSection(origin, excluded);
       const target = section ?? null;
-      if (!target) continue;
+      if (!target) {
+        trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "rejected", reason: "school website has no athletics section that could be found" });
+        continue;
+      }
       const verdict = await verifyCandidateForInstitution(supabase, inst, target, {
         title: row.title,
       });
       if (!verdict.ok) {
         lastRefusal = verdict.evidence;
+        trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "rejected", reason: verdict.evidence.detail });
         continue;
       }
+      trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "accepted", reason: verdict.evidence.detail });
       return {
         discoveryType: "athletic_website",
         programId: null,
@@ -358,11 +380,13 @@ export async function discoverAthleticWebsite(
     });
     if (!verdict.ok) {
       lastRefusal = verdict.evidence;
+      trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "rejected", reason: verdict.evidence.detail });
       continue;
     }
 
     const reasons: string[] = [];
     if (!row.athletics) reasons.push("the domain doesn't look like an athletics site");
+    trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "accepted", reason: verdict.evidence.detail });
     return {
       discoveryType: "athletic_website",
       programId: null,
@@ -496,6 +520,7 @@ export async function discoverProgramPages(
   athleticSite: string,
   programs: { id: string; sport: string }[],
   excluded: Set<string> = new Set(),
+  trace?: CandidateTrace,
 ): Promise<DiscoveryResult[]> {
   const results: DiscoveryResult[] = [];
 
@@ -546,12 +571,17 @@ export async function discoverProgramPages(
           ? `No ${kind === "roster" ? "roster" : "coaching staff"} page found for ${program.sport}.`
           : "The athletics site returned no mappable links.");
 
+      if (candidate && !pick) {
+        trace?.({ stage: discoveryType, sport: program.sport, url: candidate.url, outcome: "skipped", reason: "already declined for this school" });
+      }
       if (url) {
         const verdict = await verifyCandidateForInstitution(supabase, inst, url);
         evidence = verdict.evidence;
         if (verdict.ok) {
           notes = `${notes} ${verdict.evidence.detail}`.trim();
+          trace?.({ stage: discoveryType, sport: program.sport, url, outcome: "accepted", reason: verdict.evidence.detail });
         } else {
+          trace?.({ stage: discoveryType, sport: program.sport, url, outcome: "rejected", reason: verdict.evidence.detail });
           url = null;
           confidence = "failed";
           notes = `Refused: ${verdict.evidence.detail}`;
