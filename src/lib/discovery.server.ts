@@ -571,12 +571,17 @@ export async function discoverProgramPages(
           ? `No ${kind === "roster" ? "roster" : "coaching staff"} page found for ${program.sport}.`
           : "The athletics site returned no mappable links.");
 
+      if (candidate && !pick) {
+        trace?.({ stage: discoveryType, sport: program.sport, url: candidate.url, outcome: "skipped", reason: "already declined for this school" });
+      }
       if (url) {
         const verdict = await verifyCandidateForInstitution(supabase, inst, url);
         evidence = verdict.evidence;
         if (verdict.ok) {
           notes = `${notes} ${verdict.evidence.detail}`.trim();
+          trace?.({ stage: discoveryType, sport: program.sport, url, outcome: "accepted", reason: verdict.evidence.detail });
         } else {
+          trace?.({ stage: discoveryType, sport: program.sport, url, outcome: "rejected", reason: verdict.evidence.detail });
           url = null;
           confidence = "failed";
           notes = `Refused: ${verdict.evidence.detail}`;
