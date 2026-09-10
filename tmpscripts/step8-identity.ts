@@ -209,8 +209,32 @@ const sameInstitution = (name: string, f: Fed): boolean => {
     return extra.length === 0 && shared >= Math.min(2, theirs.size);
   });
 };
+/** Strict: every word of the federal name is present, and the only extra words the
+ *  stored name carries are that institution's own state or city. */
+const sameInstitutionStrict = (name: string, f: Fed): boolean => {
+  const mine = tokens(name, MATCH_STOP);
+  if (!mine.size) return false;
+  const place = new Set<string>([
+    ...norm(f.city ?? "").split(" ").filter(Boolean),
+    ...norm(Object.entries(STATES).find(([, code]) => code === st(f.state ?? null))?.[0] ?? "").split(" ").filter(Boolean),
+    st(f.state ?? null).toLowerCase(),
+  ]);
+  return aliasList(f).some((candidate) => {
+    const theirs = tokens(candidate, MATCH_STOP);
+    if (!theirs.size) return false;
+    const missing = [...theirs].filter((t) => !mine.has(t));
+    const extra = [...mine].filter((t) => !theirs.has(t));
+    return missing.length === 0 && extra.every((t) => place.has(t));
+  });
+};
 
-const withId = schools.filter((s) => s.ipeds_unitid && !badId.has(s.id));
+/** A record whose own name does not agree with its federal record cannot anchor a
+ *  duplicate — its identity is the thing in question. */
+const identityFirm = (s: School) => {
+  const f = s.ipeds_unitid ? fed.get(s.ipeds_unitid) : undefined;
+  return Boolean(f) && nameVerdict(s.name, f!).verdict === "agrees";
+};
+const withId = schools.filter((s) => s.ipeds_unitid && !badId.has(s.id) && identityFirm(s));
 const noId = schools.filter((s) => !s.ipeds_unitid);
 
 const dupPartners = new Map<string, Set<string>>();
@@ -229,13 +253,16 @@ const ambigRows: string[][] = [[
 ]];
 
 for (const s of noId) {
-  const matches = withId.filter((holder) => {
+  const inState = withId.filter((holder) => {
     const f = fed.get(holder.ipeds_unitid!);
     if (!f) return false;
-    if (st(s.state) && st(f.state ?? null) && st(s.state) !== st(f.state ?? null)) return false;
-    return sameInstitution(s.name, f);
+    return !(st(s.state) && st(f.state ?? null) && st(s.state) !== st(f.state ?? null));
   });
-  if (matches.length === 1) {
+  const matches = inState.filter((h) => sameInstitutionStrict(s.name, fed.get(h.ipeds_unitid!)!));
+  const loose = inState.filter((h) => sameInstitution(s.name, fed.get(h.ipeds_unitid!)!));
+  const ambiguous = matches.length > 1 || loose.length > 1;
+  if (matches.length === 1 && !ambiguous) {
+
     const holder = matches[0]!;
     const f = fed.get(holder.ipeds_unitid!)!;
     link(s.id, holder.id);
