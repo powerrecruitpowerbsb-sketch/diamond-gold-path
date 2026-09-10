@@ -520,6 +520,7 @@ export async function discoverProgramPages(
   athleticSite: string,
   programs: { id: string; sport: string }[],
   excluded: Set<string> = new Set(),
+  trace?: CandidateTrace,
 ): Promise<DiscoveryResult[]> {
   const results: DiscoveryResult[] = [];
 
