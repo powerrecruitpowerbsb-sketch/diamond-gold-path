@@ -17,6 +17,8 @@ import {
   type MatchEvidence,
 } from "@/lib/institution-identity.server";
 import { classifyLink, isSchoolHomepage } from "@/lib/link-quality";
+import { replacementDecision, verifyPagePurpose, type PurposeVerdict } from "@/lib/page-purpose";
+import { safeFetch } from "@/lib/safe-fetch.server";
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
@@ -32,7 +34,46 @@ export type DiscoveryResult = {
   notes: string;
   /** Which identity check justified (or refused) this address. */
   evidence?: MatchEvidence | null;
+  /** Was the page itself actually read? */
+  pageRead?: boolean;
+  /** Did the page prove it is the right kind of page for the right sport? */
+  pageVerdict?: PurposeVerdict | null;
 };
+
+/**
+ * Owning the domain is not enough: read the page and check it is the right kind
+ * of page for the right sport. A page that cannot be read is never verified, and
+ * so can never be high confidence.
+ */
+export async function checkPage(input: {
+  kind: DiscoveryType;
+  url: string;
+  sport?: string | null;
+  schoolWebsite?: string | null;
+  federalWebsite?: string | null;
+}): Promise<{ read: boolean; verdict: PurposeVerdict; detail: string; refused: boolean }> {
+  // Address-level refusals need no fetch at all, and they are outright refusals:
+  // an address naming another sport, a donation page or one person's bio is
+  // wrong whether or not the page can be read.
+  const dry = verifyPagePurpose({ ...input, text: null });
+  if (!dry.ok && dry.code !== "page_not_read") {
+    return { read: false, verdict: dry, detail: dry.reason, refused: true };
+  }
+
+  let text: string | null = null;
+  let detail = "";
+  try {
+    const result = await safeFetch(input.url);
+    text = result.ok ? (result.markdown ?? result.html ?? null) : null;
+    detail = result.ok
+      ? `read with the ${result.fetch_method} method`
+      : `${result.failure_category ?? "unreadable"}: ${result.error ?? "no detail"}`;
+  } catch (failure) {
+    detail = failure instanceof Error ? failure.message : "the page could not be read";
+  }
+  const verdict = verifyPagePurpose({ ...input, text });
+  return { read: text !== null, verdict, detail, refused: text !== null && !verdict.ok };
+}
 
 export type DiscoveryOutcome = {
   universityId: string;
@@ -363,15 +404,28 @@ export async function discoverAthleticWebsite(
         trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "rejected", reason: verdict.evidence.detail });
         continue;
       }
-      trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "accepted", reason: verdict.evidence.detail });
+      const page = await checkPage({
+        kind: "athletic_website",
+        url: target,
+        schoolWebsite,
+        federalWebsite: inst.federalWebsite,
+      });
+      if (page.refused) {
+        trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "rejected", reason: page.verdict.reason });
+        continue;
+      }
+      trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "accepted", reason: `${verdict.evidence.detail} ${page.verdict.reason}` });
       return {
         discoveryType: "athletic_website",
         programId: null,
         sport: null,
         url: target,
-        confidence: "high",
-        notes: `Athletics sits inside the school's own website. ${verdict.evidence.detail}`,
+        // An unread page is unverified, so it can never be high confidence.
+        confidence: page.verdict.ok ? "high" : "low",
+        notes: `Athletics sits inside the school's own website. ${verdict.evidence.detail} ${page.verdict.reason}`,
         evidence: verdict.evidence,
+        pageRead: page.read,
+        pageVerdict: page.verdict,
       };
     }
 
@@ -384,9 +438,21 @@ export async function discoverAthleticWebsite(
       continue;
     }
 
+    const page = await checkPage({
+      kind: "athletic_website",
+      url: origin,
+      schoolWebsite,
+      federalWebsite: inst.federalWebsite,
+    });
+    if (page.refused) {
+      trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "rejected", reason: page.verdict.reason });
+      continue;
+    }
+
     const reasons: string[] = [];
     if (!row.athletics) reasons.push("the domain doesn't look like an athletics site");
-    trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "accepted", reason: verdict.evidence.detail });
+    if (!page.verdict.ok) reasons.push(page.verdict.reason);
+    trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "accepted", reason: `${verdict.evidence.detail} ${page.verdict.reason}` });
     return {
       discoveryType: "athletic_website",
       programId: null,
@@ -394,9 +460,11 @@ export async function discoverAthleticWebsite(
       url: origin,
       confidence: reasons.length ? "low" : "high",
       notes: reasons.length
-        ? `${verdict.evidence.detail} Still worth a look: ${reasons.join("; ")}.`
-        : verdict.evidence.detail,
+        ? `${verdict.evidence.detail} Still worth a look: ${reasons.join("; ")}`
+        : `${verdict.evidence.detail} ${page.verdict.reason}`,
       evidence: verdict.evidence,
+      pageRead: page.read,
+      pageVerdict: page.verdict,
     };
   }
 
@@ -574,6 +642,9 @@ export async function discoverProgramPages(
       if (candidate && !pick) {
         trace?.({ stage: discoveryType, sport: program.sport, url: candidate.url, outcome: "skipped", reason: "already declined for this school" });
       }
+      let pageRead = false;
+      let pageVerdict: PurposeVerdict | null = null;
+
       if (url) {
         const verdict = await verifyCandidateForInstitution(supabase, inst, url);
         evidence = verdict.evidence;
@@ -588,6 +659,30 @@ export async function discoverProgramPages(
         }
       }
 
+      // Second gate: the page itself must be the right kind, for this sport.
+      if (url) {
+        const page = await checkPage({
+          kind: discoveryType,
+          url,
+          sport: program.sport,
+          federalWebsite: inst.federalWebsite,
+        });
+        pageRead = page.read;
+        pageVerdict = page.verdict;
+        if (page.refused) {
+          trace?.({ stage: discoveryType, sport: program.sport, url, outcome: "rejected", reason: page.verdict.reason });
+          url = null;
+          confidence = "failed";
+          notes = `Refused: ${page.verdict.reason}`;
+        } else if (!page.verdict.ok) {
+          // Address survived, page unread — unverified, never high confidence.
+          confidence = "low";
+          notes = `${notes} ${page.verdict.reason} (${page.detail})`.trim();
+        } else {
+          notes = `${notes} ${page.verdict.reason}`.trim();
+        }
+      }
+
       results.push({
         discoveryType,
         programId: program.id,
@@ -596,6 +691,8 @@ export async function discoverProgramPages(
         confidence,
         notes,
         evidence,
+        pageRead,
+        pageVerdict,
       });
     }
   }
@@ -748,6 +845,55 @@ export async function applyDiscoveredUrl(
   }
 
   const evidence = verdict.evidence;
+
+  // Second gate: prove the page is the right kind, for the right sport. An
+  // unread page is unverified and may never displace a value already on file.
+  const { data: programRow } = await supabase
+    .from("programs")
+    .select("sport, athletic_website, roster_url, coaching_staff_url")
+    .eq("id", row.program_id ?? "00000000-0000-0000-0000-000000000000")
+    .maybeSingle();
+  const sport = ((programRow as any)?.sport ?? null) as string | null;
+  const storedField =
+    row.discovery_type === "athletic_website"
+      ? "athletic_website"
+      : row.discovery_type === "roster_page"
+        ? "roster_url"
+        : "coaching_staff_url";
+  const storedValue = ((programRow as any)?.[storedField] ?? null) as string | null;
+
+  const page = await checkPage({
+    kind: row.discovery_type,
+    url: row.discovered_url,
+    sport,
+    federalWebsite: inst.federalWebsite,
+  });
+  const refuse = async (reason: string) => {
+    await supabase
+      .from("url_discovery_queue")
+      .update({ status: "pending_review", notes: `Held for review: ${reason}`, match_evidence: evidence })
+      .eq("id", row.id);
+    throw new Error(reason);
+  };
+  if (page.refused) await refuse(page.verdict.reason);
+
+  if (storedValue && normalizeUrl(storedValue) !== normalizeUrl(row.discovered_url)) {
+    const old = await checkPage({
+      kind: row.discovery_type,
+      url: storedValue,
+      sport,
+      federalWebsite: inst.federalWebsite,
+    });
+    const decision = replacementDecision({
+      storedValue,
+      proposedRead: page.read,
+      proposedVerified: page.verdict.ok,
+      storedFails: old.read && !old.verdict.ok,
+    });
+    if (decision.action !== "replace" && decision.action !== "fill_empty") {
+      await refuse(`${decision.reason} Stored: ${storedValue}`);
+    }
+  }
 
   if (row.discovery_type === "athletic_website") {
     const { error } = await supabase
