@@ -402,15 +402,28 @@ export async function discoverAthleticWebsite(
         trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "rejected", reason: verdict.evidence.detail });
         continue;
       }
-      trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "accepted", reason: verdict.evidence.detail });
+      const page = await checkPage({
+        kind: "athletic_website",
+        url: target,
+        schoolWebsite,
+        federalWebsite: inst.federalWebsite,
+      });
+      if (!page.verdict.ok && page.read) {
+        trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "rejected", reason: page.verdict.reason });
+        continue;
+      }
+      trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "accepted", reason: `${verdict.evidence.detail} ${page.verdict.reason}` });
       return {
         discoveryType: "athletic_website",
         programId: null,
         sport: null,
         url: target,
-        confidence: "high",
-        notes: `Athletics sits inside the school's own website. ${verdict.evidence.detail}`,
+        // An unread page is unverified, so it can never be high confidence.
+        confidence: page.verdict.ok ? "high" : "low",
+        notes: `Athletics sits inside the school's own website. ${verdict.evidence.detail} ${page.verdict.reason}`,
         evidence: verdict.evidence,
+        pageRead: page.read,
+        pageVerdict: page.verdict,
       };
     }
 
@@ -423,9 +436,21 @@ export async function discoverAthleticWebsite(
       continue;
     }
 
+    const page = await checkPage({
+      kind: "athletic_website",
+      url: origin,
+      schoolWebsite,
+      federalWebsite: inst.federalWebsite,
+    });
+    if (!page.verdict.ok && page.read) {
+      trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "rejected", reason: page.verdict.reason });
+      continue;
+    }
+
     const reasons: string[] = [];
     if (!row.athletics) reasons.push("the domain doesn't look like an athletics site");
-    trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "accepted", reason: verdict.evidence.detail });
+    if (!page.verdict.ok) reasons.push(page.verdict.reason);
+    trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "accepted", reason: `${verdict.evidence.detail} ${page.verdict.reason}` });
     return {
       discoveryType: "athletic_website",
       programId: null,
@@ -433,9 +458,11 @@ export async function discoverAthleticWebsite(
       url: origin,
       confidence: reasons.length ? "low" : "high",
       notes: reasons.length
-        ? `${verdict.evidence.detail} Still worth a look: ${reasons.join("; ")}.`
-        : verdict.evidence.detail,
+        ? `${verdict.evidence.detail} Still worth a look: ${reasons.join("; ")}`
+        : `${verdict.evidence.detail} ${page.verdict.reason}`,
       evidence: verdict.evidence,
+      pageRead: page.read,
+      pageVerdict: page.verdict,
     };
   }
 
