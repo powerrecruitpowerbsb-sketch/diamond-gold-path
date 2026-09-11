@@ -152,12 +152,8 @@ export async function recheckRosterSizes(
     const targetSeason = group.season_year ?? seasonYear;
     // Every name was found in the page's own text, so a big squad is the page's
     // squad, not a padded one — large junior-college and NAIA rosters are real.
-    const fullyProven = dropped.length === 0 && read > 0 && kept.length === read;
-    const verdict = rosterKeepable(
-      { season_year: targetSeason, players: kept },
-      new Date(),
-      fullyProven ? 95 : 60,
-    );
+    const verdict = rosterKeepable({ season_year: targetSeason, players: kept });
+
     if (!verdict.keep) {
 
       if (options.apply) await requeueProgram(supabase, group.program_id);

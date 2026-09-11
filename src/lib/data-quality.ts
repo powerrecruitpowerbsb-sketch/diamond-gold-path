@@ -377,9 +377,10 @@ export function rosterVerdict(
   if (players.length < 18) {
     return { auto: false, reason: `only ${players.length} players read from the page` };
   }
-  if (players.length > 60) {
-    return { auto: false, reason: `${players.length} players is more than a real roster` };
-  }
+  // Squad size is NOT a quality signal. NAIA and junior-college rosters run
+  // 60-80, fall squads are bigger than spring, and a D1 fall squad exceeds the
+  // spring 40-man limit. Row shape below is what decides.
+
 
   const season = plausibleSeasonYear(payload?.season_year);
   if (!season || !acceptableSeasonYears(now).includes(season)) {
@@ -417,19 +418,13 @@ export function rosterVerdict(
 export function rosterKeepable(
   payload: { season_year?: unknown; players?: unknown },
   now: Date = new Date(),
-  /**
-   * Ceiling on squad size. The default guards against padded lists; a caller that
-   * has already proved every single name against the page's own text may raise it,
-   * because big NAIA and junior-college squads are real.
-   */
-  maxPlayers = 60,
 ): { keep: boolean; partial: boolean; reason: string | null } {
   const players = Array.isArray(payload?.players) ? (payload.players as any[]) : [];
   const named = players.filter((player) => normalizeText(player?.name).length > 2);
   if (!named.length) return { keep: false, partial: false, reason: "no player names were read" };
-  if (players.length > maxPlayers) {
-    return { keep: false, partial: false, reason: `${players.length} players is more than a real roster` };
-  }
+  // No size ceiling: a large roster is legitimate. Repeated names below are the
+  // real signal that two seasons were merged.
+
 
   const season = plausibleSeasonYear(payload?.season_year);
   if (!season || !acceptableSeasonYears(now).includes(season)) {

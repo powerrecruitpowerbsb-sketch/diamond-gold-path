@@ -45,11 +45,20 @@ describe("verifyAgainstSource", () => {
   });
 });
 
-describe("oversized rosters", () => {
-  const players = Array.from({ length: 61 }, (_, i) => ({ name: `Player ${i}` }));
+describe("large rosters", () => {
+  const players = Array.from({ length: 61 }, (_, i) => ({
+    name: `Player ${i}`,
+    position: "RHP",
+  }));
 
-  it("never applies automatically above 60 players", () => {
-    expect(rosterVerdict({ season_year: 2026, players }, "https://x.edu/roster").auto).toBe(false);
-    expect(rosterKeepable({ season_year: 2026, players }).keep).toBe(false);
+  it("no longer treats a big squad as a defect", () => {
+    expect(rosterKeepable({ season_year: 2026, players }).keep).toBe(true);
+    expect(rosterVerdict({ season_year: 2026, players }, "https://x.edu/roster").auto).toBe(true);
+  });
+
+  it("still refuses a list of repeated names", () => {
+    const repeated = Array.from({ length: 40 }, () => ({ name: "Same Guy", position: "RHP" }));
+    expect(rosterKeepable({ season_year: 2026, players: repeated }).keep).toBe(false);
   });
 });
+
