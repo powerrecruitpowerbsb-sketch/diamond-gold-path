@@ -640,6 +640,9 @@ export async function discoverProgramPages(
       if (candidate && !pick) {
         trace?.({ stage: discoveryType, sport: program.sport, url: candidate.url, outcome: "skipped", reason: "already declined for this school" });
       }
+      let pageRead = false;
+      let pageVerdict: PurposeVerdict | null = null;
+
       if (url) {
         const verdict = await verifyCandidateForInstitution(supabase, inst, url);
         evidence = verdict.evidence;
@@ -654,6 +657,30 @@ export async function discoverProgramPages(
         }
       }
 
+      // Second gate: the page itself must be the right kind, for this sport.
+      if (url) {
+        const page = await checkPage({
+          kind: discoveryType,
+          url,
+          sport: program.sport,
+          federalWebsite: inst.federalWebsite,
+        });
+        pageRead = page.read;
+        pageVerdict = page.verdict;
+        if (!page.verdict.ok && page.read) {
+          trace?.({ stage: discoveryType, sport: program.sport, url, outcome: "rejected", reason: page.verdict.reason });
+          url = null;
+          confidence = "failed";
+          notes = `Refused: ${page.verdict.reason}`;
+        } else if (!page.verdict.ok) {
+          // Address survived, page unread — unverified, never high confidence.
+          confidence = "low";
+          notes = `${notes} ${page.verdict.reason} (${page.detail})`.trim();
+        } else {
+          notes = `${notes} ${page.verdict.reason}`.trim();
+        }
+      }
+
       results.push({
         discoveryType,
         programId: program.id,
@@ -662,6 +689,8 @@ export async function discoverProgramPages(
         confidence,
         notes,
         evidence,
+        pageRead,
+        pageVerdict,
       });
     }
   }
