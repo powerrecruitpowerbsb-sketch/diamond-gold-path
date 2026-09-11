@@ -297,7 +297,10 @@ export function verifyPagePurpose(input: {
       };
     }
   } else {
-    const wrong = pathNamesOtherSport(url, null);
+    // An athletics home page belongs to no single sport — including ours.
+    const path = pathOf(url);
+    const ownSport = [...OURS.baseball!, ...OURS.softball!].find((token) => tokenIn(path, token));
+    const wrong = ownSport ?? pathNamesOtherSport(url, null);
     if (wrong) {
       return {
         ok: false,
