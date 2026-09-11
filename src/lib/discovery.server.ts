@@ -51,11 +51,13 @@ export async function checkPage(input: {
   sport?: string | null;
   schoolWebsite?: string | null;
   federalWebsite?: string | null;
-}): Promise<{ read: boolean; verdict: PurposeVerdict; detail: string }> {
-  // Address-level refusals need no fetch at all.
+}): Promise<{ read: boolean; verdict: PurposeVerdict; detail: string; refused: boolean }> {
+  // Address-level refusals need no fetch at all, and they are outright refusals:
+  // an address naming another sport, a donation page or one person's bio is
+  // wrong whether or not the page can be read.
   const dry = verifyPagePurpose({ ...input, text: null });
   if (!dry.ok && dry.code !== "page_not_read") {
-    return { read: false, verdict: dry, detail: dry.reason };
+    return { read: false, verdict: dry, detail: dry.reason, refused: true };
   }
 
   let text: string | null = null;
