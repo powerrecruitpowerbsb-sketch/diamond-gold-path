@@ -21,6 +21,7 @@ import {
 } from "@/lib/discovery.server";
 import { loadInstitution } from "@/lib/institution-identity.server";
 import { classifyLink } from "@/lib/link-quality";
+import { replacementDecision, verifyPagePurpose } from "@/lib/page-purpose";
 import { safeFetch, setProtectedHosts } from "@/lib/safe-fetch.server";
 
 const CLEAR_RUN = "db7abfd2-c5fd-45bc-893b-34992d4bdfe1";
