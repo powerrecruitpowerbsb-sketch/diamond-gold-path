@@ -109,8 +109,22 @@ for (const program of (programs ?? []) as any[]) {
       continue;
     }
 
-    const read = await safeFetch(url);
-    const text = read.ok ? (read.markdown ?? read.html ?? "") : "";
+    let read = await safeFetch(url);
+    let text = read.ok ? (read.markdown ?? read.html ?? "") : "";
+    // A page that answers but holds no players or coaches is usually drawn by
+    // its own scripts. Read it once more through the rendering service.
+    const emptyForKind =
+      kind === "roster_page"
+        ? !parseRoster(text, program.sport).counts.players
+        : !extractCoaches(text, program.sport).coaches.length;
+    if (read.ok && text && emptyForKind) {
+      const rendered = await safeFetch(url, { preferRendered: true });
+      if (rendered.ok) {
+        read = rendered;
+        text = rendered.markdown ?? rendered.html ?? "";
+      }
+    }
+
     const purpose = verifyPagePurpose({
       kind,
       url,
