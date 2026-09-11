@@ -410,7 +410,7 @@ export async function discoverAthleticWebsite(
         schoolWebsite,
         federalWebsite: inst.federalWebsite,
       });
-      if (!page.verdict.ok && page.read) {
+      if (page.refused) {
         trace?.({ stage: "athletic_website", sport: null, url: target, outcome: "rejected", reason: page.verdict.reason });
         continue;
       }
@@ -444,7 +444,7 @@ export async function discoverAthleticWebsite(
       schoolWebsite,
       federalWebsite: inst.federalWebsite,
     });
-    if (!page.verdict.ok && page.read) {
+    if (page.refused) {
       trace?.({ stage: "athletic_website", sport: null, url: origin, outcome: "rejected", reason: page.verdict.reason });
       continue;
     }
@@ -669,7 +669,7 @@ export async function discoverProgramPages(
         });
         pageRead = page.read;
         pageVerdict = page.verdict;
-        if (!page.verdict.ok && page.read) {
+        if (page.refused) {
           trace?.({ stage: discoveryType, sport: program.sport, url, outcome: "rejected", reason: page.verdict.reason });
           url = null;
           confidence = "failed";
@@ -875,7 +875,7 @@ export async function applyDiscoveredUrl(
       .eq("id", row.id);
     throw new Error(reason);
   };
-  if (page.read && !page.verdict.ok) await refuse(page.verdict.reason);
+  if (page.refused) await refuse(page.verdict.reason);
 
   if (storedValue && normalizeUrl(storedValue) !== normalizeUrl(row.discovered_url)) {
     const old = await checkPage({
