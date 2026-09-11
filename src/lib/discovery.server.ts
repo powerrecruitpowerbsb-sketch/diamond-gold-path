@@ -17,6 +17,8 @@ import {
   type MatchEvidence,
 } from "@/lib/institution-identity.server";
 import { classifyLink, isSchoolHomepage } from "@/lib/link-quality";
+import { replacementDecision, verifyPagePurpose, type PurposeVerdict } from "@/lib/page-purpose";
+import { safeFetch } from "@/lib/safe-fetch.server";
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
@@ -32,7 +34,44 @@ export type DiscoveryResult = {
   notes: string;
   /** Which identity check justified (or refused) this address. */
   evidence?: MatchEvidence | null;
+  /** Was the page itself actually read? */
+  pageRead?: boolean;
+  /** Did the page prove it is the right kind of page for the right sport? */
+  pageVerdict?: PurposeVerdict | null;
 };
+
+/**
+ * Owning the domain is not enough: read the page and check it is the right kind
+ * of page for the right sport. A page that cannot be read is never verified, and
+ * so can never be high confidence.
+ */
+export async function checkPage(input: {
+  kind: DiscoveryType;
+  url: string;
+  sport?: string | null;
+  schoolWebsite?: string | null;
+  federalWebsite?: string | null;
+}): Promise<{ read: boolean; verdict: PurposeVerdict; detail: string }> {
+  // Address-level refusals need no fetch at all.
+  const dry = verifyPagePurpose({ ...input, text: null });
+  if (!dry.ok && dry.code !== "page_not_read") {
+    return { read: false, verdict: dry, detail: dry.reason };
+  }
+
+  let text: string | null = null;
+  let detail = "";
+  try {
+    const result = await safeFetch(input.url);
+    text = result.ok ? (result.markdown ?? result.html ?? null) : null;
+    detail = result.ok
+      ? `read with the ${result.fetch_method} method`
+      : `${result.failure_category ?? "unreadable"}: ${result.error ?? "no detail"}`;
+  } catch (failure) {
+    detail = failure instanceof Error ? failure.message : "the page could not be read";
+  }
+  const verdict = verifyPagePurpose({ ...input, text });
+  return { read: text !== null, verdict, detail };
+}
 
 export type DiscoveryOutcome = {
   universityId: string;
