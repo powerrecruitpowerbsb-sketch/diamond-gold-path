@@ -1,0 +1,389 @@
+/**
+ * Structural roster reading.
+ *
+ * Roster counts used to be judged by size, which is wrong: NAIA and junior
+ * college squads run 60-80, fall rosters are bigger than spring, and a D1 fall
+ * squad exceeds the spring 40-man limit. A big roster is not a defect. What IS a
+ * defect is page furniture — navigation, related stories, other sports, a second
+ * season stacked on the same page — being counted as players.
+ *
+ * So every row is judged on its own shape: a player needs a name plus at least
+ * one of jersey number, position or class year. A bare name is not a player.
+ */
+
+export type PlayerRow = {
+  name: string;
+  number: string | null;
+  position: string | null;
+  class_year: string | null;
+  height: string | null;
+  weight: string | null;
+  hometown: string | null;
+};
+
+export type RosterShape = {
+  /** Rows accepted as players. */
+  players: PlayerRow[];
+  /** Names that carried nothing else — dropped. */
+  bareNames: string[];
+  /** Rows dropped because the name is navigation, a staff title or a headline. */
+  furniture: string[];
+  /** Names appearing more than once — usually two seasons merged. */
+  duplicates: string[];
+  /** Season headings found on the page, in page order. */
+  seasons: string[];
+  /** Other sports named by headings on the page. */
+  otherSports: string[];
+  counts: {
+    rowsConsidered: number;
+    players: number;
+    withNumber: number;
+    withPosition: number;
+    withClass: number;
+    withHeightWeight: number;
+    withHometown: number;
+    bareNames: number;
+    furniture: number;
+    duplicates: number;
+  };
+  /** Shape problems, in plain language. Empty means the parse looks sound. */
+  flags: string[];
+};
+
+const CLASS_MAP: Array<[RegExp, string]> = [
+  [/^(r-?)?fr(\.|eshman)?$/i, "FR"],
+  [/^(r-?)?so(\.|phomore)?$/i, "SO"],
+  [/^(r-?)?jr(\.|unior)?$/i, "JR"],
+  [/^(r-?)?sr(\.|enior)?$/i, "SR"],
+  [/^(gr|grad(uate)?|5th year|gs)\.?$/i, "GR"],
+  [/^redshirt\s+(freshman|sophomore|junior|senior)$/i, ""],
+];
+
+const POSITION_WORDS =
+  /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|of|lf|cf|rf|dh|util|utl|two-?way|pitcher|catcher|infielder|outfielder|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
+
+
+/** Navigation, section and story text that shows up in the same tables as players. */
+const FURNITURE =
+  /(roster|schedule|stats|standings|tickets|shop|news|store|coaches|staff|directory|facilities|camps|donate|giving|social|instagram|twitter|facebook|youtube|privacy|terms|sitemap|search|menu|skip to|main content|composite|archive|history|records|awards|honors|gameday|watch|listen|live stats|box score|recap|preview|announce|sign(s|ed)?\b|commit(s|ted)?\b|hire(s|d)?\b|named\b|full bio|view profile|hide\/show|photo gallery|more\b|all\b)/i;
+
+const STAFF_TITLE =
+  /(head coach|assistant coach|associate coach|pitching coach|hitting coach|volunteer|coordinator|director|manager|trainer|athletic trainer|strength|operations|graduate assistant|student assistant|analyst|scout)/i;
+
+const SPORTS =
+  /\b(baseball|softball|football|basketball|soccer|volleyball|tennis|golf|track|cross country|swim(ming)?|dive|diving|wrestling|lacrosse|hockey|rowing|cheer|pom|dance|esports|bowling|rugby|water polo|gymnastics|equestrian|beach volleyball|field hockey)\b/gi;
+
+function classYear(cell: string): string | null {
+  const trimmed = cell.trim();
+  for (const [pattern, code] of CLASS_MAP) {
+    if (pattern.test(trimmed)) {
+      if (code) return code;
+      const word = trimmed.replace(/^redshirt\s+/i, "");
+      return classYear(word);
+    }
+  }
+  return null;
+}
+
+function jerseyNumber(cell: string): string | null {
+  const trimmed = cell.trim().replace(/^#/, "");
+  return /^\d{1,2}$/.test(trimmed) ? trimmed : null;
+}
+
+function heightValue(cell: string): string | null {
+  const trimmed = cell.trim();
+  return /^\d['’-]\s?\d{1,2}["”']?$/.test(trimmed) || /^\d-\d{1,2}$/.test(trimmed) ? trimmed : null;
+}
+
+function weightValue(cell: string): string | null {
+  const trimmed = cell.trim().replace(/\s*lbs?\.?$/i, "");
+  if (!/^\d{2,3}$/.test(trimmed)) return null;
+  const value = Number(trimmed);
+  return value >= 100 && value <= 400 ? trimmed : null;
+}
+
+function hometownValue(cell: string): string | null {
+  const trimmed = cell.trim();
+  return /^[A-Za-z .'’-]{2,40},\s?[A-Za-z .]{2,30}$/.test(trimmed) ? trimmed : null;
+}
+
+/** Two to four capitalised words, no digits, no title words. */
+function personName(cell: string): string | null {
+  const raw = cell
+    .trim()
+    // A name is usually a link to the player's bio: read the link text.
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .replace(/\s*\((.*)\)$/, "")
+    .trim();
+  if (raw.length < 4 || raw.length > 48) return null;
+  if (/[0-9@|]|https?:/i.test(raw)) return null;
+  if (!/^[A-Z][A-Za-z.'’-]*(\s+[A-Za-z.'’-]+){1,3}$/.test(raw)) return null;
+  return raw;
+}
+
+
+function splitCells(line: string): string[] {
+  const trimmed = line.trim();
+  if (trimmed.startsWith("|") || trimmed.split("|").length >= 3) {
+    return trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+  }
+  if (trimmed.includes("\t")) return trimmed.split("\t").map((c) => c.trim());
+  return [];
+}
+
+const SEPARATOR = /^\|?[\s:-]+\|/;
+
+/**
+ * Real athletics pages break one player across several lines: the number and
+ * name on one line, the attributes on the next line starting with a pipe, and
+ * social links in between. Stitch those back into one row and drop the link
+ * furniture, so the table pass sees whole rows.
+ */
+function normalizeLines(text: string): string[] {
+  const raw = text
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/\bOpens in a new window\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter((line) => line && !/^(instagram|twitter|x|facebook|full bio|view profile)$/i.test(line))
+    .filter((line) => !/\b(Instagram|Twitter|Facebook)$/i.test(line) || line.includes("|"));
+
+  const merged: string[] = [];
+  for (const line of raw) {
+    const previous = merged[merged.length - 1];
+    if (line.startsWith("|") && previous && !previous.endsWith("|") && !SEPARATOR.test(line)) {
+      merged[merged.length - 1] = `${previous} ${line}`;
+      continue;
+    }
+    merged.push(line);
+  }
+  return merged;
+}
+
+/**
+ * Card-style rosters carry no table at all: a jersey number on its own line,
+ * then the name, then the position spelled out, then height/weight/class on one
+ * line. Read those blocks when the table pass found little or nothing.
+ */
+function parseCards(lines: string[]): PlayerRow[] {
+  const rows: PlayerRow[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]!;
+    // Either a bare number on its own line, or a labelled one ("Jersey Number 12").
+    const labelled = line.match(/^(?:jersey(?:\s+number)?|no\.?|number)\s*#?\s*(\d{1,2})$/i);
+    const number = labelled ? labelled[1]! : jerseyNumber(line);
+    if (number === null) continue;
+    const name = personName(lines[index + 1] ?? "");
+    if (!name || FURNITURE.test(name) || STAFF_TITLE.test(name)) continue;
+
+    let position: string | null = null;
+    let klass: string | null = null;
+    let height: string | null = null;
+    let weight: string | null = null;
+    let hometown: string | null = null;
+
+    for (let ahead = index + 2; ahead < Math.min(index + 7, lines.length); ahead += 1) {
+      const next = lines[ahead]!;
+      if (POSITION_WORDS.test(next)) {
+        position = position ?? next.toUpperCase();
+        continue;
+      }
+      const sizes = next.match(/^(\d-\d{1,2})\s+(\d{2,3})\s*(?:lbs?\.?)?\s*(.*)$/i);
+      if (sizes) {
+        height = height ?? sizes[1]!;
+        weight = weight ?? weightValue(sizes[2]!);
+        klass = klass ?? classYear(sizes[3]!.trim());
+        continue;
+      }
+      // Labelled attribute lines: "Position INF Academic Year Sr. Height 5' 10'' Weight 175 lbs".
+      const labelPosition = next.match(/\bposition\s+([A-Za-z/-]{1,12})\b/i);
+      if (labelPosition && POSITION_WORDS.test(labelPosition[1]!)) position = position ?? labelPosition[1]!.toUpperCase();
+      const labelClass = next.match(/\b(?:academic year|class(?: year)?|year)\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i);
+      if (labelClass) klass = klass ?? classYear(labelClass[1]!.trim());
+      const labelHeight = next.match(/\bheight\s+(\d\s*['’]\s*\d{1,2}\s*(?:["”]|'')?)/i);
+      if (labelHeight) height = height ?? labelHeight[1]!.replace(/\s+/g, "");
+      const labelWeight = next.match(/\bweight\s+(\d{2,3})/i);
+      if (labelWeight) weight = weight ?? weightValue(labelWeight[1]!);
+      const labelHometown = next.match(/\bhometown\s+(.+?)(?:\s+(?:last school|previous school|high school)\b|$)/i);
+      if (labelHometown) hometown = hometown ?? hometownValue(labelHometown[1]!);
+
+      if (!klass) klass = classYear(next);
+      if (!hometown) hometown = hometownValue(next);
+    }
+
+    if (!position && !klass && !number) continue;
+    rows.push({ name, number, position, class_year: klass, height, weight, hometown });
+  }
+
+  return rows;
+}
+
+
+/**
+ * Read the roster table out of a page's text. Only rows with a name plus one
+ * hard attribute are returned; everything else is reported so a big number can
+ * be read as a real squad or a bad parse.
+ */
+export function parseRoster(text: string | null | undefined, sport?: string | null): RosterShape {
+  const lines = normalizeLines(String(text ?? ""));
+  const players: PlayerRow[] = [];
+
+  const bareNames: string[] = [];
+  const furniture: string[] = [];
+  const seasons: string[] = [];
+  const seenSports = new Set<string>();
+  let rowsConsidered = 0;
+
+  for (const line of lines) {
+    for (const match of line.matchAll(/\b(20\d{2})\s?[-–]\s?(\d{2})\b|\b(20\d{2})\s+(baseball|softball)\s+roster\b/gi)) {
+      const label = match[0].trim();
+      if (!seasons.includes(label)) seasons.push(label);
+    }
+    if (/^#{1,4}\s|roster|schedule/i.test(line)) {
+      for (const found of line.matchAll(SPORTS)) seenSports.add(found[0].toLowerCase());
+    }
+
+    const cells = splitCells(line);
+    if (cells.length < 2 || SEPARATOR.test(line)) continue;
+
+    let name: string | null = null;
+    let number: string | null = null;
+    let position: string | null = null;
+    let klass: string | null = null;
+    let height: string | null = null;
+    let weight: string | null = null;
+    let hometown: string | null = null;
+
+    for (const cell of cells) {
+      if (!cell) continue;
+      if (!number) {
+        const jersey = jerseyNumber(cell);
+        if (jersey !== null) {
+          number = jersey;
+          continue;
+        }
+      }
+      if (!klass) {
+        const year = classYear(cell);
+        if (year) {
+          klass = year;
+          continue;
+        }
+      }
+      if (!position && POSITION_WORDS.test(cell.trim())) {
+        position = cell.trim().toUpperCase();
+        continue;
+      }
+      if (!height) {
+        const h = heightValue(cell);
+        if (h) {
+          height = h;
+          continue;
+        }
+      }
+      if (!weight) {
+        const w = weightValue(cell);
+        if (w) {
+          weight = w;
+          continue;
+        }
+      }
+      if (!hometown) {
+        const town = hometownValue(cell);
+        if (town) {
+          hometown = town;
+          continue;
+        }
+      }
+      if (!name) {
+        const person = personName(cell);
+        if (person) name = person;
+      }
+    }
+
+    if (!name) continue;
+    rowsConsidered += 1;
+
+    if (FURNITURE.test(name) || STAFF_TITLE.test(name)) {
+      furniture.push(name);
+      continue;
+    }
+    if (!number && !position && !klass) {
+      bareNames.push(name);
+      continue;
+    }
+    players.push({ name, number, position, class_year: klass, height, weight, hometown });
+  }
+
+  // Card-style pages carry no table; read them the other way and keep whichever
+  // pass found the fuller squad.
+  const cards = parseCards(lines);
+  if (cards.length >= players.length && cards.length > 0) {
+    players.length = 0;
+    players.push(...cards);
+    rowsConsidered = Math.max(rowsConsidered, cards.length);
+  }
+
+
+
+  const seen = new Map<string, number>();
+  for (const player of players) {
+    const key = player.name.toLowerCase();
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+  const duplicates = [...seen.entries()].filter(([, n]) => n > 1).map(([key]) => key);
+
+  const withNumber = players.filter((p) => p.number).length;
+  const withPosition = players.filter((p) => p.position).length;
+  const withClass = players.filter((p) => p.class_year).length;
+  const withHeightWeight = players.filter((p) => p.height || p.weight).length;
+  const withHometown = players.filter((p) => p.hometown).length;
+
+  const wanted = String(sport ?? "").toLowerCase();
+  const otherSports = [...seenSports].filter((s) => s !== wanted && (s === "baseball" || s === "softball" || true));
+
+  const flags: string[] = [];
+  const considered = rowsConsidered || 1;
+  if (bareNames.length / considered > 0.3) {
+    flags.push(`${bareNames.length} of ${rowsConsidered} rows were a bare name — the parse is reading page furniture`);
+  }
+  if (players.length && withNumber === 0) {
+    flags.push("no row carried a jersey number — the roster table was probably never found");
+  }
+  if (duplicates.length) {
+    flags.push(`${duplicates.length} duplicated name(s) — more than one season may have been merged`);
+  }
+  if (seasons.length > 1) {
+    flags.push(`the page carries more than one season heading (${seasons.join(", ")})`);
+  }
+  if (wanted && otherSports.filter((s) => s !== wanted).length) {
+    flags.push(`the page also names ${otherSports.filter((s) => s !== wanted).join(", ")}`);
+  }
+  if (!players.length) flags.push("no player rows were found on the page");
+
+  return {
+    players,
+    bareNames,
+    furniture,
+    duplicates,
+    seasons,
+    otherSports: otherSports.filter((s) => s !== wanted),
+    counts: {
+      rowsConsidered,
+      players: players.length,
+      withNumber,
+      withPosition,
+      withClass,
+      withHeightWeight,
+      withHometown,
+      bareNames: bareNames.length,
+      furniture: furniture.length,
+      duplicates: duplicates.length,
+    },
+    flags,
+  };
+}
