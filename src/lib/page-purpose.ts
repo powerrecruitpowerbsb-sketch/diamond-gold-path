@@ -335,9 +335,14 @@ export function verifyPagePurpose(input: {
         reason: `This is the school's ${firstLabel || "other"} section, not its athletics site.`,
       };
     }
-    const own = registrableDomain(hostOf(input.schoolWebsite)) || registrableDomain(hostOf(input.federalWebsite));
+    // Either column may hold the school's own site, so both are compared.
+    const own = new Set(
+      [input.schoolWebsite, input.federalWebsite]
+        .map((value) => registrableDomain(hostOf(value)))
+        .filter(Boolean),
+    );
     const here = registrableDomain(host);
-    if (isBareHost(url) && own && here === own && !/(athletic|sport|^go[a-z]{3,})/.test(host)) {
+    if (isBareHost(url) && here && own.has(here) && !/(athletic|sport|^go[a-z]{3,})/.test(host)) {
       return {
         ok: false,
         code: "school_homepage",
