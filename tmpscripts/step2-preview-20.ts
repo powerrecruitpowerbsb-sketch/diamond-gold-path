@@ -100,7 +100,9 @@ async function main() {
   const proposals: unknown[][] = [
     ["school", "state", "institution_id", "sport", "field", "proposed_url", "confidence",
      "evidence_check", "evidence_detail", "evidence_institution_domain", "page_read_ok",
-     "page_read_detail", "stored_value", "differs_from_stored", "was_cleared_in_run", "notes"],
+     "page_read_detail", "page_kind_check", "page_kind_ok", "page_kind_reason",
+     "stored_value", "differs_from_stored", "stored_page_ok", "action", "action_reason",
+     "was_cleared_in_run", "notes"],
   ];
   const nothing: unknown[][] = [["school", "state", "institution_id", "field", "sport", "why"]];
   const considered: unknown[][] = [["school", "institution_id", "stage", "sport", "candidate_url", "outcome", "reason"]];
