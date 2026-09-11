@@ -844,6 +844,55 @@ export async function applyDiscoveredUrl(
 
   const evidence = verdict.evidence;
 
+  // Second gate: prove the page is the right kind, for the right sport. An
+  // unread page is unverified and may never displace a value already on file.
+  const { data: programRow } = await supabase
+    .from("programs")
+    .select("sport, athletic_website, roster_url, coaching_staff_url")
+    .eq("id", row.program_id ?? "00000000-0000-0000-0000-000000000000")
+    .maybeSingle();
+  const sport = ((programRow as any)?.sport ?? null) as string | null;
+  const storedField =
+    row.discovery_type === "athletic_website"
+      ? "athletic_website"
+      : row.discovery_type === "roster_page"
+        ? "roster_url"
+        : "coaching_staff_url";
+  const storedValue = ((programRow as any)?.[storedField] ?? null) as string | null;
+
+  const page = await checkPage({
+    kind: row.discovery_type,
+    url: row.discovered_url,
+    sport,
+    federalWebsite: inst.federalWebsite,
+  });
+  const refuse = async (reason: string) => {
+    await supabase
+      .from("url_discovery_queue")
+      .update({ status: "pending_review", notes: `Held for review: ${reason}`, match_evidence: evidence })
+      .eq("id", row.id);
+    throw new Error(reason);
+  };
+  if (page.read && !page.verdict.ok) await refuse(page.verdict.reason);
+
+  if (storedValue && normalizeUrl(storedValue) !== normalizeUrl(row.discovered_url)) {
+    const old = await checkPage({
+      kind: row.discovery_type,
+      url: storedValue,
+      sport,
+      federalWebsite: inst.federalWebsite,
+    });
+    const decision = replacementDecision({
+      storedValue,
+      proposedRead: page.read,
+      proposedVerified: page.verdict.ok,
+      storedFails: old.read && !old.verdict.ok,
+    });
+    if (decision.action !== "replace" && decision.action !== "fill_empty") {
+      await refuse(`${decision.reason} Stored: ${storedValue}`);
+    }
+  }
+
   if (row.discovery_type === "athletic_website") {
     const { error } = await supabase
       .from("universities")
