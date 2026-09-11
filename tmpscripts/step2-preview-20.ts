@@ -182,6 +182,17 @@ async function main() {
         ? `read with the ${read.fetch_method} method`
         : `${read.failure_category ?? "unreadable"}: ${read.error ?? "no detail"}`;
 
+      // Page-level gate: right kind of page, right sport.
+      const pageText = read.ok ? (read.markdown ?? read.html ?? null) : null;
+      const purpose = verifyPagePurpose({
+        kind: r.discoveryType,
+        url: r.url,
+        sport: sport || null,
+        text: pageText,
+        schoolWebsite: school.website_url ?? null,
+        federalWebsite: inst.federalWebsite ?? null,
+      });
+
       // Stored value for the same field: athletics site lives on each program row.
       const stored =
         r.discoveryType === "athletic_website"
@@ -189,14 +200,47 @@ async function main() {
           : ((program ?? {})[field] ?? null);
       const differs = normalizeUrl(stored) !== normalizeUrl(r.url);
 
+      let storedOk = "";
+      let decision = { action: "fill_empty", reason: "Nothing on file." } as ReturnType<typeof replacementDecision>;
+      if (stored && differs) {
+        const oldRead = await safeFetch(stored);
+        const oldPurpose = verifyPagePurpose({
+          kind: r.discoveryType,
+          url: stored,
+          sport: sport || null,
+          text: oldRead.ok ? (oldRead.markdown ?? oldRead.html ?? null) : null,
+          schoolWebsite: school.website_url ?? null,
+          federalWebsite: inst.federalWebsite ?? null,
+        });
+        storedOk = oldRead.ok ? (oldPurpose.ok ? "yes" : "no") : "not read";
+        decision = replacementDecision({
+          storedValue: stored,
+          proposedRead: read.ok,
+          proposedVerified: purpose.ok,
+          storedFails: oldRead.ok && !oldPurpose.ok,
+        });
+      } else if (!differs) {
+        decision = { action: "keep_stored", reason: "Same address already on file." };
+      } else {
+        decision = replacementDecision({
+          storedValue: null,
+          proposedRead: read.ok,
+          proposedVerified: purpose.ok,
+          storedFails: false,
+        });
+      }
+
       const clearedHere = cleared.find(
         (c) => c.field === field && (!r.programId || c.program_id === r.programId),
       );
 
       proposals.push([
-        name, school.state ?? "", inst.unitid ?? "", sport, field, r.url, r.confidence,
+        name, school.state ?? "", inst.unitid ?? "", sport, field, r.url,
+        // Unread or unverified pages are never high confidence.
+        purpose.ok && read.ok ? r.confidence : "unverified",
         r.evidence?.check ?? "", r.evidence?.detail ?? "", r.evidence?.institutionDomain ?? "",
-        read.ok ? "yes" : "no", readDetail, stored ?? "", differs ? "yes" : "no",
+        read.ok ? "yes" : "no", readDetail, purpose.code, purpose.ok ? "yes" : "no", purpose.reason,
+        stored ?? "", differs ? "yes" : "no", storedOk, decision.action, decision.reason,
         clearedHere ? "yes" : "no", r.notes,
       ]);
 
