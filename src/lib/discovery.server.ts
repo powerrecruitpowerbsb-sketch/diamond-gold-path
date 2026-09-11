@@ -72,7 +72,7 @@ export async function checkPage(input: {
     detail = failure instanceof Error ? failure.message : "the page could not be read";
   }
   const verdict = verifyPagePurpose({ ...input, text });
-  return { read: text !== null, verdict, detail };
+  return { read: text !== null, verdict, detail, refused: text !== null && !verdict.ok };
 }
 
 export type DiscoveryOutcome = {
