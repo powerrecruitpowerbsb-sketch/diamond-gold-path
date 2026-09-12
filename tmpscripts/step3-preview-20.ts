@@ -1,22 +1,26 @@
 /**
  * REPORT ONLY — read the actual rosters and coaching staffs for the 20 preview
- * schools and export names, not counts. Nothing is written to the database.
+ * schools and export NAMES, not counts. Nothing is written to the database and
+ * no queue is released.
  *
- * Resumable: state is kept in /tmp/step3-state.json, so re-running continues
- * where the last run stopped.
+ * One pass produces one record per page, and every export is derived from those
+ * records — so a page can never appear in the counts and be missing from the
+ * players file. The record set is version-stamped: change PASS and the old
+ * results are discarded rather than resumed.
  *
  * Run: bun tmpscripts/step3-preview-20.ts [--budget 500]
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
-import { extractCoaches, looksLikeDepartmentDirectory } from "@/lib/coach-extract";
-import { parseRoster } from "@/lib/roster-extract";
+import { extractCoaches, classifyStaffPage } from "@/lib/coach-extract";
+import { parseRoster, type RosterAttribute } from "@/lib/roster-extract";
 import { verifyPagePurpose } from "@/lib/page-purpose";
 import { safeFetch, setProtectedHosts } from "@/lib/safe-fetch.server";
 
 const OUT = "/mnt/documents";
 const STATE = "/tmp/step3-state.json";
+const PASS = "2026-09-12-sport-scoped-4";
 const budgetMs = Number(process.argv[process.argv.indexOf("--budget") + 1]) * 1000 || 500_000;
 const startedAt = Date.now();
 
@@ -43,20 +47,41 @@ const NAMES = [
   "Santa Fe College",
 ];
 
+const ATTRIBUTES: RosterAttribute[] = ["number", "position", "class_year", "height", "weight", "hometown"];
+
 const sb = createClient(process.env["SUPABASE_URL"]!, process.env["SUPABASE_SERVICE_ROLE_KEY"]!, {
   auth: { persistSession: false },
 });
 
-type Done = {
+type PageRecord = {
+  key: string;
+  school: string;
+  state: string;
+  ipeds: string;
+  sport: string;
+  field: string;
+  url: string;
+  readOk: boolean;
+  readDetail: string;
+  purpose: string;
   players: unknown[][];
   coaches: unknown[][];
-  proposals: unknown[][];
-  seen: string[];
+  columns: unknown[][];
+  rows: number;
+  withNumber: number;
+  withPosition: number;
+  withClass: number;
+  bareNames: number;
+  duplicates: number;
+  extractionOk: string;
+  note: string;
 };
 
-const state: Done = existsSync(STATE)
-  ? JSON.parse(readFileSync(STATE, "utf8"))
-  : { players: [], coaches: [], proposals: [], seen: [] };
+type State = { pass: string; records: PageRecord[] };
+
+const loaded: State | null = existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : null;
+const state: State = loaded && loaded.pass === PASS ? loaded : { pass: PASS, records: [] };
+const done = new Set(state.records.map((r) => r.key));
 
 const esc = (v: unknown) => {
   const s = v === null || v === undefined ? "" : String(v);
@@ -93,19 +118,40 @@ for (const program of (programs ?? []) as any[]) {
     ["coaching_staff_url", "coaching_staff_page", program.coaching_staff_url],
   ] as const) {
     const key = `${program.id}:${field}`;
-    if (state.seen.includes(key)) continue;
+    if (done.has(key)) continue;
     if (Date.now() - startedAt > budgetMs) {
       writeFileSync(STATE, JSON.stringify(state));
       console.log("budget reached — re-run to continue");
       process.exit(0);
     }
 
+    const record: PageRecord = {
+      key,
+      school: school.name,
+      state: school.state ?? "",
+      ipeds: school.ipeds_unitid ?? "",
+      sport: program.sport,
+      field,
+      url: url ?? "",
+      readOk: false,
+      readDetail: "nothing on file",
+      purpose: "",
+      players: [],
+      coaches: [],
+      columns: [],
+      rows: 0,
+      withNumber: 0,
+      withPosition: 0,
+      withClass: 0,
+      bareNames: 0,
+      duplicates: 0,
+      extractionOk: "no",
+      note: url ? "" : "no address on file",
+    };
+
     if (!url) {
-      state.proposals.push([
-        school.name, school.state ?? "", school.ipeds_unitid ?? "", program.sport, field,
-        "", "no", "nothing on file", "", 0, 0, 0, 0, 0, 0, "", "",
-      ]);
-      state.seen.push(key);
+      state.records.push(record);
+      done.add(key);
       continue;
     }
 
@@ -116,7 +162,7 @@ for (const program of (programs ?? []) as any[]) {
     const emptyForKind =
       kind === "roster_page"
         ? !parseRoster(text, program.sport).counts.players
-        : !extractCoaches(text, program.sport).coaches.length;
+        : !extractCoaches(text, program.sport, { url }).coaches.length;
     if (read.ok && text && emptyForKind) {
       const rendered = await safeFetch(url, { preferRendered: true });
       if (rendered.ok) {
@@ -125,6 +171,11 @@ for (const program of (programs ?? []) as any[]) {
       }
     }
 
+    record.readOk = read.ok;
+    record.readDetail = read.ok
+      ? `read with the ${read.fetch_method} method`
+      : `${read.failure_category ?? "unreadable"}: ${read.error ?? ""}`;
+
     const purpose = verifyPagePurpose({
       kind,
       url,
@@ -132,88 +183,129 @@ for (const program of (programs ?? []) as any[]) {
       text: text || null,
       schoolWebsite: school.website_url ?? null,
     });
+    record.purpose = `${purpose.code}${purpose.ok ? "" : " (fails)"}`;
 
-    let rosterCounts = { players: 0, withNumber: 0, withPosition: 0, withClass: 0, bareNames: 0, duplicates: 0 };
-    let flags: string[] = [];
-    let extractionOk = "no";
-    let extractionNote = "";
+    if (kind === "roster_page") {
+      if (!read.ok || !text) {
+        record.note = record.note || "page not read — attributes unknown";
+        for (const attribute of ATTRIBUTES) {
+          record.columns.push([school.name, program.sport, url, attribute, "not_read", 0, 0]);
+        }
+      } else {
+        const shape = parseRoster(text, program.sport);
+        record.rows = shape.counts.players;
+        record.withNumber = shape.counts.withNumber;
+        record.withPosition = shape.counts.withPosition;
+        record.withClass = shape.counts.withClass;
+        record.bareNames = shape.counts.bareNames;
+        record.duplicates = shape.counts.duplicates;
+        record.extractionOk =
+          shape.players.length > 0 && !shape.parserDefects.length && !shape.flags.some((f) => /never found|page furniture/.test(f))
+            ? "yes"
+            : shape.players.length > 0
+              ? "partial"
+              : "no";
+        record.note = shape.flags.join("; ");
 
-    if (kind === "roster_page" && text) {
-      const shape = parseRoster(text, program.sport);
-      rosterCounts = {
-        players: shape.counts.players,
-        withNumber: shape.counts.withNumber,
-        withPosition: shape.counts.withPosition,
-        withClass: shape.counts.withClass,
-        bareNames: shape.counts.bareNames,
-        duplicates: shape.counts.duplicates,
-      };
-      flags = shape.flags;
-      extractionOk = shape.players.length > 0 && !shape.flags.some((f) => /never found|page furniture/.test(f)) ? "yes" : "no";
-      extractionNote = shape.flags.join("; ");
-      for (const player of shape.players) {
-        state.players.push([
-          school.name, program.sport, player.name, player.number ?? "", player.position ?? "",
-          player.class_year ?? "", player.height ?? "", player.weight ?? "", player.hometown ?? "", url,
-        ]);
+        for (const player of shape.players) {
+          record.players.push([
+            school.name, program.sport, player.name, player.number ?? "", player.position ?? "",
+            player.class_year ?? "", player.height ?? "", player.weight ?? "", player.hometown ?? "", url,
+          ]);
+        }
+
+        const extractedFor = (attribute: RosterAttribute) =>
+          shape.players.filter((p) => p[attribute]).length;
+        for (const attribute of ATTRIBUTES) {
+          const offered = shape.columns[attribute];
+          const got = extractedFor(attribute);
+          const status =
+            offered === "not_published"
+              ? "not_published"
+              : offered === "unknown"
+                ? got > 0
+                  ? "extracted"
+                  : "unknown"
+                : got > 0
+                  ? "extracted"
+                  : "failed_to_extract";
+          record.columns.push([school.name, program.sport, url, attribute, status, shape.players.length, got]);
+        }
       }
     }
 
-    if (kind === "coaching_staff_page" && text) {
-      const dept = looksLikeDepartmentDirectory({ url, text, sport: program.sport });
-      const shape = extractCoaches(text, program.sport);
-      extractionOk = shape.headCoach && dept.ok ? "yes" : "no";
-      extractionNote = dept.ok ? (shape.failure ?? "") : (dept.reason ?? "");
-      rosterCounts.players = shape.coaches.length;
-      for (const coach of shape.coaches) {
-        state.coaches.push([
-          school.name, program.sport, coach.name, coach.title, coach.isHead ? "head coach" : "", url,
-        ]);
-      }
-      if (shape.headCoach) {
-        state.coaches.push([]);
-        state.coaches.pop();
+    if (kind === "coaching_staff_page") {
+      const pageKind = classifyStaffPage({ url, text: text || null, sport: program.sport });
+      if (!read.ok || !text) {
+        record.note = record.note || "page not read";
+      } else {
+        const shape = extractCoaches(text, program.sport, { url });
+        record.rows = shape.coaches.length;
+        record.extractionOk = shape.headCoach ? "yes" : "no";
+        record.note = shape.failure ?? "";
+        for (const coach of shape.coaches) {
+          record.coaches.push([
+            school.name, program.sport, coach.name, coach.title, coach.isHead ? "head coach" : "",
+            coach.sportOnPage, coach.attribution, shape.pageKind, url,
+          ]);
+        }
+        if (!shape.headCoach) {
+          record.note += ` [page kind: ${shape.pageKind} — ${pageKind.reason}; other-sport rows ${shape.counts.otherSport}; unattributed ${shape.counts.unattributed}]`;
+        }
       }
     }
 
-    state.proposals.push([
-      school.name, school.state ?? "", school.ipeds_unitid ?? "", program.sport, field, url,
-      read.ok ? "yes" : "no",
-      read.ok ? `read with the ${read.fetch_method} method` : `${read.failure_category ?? "unreadable"}: ${read.error ?? ""}`,
-      `${purpose.code}${purpose.ok ? "" : " (fails)"}`,
-      rosterCounts.players, rosterCounts.withNumber, rosterCounts.withPosition,
-      rosterCounts.withClass, rosterCounts.bareNames, rosterCounts.duplicates,
-      extractionOk, extractionNote || flags.join("; "),
-    ]);
-    state.seen.push(key);
+    state.records.push(record);
+    done.add(key);
     writeFileSync(STATE, JSON.stringify(state));
   }
 }
 
+writeFileSync(STATE, JSON.stringify(state));
+
+const records = state.records;
+
 write("step3-players.csv", [
   ["school", "sport", "player", "number", "position", "class", "height", "weight", "hometown", "source URL"],
-  ...state.players,
+  ...records.flatMap((r) => r.players),
 ]);
 write("step3-coaches.csv", [
-  ["school", "sport", "coach", "title", "head coach", "source URL"],
-  ...state.coaches,
+  ["school", "sport", "coach", "title", "head coach", "sport assigned on page", "how assigned", "page kind", "source URL"],
+  ...records.flatMap((r) => r.coaches),
+]);
+write("step3-columns.csv", [
+  ["school", "sport", "source URL", "attribute", "state", "players found", "players with attribute"],
+  ...records.flatMap((r) => r.columns),
 ]);
 write("step3-proposals.csv", [
   ["school", "state", "institution ID", "sport", "field", "address on file", "page read", "read detail",
    "page kind check", "rows extracted", "with number", "with position", "with class", "bare names",
    "duplicates", "extraction ok", "notes"],
-  ...state.proposals,
+  ...records.map((r) => [
+    r.school, r.state, r.ipeds, r.sport, r.field, r.url, r.readOk ? "yes" : "no", r.readDetail, r.purpose,
+    r.rows, r.withNumber, r.withPosition, r.withClass, r.bareNames, r.duplicates, r.extractionOk, r.note,
+  ]),
 ]);
+
+const perSchool: Record<string, { players: number; coaches: number }> = {};
+for (const record of records) {
+  const entry = (perSchool[record.school] ??= { players: 0, coaches: 0 });
+  entry.players += record.players.length;
+  entry.coaches += record.coaches.length;
+}
 
 console.log(
   JSON.stringify(
     {
-      pagesChecked: state.seen.length,
-      playerRows: state.players.length,
-      coachRows: state.coaches.length,
-      headCoachesFound: state.coaches.filter((r) => r[4] === "head coach").length,
-      extractionOk: state.proposals.filter((r) => r[15] === "yes").length,
-      extractionFailed: state.proposals.filter((r) => r[15] === "no").length,
+      pagesChecked: records.length,
+      schoolsInPlayersFile: Object.values(perSchool).filter((s) => s.players > 0).length,
+      playerRows: records.reduce((n, r) => n + r.players.length, 0),
+      coachRows: records.reduce((n, r) => n + r.coaches.length, 0),
+      headCoachesFound: records.flatMap((r) => r.coaches).filter((c) => c[4] === "head coach").length,
+      extractionOk: records.filter((r) => r.extractionOk === "yes").length,
+      extractionPartial: records.filter((r) => r.extractionOk === "partial").length,
+      extractionFailed: records.filter((r) => r.extractionOk === "no").length,
+      perSchool,
     },
     null,
     2,
