@@ -371,6 +371,65 @@ for (const row of csvRows) {
   });
 }
 
+/* ---------------- two listed schools, one program on file ----------------- */
+/*
+ * A single program must not take a division from two different listed schools.
+ * Where that happens (Cleveland Community College landing on Cleveland STATE
+ * Community College, Coastal Alabama North and South landing on one record),
+ * the stronger match keeps the row only when the weaker one disagrees on
+ * nothing; otherwise nothing is assigned and both listings are reported.
+ */
+const RANK: Record<Method, number> = {
+  "federal id": 0,
+  "exact name": 1,
+  "same significant words": 2,
+  "qualifier dropped": 3,
+  ambiguous: 9,
+  "governing body disagreement": 9,
+  "no match": 9,
+};
+const collisionRows: unknown[][] = [];
+const byProgram = new Map<string, MatchRow[]>();
+for (const r of matchRows) {
+  const key = `${r.program.id}`;
+  if (!byProgram.has(key)) byProgram.set(key, []);
+  byProgram.get(key)!.push(r);
+}
+const keptRows: MatchRow[] = [];
+for (const [, group] of byProgram) {
+  if (group.length === 1) { keptRows.push(group[0]!); continue; }
+  const divisions = new Set(group.map((g) => g.row.division));
+  const best = Math.min(...group.map((g) => RANK[g.method]));
+  const bestRows = group.filter((g) => RANK[g.method] === best);
+  if (divisions.size === 1 && bestRows.length >= 1) {
+    keptRows.push(bestRows[0]!);
+    for (const g of group.filter((x) => x !== bestRows[0]))
+      collisionRows.push([
+        g.row.raw, g.school.name, g.school.id, g.program.id, g.row.sport, g.row.division,
+        g.method, "duplicate listing, same division — one row kept", "no change",
+      ]);
+    continue;
+  }
+  if (bestRows.length === 1) {
+    keptRows.push(bestRows[0]!);
+    for (const g of group.filter((x) => x !== bestRows[0]!))
+      collisionRows.push([
+        g.row.raw, g.school.name, g.school.id, g.program.id, g.row.sport, g.row.division,
+        g.method, `weaker match on the same program as "${bestRows[0]!.row.raw}" (${bestRows[0]!.method}) with a different division`,
+        "withheld — school is probably not on file",
+      ]);
+    continue;
+  }
+  for (const g of group)
+    collisionRows.push([
+      g.row.raw, g.school.name, g.school.id, g.program.id, g.row.sport, g.row.division,
+      g.method, "two listed schools resolve to this one program with different divisions",
+      "withheld — nothing assigned",
+    ]);
+}
+matchRows.length = 0;
+matchRows.push(...keptRows);
+
 const gapRows = njcaaPrograms
   .filter((p) => !claimed.has(p.id))
   .map((p) => {
@@ -412,15 +471,20 @@ write("njcaa-c-school-not-on-file.csv", [
   ...noSchoolRows,
 ]);
 write("njcaa-d-gap.csv", [
-  ["school", "school_id", "federal_id", "state", "sport", "stored_division", "stored_conference",
+  ["school", "school_id", "program_id", "federal_id", "state", "sport", "stored_division", "stored_conference",
    "offering_status", "school_listed_by_njcaa_for_other_sport", "has_athletics_link", "has_roster_link",
    "players_on_file", "head_coach_on_file", "domain_is_ncaa_member", "finding", "recommended_action"],
   ...gapRows.map((g) => [
-    g.s.name, g.s.id, g.s.unitid || "none", g.s.state, g.p.sport, g.p.division || "empty",
+    g.s.name, g.s.id, g.p.id, g.s.unitid || "none", g.s.state, g.p.sport, g.p.division || "empty",
     g.p.conference || "empty", g.p.offering, g.other.join("/") || "no", g.p.athletic ? "yes" : "no",
     g.p.roster ? "yes" : "no", g.p.players, g.p.coach ? "yes" : "no", g.ncaaMember ? "yes" : "no",
     g.finding, g.action,
   ]),
+]);
+write("njcaa-g-two-listings-one-program.csv", [
+  ["csv_school", "school_on_file", "school_id", "program_id", "sport", "csv_division",
+   "matched_method", "finding", "action"],
+  ...collisionRows,
 ]);
 write("njcaa-e-ambiguous.csv", [
   ["csv_school", "state_hint", "sport", "csv_division", "reason", "candidates"],
@@ -447,6 +511,7 @@ console.log(`   fields the other sport only (not_offered)   ${gapRows.filter((g)
 console.log(`   governing body suspect (NCAA domain)        ${gapRows.filter((g) => !g.other.length && g.ncaaMember).length}`);
 console.log(`   not listed either sport                     ${gapRows.filter((g) => !g.other.length && !g.ncaaMember).length}`);
 console.log(`E ambiguous (nothing assigned)                 ${ambiguousRows.length}`);
+console.log(`G two listings on one program (withheld)         ${collisionRows.length}`);
 console.log(`F governing-body disagreement                  ${conflictRows.length}`);
 
 console.log("\nmatched_how by method:");

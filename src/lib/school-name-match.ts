@@ -60,15 +60,50 @@ export function significantWords(name: string): string[] {
   return nameWords(name).filter((w) => !DROPPABLE.has(w));
 }
 
+/** Repeats count: "Walla Walla" is not the same name as "Walla". */
+function counts(words: string[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const w of words) m.set(w, (m.get(w) ?? 0) + 1);
+  return m;
+}
+
 function sameSet(a: string[], b: string[]): boolean {
-  const sa = new Set(a);
-  const sb = new Set(b);
-  if (sa.size !== sb.size || sa.size === 0) return false;
-  for (const w of sa) if (!sb.has(w)) return false;
+  if (a.length !== b.length || a.length === 0) return false;
+  const ca = counts(a);
+  const cb = counts(b);
+  if (ca.size !== cb.size) return false;
+  for (const [w, n] of ca) if (cb.get(w) !== n) return false;
   return true;
 }
 
 export type NameMatchTier = "exact name" | "same significant words" | null;
+
+/**
+ * True when one name is the other plus extra qualifying words, e.g.
+ * "Barton Community College" against "Barton County Community College", or
+ * "Highland CC" against "Highland Community College-Kansas".
+ *
+ * On its own this is NOT a match: dropping a word is only harmless when no
+ * other school in the pool answers to the shorter name too. Callers must use
+ * it through `resolveByName`, which refuses it the moment a second candidate
+ * survives — that is what keeps Cleveland State Community College and
+ * Cleveland Community College apart.
+ */
+export function qualifierSubset(listed: string, stored: string): boolean {
+  // Direction, again: the LISTED name may leave a qualifier out of the stored
+  // name, never add an identity word to it. Without that, the listed "South
+  // Georgia State College" would land on the stored "Georgia State University".
+  const small = significantWords(listed);
+  const large = significantWords(stored);
+  if (small.length < 2 || large.length - small.length !== 1) return false;
+  const cl = counts(large);
+  for (const w of small) {
+    const n = cl.get(w) ?? 0;
+    if (n === 0) return false;
+    cl.set(w, n - 1);
+  }
+  return true;
+}
 
 /**
  * How a listed name relates to a stored name. Never fuzzy: either the whole
@@ -144,8 +179,10 @@ export function sameState(a: string | null | undefined, b: string | null | undef
 
 export type Candidate = { id: string; name: string };
 
+export type ResolveMethod = "exact name" | "same significant words" | "qualifier dropped";
+
 export type Resolution<T extends Candidate> =
-  | { school: T; how: string; method: "exact name" | "same significant words"; candidates: T[] }
+  | { school: T; how: string; method: ResolveMethod; candidates: T[] }
   | { school: null; how: string; method: "ambiguous" | "no match"; candidates: T[] };
 
 /**
@@ -161,6 +198,18 @@ export function resolveByName<T extends Candidate>(
 ): Resolution<T> {
   const exact = pool.filter((c) => nameMatch(listed, c.name) === "exact name");
   const significant = pool.filter((c) => nameMatch(listed, c.name) === "same significant words");
+  const subsetHits = pool.filter((c) => qualifierSubset(listed, c.name));
+
+  // A shorthand that also fits a longer-named sibling is not evidence for
+  // either: "Walla Walla" fits Walla Walla University AND Walla Walla
+  // Community College, and only the league knows which one it listed.
+  if (exact.length === 0 && significant.length === 1 && subsetHits.length > 0)
+    return {
+      school: null,
+      how: `fits ${significant[0]!.name} and also ${subsetHits.map((c) => c.name).join(", ")}`,
+      method: "ambiguous",
+      candidates: [...significant, ...subsetHits],
+    };
 
   for (const [tier, hits] of [
     ["exact name", exact],
@@ -179,5 +228,23 @@ export function resolveByName<T extends Candidate>(
       return { school: null, how: `ambiguous on ${tier}`, method: "ambiguous", candidates: hits };
     }
   }
+  // Last tier: the two names differ only by a qualifying word one side spells
+  // out. Allowed only when a single school in the pool answers to it; a second
+  // candidate means the dropped word is the thing telling them apart.
+  const subset = subsetHits;
+  if (subset.length === 1)
+    return {
+      school: subset[0]!,
+      how: `qualifier dropped: ${distinguishingDifference(listed, subset[0]!.name).join(", ")}`,
+      method: "qualifier dropped",
+      candidates: subset,
+    };
+  if (subset.length > 1)
+    return {
+      school: null,
+      how: "ambiguous once a qualifying word is dropped — both names exist",
+      method: "ambiguous",
+      candidates: subset,
+    };
   return { school: null, how: "no name match", method: "no match", candidates: [] };
 }
