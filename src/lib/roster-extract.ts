@@ -19,9 +19,21 @@ export type PlayerRow = {
   height: string | null;
   weight: string | null;
   hometown: string | null;
+  /** Batting side: R, L or S (switch). */
+  bats: string | null;
+  /** Throwing arm: R or L. */
+  throws: string | null;
 };
 
-export type RosterAttribute = "number" | "position" | "class_year" | "height" | "weight" | "hometown";
+export type RosterAttribute =
+  | "number"
+  | "position"
+  | "class_year"
+  | "height"
+  | "weight"
+  | "hometown"
+  | "bats"
+  | "throws";
 
 /**
  * Three distinct states, so a coach can be told "this school doesn't publish
