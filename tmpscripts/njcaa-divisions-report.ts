@@ -315,6 +315,7 @@ const matchRows: MatchRow[] = [];
 const noProgramRows: unknown[][] = [];
 const noSchoolRows: unknown[][] = [];
 const ambiguousRows: unknown[][] = [];
+const conflictRows: unknown[][] = [];
 
 const claimed = new Set<string>();
 const listedBySchool = new Map<string, Set<string>>();
@@ -333,6 +334,15 @@ for (const row of csvRows) {
       ambiguousRows.push([
         row.raw, row.state ?? "", row.sport, row.division, how,
         candidates.map((c) => `${c.name} (${c.state})`).join(" | "),
+      ]);
+      continue;
+    }
+    if (method === "governing body disagreement") {
+      const c = candidates[0]!;
+      const held = programOf.get(`${c.id}::${row.sport}`)!;
+      conflictRows.push([
+        row.raw, row.state ?? "", row.sport, row.division, c.name, c.id, c.unitid || "none",
+        c.state, held.gb || "none", held.id, held.division || "empty", held.offering, how,
       ]);
       continue;
     }
@@ -415,6 +425,12 @@ write("njcaa-d-gap.csv", [
 write("njcaa-e-ambiguous.csv", [
   ["csv_school", "state_hint", "sport", "csv_division", "reason", "candidates"],
   ...ambiguousRows,
+]);
+write("njcaa-f-governing-body-disagreement.csv", [
+  ["csv_school", "state_hint", "sport", "csv_division", "school_on_file", "school_id",
+   "federal_id", "state", "stored_governing_body", "program_id", "stored_division",
+   "current_offering_status", "finding"],
+  ...conflictRows,
 ]);
 
 /* -------------------------------- summary --------------------------------- */
