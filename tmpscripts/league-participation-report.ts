@@ -82,6 +82,11 @@ const STATE_NAMES: Record<string, string> = {
 /** League shorthand that no federal or stored record uses. */
 const EXPAND: [RegExp, string][] = [
   [/^LA\s+/i, "Los Angeles "],
+  [/^LSU\s+/i, "Louisiana State University "],
+  [/^WVU\s+/i, "West Virginia University "],
+  [/^IU\s+/i, "Indiana University "],
+  [/^SW\s+/i, "Southwestern "],
+  [/^Park-Gilbert$/i, "Park University Gilbert"],
   [/^West LA$/i, "West Los Angeles"],
   [/^Mt\.?\s+/i, "Mount "],
   [/^A&M-Victoria$/i, "Texas A&M University-Victoria"],
@@ -115,7 +120,10 @@ function norm(name: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
-const STEM: Record<string, string> = { technology: "tech", technical: "tech", univ: "university", saint: "st" };
+const STEM: Record<string, string> = {
+  technology: "tech", technical: "tech", technological: "tech",
+  univ: "university", saint: "st", mount: "mt",
+};
 function tokens(name: string): string[] {
   return norm(name)
     .split(" ")
@@ -279,10 +287,11 @@ function resolve(row: CsvRow): Result {
 
   // Pool: schools already carrying this governing body, else the league's states.
   const gbPool = schools.filter((s) => gbSchools.get(row.gb)?.has(s.id));
-  const stateFilter = (pool: School[]) => {
-    if (row.state) return pool.filter((s) => s.state === row.state);
+  const stateFilter = (pool: School[], strict: boolean) => {
+    if (row.state) return pool.filter((s) => s.state === row.state || !s.state);
+    if (!strict) return pool; // governing body already carries the school
     const league = LEAGUE_STATES[row.gb] ?? [];
-    return league.length ? pool.filter((s) => league.includes(s.state)) : pool;
+    return league.length ? pool.filter((s) => league.includes(s.state) || !s.state) : pool;
   };
 
   // 1. Federal ID: exact federal name or alias inside the league's states.
@@ -301,14 +310,14 @@ function resolve(row: CsvRow): Result {
   ];
   if (fedIds.length === 1) {
     const held = schoolByUnitid.get(fedIds[0]!);
-    if (held && (!row.state || held.state === row.state))
+    if (held && (!row.state || held.state === row.state || !held.state))
       return { school: held, how: `federal id ${fedIds[0]}`, candidates: [held] };
   }
 
   // 2. Exact stored name inside the governing-body + state pool.
   for (const [pool, label] of [
-    [stateFilter(gbPool), "exact stored name, same governing body"],
-    [stateFilter(schools), "exact stored name, league state"],
+    [stateFilter(gbPool, false), "exact stored name, same governing body"],
+    [stateFilter(schools, true), "exact stored name, league state"],
   ] as [School[], string][]) {
     const exact = pool.filter((s) => norm(s.name) === target);
     if (exact.length === 1) return { school: exact[0]!, how: label, candidates: exact };
@@ -323,8 +332,8 @@ function resolve(row: CsvRow): Result {
       .sort((a, b) => b.score - a.score || a.s.tokens.length - b.s.tokens.length);
 
   for (const [pool, label] of [
-    [stateFilter(gbPool), "name match within same governing body"],
-    [stateFilter(schools), "name match within league state"],
+    [stateFilter(gbPool, false), "name match within same governing body"],
+    [stateFilter(schools, true), "name match within league state"],
   ] as [School[], string][]) {
     const hits = score(pool);
     if (!hits.length) continue;
