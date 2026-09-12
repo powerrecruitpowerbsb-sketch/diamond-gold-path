@@ -89,13 +89,18 @@ export type NameMatchTier = "exact name" | "same significant words" | null;
  * survives — that is what keeps Cleveland State Community College and
  * Cleveland Community College apart.
  */
-export function qualifierSubset(listed: string, stored: string): boolean {
+export function qualifierSubset(listed: string, stored: string, maxExtra = 3): boolean {
   // Direction, again: the LISTED name may leave a qualifier out of the stored
   // name, never add an identity word to it. Without that, the listed "South
   // Georgia State College" would land on the stored "Georgia State University".
   const small = significantWords(listed);
   const large = significantWords(stored);
-  if (small.length < 2 || large.length - small.length !== 1) return false;
+  const extra = large.length - small.length;
+  if (small.length < 1 || extra < 1 || extra > maxExtra) return false;
+  // League shorthand routinely keeps only the first word or two ("Everett" for
+  // Everett Community College), so the shorthand must start the stored name —
+  // that is what stops "Mission" being read as "Baptist Bible Mission".
+  if (small[0] !== large[0]) return false;
   const cl = counts(large);
   for (const w of small) {
     const n = cl.get(w) ?? 0;
@@ -200,15 +205,18 @@ export function resolveByName<T extends Candidate>(
   const significant = pool.filter((c) => nameMatch(listed, c.name) === "same significant words");
   const subsetHits = pool.filter((c) => qualifierSubset(listed, c.name));
 
-  // A shorthand that also fits a longer-named sibling is not evidence for
+  // A shorthand that also fits a near-identical sibling is not evidence for
   // either: "Walla Walla" fits Walla Walla University AND Walla Walla
-  // Community College, and only the league knows which one it listed.
-  if (exact.length === 0 && significant.length === 1 && subsetHits.length > 0)
+  // Community College, and only the league knows which one it listed. Only a
+  // sibling one qualifying word away counts — a name two or more words longer
+  // is a different school, not the same one written shorter.
+  const nearSiblings = subsetHits.filter((c) => qualifierSubset(listed, c.name, 1));
+  if (exact.length === 0 && significant.length === 1 && nearSiblings.length > 0)
     return {
       school: null,
-      how: `fits ${significant[0]!.name} and also ${subsetHits.map((c) => c.name).join(", ")}`,
+      how: `fits ${significant[0]!.name} and also ${nearSiblings.map((c) => c.name).join(", ")}`,
       method: "ambiguous",
-      candidates: [...significant, ...subsetHits],
+      candidates: [...significant, ...nearSiblings],
     };
 
   for (const [tier, hits] of [

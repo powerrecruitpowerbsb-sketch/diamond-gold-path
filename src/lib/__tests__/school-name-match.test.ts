@@ -110,3 +110,27 @@ describe("refusals learned from the league passes", () => {
     expect(r.method).toBe("ambiguous");
   });
 });
+
+describe("league shorthand that keeps only the leading word", () => {
+  it("matches a one-word shorthand to the only school it can be", () => {
+    expect(resolveByName("Everett", [{ id: "e", name: "Everett Community College" }]).school?.id)
+      .toBe("e");
+    expect(resolveByName("Modesto", [{ id: "m", name: "Modesto Junior College" }]).school?.id)
+      .toBe("m");
+    expect(resolveByName("Loyola (La.)".replace(/\s*\(.*\)/, ""), [
+      { id: "l", name: "Loyola University New Orleans" },
+    ]).school?.id).toBe("l");
+  });
+  it("refuses a shorthand that fits two siblings", () => {
+    const r = resolveByName("Walla Walla", [
+      { id: "u", name: "Walla Walla University" },
+      { id: "c", name: "Walla Walla Community College" },
+    ]);
+    expect(r.school).toBeNull();
+  });
+  it("will not let shorthand jump to a school it does not start", () => {
+    expect(resolveByName("Mission", [{ id: "b", name: "Baptist Bible Mission College" }]).school)
+      .toBeNull();
+  });
+});
+

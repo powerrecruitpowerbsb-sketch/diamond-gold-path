@@ -13,6 +13,7 @@ import {
   valuesEquivalent,
 } from "@/lib/data-quality";
 import { rejectionKey } from "@/lib/rejected-memory";
+import { checkRosterSource, recordRefusal } from "@/lib/roster-provenance.server";
 import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
 
 
@@ -100,15 +101,42 @@ function pickEnum(value: unknown, options: string[]): string | null {
 /**
  * Replace the stored roster for one program + season. Used by an approved
  * proposal and by the roster re-check, so both take exactly one path.
+ *
+ * A source page is REQUIRED: without it nothing can verify the players came
+ * from a page belonging to this school, which is how wrong links silently
+ * became wrong rosters. The source domain is checked against the school before
+ * a single row is written; a domain another school holds is refused and parked
+ * for review.
  */
 export async function replaceRoster(
   supabase: any,
-  payload: { program_id: string; season_year?: unknown; season_label?: unknown; players: any[] },
+  payload: {
+    program_id: string; season_year?: unknown; season_label?: unknown; players: any[];
+    source_url: string; run_id?: string | null;
+  },
 ) {
   const players = Array.isArray(payload?.players) ? payload.players : null;
   const programId = payload?.program_id;
   if (!players || !players.length) throw new Error("Roster proposal contains no players");
   if (!programId) throw new Error("Roster proposal is missing its program");
+
+  const sourceUrl = typeof payload?.source_url === "string" ? payload.source_url.trim() : "";
+  if (!sourceUrl) throw new Error("Roster write refused: no source page was named");
+  const verdict = await checkRosterSource(supabase, programId, sourceUrl);
+  if (!verdict.ok) {
+    await recordRefusal(supabase, {
+      programId,
+      kind: "roster",
+      sourceUrl,
+      domain: verdict.domain,
+      reason: verdict.reason,
+      holderId: verdict.holder?.id ?? null,
+      holderDetail: verdict.holder?.name ?? null,
+      rows: players.length,
+    });
+    throw new Error(`Roster write refused: ${verdict.reason}`);
+  }
+  const extractedAt = new Date().toISOString();
   // A season read off a jersey number or an archive page is not a season.
   const seasonYear = canonicalSeasonYear(payload?.season_year) ?? currentSeasonYear();
   const seasonLabel =
@@ -133,6 +161,11 @@ export async function replaceRoster(
       is_transfer: Boolean(player?.is_transfer),
       is_juco_transfer: Boolean(player?.is_juco_transfer),
       two_way: position === "TWO_WAY",
+      source_url: sourceUrl,
+      source_domain: verdict.domain,
+      extracted_at: extractedAt,
+      ingest_run_id: payload?.run_id ?? null,
+      provenance: "traced",
     };
   }).filter((r: { name: string }) => r.name);
 
@@ -157,11 +190,14 @@ export async function replaceRoster(
  */
 async function applyRosterProposal(supabase: any, row: PendingRow) {
   const payload = row.proposed_value as any;
+  const sourceUrl = payload?.source_url ?? payload?.roster_url ?? row.source_url ?? "";
   await replaceRoster(supabase, {
     program_id: payload?.program_id ?? row.record_id,
     season_year: payload?.season_year,
     season_label: payload?.season_label,
     players: Array.isArray(payload?.players) ? payload.players : [],
+    source_url: sourceUrl,
+    run_id: payload?.run_id ?? null,
   });
 }
 
@@ -192,9 +228,37 @@ export async function approvePending(supabase: any, userId: string, row: Pending
     if (!recordId) throw new Error("Field change is missing a target record");
     if (!allowed.has(row.field_name)) throw new Error(`Field not writable: ${row.field_name}`);
     const value = unwrapFieldValue(row.field_name, row.proposed_value);
+    const patch: Record<string, unknown> = {
+      [row.field_name]: value === "" ? null : coerceForColumn(row.field_name, value),
+    };
+
+    /* Coach names carry the page they were read from, and that page must
+       belong to this school — the same test the roster write applies. */
+    if (row.table_name === "programs" && COACH_FIELDS.has(row.field_name)) {
+      const coachSource = row.source_url ?? "";
+      if (!coachSource) throw new Error("Coach write refused: no source page was named");
+      const verdict = await checkRosterSource(supabase, recordId, coachSource);
+      if (!verdict.ok) {
+        await recordRefusal(supabase, {
+          programId: recordId,
+          kind: "coach",
+          sourceUrl: coachSource,
+          domain: verdict.domain,
+          reason: verdict.reason,
+          holderId: verdict.holder?.id ?? null,
+          holderDetail: verdict.holder?.name ?? null,
+          rows: 1,
+        });
+        throw new Error(`Coach write refused: ${verdict.reason}`);
+      }
+      patch["coach_source_url"] = coachSource;
+      patch["coach_source_domain"] = verdict.domain;
+      patch["coach_extracted_at"] = new Date().toISOString();
+    }
+
     const { error } = await supabase
       .from(row.table_name)
-      .update({ [row.field_name]: value === "" ? null : coerceForColumn(row.field_name, value) })
+      .update(patch)
       .eq("id", recordId);
     if (error) throw new Error(error.message);
     await upsertSource(

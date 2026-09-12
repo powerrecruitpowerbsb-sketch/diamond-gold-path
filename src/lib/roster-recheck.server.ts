@@ -200,6 +200,7 @@ export async function recheckRosterSizes(
         season_year: targetSeason ?? seasonYear,
         season_label: seasonLabel,
         players: kept,
+        source_url: rosterUrl,
       });
       if (kept.length !== base.before) replaced += 1;
       rows.push({

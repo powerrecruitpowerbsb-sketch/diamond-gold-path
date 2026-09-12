@@ -1547,6 +1547,10 @@ export type Database = {
       programs: {
         Row: {
           athletic_website: string | null
+          coach_extracted_at: string | null
+          coach_ingest_run_id: string | null
+          coach_source_domain: string | null
+          coach_source_url: string | null
           coaching_staff_url: string | null
           conference: string | null
           conference_source: string | null
@@ -1580,6 +1584,10 @@ export type Database = {
         }
         Insert: {
           athletic_website?: string | null
+          coach_extracted_at?: string | null
+          coach_ingest_run_id?: string | null
+          coach_source_domain?: string | null
+          coach_source_url?: string | null
           coaching_staff_url?: string | null
           conference?: string | null
           conference_source?: string | null
@@ -1613,6 +1621,10 @@ export type Database = {
         }
         Update: {
           athletic_website?: string | null
+          coach_extracted_at?: string | null
+          coach_ingest_run_id?: string | null
+          coach_source_domain?: string | null
+          coach_source_url?: string | null
           coaching_staff_url?: string | null
           conference?: string | null
           conference_source?: string | null
@@ -1762,17 +1774,22 @@ export type Database = {
           bats: Database["public"]["Enums"]["bats_hand"] | null
           class_year: Database["public"]["Enums"]["class_year"] | null
           created_at: string
+          extracted_at: string | null
           home_country: string | null
           home_state: string | null
           hometown: string | null
           id: string
+          ingest_run_id: string | null
           is_juco_transfer: boolean
           is_transfer: boolean
           name: string
           position: Database["public"]["Enums"]["player_position"] | null
           program_id: string
+          provenance: string
           season_label: string | null
           season_year: number | null
+          source_domain: string | null
+          source_url: string | null
           sport_specific_attributes: Json | null
           throws: Database["public"]["Enums"]["throws_hand"] | null
           two_way: boolean
@@ -1781,17 +1798,22 @@ export type Database = {
           bats?: Database["public"]["Enums"]["bats_hand"] | null
           class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
+          extracted_at?: string | null
           home_country?: string | null
           home_state?: string | null
           hometown?: string | null
           id?: string
+          ingest_run_id?: string | null
           is_juco_transfer?: boolean
           is_transfer?: boolean
           name: string
           position?: Database["public"]["Enums"]["player_position"] | null
           program_id: string
+          provenance?: string
           season_label?: string | null
           season_year?: number | null
+          source_domain?: string | null
+          source_url?: string | null
           sport_specific_attributes?: Json | null
           throws?: Database["public"]["Enums"]["throws_hand"] | null
           two_way?: boolean
@@ -1800,17 +1822,22 @@ export type Database = {
           bats?: Database["public"]["Enums"]["bats_hand"] | null
           class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
+          extracted_at?: string | null
           home_country?: string | null
           home_state?: string | null
           hometown?: string | null
           id?: string
+          ingest_run_id?: string | null
           is_juco_transfer?: boolean
           is_transfer?: boolean
           name?: string
           position?: Database["public"]["Enums"]["player_position"] | null
           program_id?: string
+          provenance?: string
           season_label?: string | null
           season_year?: number | null
+          source_domain?: string | null
+          source_url?: string | null
           sport_specific_attributes?: Json | null
           throws?: Database["public"]["Enums"]["throws_hand"] | null
           two_way?: boolean
@@ -1868,6 +1895,90 @@ export type Database = {
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roster_write_refusals: {
+        Row: {
+          created_at: string
+          holder_detail: string | null
+          holder_university_id: string | null
+          id: string
+          kind: string
+          program_id: string | null
+          reason: string
+          rows_refused: number
+          source_domain: string | null
+          source_url: string
+          status: string
+          university_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          holder_detail?: string | null
+          holder_university_id?: string | null
+          id?: string
+          kind: string
+          program_id?: string | null
+          reason: string
+          rows_refused?: number
+          source_domain?: string | null
+          source_url: string
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          holder_detail?: string | null
+          holder_university_id?: string | null
+          id?: string
+          kind?: string
+          program_id?: string | null
+          reason?: string
+          rows_refused?: number
+          source_domain?: string | null
+          source_url?: string
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_write_refusals_holder_university_id_fkey"
+            columns: ["holder_university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_write_refusals_holder_university_id_fkey"
+            columns: ["holder_university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_write_refusals_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_write_refusals_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_write_refusals_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
             referencedColumns: ["id"]
           },
         ]
