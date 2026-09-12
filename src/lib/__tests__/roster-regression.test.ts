@@ -75,9 +75,13 @@ describe("saved rosters keep their player counts", () => {
 });
 
 describe("the baseline itself", () => {
-  it("covers all twenty preview schools", () => {
-    expect(new Set(baseline.programs.map((p) => p.school)).size).toBe(20);
+  it("holds the twenty programs that produced rows in the preview run", () => {
+    // The 20-school preview read rosters at 11 schools; the rest were blocked,
+    // retired or had no address. Those cannot be guarded without a saved page.
+    expect(baseline.programs).toHaveLength(20);
+    expect(new Set(baseline.programs.map((p) => p.school)).size).toBe(11);
   });
+
 
   it("records a count for every program in it", () => {
     for (const program of baseline.programs) expect(program.players).toBeGreaterThan(0);
