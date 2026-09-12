@@ -468,7 +468,7 @@ function parseCards(lines: string[]): PlayerRow[] {
     }
 
     if (!position && !klass && !number) continue;
-    rows.push({ name, number, position, class_year: klass, height, weight, hometown });
+    rows.push({ name, number, position, class_year: klass, height, weight, hometown, bats, throws: throwsHand });
   }
 
   return rows;
