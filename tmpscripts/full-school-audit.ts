@@ -328,9 +328,13 @@ for (const s of schools) {
     const hs = highSchoolUrl(url);
     if (hs) add("points_at_high_school", field, `${url} — ${hs}`, 1);
 
+    if (field === "athletic_website" && wrongPurpose(url) && wrongPurpose(url) !== "homepage, not a specific page") {
+      add("wrong_page_purpose", field, `${url} — ${wrongPurpose(url)}`, 2);
+    }
     if (field !== "website_url" && wrongSportPath(url)) add("sport_we_do_not_cover", field, url, 1);
 
-    if (field !== "website_url") {
+    // An athletics site is legitimately a homepage; a roster or staff page is not.
+    if (field === "roster_url" || field === "coaching_staff_url") {
       const purpose = wrongPurpose(url);
       if (purpose) add("wrong_page_purpose", field, `${url} — ${purpose}`, 2);
     }
