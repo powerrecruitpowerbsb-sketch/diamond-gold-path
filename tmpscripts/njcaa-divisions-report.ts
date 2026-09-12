@@ -128,24 +128,25 @@ function cleanName(raw: string): { name: string; state: string | null } {
 
 /* --------------------------------- inputs --------------------------------- */
 
-type CsvRow = { name: string; sport: string; division: string; state: string | null };
+type CsvRow = { raw: string; name: string; sport: string; division: string; state: string | null };
 
 const csvRows: CsvRow[] = [];
 const rawCsv = parseCsv(readFileSync(CSV, "utf8"));
 const header = rawCsv[0]!.map((h) => h.trim().toLowerCase());
 const col = (h: string) => header.indexOf(h);
 for (const r of rawCsv.slice(1)) {
-  const name = (r[col("school_name")] ?? "").trim();
-  if (!name) continue;
-  const stateMatch = STATE_SUFFIX.exec(name);
+  const raw = (r[col("school_name")] ?? "").trim();
+  if (!raw) continue;
+  const { name, state } = cleanName(raw);
   csvRows.push({
-    name: name.replace(STATE_SUFFIX, "").trim(),
+    raw,
+    name,
     sport: (r[col("sport")] ?? "").trim().toLowerCase(),
     division: (r[col("division")] ?? "").trim(),
-    state: stateMatch ? stateMatch[1]! : null,
+    state,
   });
 }
-console.log(`CSV: ${csvRows.length} program rows, ${new Set(csvRows.map((r) => r.name)).size} schools`);
+console.log(`CSV: ${csvRows.length} program rows, ${new Set(csvRows.map((r) => r.raw)).size} schools`);
 
 type School = {
   id: string;
