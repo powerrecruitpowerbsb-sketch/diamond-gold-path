@@ -316,6 +316,19 @@ write("step11-c-ambiguous.csv", [
   ]),
 ]);
 
+write("step11-d-duplicate-of-record-on-file.csv", [
+  ["record_id", "stored_name", "stored_state", "federal_institution", "unitid", "already_held_by", "other_unidentified_records_wanting_it", "programs", "extracted_players", "note", "DECISION"],
+  ...duplicates.map(({ row, heldBy, rivals }) => {
+    const progs = progsOf(row.school.id);
+    return [
+      row.school.id, row.school.name, row.school.state, row.best!.name, row.best!.unitid,
+      heldBy ?? "", rivals.join(" | "), progs.length, progs.reduce((n, p) => n + p.players, 0),
+      "one federal institution, more than one record on our side — a record decision (keep one, retire or fold the rest), not an ID assignment",
+      "",
+    ];
+  }),
+]);
+
 /* ------------------ group (b): what retirement costs ----------------- */
 
 const survivorOnFile = (survivor: string | null) => {
