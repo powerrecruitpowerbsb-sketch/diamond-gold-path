@@ -116,13 +116,16 @@ function rowText(line: string): string {
  * Is this ROW page furniture rather than a player? Judged on the row's origin: a
  * heading, a bullet/nav link, or a line of navigation or story text.
  */
-function rowIsFurniture(line: string): boolean {
+function rowIsFurniture(line: string, hasPlayerAttribute = false): boolean {
   const trimmed = line.trim();
   if (!trimmed) return true;
   if (/^#{1,6}\s/.test(trimmed)) return true;
   if (/^[-*•]\s*!?\[/.test(trimmed)) return true;
-  const text = rowText(trimmed);
-  return FURNITURE.test(text);
+  // A row carrying a jersey number, position or class is a player row, even when
+  // it also holds a "Full Bio" or "View Profile" link. Only rows with no player
+  // attribute at all are judged on their words.
+  if (hasPlayerAttribute) return false;
+  return FURNITURE.test(rowText(trimmed));
 }
 
 const STAFF_TITLE =
@@ -461,7 +464,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     if (!name) continue;
     rowsConsidered += 1;
 
-    if (rowIsFurniture(line) || STAFF_TITLE.test(name)) {
+    if (rowIsFurniture(line, Boolean(number || position || klass)) || STAFF_TITLE.test(name)) {
       furniture.push(name);
       continue;
     }
