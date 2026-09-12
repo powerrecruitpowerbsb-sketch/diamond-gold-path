@@ -618,7 +618,9 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     rows.reduce(
       (total, row) =>
         total +
-        [row.number, row.position, row.class_year, row.height, row.weight, row.hometown].filter(Boolean).length,
+        [row.number, row.position, row.class_year, row.height, row.weight, row.hometown, row.bats, row.throws].filter(
+          Boolean,
+        ).length,
       0,
     );
   const cardsWin =
