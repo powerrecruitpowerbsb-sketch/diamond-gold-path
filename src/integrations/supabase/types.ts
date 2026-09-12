@@ -2128,6 +2128,47 @@ export type Database = {
           },
         ]
       }
+      university_website_archive: {
+        Row: {
+          created_at: string
+          id: string
+          new_value: string
+          note: string | null
+          prior_value: string | null
+          restored_at: string | null
+          run_id: string
+          university_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_value: string
+          note?: string | null
+          prior_value?: string | null
+          restored_at?: string | null
+          run_id: string
+          university_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_value?: string
+          note?: string | null
+          prior_value?: string | null
+          restored_at?: string | null
+          run_id?: string
+          university_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "university_website_archive_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unreadable_pages: {
         Row: {
           attempts: number
