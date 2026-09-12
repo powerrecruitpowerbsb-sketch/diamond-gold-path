@@ -83,7 +83,7 @@ const SPORT_WORDS =
   /\b(baseball|softball|football|men'?s basketball|women'?s basketball|basketball|men'?s soccer|women'?s soccer|soccer|volleyball|beach volleyball|tennis|golf|track (?:and|&) field|track|cross country|swimming(?: and diving)?|diving|wrestling|lacrosse|ice hockey|hockey|rowing|cheer(?:leading)?|pom|dance|esports|bowling|rugby|water polo|gymnastics|equestrian|field hockey|athletic training|sports medicine|administration|compliance|marketing|business office|facilities|communications|development|ticket(?: office)?)\b/i;
 
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
-const PHONE = /(\+?\d[\d\s().-]{7,}\d)/;
+const PHONE = /(\+?\(?\d[\d\s().-]{7,}\d)/;
 
 function normalizeSport(raw: string): string {
   return raw.toLowerCase().replace(/\s+/g, " ").replace(/’/g, "'").trim();
@@ -166,7 +166,7 @@ function titleIn(text: string): { title: string; email: string | null; phone: st
   const phone = withoutEmail.match(PHONE)?.[0]?.trim() ?? null;
   const cleaned = (phone ? withoutEmail.replace(phone, " ") : withoutEmail)
     .replace(/\s+/g, " ")
-    .replace(/[\s,;:|·•\-–]+$/, "")
+    .replace(/[\s,;:|·•\-–(]+$/, "")
     .replace(/^[\s,;:|·•\-–]+/, "")
     .trim();
 
