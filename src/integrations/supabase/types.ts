@@ -964,16 +964,28 @@ export type Database = {
       }
       majors: {
         Row: {
+          category: string | null
+          cip_code: string | null
+          cip_family: string | null
           id: string
           name: string
+          source: string
         }
         Insert: {
+          category?: string | null
+          cip_code?: string | null
+          cip_family?: string | null
           id?: string
           name: string
+          source?: string
         }
         Update: {
+          category?: string | null
+          cip_code?: string | null
+          cip_family?: string | null
           id?: string
           name?: string
+          source?: string
         }
         Relationships: []
       }
@@ -2288,6 +2300,9 @@ export type Database = {
       universities: {
         Row: {
           acceptance_rate: number | null
+          act_25: number | null
+          act_75: number | null
+          act_test_takers: number | null
           address: string | null
           admissions_url: string | null
           avg_act: number | null
@@ -2320,12 +2335,21 @@ export type Database = {
           retired_reason: string | null
           retirement_run_id: string | null
           room_board: number | null
+          sat_math_25: number | null
+          sat_math_75: number | null
+          sat_reading_25: number | null
+          sat_reading_75: number | null
+          sat_test_takers: number | null
+          sat_total_25: number | null
+          sat_total_75: number | null
           school_size_bucket:
             | Database["public"]["Enums"]["school_size_bucket"]
             | null
           state: string | null
           student_faculty_ratio: string | null
           test_optional: boolean | null
+          test_scores_source_url: string | null
+          test_scores_synced_at: string | null
           tuition_in_state: number | null
           tuition_out_state: number | null
           tuition_source_url: string | null
@@ -2335,6 +2359,9 @@ export type Database = {
         }
         Insert: {
           acceptance_rate?: number | null
+          act_25?: number | null
+          act_75?: number | null
+          act_test_takers?: number | null
           address?: string | null
           admissions_url?: string | null
           avg_act?: number | null
@@ -2367,12 +2394,21 @@ export type Database = {
           retired_reason?: string | null
           retirement_run_id?: string | null
           room_board?: number | null
+          sat_math_25?: number | null
+          sat_math_75?: number | null
+          sat_reading_25?: number | null
+          sat_reading_75?: number | null
+          sat_test_takers?: number | null
+          sat_total_25?: number | null
+          sat_total_75?: number | null
           school_size_bucket?:
             | Database["public"]["Enums"]["school_size_bucket"]
             | null
           state?: string | null
           student_faculty_ratio?: string | null
           test_optional?: boolean | null
+          test_scores_source_url?: string | null
+          test_scores_synced_at?: string | null
           tuition_in_state?: number | null
           tuition_out_state?: number | null
           tuition_source_url?: string | null
@@ -2382,6 +2418,9 @@ export type Database = {
         }
         Update: {
           acceptance_rate?: number | null
+          act_25?: number | null
+          act_75?: number | null
+          act_test_takers?: number | null
           address?: string | null
           admissions_url?: string | null
           avg_act?: number | null
@@ -2414,12 +2453,21 @@ export type Database = {
           retired_reason?: string | null
           retirement_run_id?: string | null
           room_board?: number | null
+          sat_math_25?: number | null
+          sat_math_75?: number | null
+          sat_reading_25?: number | null
+          sat_reading_75?: number | null
+          sat_test_takers?: number | null
+          sat_total_25?: number | null
+          sat_total_75?: number | null
           school_size_bucket?:
             | Database["public"]["Enums"]["school_size_bucket"]
             | null
           state?: string | null
           student_faculty_ratio?: string | null
           test_optional?: boolean | null
+          test_scores_source_url?: string | null
+          test_scores_synced_at?: string | null
           tuition_in_state?: number | null
           tuition_out_state?: number | null
           tuition_source_url?: string | null
@@ -2431,15 +2479,27 @@ export type Database = {
       }
       university_majors: {
         Row: {
+          award_levels: string | null
+          completions: number | null
           major_id: string
+          source: string
+          synced_at: string | null
           university_id: string
         }
         Insert: {
+          award_levels?: string | null
+          completions?: number | null
           major_id: string
+          source?: string
+          synced_at?: string | null
           university_id: string
         }
         Update: {
+          award_levels?: string | null
+          completions?: number | null
           major_id?: string
+          source?: string
+          synced_at?: string | null
           university_id?: string
         }
         Relationships: [

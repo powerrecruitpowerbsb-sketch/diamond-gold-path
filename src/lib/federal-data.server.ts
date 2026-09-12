@@ -389,15 +389,26 @@ export type FederalSyncResult = {
 };
 
 /**
- * Build the majors catalog from the federal degree-field flags and link the
- * school to every field it awards bachelor's degrees in. Idempotent: re-running
- * adds new fields and leaves existing links alone.
+ * The Scorecard record carries 38 broad degree-field FLAGS, so this path can
+ * never produce more than 38 majors for a school, and produces none at all for
+ * a school that awards no bachelor's degrees. That ceiling is why counts capped
+ * out. The real catalog comes from the IPEDS Completions file (one row per CIP
+ * code per award level, imported by tmpscripts/federal-majors-import.ts), so
+ * once a school holds those fine-grained majors the coarse buckets are skipped
+ * rather than layered back on top.
  */
 export async function syncFederalMajors(
   supabase: any,
   universityId: string,
   row: ScorecardRow,
 ): Promise<number> {
+  const { count: cipLinks } = await supabase
+    .from("university_majors")
+    .select("major_id", { count: "exact", head: true })
+    .eq("university_id", universityId)
+    .eq("source", "federal_cip");
+  if ((cipLinks ?? 0) > 0) return 0;
+
   const names: string[] = [];
   for (const [key, label] of Object.entries(FEDERAL_MAJOR_FIELDS)) {
     if (Number(row[`latest.academics.program.bachelors.${key}`]) === 1) names.push(label);
@@ -410,6 +421,7 @@ export async function syncFederalMajors(
     .in("name", names);
   if (readError) throw new Error(readError.message);
 
+
   const byName = new Map<string, string>(
     ((existing ?? []) as { id: string; name: string }[]).map((m) => [m.name, m.id]),
   );
@@ -417,7 +429,7 @@ export async function syncFederalMajors(
   if (missing.length) {
     const { data: created, error: createError } = await supabase
       .from("majors")
-      .insert(missing.map((name) => ({ name })))
+      .insert(missing.map((name) => ({ name, source: "legacy_field_group" })))
       .select("id, name");
     if (createError) throw new Error(createError.message);
     for (const m of (created ?? []) as { id: string; name: string }[]) byName.set(m.name, m.id);
