@@ -13,12 +13,17 @@
  * is the attribution. Anything unattributed is left alone.
  */
 
+import { hasNonPersonWord, hasUiText } from "@/lib/person-words";
+
 export type SportAttribution = "section_header" | "title" | "sport_page";
 
 export type CoachRow = {
   name: string;
   title: string;
   isHead: boolean;
+  /** Contact details found in the same cell as the title, kept as their own fields. */
+  email: string | null;
+  phone: string | null;
   /** The sport the PAGE assigned to this person. */
   sportOnPage: string;
   /** How the page assigned it. */
@@ -41,6 +46,8 @@ export type CoachShape = {
   unattributed: Array<{ name: string; title: string }>;
   /** Why no head coach could be named for the requested sport. */
   failure: string | null;
+  /** More than one row claimed the head job; every claimant, in page order. */
+  headAmbiguity: Array<{ name: string; title: string }>;
   counts: {
     rows: number;
     titles: number;
@@ -52,14 +59,31 @@ export type CoachShape = {
 const HEAD_TITLE =
   /\bhead\s+([a-z'’]+\s+){0,3}coach\b|\bhead\s+(baseball|softball)\b|\bcoach\b[^|]{0,12}\bhead\b/i;
 
+/**
+ * "Associate Head Coach" and "Assistant Head Coach" are NOT the head coach.
+ * A page that lists an associate above the head coach used to hand us the wrong
+ * person, because the first head-ish match in page order won. "Interim Head
+ * Coach" IS the head coach.
+ */
+const NOT_THE_HEAD = /\b(associate|assoc\.?|assistant|asst\.?|deputy|co-?head|volunteer)\b/i;
+
+/** The unqualified job: "Head Coach", "Head Baseball Coach", "Interim Head Coach". */
+const PLAIN_HEAD =
+  /^(interim\s+)?head\s+(baseball\s+|softball\s+|women'?s\s+|men'?s\s+)?coach$/i;
+
+function isHeadTitle(title: string): boolean {
+  if (NOT_THE_HEAD.test(title)) return false;
+  return HEAD_TITLE.test(title);
+}
+
 const ANY_TITLE =
   /\b(head coach|associate head coach|assistant coach|assistant|pitching coach|hitting coach|catching coach|infield coach|outfield coach|bench coach|volunteer coach|volunteer assistant|recruiting coordinator|director of operations|director of player development|graduate assistant|student assistant|student manager|athletic trainer|trainer|strength and conditioning|sports performance|analyst|manager|coordinator|coach)\b/i;
 
 const SPORT_WORDS =
   /\b(baseball|softball|football|men'?s basketball|women'?s basketball|basketball|men'?s soccer|women'?s soccer|soccer|volleyball|beach volleyball|tennis|golf|track (?:and|&) field|track|cross country|swimming(?: and diving)?|diving|wrestling|lacrosse|ice hockey|hockey|rowing|cheer(?:leading)?|pom|dance|esports|bowling|rugby|water polo|gymnastics|equestrian|field hockey|athletic training|sports medicine|administration|compliance|marketing|business office|facilities|communications|development|ticket(?: office)?)\b/i;
 
-const NOT_A_PERSON =
-  /(coach|staff|director|coordinator|athletic|department|university|college|baseball|softball|roster|schedule|vacant|tba|tbd|full bio|email|phone|twitter)/i;
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+const PHONE = /(\+?\d[\d\s().-]{7,}\d)/;
 
 function normalizeSport(raw: string): string {
   return raw.toLowerCase().replace(/\s+/g, " ").replace(/’/g, "'").trim();
@@ -79,8 +103,8 @@ function sameSport(pageSport: string, wanted: string): boolean {
   return a.endsWith(` ${b}`) || b.endsWith(` ${a}`);
 }
 
-function personName(raw: string): string | null {
-  const value = raw
+function stripMarkup(raw: string): string {
+  return raw
     .trim()
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\*\*/g, "")
@@ -88,20 +112,66 @@ function personName(raw: string): string | null {
     .replace(/^[-–*•\s]+/, "")
     .replace(/[.,;:]+$/, "")
     .trim();
+}
+
+/**
+ * Is this a human name? The old version only ruled things OUT, so ordinary
+ * capitalised English ("Close consent manager", "All Videos") sailed through.
+ * Now the value must positively look like a name — two to four capitalised
+ * name words — and must not be page furniture, a job title, or a link/nav item.
+ */
+function personName(raw: string, options: { role?: string | null } = {}): string | null {
+  const value = stripMarkup(raw);
   if (value.length < 4 || value.length > 48) return null;
   if (/[0-9@|]|https?:/i.test(value)) return null;
-  if (!/^[A-Z][A-Za-z.'’-]*(\s+[A-Za-z.'’-]+){1,3}$/.test(value)) return null;
-  if (NOT_A_PERSON.test(value)) return null;
+
+  // The element's own role, where the page gave us one, settles it outright.
+  const role = String(options.role ?? "").toLowerCase();
+  if (role && /link|button|navigation|menu|banner|dialog|search|tab/.test(role)) return null;
+
+  const words = value.split(" ").filter(Boolean);
+  if (words.length < 2 || words.length > 4) return null;
+  // Every part must read like a name word: capitalised, letters only.
+  if (!words.every((word) => /^[A-Z][A-Za-z.'’-]*$/.test(word) || /^(de|la|van|von|del|di|da|dos|el|st\.?)$/i.test(word))) {
+    return null;
+  }
+  if (ANY_TITLE.test(value)) return null;
+  if (hasUiText(value)) return null;
+  if (hasNonPersonWord(value)) return null;
   return value;
 }
 
-function titleIn(text: string): string | null {
+/** A line that is a link somewhere else, a bullet nav item or a heading. */
+function navLike(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return true;
+  if (/^#{1,6}\s/.test(trimmed)) return true;
+  if (/^[-*•]\s*!?\[/.test(trimmed)) return true;
+  // The whole line is one markdown link to another page.
+  if (/^!?\[[^\]]*\]\([^)]*\)$/.test(trimmed)) return true;
+  if (hasUiText(trimmed)) return true;
+  if (ANY_TITLE.test(trimmed)) return true;
+  return false;
+}
+
+function titleIn(text: string): { title: string; email: string | null; phone: string | null } | null {
   const match = text.match(ANY_TITLE);
   if (!match) return null;
-  // Keep the whole cell as the title where it reads like one, so
-  // "Head Softball Coach" survives instead of collapsing to "coach".
   const cell = text.replace(/\s+/g, " ").trim();
-  return cell.length <= 60 ? cell : match[0];
+
+  // "Head Coach hannahsm@usf.edu" is a title AND an email address. Keep both,
+  // in their own fields — contact details are useful, they just aren't a title.
+  const email = cell.match(EMAIL)?.[0] ?? null;
+  const withoutEmail = email ? cell.replace(email, " ") : cell;
+  const phone = withoutEmail.match(PHONE)?.[0]?.trim() ?? null;
+  const cleaned = (phone ? withoutEmail.replace(phone, " ") : withoutEmail)
+    .replace(/\s+/g, " ")
+    .replace(/[\s,;:|·•\-–]+$/, "")
+    .replace(/^[\s,;:|·•\-–]+/, "")
+    .trim();
+
+  const title = cleaned.length && cleaned.length <= 60 ? cleaned : match[0];
+  return { title, email, phone };
 }
 
 /** Is this line a group heading (a sport name standing on its own)? */
