@@ -647,6 +647,8 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const withClass = players.filter((p) => p.class_year).length;
   const withHeightWeight = players.filter((p) => p.height || p.weight).length;
   const withHometown = players.filter((p) => p.hometown).length;
+  const withBats = players.filter((p) => p.bats).length;
+  const withThrows = players.filter((p) => p.throws).length;
 
   const wanted = String(sport ?? "").toLowerCase();
   const otherSports = [...seenSports].filter((s) => s !== wanted);
