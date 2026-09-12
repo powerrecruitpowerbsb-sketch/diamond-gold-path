@@ -445,6 +445,7 @@ write("step11-retail-domains.csv", [
 console.log(JSON.stringify({
   unmatchedRecords: unmatched.length,
   matched: matched.length,
+  duplicateOfRecordOnFile: duplicates.length,
   ambiguous: ambiguous.length,
   noMatch: noMatch.length,
   retire: {
@@ -456,5 +457,6 @@ console.log(JSON.stringify({
   retailAddresses: retailRows.length,
   matchedList: matched.map((r) => `${r.school.name} -> ${r.best!.unitid} ${r.best!.name}`),
   ambiguousList: ambiguous.map((r) => r.school.name),
-  noMatchList: noMatch.map((r) => r.school.name),
+  noMatchList: noMatch.map((r) => `${r.school.name} — ${r.evidence}`),
+  duplicateList: duplicates.map((d) => `${d.row.school.name} -> ${d.row.best!.unitid} ${d.row.best!.name}${d.heldBy ? ` (held by ${d.heldBy})` : ` (also wanted by ${d.rivals.join(", ")})`}`),
 }, null, 2));
