@@ -175,6 +175,8 @@ export async function replaceRoster(
       extracted_at: extractedAt,
       ingest_run_id: payload?.run_id ?? null,
       provenance: "traced",
+      // Which reader read the page: the tested structural one, or the AI fallback.
+      reader: payload?.reader === "ai" ? "ai" : "structural",
     };
   }).filter((r: { name: string }) => r.name);
 

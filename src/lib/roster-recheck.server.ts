@@ -5,6 +5,7 @@
  */
 
 import { extractRoster, scrape } from "@/lib/ingest.server";
+import { readRoster } from "@/lib/roster-read.server";
 import { rosterKeepable } from "@/lib/data-quality";
 import { replaceRoster } from "@/lib/review.server";
 
@@ -137,8 +138,11 @@ export async function recheckRosterSizes(
     let dropped: string[] = [];
     let seasonYear: number | null = null;
     let seasonLabel: string | null = null;
+    let reader = "structural";
     try {
-      const extracted = await extractRoster(markdown);
+      // Same reader the crawl uses: structural first, AI only on an empty read.
+      const extracted = await readRoster(markdown, sport, { fallback: extractRoster });
+      reader = extracted.reader;
       read = extracted.diagnostics.read;
       kept = extracted.players;
       dropped = extracted.dropped;
@@ -201,6 +205,7 @@ export async function recheckRosterSizes(
         season_label: seasonLabel,
         players: kept,
         source_url: rosterUrl,
+        reader,
       });
       if (kept.length !== base.before) replaced += 1;
       rows.push({
