@@ -848,19 +848,34 @@ export async function applyDiscoveredUrl(
 
   // Second gate: prove the page is the right kind, for the right sport. An
   // unread page is unverified and may never displace a value already on file.
-  const { data: programRow } = await supabase
-    .from("programs")
-    .select("sport, athletic_website, roster_url, coaching_staff_url")
-    .eq("id", row.program_id ?? "00000000-0000-0000-0000-000000000000")
-    .maybeSingle();
-  const sport = ((programRow as any)?.sport ?? null) as string | null;
-  const storedField =
-    row.discovery_type === "athletic_website"
-      ? "athletic_website"
-      : row.discovery_type === "roster_page"
-        ? "roster_url"
-        : "coaching_staff_url";
-  const storedValue = ((programRow as any)?.[storedField] ?? null) as string | null;
+  //
+  // An athletics-site discovery carries no program_id, so looking the stored
+  // value up by program id would always find nothing and the replacement check
+  // below would never run for the one type that needs it most. For that type we
+  // read the school's programs instead.
+  const isAthleticsSite = row.discovery_type === "athletic_website";
+  const { data: programRow } = isAthleticsSite
+    ? { data: null }
+    : await supabase
+        .from("programs")
+        .select("sport, athletic_website, roster_url, coaching_staff_url")
+        .eq("id", row.program_id ?? "00000000-0000-0000-0000-000000000000")
+        .maybeSingle();
+
+  let sport = ((programRow as any)?.sport ?? null) as string | null;
+  let storedValue: string | null = null;
+  if (isAthleticsSite) {
+    const { data: siblings } = await supabase
+      .from("programs")
+      .select("sport, athletic_website")
+      .eq("university_id", row.university_id);
+    const rows = ((siblings ?? []) as { sport: string | null; athletic_website: string | null }[]);
+    storedValue = rows.map((r) => r.athletic_website).find(Boolean) ?? null;
+    sport = null; // an athletics home page is not sport-specific
+  } else {
+    const storedField = row.discovery_type === "roster_page" ? "roster_url" : "coaching_staff_url";
+    storedValue = ((programRow as any)?.[storedField] ?? null) as string | null;
+  }
 
   const page = await checkPage({
     kind: row.discovery_type,
@@ -895,14 +910,13 @@ export async function applyDiscoveredUrl(
     }
   }
 
-  if (row.discovery_type === "athletic_website") {
-    const { error } = await supabase
-      .from("universities")
-      .update({ website_url: row.discovered_url })
-      .eq("id", row.university_id);
-    if (error) throw new Error(error.message);
-
-    // The school's athletics site is also the program-level athletics link.
+  if (isAthleticsSite) {
+    // universities.website_url is the school's INSTITUTIONAL site — it sits
+    // beside tuition and admissions, families see it as the school's website,
+    // and identity verification compares candidate domains against it. An
+    // athletics domain must never be written there. There is no
+    // universities-level athletics column, so the athletics address lives on
+    // the program rows only.
     const { error: programError } = await supabase
       .from("programs")
       .update({ athletic_website: row.discovered_url, link_evidence: evidence })
@@ -911,6 +925,7 @@ export async function applyDiscoveredUrl(
     if (programError) throw new Error(programError.message);
     return;
   }
+
 
   if (!row.program_id) throw new Error("This item isn't linked to a program");
   const field = row.discovery_type === "roster_page" ? "roster_url" : "coaching_staff_url";
