@@ -283,7 +283,7 @@ function parseCards(lines: string[]): PlayerRow[] {
     let weight: string | null = null;
     let hometown: string | null = null;
 
-    for (let ahead = index + 2; ahead < Math.min(index + 7, lines.length); ahead += 1) {
+    for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
       const next = lines[ahead]!;
       if (POSITION_WORDS.test(next)) {
         position = position ?? next.toUpperCase();

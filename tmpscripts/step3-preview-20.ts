@@ -20,7 +20,7 @@ import { safeFetch, setProtectedHosts } from "@/lib/safe-fetch.server";
 
 const OUT = "/mnt/documents";
 const STATE = "/tmp/step3-state.json";
-const PASS = "2026-09-12-sport-scoped-4";
+const PASS = "2026-09-12-sport-scoped-5";
 const budgetMs = Number(process.argv[process.argv.indexOf("--budget") + 1]) * 1000 || 500_000;
 const startedAt = Date.now();
 
