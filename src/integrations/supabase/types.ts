@@ -1798,6 +1798,7 @@ export type Database = {
           position: Database["public"]["Enums"]["player_position"] | null
           program_id: string
           provenance: string
+          reader: string | null
           season_label: string | null
           season_year: number | null
           source_domain: string | null
@@ -1822,6 +1823,7 @@ export type Database = {
           position?: Database["public"]["Enums"]["player_position"] | null
           program_id: string
           provenance?: string
+          reader?: string | null
           season_label?: string | null
           season_year?: number | null
           source_domain?: string | null
@@ -1846,6 +1848,7 @@ export type Database = {
           position?: Database["public"]["Enums"]["player_position"] | null
           program_id?: string
           provenance?: string
+          reader?: string | null
           season_label?: string | null
           season_year?: number | null
           source_domain?: string | null
@@ -1869,36 +1872,51 @@ export type Database = {
           class_year_counts: Json
           created_at: string
           id: string
+          ingest_run_id: string | null
           juco_transfer_count: number
           position_counts: Json
           program_id: string
           pulled_at: string
+          reader: string | null
           season_year: number | null
+          source_domain: string | null
           source_url: string | null
+          suspect: boolean
+          suspect_reason: string | null
           transfer_count: number
         }
         Insert: {
           class_year_counts?: Json
           created_at?: string
           id?: string
+          ingest_run_id?: string | null
           juco_transfer_count?: number
           position_counts?: Json
           program_id: string
           pulled_at?: string
+          reader?: string | null
           season_year?: number | null
+          source_domain?: string | null
           source_url?: string | null
+          suspect?: boolean
+          suspect_reason?: string | null
           transfer_count?: number
         }
         Update: {
           class_year_counts?: Json
           created_at?: string
           id?: string
+          ingest_run_id?: string | null
           juco_transfer_count?: number
           position_counts?: Json
           program_id?: string
           pulled_at?: string
+          reader?: string | null
           season_year?: number | null
+          source_domain?: string | null
           source_url?: string | null
+          suspect?: boolean
+          suspect_reason?: string | null
           transfer_count?: number
         }
         Relationships: [
