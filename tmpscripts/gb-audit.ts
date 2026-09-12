@@ -93,3 +93,17 @@ console.log(JSON.stringify({
   ncaaListMembers: ncaa.length, ncaaListDomains: byDomain.size,
   ourNcaaSchools: ncaaSchools.length, confirmed, divMismatch, unmatched, notNcaaButListed,
 }, null, 2));
+
+/* Second pass: strip shared platforms and multi-school domains from the
+   "NCAA claims a domain we hold" list — those are hosting artefacts. */
+const counts = new Map<string, Set<string>>();
+for (const s of schools.values()) for (const d of s.domains) {
+  if (!counts.has(d)) counts.set(d, new Set());
+  counts.get(d)!.add(s.id);
+}
+const platform = new Set(q(`select host from link_platform_hosts`).map((r) => registrableDomain(r[0]!) || r[0]!));
+const shared = (d: string) => platform.has(d) || (counts.get(d)?.size ?? 0) >= 5;
+const real = other.slice(1).filter((r) => !shared(r[4]!));
+writeFileSync("/mnt/documents/gb-ncaa-claims-real.csv", csv([other[0]!, ...real]));
+console.log("after removing platform/system domains:", real.length);
+for (const r of real) console.log(" ", r[1], "|", r[3], "|", r[4], "->", r[5], r[6]);
