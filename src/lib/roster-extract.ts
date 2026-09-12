@@ -337,6 +337,13 @@ function detectColumns(lines: string[]): Record<RosterAttribute, ColumnState> {
     if (label("height") || label("ht\\.?")) published.add("height");
     if (label("weight") || label("wt\\.?")) published.add("weight");
     if (label("hometown") || label("home\\s?town")) published.add("hometown");
+    if (label("bats\\s*/\\s*throws") || label("b\\s*/\\s*t")) {
+      published.add("bats");
+      published.add("throws");
+    }
+    if (label("bats")) published.add("bats");
+    if (label("throws")) published.add("throws");
+
 
   });
 
