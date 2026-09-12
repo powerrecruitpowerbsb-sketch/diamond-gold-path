@@ -276,9 +276,25 @@ const COLUMN_WORDS: Array<[RosterAttribute, RegExp]> = [
   ["height", /^(ht\.?|height)$/i],
   ["weight", /^(wt\.?|weight)$/i],
   ["hometown", /^(hometown|home\s?town|hometown\s*\/.*|hometown\s*\(.*\)|hometown\/high school|hometown \/ last school)$/i],
+  ["bats", /^(b|bats|bat|b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i],
+  ["throws", /^(t|throws|throw|b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i],
 ];
 
-const ALL_ATTRIBUTES: RosterAttribute[] = ["number", "position", "class_year", "height", "weight", "hometown"];
+/** Headers that carry bats and throws in one cell. */
+const BATS_THROWS_HEADER = /^(b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i;
+const BATS_HEADER = /^(b|bats|bat)\.?$/i;
+const THROWS_HEADER = /^(t|throws|throw)\.?$/i;
+
+const ALL_ATTRIBUTES: RosterAttribute[] = [
+  "number",
+  "position",
+  "class_year",
+  "height",
+  "weight",
+  "hometown",
+  "bats",
+  "throws",
+];
 
 /**
  * Which columns does the PAGE offer? Read from the table header where there is
