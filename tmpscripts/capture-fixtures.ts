@@ -9,7 +9,7 @@ const targets: [string,string][] = [
 for (const [name,url] of targets) {
   try {
     const r: any = await safeFetch(url);
-    const body = r?.html ?? r?.text ?? r?.content ?? "";
+    const body = r?.markdown ?? r?.text ?? r?.html ?? "";
     console.log(name, url, String(body).length);
     if (body) writeFileSync(`/tmp/cap-${name}`, String(body));
   } catch (e:any) { console.log(name, "FAIL", e?.message); }
