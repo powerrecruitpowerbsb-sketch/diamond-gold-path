@@ -12,6 +12,7 @@ import {
   rosterVerdict,
   valuesEquivalent,
 } from "@/lib/data-quality";
+import { markJucoTransfers, twoYearSchoolNames } from "@/lib/juco-transfer.server";
 import { rejectionKey } from "@/lib/rejected-memory";
 import { checkRosterSource, recordRefusal } from "@/lib/roster-provenance.server";
 import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
@@ -113,6 +114,8 @@ export async function replaceRoster(
   payload: {
     program_id: string; season_year?: unknown; season_label?: unknown; players: any[];
     source_url: string; run_id?: string | null;
+    /** Which reader read the page: "structural" (tested) or "ai" (fallback). */
+    reader?: string | null;
   },
 ) {
   const players = Array.isArray(payload?.players) ? payload.players : null;
@@ -175,6 +178,8 @@ export async function replaceRoster(
       extracted_at: extractedAt,
       ingest_run_id: payload?.run_id ?? null,
       provenance: "traced",
+      // Which reader read the page: the tested structural one, or the AI fallback.
+      reader: payload?.reader === "ai" ? "ai" : "structural",
     };
   }).filter((r: { name: string }) => r.name);
 

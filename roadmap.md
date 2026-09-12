@@ -19,4 +19,13 @@
 - [ ] position — confirm middle (2B+SS) and corner (1B+3B) infield groupings are derivable; do NOT split OF
 - [ ] Prove 1-3 against the saved fixtures: what each fixture publishes vs what is captured
 - [ ] Position groups derived from the STORED position value, never the page's wording (MIF and SS land together); OF stays one bucket
-- [ ] Report on the second reader (the AI page reader in ingest.server.ts): what calls it, what still runs it, whether it can reach player rows without the source-page and domain checks. Do not delete.
+- [x] Report on the second reader (the AI page reader in ingest.server.ts): reported; it is now the fallback only.
+
+## One reader + guarded snapshot (approved 2026-09-12)
+- [x] Single entry points (roster-read.server.ts, coach-read.server.ts); the crawl and the roster re-check call them; AI reader is fallback only, on an empty structural read
+- [x] Season year and wording picked structurally from the page's own headings
+- [x] Coaches: the crawl calls the tested coach reader; the two-field AI ask is the fallback
+- [x] Which reader read the page recorded on player rows and on the composition summary
+- [x] Composition summary guarded by the source-page and domain check; suspicious reads written marked suspect and withheld from display and dashboard counts
+- [x] Crawl-path tests against the saved fixtures (13 tests): structural reader ran, model never called, fallback fires only on a page with nothing to read, summary guarded before the write
+- [ ] Apply the summary backfill: 3,052 summaries, 2,962 own-page, 90 to mark suspect — reported, awaiting go-ahead

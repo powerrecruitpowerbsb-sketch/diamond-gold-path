@@ -388,7 +388,8 @@ export async function collectionProgress(supabase: any) {
 
   const { count: snapshots } = await supabase
     .from("roster_snapshots")
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true })
+    .eq("suspect", false);
 
   return {
     state,

@@ -103,7 +103,7 @@ export async function recordRefusal(
   input: {
     programId: string;
     universityId?: string | null;
-    kind: "roster" | "coach";
+    kind: "roster" | "coach" | "snapshot";
     sourceUrl: string;
     domain: string;
     reason: string;
