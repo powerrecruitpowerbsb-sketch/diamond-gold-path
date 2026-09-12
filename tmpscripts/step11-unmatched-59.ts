@@ -188,7 +188,7 @@ const DISPOSITION: Record<string, { kind: string; survivor: string | null }> = {
 
 type Row = {
   school: School;
-  group: "matched" | "ambiguous" | "no_match";
+  group: "matched" | "ambiguous" | "no_match" | "duplicate_of_record_on_file";
   best: { unitid: number; name: string; state: string | null; score: number } | null;
   runnerUp: { unitid: number; name: string; score: number } | null;
   evidence: string;
