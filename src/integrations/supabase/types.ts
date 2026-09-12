@@ -60,6 +60,13 @@ export type Database = {
             foreignKeyName: "accuracy_checks_university_id_fkey"
             columns: ["university_id"]
             isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accuracy_checks_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -310,6 +317,13 @@ export type Database = {
             foreignKeyName: "classifications_university_id_fkey"
             columns: ["university_id"]
             isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classifications_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -464,6 +478,41 @@ export type Database = {
         }
         Relationships: []
       }
+      federal_id_campus_registry: {
+        Row: {
+          approved_by: string | null
+          campus_name: string
+          created_at: string
+          id: string
+          ipeds_unitid: number
+          note: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          campus_name: string
+          created_at?: string
+          id?: string
+          ipeds_unitid: number
+          note?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          campus_name?: string
+          created_at?: string
+          id?: string
+          ipeds_unitid?: number
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "federal_id_campus_registry_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       host_protection: {
         Row: {
           detections: number
@@ -549,6 +598,13 @@ export type Database = {
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingest_queue_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
             referencedColumns: ["id"]
           },
           {
@@ -723,6 +779,13 @@ export type Database = {
             foreignKeyName: "link_clear_archive_university_id_fkey"
             columns: ["university_id"]
             isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_clear_archive_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -783,6 +846,13 @@ export type Database = {
             foreignKeyName: "link_conflicts_holder_university_id_fkey"
             columns: ["holder_university_id"]
             isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_conflicts_holder_university_id_fkey"
+            columns: ["holder_university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -791,6 +861,13 @@ export type Database = {
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_conflicts_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
             referencedColumns: ["id"]
           },
           {
@@ -1329,6 +1406,50 @@ export type Database = {
         }
         Relationships: []
       }
+      program_level_archive: {
+        Row: {
+          created_at: string
+          field: string
+          id: string
+          new_value: string | null
+          prior_value: string | null
+          program_id: string
+          reason: string | null
+          restored_at: string | null
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          field: string
+          id?: string
+          new_value?: string | null
+          prior_value?: string | null
+          program_id: string
+          reason?: string | null
+          restored_at?: string | null
+          run_id: string
+        }
+        Update: {
+          created_at?: string
+          field?: string
+          id?: string
+          new_value?: string | null
+          prior_value?: string | null
+          program_id?: string
+          reason?: string | null
+          restored_at?: string | null
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_level_archive_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       program_relationships: {
         Row: {
           created_at: string
@@ -1374,13 +1495,68 @@ export type Database = {
           },
         ]
       }
+      program_schools: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          program_id: string
+          university_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          program_id: string
+          university_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          program_id?: string
+          university_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_schools_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_schools_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_schools_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       programs: {
         Row: {
           athletic_website: string | null
           coaching_staff_url: string | null
           conference: string | null
+          conference_source: string | null
+          conference_verification: Database["public"]["Enums"]["value_verification"]
+          conference_verified_at: string | null
           created_at: string
           division: string | null
+          division_source: string | null
+          division_verification: Database["public"]["Enums"]["value_verification"]
+          division_verified_at: string | null
           facility_url: string | null
           governing_body: Database["public"]["Enums"]["governing_body"] | null
           head_coach_name: string | null
@@ -1406,8 +1582,14 @@ export type Database = {
           athletic_website?: string | null
           coaching_staff_url?: string | null
           conference?: string | null
+          conference_source?: string | null
+          conference_verification?: Database["public"]["Enums"]["value_verification"]
+          conference_verified_at?: string | null
           created_at?: string
           division?: string | null
+          division_source?: string | null
+          division_verification?: Database["public"]["Enums"]["value_verification"]
+          division_verified_at?: string | null
           facility_url?: string | null
           governing_body?: Database["public"]["Enums"]["governing_body"] | null
           head_coach_name?: string | null
@@ -1433,8 +1615,14 @@ export type Database = {
           athletic_website?: string | null
           coaching_staff_url?: string | null
           conference?: string | null
+          conference_source?: string | null
+          conference_verification?: Database["public"]["Enums"]["value_verification"]
+          conference_verified_at?: string | null
           created_at?: string
           division?: string | null
+          division_source?: string | null
+          division_verification?: Database["public"]["Enums"]["value_verification"]
+          division_verified_at?: string | null
           facility_url?: string | null
           governing_body?: Database["public"]["Enums"]["governing_body"] | null
           head_coach_name?: string | null
@@ -1457,6 +1645,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "programs_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "programs_university_id_fkey"
             columns: ["university_id"]
@@ -1821,6 +2016,13 @@ export type Database = {
             foreignKeyName: "sweep_targets_university_id_fkey"
             columns: ["university_id"]
             isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sweep_targets_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -1980,6 +2182,7 @@ export type Database = {
           avg_act: number | null
           avg_gpa: number | null
           avg_sat: number | null
+          campus_name: string | null
           campus_setting: Database["public"]["Enums"]["campus_setting"] | null
           city: string | null
           created_at: string
@@ -1993,6 +2196,8 @@ export type Database = {
           financial_aid_url: string | null
           graduation_rate: number | null
           id: string
+          identity_basis: Database["public"]["Enums"]["school_identity_basis"]
+          identity_note: string | null
           ipeds_unitid: number | null
           name: string
           nearest_airport: string | null
@@ -2000,6 +2205,9 @@ export type Database = {
           region: string | null
           religious_affiliation: boolean
           religious_tradition: string | null
+          retired_at: string | null
+          retired_reason: string | null
+          retirement_run_id: string | null
           room_board: number | null
           school_size_bucket:
             | Database["public"]["Enums"]["school_size_bucket"]
@@ -2021,6 +2229,7 @@ export type Database = {
           avg_act?: number | null
           avg_gpa?: number | null
           avg_sat?: number | null
+          campus_name?: string | null
           campus_setting?: Database["public"]["Enums"]["campus_setting"] | null
           city?: string | null
           created_at?: string
@@ -2034,6 +2243,8 @@ export type Database = {
           financial_aid_url?: string | null
           graduation_rate?: number | null
           id?: string
+          identity_basis?: Database["public"]["Enums"]["school_identity_basis"]
+          identity_note?: string | null
           ipeds_unitid?: number | null
           name: string
           nearest_airport?: string | null
@@ -2041,6 +2252,9 @@ export type Database = {
           region?: string | null
           religious_affiliation?: boolean
           religious_tradition?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          retirement_run_id?: string | null
           room_board?: number | null
           school_size_bucket?:
             | Database["public"]["Enums"]["school_size_bucket"]
@@ -2062,6 +2276,7 @@ export type Database = {
           avg_act?: number | null
           avg_gpa?: number | null
           avg_sat?: number | null
+          campus_name?: string | null
           campus_setting?: Database["public"]["Enums"]["campus_setting"] | null
           city?: string | null
           created_at?: string
@@ -2075,6 +2290,8 @@ export type Database = {
           financial_aid_url?: string | null
           graduation_rate?: number | null
           id?: string
+          identity_basis?: Database["public"]["Enums"]["school_identity_basis"]
+          identity_note?: string | null
           ipeds_unitid?: number | null
           name?: string
           nearest_airport?: string | null
@@ -2082,6 +2299,9 @@ export type Database = {
           region?: string | null
           religious_affiliation?: boolean
           religious_tradition?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          retirement_run_id?: string | null
           room_board?: number | null
           school_size_bucket?:
             | Database["public"]["Enums"]["school_size_bucket"]
@@ -2117,6 +2337,13 @@ export type Database = {
             columns: ["major_id"]
             isOneToOne: false
             referencedRelation: "majors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "university_majors_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
             referencedColumns: ["id"]
           },
           {
@@ -2160,6 +2387,13 @@ export type Database = {
           university_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "university_website_archive_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "university_website_archive_university_id_fkey"
             columns: ["university_id"]
@@ -2227,6 +2461,13 @@ export type Database = {
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unreadable_pages_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "active_universities"
             referencedColumns: ["id"]
           },
           {
@@ -2303,6 +2544,13 @@ export type Database = {
             foreignKeyName: "url_discovery_queue_university_id_fkey"
             columns: ["university_id"]
             isOneToOne: false
+            referencedRelation: "active_universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "url_discovery_queue_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -2372,6 +2620,156 @@ export type Database = {
       }
     }
     Views: {
+      active_universities: {
+        Row: {
+          acceptance_rate: number | null
+          address: string | null
+          admissions_url: string | null
+          avg_act: number | null
+          avg_gpa: number | null
+          avg_sat: number | null
+          campus_name: string | null
+          campus_setting: Database["public"]["Enums"]["campus_setting"] | null
+          city: string | null
+          created_at: string | null
+          distance_to_airport_miles: number | null
+          est_cost_of_attendance: number | null
+          est_net_price: number | null
+          facts_refresh_due_at: string | null
+          federal_match_name: string | null
+          federal_match_status: string | null
+          federal_synced_at: string | null
+          financial_aid_url: string | null
+          graduation_rate: number | null
+          id: string | null
+          identity_basis:
+            | Database["public"]["Enums"]["school_identity_basis"]
+            | null
+          identity_note: string | null
+          ipeds_unitid: number | null
+          name: string | null
+          nearest_airport: string | null
+          public_private: Database["public"]["Enums"]["public_private"] | null
+          region: string | null
+          religious_affiliation: boolean | null
+          religious_tradition: string | null
+          retired_at: string | null
+          retired_reason: string | null
+          retirement_run_id: string | null
+          room_board: number | null
+          school_size_bucket:
+            | Database["public"]["Enums"]["school_size_bucket"]
+            | null
+          state: string | null
+          student_faculty_ratio: string | null
+          test_optional: boolean | null
+          tuition_in_state: number | null
+          tuition_out_state: number | null
+          tuition_source_url: string | null
+          undergrad_enrollment: number | null
+          updated_at: string | null
+          website_url: string | null
+        }
+        Insert: {
+          acceptance_rate?: number | null
+          address?: string | null
+          admissions_url?: string | null
+          avg_act?: number | null
+          avg_gpa?: number | null
+          avg_sat?: number | null
+          campus_name?: string | null
+          campus_setting?: Database["public"]["Enums"]["campus_setting"] | null
+          city?: string | null
+          created_at?: string | null
+          distance_to_airport_miles?: number | null
+          est_cost_of_attendance?: number | null
+          est_net_price?: number | null
+          facts_refresh_due_at?: string | null
+          federal_match_name?: string | null
+          federal_match_status?: string | null
+          federal_synced_at?: string | null
+          financial_aid_url?: string | null
+          graduation_rate?: number | null
+          id?: string | null
+          identity_basis?:
+            | Database["public"]["Enums"]["school_identity_basis"]
+            | null
+          identity_note?: string | null
+          ipeds_unitid?: number | null
+          name?: string | null
+          nearest_airport?: string | null
+          public_private?: Database["public"]["Enums"]["public_private"] | null
+          region?: string | null
+          religious_affiliation?: boolean | null
+          religious_tradition?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          retirement_run_id?: string | null
+          room_board?: number | null
+          school_size_bucket?:
+            | Database["public"]["Enums"]["school_size_bucket"]
+            | null
+          state?: string | null
+          student_faculty_ratio?: string | null
+          test_optional?: boolean | null
+          tuition_in_state?: number | null
+          tuition_out_state?: number | null
+          tuition_source_url?: string | null
+          undergrad_enrollment?: number | null
+          updated_at?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          acceptance_rate?: number | null
+          address?: string | null
+          admissions_url?: string | null
+          avg_act?: number | null
+          avg_gpa?: number | null
+          avg_sat?: number | null
+          campus_name?: string | null
+          campus_setting?: Database["public"]["Enums"]["campus_setting"] | null
+          city?: string | null
+          created_at?: string | null
+          distance_to_airport_miles?: number | null
+          est_cost_of_attendance?: number | null
+          est_net_price?: number | null
+          facts_refresh_due_at?: string | null
+          federal_match_name?: string | null
+          federal_match_status?: string | null
+          federal_synced_at?: string | null
+          financial_aid_url?: string | null
+          graduation_rate?: number | null
+          id?: string | null
+          identity_basis?:
+            | Database["public"]["Enums"]["school_identity_basis"]
+            | null
+          identity_note?: string | null
+          ipeds_unitid?: number | null
+          name?: string | null
+          nearest_airport?: string | null
+          public_private?: Database["public"]["Enums"]["public_private"] | null
+          region?: string | null
+          religious_affiliation?: boolean | null
+          religious_tradition?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          retirement_run_id?: string | null
+          room_board?: number | null
+          school_size_bucket?:
+            | Database["public"]["Enums"]["school_size_bucket"]
+            | null
+          state?: string | null
+          student_faculty_ratio?: string | null
+          test_optional?: boolean | null
+          tuition_in_state?: number | null
+          tuition_out_state?: number | null
+          tuition_source_url?: string | null
+          undergrad_enrollment?: number | null
+          updated_at?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       link_verification_state: {
         Row: {
           conflicted: boolean | null
@@ -2504,6 +2902,11 @@ export type Database = {
         | "offered"
         | "committed"
         | "eliminated"
+      school_identity_basis:
+        | "federal_id"
+        | "campus_of_federal_id"
+        | "governing_body"
+        | "unidentified"
       school_size_bucket: "small" | "medium" | "large"
       source_type: "official" | "aggregator" | "manual"
       sport: "baseball" | "softball"
@@ -2515,6 +2918,7 @@ export type Database = {
         | "roster_page"
         | "coaching_staff_page"
       user_type: "superadmin" | "org_admin" | "org_staff" | "parent" | "player"
+      value_verification: "unverified" | "verified"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2706,6 +3110,12 @@ export const Constants = {
         "committed",
         "eliminated",
       ],
+      school_identity_basis: [
+        "federal_id",
+        "campus_of_federal_id",
+        "governing_body",
+        "unidentified",
+      ],
       school_size_bucket: ["small", "medium", "large"],
       source_type: ["official", "aggregator", "manual"],
       sport: ["baseball", "softball"],
@@ -2718,6 +3128,7 @@ export const Constants = {
         "coaching_staff_page",
       ],
       user_type: ["superadmin", "org_admin", "org_staff", "parent", "player"],
+      value_verification: ["unverified", "verified"],
     },
   },
 } as const
