@@ -414,20 +414,73 @@ for (const row of csvRows) {
   });
 }
 
+/**
+ * The four league lists are COMPLETE member lists: a school absent from a
+ * list for a sport does not field that sport. So absence is evidence, and the
+ * default for a gap row is not_offered.
+ *
+ * Two things still outrank that evidence and are held instead:
+ *  1. a listing this pass could not resolve to a school — a matching failure is
+ *     not evidence of absence, so any program whose school might BE one of those
+ *     unresolved listings waits for the matcher;
+ *  2. roster evidence on file (extracted players, or a roster page) — real
+ *     players contradict "doesn't field the sport", and that means either the
+ *     list missed a school or our roster data sits on the wrong school.
+ */
+const unresolved = csvRows
+  .filter((row) => !bestSchool(row).school)
+  .map((row) => ({ row, words: significantWords(row.name) }));
+
+/** Could this program's school be one of the listings we failed to resolve? */
+function possibleMatchFailure(s: School, p: Program, sport: string): string | null {
+  const own = significantWords(s.name);
+  for (const u of unresolved) {
+    if (u.row.sport !== sport) continue;
+    if (u.row.gb !== (p.gb || u.row.gb)) continue;
+    if (u.row.state && !sameState(s.state, u.row.state)) continue;
+    if (u.words.some((w) => own.includes(w)))
+      return `unresolved listing "${u.row.raw}" may be this school`;
+  }
+  return null;
+}
+
 const gapRows = leaguePrograms
   .filter((p) => !claimed.has(p.id))
   .map((p) => {
     const s = schoolById.get(p.schoolId)!;
     const listed = listedBySchool.get(p.schoolId);
     const other = listed ? [...listed].filter((x) => x !== p.sport) : [];
+
+    const rosterEvidence =
+      p.players > 0
+        ? `${p.players} extracted players on file`
+        : p.roster
+          ? "roster page on file"
+          : null;
+    if (rosterEvidence)
+      return {
+        p, s, other,
+        group: "hold — roster evidence",
+        finding: `league does not list this school for ${p.sport}, but ${rosterEvidence}`,
+        proposed: "hold — roster data contradicts absence",
+      };
+
+    const failure = possibleMatchFailure(s, p, p.sport);
+    if (failure)
+      return {
+        p, s, other,
+        group: "hold — possible matching failure",
+        finding: failure,
+        proposed: "hold — school may not have matched the list",
+      };
+
     return {
-      p,
-      s,
-      other,
+      p, s, other,
+      group: "propose not_offered",
       finding: other.length
         ? `league lists this school for ${other.join("/")} but not ${p.sport}`
-        : "school not on the league list for either sport — membership needs confirming",
-      proposed: other.length ? "not_offered" : "hold — confirm membership first",
+        : `school absent from the complete ${p.gb || "league"} ${p.sport} member list`,
+      proposed: "not_offered",
     };
   });
 
