@@ -462,6 +462,12 @@ write("league-d-ambiguous.csv", [
   ["listed_name", "governing_body", "sport", "state_hint", "reason", "candidates"],
   ...ambiguousRows,
 ]);
+write("league-e-governing-body-disagreement.csv", [
+  ["listed_name", "league_says_governing_body", "sport", "state_hint", "school_on_file",
+   "school_id", "federal_id", "state", "stored_governing_body", "program_id",
+   "current_offering_status", "finding"],
+  ...conflictRows,
+]);
 
 /* -------------------------------- summary --------------------------------- */
 
@@ -481,6 +487,7 @@ console.log(`C on file, league does not list    ${gapRows.length}`);
 console.log(`   -> proposed not_offered         ${gapRows.filter((g) => g.proposed === "not_offered").length}`);
 console.log(`   -> hold, membership unconfirmed ${gapRows.filter((g) => g.proposed !== "not_offered").length}`);
 console.log(`D ambiguous (nothing assigned)     ${ambiguousRows.length}`);
+console.log(`E governing-body disagreement      ${conflictRows.length}`);
 
 console.log("\nmatched_how by method:");
 const byMethod = new Map<string, number>();
