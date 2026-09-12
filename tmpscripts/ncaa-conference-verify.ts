@@ -278,15 +278,25 @@ if (!APPLY) {
   process.exit(0);
 }
 
-const runId = crypto.randomUUID();
-console.log(`run ${runId}`);
+// Resumable: a killed run is continued under its own id with --run <uuid>, and
+// programs already carrying this source are skipped so nothing is written twice.
+const runArg = process.argv.indexOf("--run");
+const runId = runArg > -1 ? process.argv[runArg + 1]! : crypto.randomUUID();
+const alreadyDone = new Set(
+  q(`select id from programs where conference_verification='verified' and conference_source = '${SOURCE}'`).map(
+    ([id]) => id!,
+  ),
+);
+console.log(`run ${runId} (${alreadyDone.size} already verified, skipping)`);
 const applied: unknown[][] = [
   ["program_id", "school", "sport", "prior_conference", "new_conference", "action"],
 ];
 let done = 0;
 
 for (const v of verifiable) {
+  if (alreadyDone.has(v.program.id)) continue;
   const prior = v.program.conference;
+
   if (v.action !== "agrees") {
     const { error: archiveError } = await sb.from("program_level_archive").insert({
       run_id: runId,
