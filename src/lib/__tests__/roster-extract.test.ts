@@ -237,3 +237,56 @@ describe("who is actually the head coach", () => {
     expect(shape.failure).toMatch(/head coach title/i);
   });
 });
+
+describe("surnames are not page furniture", () => {
+  const surnames = [
+    "Hall", "Marshall", "Small", "Wall", "Ball", "Randall",
+    "Kendall", "Crandall", "Whitmore", "Sizemore", "Newsome", "Storey",
+  ];
+
+  it("keeps players whose surname contains a furniture word", () => {
+    const rows = surnames.map((last, i) => `| ${i + 1} | Jake ${last} | INF | Jr. |`).join("\n");
+    const shape = parseRoster(`| No. | Name | Pos. | Cl. |\n| --- | --- | --- | --- |\n${rows}`, "baseball");
+    expect(shape.players).toHaveLength(surnames.length);
+    expect(shape.furniture).toHaveLength(0);
+    for (const last of surnames) {
+      expect(shape.players.map((p) => p.name)).toContain(`Jake ${last}`);
+    }
+  });
+
+  it("still drops a navigation row", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. |\n| --- | --- | --- |\n| 3 | Jake Hall | INF |\n- [Full Schedule](/schedule)\n| | [Composite Schedule](/composite) | |",
+      "baseball",
+    );
+    expect(shape.players.map((p) => p.name)).toEqual(["Jake Hall"]);
+  });
+});
+
+describe("rosters printed Last, First", () => {
+  it("reads them and normalises to First Last", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. | Cl. |\n| --- | --- | --- | --- |\n| 12 | Smith, John | RHP | Sr. |\n| 5 | O'Brien, Pat | C | Fr. |",
+      "baseball",
+    );
+    expect(shape.players.map((p) => p.name)).toEqual(["John Smith", "Pat O'Brien"]);
+  });
+});
+
+describe("jersey numbers and hometowns", () => {
+  it("accepts a three-digit jersey number", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. |\n| --- | --- | --- |\n| 100 | Jake Hall | INF |\n| 0 | Ty Moore | OF |",
+      "baseball",
+    );
+    expect(shape.players.map((p) => p.number)).toEqual(["100", "0"]);
+  });
+
+  it("accepts a hometown with no state when it sits under the hometown column", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. | Hometown |\n| --- | --- | --- | --- |\n| 7 | Kenji Tanaka | RHP | Osaka |",
+      "baseball",
+    );
+    expect(shape.players[0]?.hometown).toBe("Osaka");
+  });
+});

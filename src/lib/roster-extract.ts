@@ -208,6 +208,9 @@ function splitCells(line: string): string[] {
 
 const SEPARATOR = /^\|?[\s:-]+\|/;
 
+/** The hometown column header, so a comma-less town under it is still a town. */
+const HOMETOWN_HEADER = /^(hometown|home\s?town|hometown\s*\/.*|hometown\s*\(.*\)|hometown\/high school|hometown \/ last school)$/i;
+
 /** Header words and card labels that mean the page offers a given column. */
 const COLUMN_WORDS: Array<[RosterAttribute, RegExp]> = [
   ["number", /^(no\.?|#|num(ber)?|jersey(\s+number)?)$/i],
@@ -392,7 +395,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
 
     const cells = splitCells(line);
     if (cells.length < 2 || SEPARATOR.test(line)) continue;
-    const headerHometown = cells.findIndex((cell) => COLUMN_WORDS[5]![1].test(cell));
+    const headerHometown = cells.findIndex((cell) => HOMETOWN_HEADER.test(cell));
     if (headerHometown >= 0) hometownColumn = headerHometown;
 
     let name: string | null = null;
