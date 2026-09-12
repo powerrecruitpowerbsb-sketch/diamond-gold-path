@@ -44,8 +44,7 @@ const write = (name: string, rows: unknown[][]) => {
 
 const STOP = new Set([
   "the", "of", "at", "and", "college", "colleges", "community", "university",
-  "technical", "tech", "institute", "junior", "school", "campus", "area",
-  "district", "cc", "jc", "state", "city",
+  "institute", "junior", "school", "campus", "area", "district", "cc", "jc",
 ]);
 
 const STATE_CODES = new Set([
@@ -116,14 +115,30 @@ function norm(name: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+const STEM: Record<string, string> = { technology: "tech", technical: "tech", univ: "university", saint: "st" };
 function tokens(name: string): string[] {
-  return norm(name).split(" ").filter((t) => t && !STOP.has(t));
+  return norm(name)
+    .split(" ")
+    .map((t) => STEM[t] ?? t)
+    .filter((t) => t && !STOP.has(t));
 }
-function containment(a: string[], b: string[]): number {
-  if (!a.length || !b.length) return 0;
-  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
-  const setLong = new Set(long);
-  return short.filter((t) => setLong.has(t)).length / short.length;
+
+/** Stored states are a mix of two-letter codes and spelled-out names. */
+function stateCode(raw: string): string {
+  const v = raw.trim();
+  if (!v) return "";
+  if (v.length === 2 && STATE_CODES.has(v.toUpperCase())) return v.toUpperCase();
+  return STATE_NAMES[norm(v)] ?? v.toUpperCase();
+}
+/**
+ * Directional: what share of the LISTED name's words appear in the stored name.
+ * League names are shorthand of the full name, never the other way round, so a
+ * shorter stored name must not score 1.0 just by being a subset.
+ */
+function containment(listed: string[], stored: string[]): number {
+  if (!listed.length || !stored.length) return 0;
+  const set = new Set(stored);
+  return listed.filter((t) => set.has(t)).length / listed.length;
 }
 
 /** Splits a listed name into a comparable name plus any state it encodes. */
@@ -194,7 +209,7 @@ const schools: School[] = q(`
     from public.universities where retired_at is null`).map(([id, name, state, unitid]) => ({
   id: id!,
   name: name!,
-  state: state!,
+  state: stateCode(state!),
   unitid: unitid!,
   tokens: tokens(name!),
 }));
@@ -248,7 +263,7 @@ const fedRows: FedRow[] = q(`
   unitid: unitid!,
   name: name!,
   alias: alias!,
-  state: state!,
+  state: stateCode(state!),
   tokens: tokens(name!),
 }));
 const schoolByUnitid = new Map(schools.filter((s) => s.unitid).map((s) => [s.unitid, s]));
