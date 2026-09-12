@@ -81,6 +81,11 @@ export type RosterShape = {
     withClass: number;
     withHeightWeight: number;
     withHometown: number;
+    withState: number;
+    withCountry: number;
+    withTransfer: number;
+    withJucoTransfer: number;
+    withPreviousSchool: number;
     withBats: number;
     withThrows: number;
     bareNames: number;
@@ -292,12 +297,21 @@ const COLUMN_WORDS: Array<[RosterAttribute, RegExp]> = [
   ["hometown", /^(hometown|home\s?town|hometown\s*\/.*|hometown\s*\(.*\)|hometown\/high school|hometown \/ last school)$/i],
   ["bats", /^(b|bats|bat|b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i],
   ["throws", /^(t|throws|throw|b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i],
+  ["transfer", /^((previous|last|prior|former)\s+(school|college|institution)|transfer(red)?(\s+from)?|junior\s+college|juco|jc)$/i],
 ];
 
 /** Headers that carry bats and throws in one cell. */
 const BATS_THROWS_HEADER = /^(b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i;
 const BATS_HEADER = /^(b|bats|bat)\.?$/i;
 const THROWS_HEADER = /^(t|throws|throw)\.?$/i;
+
+/** A column naming where the player came from — the transfer signal. */
+const PREVIOUS_SCHOOL_HEADER =
+  /^((previous|last|prior|former)\s+(school|college|institution)|transfer(red)?(\s+from)?|junior\s+college|juco|jc)$/i;
+
+/** A class or note cell that says "transfer" outright. */
+const TRANSFER_TOKEN = /^(tr|transf(er)?|xfer|transfer\s+student)\.?$/i;
+const JUCO_TOKEN = /^(jc|juco|jr\.?\s*college|junior\s+college|juco\s+transfer)\.?$/i;
 
 const ALL_ATTRIBUTES: RosterAttribute[] = [
   "number",
@@ -306,6 +320,9 @@ const ALL_ATTRIBUTES: RosterAttribute[] = [
   "height",
   "weight",
   "hometown",
+  "home_state",
+  "home_country",
+  "transfer",
   "bats",
   "throws",
 ];
@@ -476,13 +493,36 @@ function parseCards(lines: string[]): PlayerRow[] {
       if (labelWeight) weight = weight ?? weightValue(labelWeight[1]!);
       const labelHometown = next.match(/\bhometown\s+(.+?)(?:\s+(?:last school|previous school|high school)\b|$)/i);
       if (labelHometown) hometown = hometown ?? hometownValue(labelHometown[1]!);
+      // "Previous School Chipola College" on a card is the transfer signal.
+      const labelPrevious = next.match(
+        /\b(?:previous|last|prior|former)\s+(?:school|college|institution)\s*:?\s+(.+?)(?:\s+(?:hometown|high school|position|class)\b|$)/i,
+      );
+      if (labelPrevious) previousSchool = previousSchool ?? labelPrevious[1]!.trim().slice(0, 120);
+      if (JUCO_TOKEN.test(next.trim())) juco = true;
+      if (TRANSFER_TOKEN.test(next.trim())) transfer = true;
 
       if (!klass) klass = classYear(next);
       if (!hometown) hometown = hometownValue(next);
     }
 
     if (!position && !klass && !number) continue;
-    rows.push({ name, number, position, class_year: klass, height, weight, hometown, bats, throws: throwsHand });
+    const place = splitHometown(hometown);
+    rows.push({
+      name,
+      number,
+      position,
+      class_year: klass,
+      height,
+      weight,
+      hometown,
+      home_state: place.state,
+      home_country: place.country,
+      previous_school: previousSchool,
+      is_transfer: transfer || juco || Boolean(previousSchool),
+      is_juco_transfer: juco,
+      bats,
+      throws: throwsHand,
+    });
   }
 
   return rows;
@@ -621,7 +661,25 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       bareNames.push(name);
       continue;
     }
-    players.push({ name, number, position, class_year: klass, height, weight, hometown, bats, throws: throwsHand });
+    const place = splitHometown(hometown);
+    players.push({
+      name,
+      number,
+      position,
+      class_year: klass,
+      height,
+      weight,
+      hometown,
+      home_state: place.state,
+      home_country: place.country,
+      previous_school: previousSchool,
+      // A named previous school IS a transfer; the junior-college half is only
+      // ever set on an explicit signal, never guessed from the school's name.
+      is_transfer: transfer || juco || Boolean(previousSchool),
+      is_juco_transfer: juco,
+      bats,
+      throws: throwsHand,
+    });
   }
 
   // Card-style pages carry no table; read them the other way and keep whichever
