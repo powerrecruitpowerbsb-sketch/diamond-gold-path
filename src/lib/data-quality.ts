@@ -265,6 +265,15 @@ const POSITION_ALIASES: Record<string, string> = {
   inf: "UTIL",
   infield: "UTIL",
   infielder: "UTIL",
+  // Group-level wordings are stored as group values of their own rather than
+  // being dumped into UTIL, so the derived group is right without inventing a
+  // specific position the page never claimed.
+  mif: "MIF",
+  "middle infield": "MIF",
+  "middle infielder": "MIF",
+  cif: "CIF",
+  "corner infield": "CIF",
+  "corner infielder": "CIF",
 };
 
 /**
