@@ -490,6 +490,10 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const seenSports = new Set<string>();
   let rowsConsidered = 0;
   let hometownColumn = -1;
+  // Where the header put bats and throws, so a lone "R" or "L" is read as a
+  // hand only under the right column and never mistaken for a position.
+  let batsColumn = -1;
+  let throwsColumn = -1;
 
   for (const line of lines) {
     for (const match of line.matchAll(/\b(20\d{2})\s?[-–]\s?(\d{2})\b|\b(20\d{2})\s+(baseball|softball)\s+roster\b/gi)) {
