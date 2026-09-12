@@ -90,7 +90,7 @@ async function upsertSource(
   if (error) throw new Error(error.message);
 }
 
-const POSITIONS = ["C", "1B", "2B", "3B", "SS", "OF", "UTIL", "RHP", "LHP", "TWO_WAY"];
+const POSITIONS = ["C", "1B", "2B", "3B", "SS", "MIF", "CIF", "OF", "UTIL", "RHP", "LHP", "TWO_WAY"];
 const CLASS_YEARS = ["FR", "SO", "JR", "SR", "GR"];
 
 function pickEnum(value: unknown, options: string[]): string | null {
@@ -144,7 +144,15 @@ export async function replaceRoster(
       ? payload.season_label.trim().slice(0, 120)
       : null;
 
-  const rows = players.map((player: any) => {
+  // The junior-college half of the transfer flag is decided against our own
+  // records, from the school the page named, never from the school's name alone.
+  const previousSchools = [...new Set(players.map((p: any) => String(p?.previous_school ?? "").trim()).filter(Boolean))];
+  const jucoNames = previousSchools.length
+    ? await twoYearSchoolNames(supabase, previousSchools)
+    : new Set<string>();
+  const resolved = markJucoTransfers(players as any[], jucoNames);
+
+  const rows = resolved.map((player: any) => {
     const position = pickEnum(normalizePosition(player?.position), POSITIONS);
     return {
       program_id: programId,
@@ -158,6 +166,7 @@ export async function replaceRoster(
       throws: pickEnum(player?.throws, ["R", "L"]),
       hometown: player?.hometown ? String(player.hometown) : null,
       home_state: player?.home_state ? String(player.home_state).toUpperCase().slice(0, 2) : null,
+      home_country: player?.home_country ? String(player.home_country).toUpperCase().slice(0, 2) : null,
       is_transfer: Boolean(player?.is_transfer),
       is_juco_transfer: Boolean(player?.is_juco_transfer),
       two_way: position === "TWO_WAY",
