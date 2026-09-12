@@ -447,6 +447,7 @@ console.log(`   fields the other sport only (not_offered)   ${gapRows.filter((g)
 console.log(`   governing body suspect (NCAA domain)        ${gapRows.filter((g) => !g.other.length && g.ncaaMember).length}`);
 console.log(`   not listed either sport                     ${gapRows.filter((g) => !g.other.length && !g.ncaaMember).length}`);
 console.log(`E ambiguous (nothing assigned)                 ${ambiguousRows.length}`);
+console.log(`F governing-body disagreement                  ${conflictRows.length}`);
 
 console.log("\nmatched_how by method:");
 const byMethod = new Map<string, number>();
