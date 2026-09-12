@@ -11,7 +11,7 @@
 import { writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
-import { looksLikeDepartmentDirectory } from "@/lib/coach-extract";
+import { classifyStaffPage } from "@/lib/coach-extract";
 import { hostOf, matchesProgramSport } from "@/lib/link-quality";
 import { looksLikeIndividualBio, pathNamesOtherSport } from "@/lib/page-purpose";
 
@@ -69,9 +69,11 @@ function auditAddress(kind: "roster_page" | "coaching_staff_page", url: string, 
   }
   if (kind === "coaching_staff_page") {
     if (looksLikeIndividualBio(url)) return { code: "individual_bio", reason: "one staff member's own page" };
-    const dept = looksLikeDepartmentDirectory({ url, sport });
-    if (!dept.ok) return { code: "department_directory", reason: dept.reason ?? "department-wide directory" };
+    // A department-wide directory is a valid source: whether it names this
+    // sport's staff is decided when the page is read, not from the address.
+    if (classifyStaffPage({ url, sport }).kind === "department_directory") return null;
   }
+
   if (!matchesProgramSport(url, sport)) {
     return { code: "sport_not_named", reason: "the address does not tie the page to this sport" };
   }

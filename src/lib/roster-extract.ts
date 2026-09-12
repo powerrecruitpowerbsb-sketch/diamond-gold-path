@@ -21,6 +21,17 @@ export type PlayerRow = {
   hometown: string | null;
 };
 
+export type RosterAttribute = "number" | "position" | "class_year" | "height" | "weight" | "hometown";
+
+/**
+ * Three distinct states, so a coach can be told "this school doesn't publish
+ * hometowns" instead of being left to infer the team has no out-of-state players:
+ *  - published: the page offers the column
+ *  - not_published: the page does not carry it at all
+ *  - unknown: we could not tell what the page offers (no header, no labels)
+ */
+export type ColumnState = "published" | "not_published" | "unknown";
+
 export type RosterShape = {
   /** Rows accepted as players. */
   players: PlayerRow[];
@@ -34,6 +45,10 @@ export type RosterShape = {
   seasons: string[];
   /** Other sports named by headings on the page. */
   otherSports: string[];
+  /** What the PAGE offers, per attribute. */
+  columns: Record<RosterAttribute, ColumnState>;
+  /** Attributes the page publishes that we extracted for nobody — parser defects. */
+  parserDefects: RosterAttribute[];
   counts: {
     rowsConsidered: number;
     players: number;
@@ -50,6 +65,7 @@ export type RosterShape = {
   flags: string[];
 };
 
+
 const CLASS_MAP: Array<[RegExp, string]> = [
   [/^(r-?)?fr(\.|eshman)?$/i, "FR"],
   [/^(r-?)?so(\.|phomore)?$/i, "SO"],
@@ -59,8 +75,21 @@ const CLASS_MAP: Array<[RegExp, string]> = [
   [/^redshirt\s+(freshman|sophomore|junior|senior)$/i, ""],
 ];
 
-const POSITION_WORDS =
-  /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|of|lf|cf|rf|dh|util|utl|two-?way|pitcher|catcher|infielder|outfielder|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
+const POSITION_TOKEN =
+  /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|mif|cif|of|lf|cf|rf|dh|util|utl|uti|ut|two-?way|pitcher|catcher|infielder|outfielder|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
+
+/**
+ * Positions are often combined: "IF/OF/P", "UTL/P". Accept a cell where every
+ * slash-separated part is a position, and never a bare "L/L" bats/throws cell.
+ */
+const POSITION_WORDS = {
+  test(value: string): boolean {
+    const parts = value.trim().split(/\s*\/\s*/).filter(Boolean);
+    if (!parts.length || parts.length > 4) return false;
+    if (parts.every((part) => /^[lrs]$/i.test(part))) return false;
+    return parts.every((part) => POSITION_TOKEN.test(part));
+  },
+};
 
 
 /** Navigation, section and story text that shows up in the same tables as players. */
@@ -103,7 +132,9 @@ function weightValue(cell: string): string | null {
 }
 
 function hometownValue(cell: string): string | null {
-  const trimmed = cell.trim();
+  // Pages often print "Hometown / High School" or "Hometown / Last School" in
+  // one cell; the town and state are the part before the first slash.
+  const trimmed = cell.trim().split(/\s+\/\s+/)[0]!.trim();
   return /^[A-Za-z .'’-]{2,40},\s?[A-Za-z .]{2,30}$/.test(trimmed) ? trimmed : null;
 }
 
@@ -134,6 +165,62 @@ function splitCells(line: string): string[] {
 
 const SEPARATOR = /^\|?[\s:-]+\|/;
 
+/** Header words and card labels that mean the page offers a given column. */
+const COLUMN_WORDS: Array<[RosterAttribute, RegExp]> = [
+  ["number", /^(no\.?|#|num(ber)?|jersey(\s+number)?)$/i],
+  ["position", /^(pos\.?|position(s)?|pos\/b-t)$/i],
+  ["class_year", /^(cl\.?|class(\s+year)?|yr\.?|year|academic\s+year|eligibility|exp\.?|experience)$/i],
+  ["height", /^(ht\.?|height)$/i],
+  ["weight", /^(wt\.?|weight)$/i],
+  ["hometown", /^(hometown|home\s?town|hometown\s*\/.*|hometown\s*\(.*\)|hometown\/high school|hometown \/ last school)$/i],
+];
+
+const ALL_ATTRIBUTES: RosterAttribute[] = ["number", "position", "class_year", "height", "weight", "hometown"];
+
+/**
+ * Which columns does the PAGE offer? Read from the table header where there is
+ * one, and from card labels ("Hometown Tampa, FL") otherwise. A page that never
+ * declares its columns leaves them "unknown" rather than pretending.
+ */
+function detectColumns(lines: string[]): Record<RosterAttribute, ColumnState> {
+  const published = new Set<RosterAttribute>();
+  let headerSeen = false;
+
+  lines.forEach((line, index) => {
+    const cells = splitCells(line);
+    if (cells.length >= 2) {
+      const isHeader =
+        cells.some((cell) => /^(name|player|athlete)$/i.test(cell)) ||
+        COLUMN_WORDS.filter(([, pattern]) => cells.some((cell) => pattern.test(cell))).length >= 2 ||
+        SEPARATOR.test(lines[index + 1] ?? "");
+      if (isHeader) {
+        let matched = false;
+        for (const [attribute, pattern] of COLUMN_WORDS) {
+          if (cells.some((cell) => pattern.test(cell))) {
+            published.add(attribute);
+            matched = true;
+          }
+        }
+        if (matched || cells.some((cell) => /^(name|player|athlete)$/i.test(cell))) headerSeen = true;
+      }
+    }
+    // Card labels.
+    if (/\bjersey(\s+number)?\b|^no\.?\s*#?\d/i.test(line)) published.add("number");
+    if (/\bposition\b/i.test(line)) published.add("position");
+    if (/\b(academic year|class year|class:|year:)\b/i.test(line)) published.add("class_year");
+    if (/\bheight\b/i.test(line)) published.add("height");
+    if (/\bweight\b/i.test(line)) published.add("weight");
+    if (/\bhometown\b/i.test(line)) published.add("hometown");
+  });
+
+  const columns = {} as Record<RosterAttribute, ColumnState>;
+  for (const attribute of ALL_ATTRIBUTES) {
+    columns[attribute] = published.has(attribute) ? "published" : headerSeen ? "not_published" : "unknown";
+  }
+  return columns;
+}
+
+
 /**
  * Real athletics pages break one player across several lines: the number and
  * name on one line, the attributes on the next line starting with a pipe, and
@@ -156,6 +243,16 @@ function normalizeLines(text: string): string[] {
   for (const line of raw) {
     const previous = merged[merged.length - 1];
     if (line.startsWith("|") && previous && !previous.endsWith("|") && !SEPARATOR.test(line)) {
+      merged[merged.length - 1] = `${previous} ${line}`;
+      continue;
+    }
+    // "00 |" then the name on its own line then "| IF/OF/P | ..." — a single
+    // table row that the page broke in three. Keep it as one row.
+    const fragment =
+      previous && previous.endsWith("|")
+        ? previous.split("|").filter((cell) => cell.trim()).length <= 1
+        : false;
+    if (fragment && previous && !line.includes("|") && !SEPARATOR.test(previous)) {
       merged[merged.length - 1] = `${previous} ${line}`;
       continue;
     }
@@ -186,7 +283,7 @@ function parseCards(lines: string[]): PlayerRow[] {
     let weight: string | null = null;
     let hometown: string | null = null;
 
-    for (let ahead = index + 2; ahead < Math.min(index + 7, lines.length); ahead += 1) {
+    for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
       const next = lines[ahead]!;
       if (POSITION_WORDS.test(next)) {
         position = position ?? next.toUpperCase();
@@ -320,12 +417,24 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   }
 
   // Card-style pages carry no table; read them the other way and keep whichever
-  // pass found the fuller squad.
+  // pass found the fuller squad — and, on a tie, the pass that read more about
+  // each player, so a thin card list never displaces a complete table.
   const cards = parseCards(lines);
-  if (cards.length >= players.length && cards.length > 0) {
+  const filled = (rows: PlayerRow[]) =>
+    rows.reduce(
+      (total, row) =>
+        total +
+        [row.number, row.position, row.class_year, row.height, row.weight, row.hometown].filter(Boolean).length,
+      0,
+    );
+  const cardsWin =
+    cards.length > 0 &&
+    (cards.length > players.length || (cards.length === players.length && filled(cards) > filled(players)));
+  if (cardsWin) {
     players.length = 0;
     players.push(...cards);
     rowsConsidered = Math.max(rowsConsidered, cards.length);
+
   }
 
 
@@ -365,6 +474,25 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   }
   if (!players.length) flags.push("no player rows were found on the page");
 
+  // What the page offers versus what we read off it. A column the page carries
+  // that we extracted for nobody is a parser defect; a column the page does not
+  // carry is simply not published.
+  const columns = detectColumns(lines);
+  const extracted: Record<RosterAttribute, number> = {
+    number: withNumber,
+    position: withPosition,
+    class_year: withClass,
+    height: players.filter((p) => p.height).length,
+    weight: players.filter((p) => p.weight).length,
+    hometown: withHometown,
+  };
+  const parserDefects = players.length
+    ? ALL_ATTRIBUTES.filter((attribute) => columns[attribute] === "published" && extracted[attribute] === 0)
+    : [];
+  for (const attribute of parserDefects) {
+    flags.push(`the page publishes ${attribute.replace("_", " ")} but none was read — parser defect`);
+  }
+
   return {
     players,
     bareNames,
@@ -372,6 +500,9 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     duplicates,
     seasons,
     otherSports: otherSports.filter((s) => s !== wanted),
+    columns,
+    parserDefects,
+
     counts: {
       rowsConsidered,
       players: players.length,
