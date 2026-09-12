@@ -51,6 +51,54 @@ for (const [unitid, name, state, website] of q(`
 /* ------------------------------- sweep ------------------------------------ */
 
 if (mode === "sweep") {
+  /*
+   * Two signals, because most athletics domains (goheels.com) appear in no
+   * federal record at all — so domain ownership alone finds almost nothing.
+   *  1. the same squad sitting on two different schools' programs
+   *  2. a roster address on a domain federally owned by another institution
+   */
+  const squads = q(`
+    select rp.program_id, u.name, coalesce(u.state,''), p.sport::text, rp.name
+      from public.roster_players rp
+      join public.programs p on p.id = rp.program_id
+      join public.universities u on u.id = p.university_id`);
+  const names = new Map<string, Set<string>>();
+  const meta = new Map<string, { school: string; state: string; sport: string }>();
+  for (const [pid, school, state, sport, player] of squads) {
+    if (!names.has(pid!)) names.set(pid!, new Set());
+    names.get(pid!)!.add(player!.toLowerCase().replace(/[^a-z ]/g, "").trim());
+    meta.set(pid!, { school: school!, state: state!, sport: sport! });
+  }
+  const dupRows: unknown[][] = [];
+  const ids = [...names.keys()];
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const a = names.get(ids[i]!)!;
+      const b = names.get(ids[j]!)!;
+      if (a.size < 5 || b.size < 5) continue;
+      const ma = meta.get(ids[i]!)!;
+      const mb = meta.get(ids[j]!)!;
+      if (ma.school === mb.school) continue;
+      let shared = 0;
+      for (const n of a) if (b.has(n)) shared++;
+      const overlap = shared / Math.min(a.size, b.size);
+      if (shared >= 5 && overlap >= 0.5)
+        dupRows.push([
+          ma.school, ma.state, ma.sport, ids[i], a.size,
+          mb.school, mb.state, mb.sport, ids[j], b.size,
+          shared, `${Math.round(overlap * 100)}%`,
+        ]);
+    }
+  }
+  write("roster-same-squad-two-schools.csv", [
+    ["school_a", "state_a", "sport_a", "program_a", "players_a",
+     "school_b", "state_b", "sport_b", "program_b", "players_b",
+     "shared_names", "overlap"],
+    ...dupRows,
+  ]);
+  console.log(`same squad on two different schools: ${dupRows.length} pairs, ` +
+    `${new Set(dupRows.flatMap((r) => [r[3], r[8]])).size} programs involved`);
+
   const rows = q(`
     select p.id, u.id, u.name, coalesce(u.state,''), coalesce(u.ipeds_unitid::text,''),
            p.sport::text, coalesce(p.roster_url,''), coalesce(u.website_url,''),
