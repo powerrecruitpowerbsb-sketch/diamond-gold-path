@@ -10,7 +10,8 @@ One resumable job, roster/coach reading only:
 - It reads only addresses already on file (school site, athletics, coach page, roster page). No searching for new addresses, and the parked re-search queue stays parked.
 - A program with no address on file is skipped and counted, not attempted.
 - Individual failures never stop the run: each program's outcome is recorded and the job moves on.
-- One request at a time per host, existing delay, 30s timeout, and 3 retries with backoff unchanged. Hosts already quarantined as protected are not hit.
+- One request at a time per host, existing delay, 30s timeout, and 3 retries with backoff unchanged. Quarantined sites are skipped during the main run.
+- At the end of the run, every quarantined site (78 of them) gets exactly one attempt, no retries. Any that now respond come out of quarantine and their pages are read; any that still block stay quarantined. The outcome per site is reported.
 - Progress is written to a checkpoint file after every program, so an interruption resumes where it stopped rather than restarting.
 - Every write goes through the guarded writer: a roster or composition summary read from a domain belonging to another school is refused and logged instead of saved.
 
@@ -18,7 +19,7 @@ Nothing about the run changes existing addresses, and nothing is deleted.
 
 ## What you get when it finishes
 
-Seven files in your documents folder, plus a short summary in chat.
+All seven reports, one file each in your documents folder, plus a short summary in chat — and an eighth short file for the quarantined-site retry.
 
 1. **Coverage by governing body** — programs attempted, usable roster %, head coach %, side by side with the 100-school sample (45% rosters, 26% head coaches).
 2. **Which reader read each roster** — structural vs AI fallback, counted overall and by governing body, with the reason the fallback fired each time it did.
