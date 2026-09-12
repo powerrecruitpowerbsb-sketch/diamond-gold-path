@@ -29,3 +29,8 @@
 - [x] Composition summary guarded by the source-page and domain check; suspicious reads written marked suspect and withheld from display and dashboard counts
 - [x] Crawl-path tests against the saved fixtures (13 tests): structural reader ran, model never called, fallback fires only on a page with nothing to read, summary guarded before the write
 - [ ] Apply the summary backfill: 3,052 summaries, 2,962 own-page, 90 to mark suspect — reported, awaiting go-ahead
+
+## Full crawl (2026-09-12)
+- [x] Athletics-only crawl over every program not marked not_offered (3,238), resumable, guarded writes
+- [ ] Quarantined sites: one attempt each at the end of the run; report which respond
+- [ ] Seven reports (coverage, reader split, refused writes, no-data reasons, composition at scale, league disagreements, head coach titles)
