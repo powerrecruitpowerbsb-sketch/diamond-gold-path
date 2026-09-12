@@ -46,6 +46,9 @@ const targets = schools
   .map((s) => ({ school: s, federalWebsite: fedById.get(Number(s.ipeds_unitid)) ?? null }))
   .filter((t) => {
     if (!t.federalWebsite) return false;
+    // Schools with no stored website at all are a fill, not a restoration, and
+    // were not part of the reviewed set.
+    if (!t.school.website_url) return false;
     const stored = dom(t.school.website_url);
     const fed = dom(t.federalWebsite);
     return Boolean(fed) && stored !== fed;
@@ -92,7 +95,7 @@ const after = await pageAll<School>("universities", "id, name, state, website_ur
 const stillMismatched = after.filter((s) => {
   if (!s.ipeds_unitid) return false;
   const fed = dom(fedById.get(Number(s.ipeds_unitid)) ?? null);
-  return Boolean(fed) && dom(s.website_url) !== fed;
+  return Boolean(fed) && Boolean(s.website_url) && dom(s.website_url) !== fed;
 }).length;
 
 console.log("restored:", applied.length);
