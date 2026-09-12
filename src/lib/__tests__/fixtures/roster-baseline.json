@@ -1,0 +1,106 @@
+{
+  "capturedOn": "2026-09-12",
+  "source": "step3 20-school preview (step3-players.csv)",
+  "programs": [
+    {
+      "school": "Eckerd College",
+      "sport": "baseball",
+      "players": 52
+    },
+    {
+      "school": "Eckerd College",
+      "sport": "softball",
+      "players": 24
+    },
+    {
+      "school": "Florida Gulf Coast University",
+      "sport": "baseball",
+      "players": 38
+    },
+    {
+      "school": "Florida Gulf Coast University",
+      "sport": "softball",
+      "players": 23
+    },
+    {
+      "school": "Florida Southern College",
+      "sport": "baseball",
+      "players": 46
+    },
+    {
+      "school": "Louisiana State University",
+      "sport": "baseball",
+      "players": 38
+    },
+    {
+      "school": "Louisiana State University",
+      "sport": "softball",
+      "players": 21
+    },
+    {
+      "school": "Rollins College",
+      "sport": "baseball",
+      "players": 41
+    },
+    {
+      "school": "Rollins College",
+      "sport": "softball",
+      "players": 17
+    },
+    {
+      "school": "Saint Leo University",
+      "sport": "baseball",
+      "players": 37
+    },
+    {
+      "school": "Saint Leo University",
+      "sport": "softball",
+      "players": 26
+    },
+    {
+      "school": "Stetson University",
+      "sport": "baseball",
+      "players": 39
+    },
+    {
+      "school": "Stetson University",
+      "sport": "softball",
+      "players": 22
+    },
+    {
+      "school": "University of Arkansas, Fayetteville",
+      "sport": "baseball",
+      "players": 38
+    },
+    {
+      "school": "University of Arkansas, Fayetteville",
+      "sport": "softball",
+      "players": 19
+    },
+    {
+      "school": "University of Central Florida",
+      "sport": "baseball",
+      "players": 47
+    },
+    {
+      "school": "University of Central Florida",
+      "sport": "softball",
+      "players": 26
+    },
+    {
+      "school": "University of South Florida",
+      "sport": "baseball",
+      "players": 41
+    },
+    {
+      "school": "University of South Florida",
+      "sport": "softball",
+      "players": 28
+    },
+    {
+      "school": "Vanderbilt University",
+      "sport": "baseball",
+      "players": 39
+    }
+  ]
+}
