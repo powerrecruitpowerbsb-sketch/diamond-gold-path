@@ -21,6 +21,9 @@ import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
 import { clearWrongLink } from "@/lib/link-repair.server";
 import { verifyPageIdentity } from "@/lib/page-identity";
 import { safeFetch, type SafeFetchResult } from "@/lib/safe-fetch.server";
+import { readRoster } from "@/lib/roster-read.server";
+import { readCoaches } from "@/lib/coach-read.server";
+import { checkRosterSource, recordRefusal, sourceDomain } from "@/lib/roster-provenance.server";
 
 // The AI Gateway below is a rate-limited data service, not an athletics host: it
 // deliberately bypasses safeFetch (no per-host pacing or rendering fallback
@@ -185,7 +188,7 @@ export async function extractUniversityFields(markdown: string) {
   return extractJson(prompt, markdown);
 }
 
-async function extractProgramFields(markdown: string) {
+export async function extractProgramFields(markdown: string) {
   const prompt = [
     "You extract college athletics program data from an official athletics web page.",
     STRICT_RULES,
@@ -747,7 +750,22 @@ export async function ingestProgram(
           detail: rows.length ? `${rows.length} field(s) proposed` : "nothing new found on this page",
         });
       } else if (target.kind === "program") {
-        const extracted = await extractProgramFields(markdown);
+        // A coaching-staff page is read by the tested coach reader, which scopes
+        // names to THIS sport; the model's two-field ask is only the fallback for
+        // a page it finds no staff on at all.
+        const isCoachPage = target.purpose === "Coaching staff";
+        const coachRead = isCoachPage
+          ? await readCoaches(markdown, String(program["sport"] ?? ""), {
+              url: target.url,
+              fallback: extractProgramFields,
+            })
+          : null;
+        const extracted = coachRead ? coachRead.extracted : await extractProgramFields(markdown);
+        if (coachRead) {
+          console.log(
+            `Coach read (${coachRead.reader}) ${target.url}: ${coachRead.shape?.coaches.length ?? 0} staff row(s) for this sport${coachRead.fallbackReason ? ` — fell back because ${coachRead.fallbackReason}` : ""}`,
+          );
+        }
         const rows = buildFieldProposals(
           "programs",
           programId,
@@ -766,8 +784,13 @@ export async function ingestProgram(
           detail: rows.length ? `${rows.length} field(s) proposed` : "nothing new found on this page",
         });
       } else {
-        const { players, season_year, season_label, dropped, diagnostics } =
-          await extractRoster(markdown);
+        const read = await readRoster(markdown, String(program["sport"] ?? ""), {
+          fallback: extractRoster,
+        });
+        const { players, season_year, season_label, dropped, diagnostics } = read;
+        console.log(
+          `Roster read (${read.reader}) ${target.url}: ${players.length} player(s)${read.fallbackReason ? ` — fell back because ${read.fallbackReason}` : ""}`,
+        );
         rosterPlayers = players.length;
         const droppedNote = dropped.length
           ? ` (${dropped.length} name(s) were discarded because the page doesn't list them)`
@@ -802,6 +825,32 @@ export async function ingestProgram(
           rosterWarning = `This roster needs a look: ${reason}.`;
         }
 
+        // The composition summary is the number a family actually reads, so it
+        // gets the same source and domain test the player rows get. A page this
+        // school cannot claim writes nothing; a read that looked wrong is written
+        // but marked suspect and kept off every display until someone checks it.
+        const provenance = await checkRosterSource(supabase, programId, target.url);
+        if (!provenance.ok) {
+          await recordRefusal(supabase, {
+            programId,
+            universityId: university["id"],
+            kind: "snapshot",
+            sourceUrl: target.url,
+            domain: provenance.domain,
+            reason: provenance.reason,
+            holderId: provenance.holder?.id ?? null,
+            holderDetail: provenance.holder?.name ?? null,
+            rows: players.length,
+          });
+          urlResults.push({
+            url: target.url,
+            purpose: target.purpose,
+            status: "rejected",
+            detail: `composition summary refused: ${provenance.reason}`,
+          });
+          continue;
+        }
+
         const { error: snapshotError } = await supabase.from("roster_snapshots").insert({
           program_id: programId,
           season_year: seasonYear,
@@ -811,6 +860,11 @@ export async function ingestProgram(
           transfer_count: summary.transfers,
           juco_transfer_count: summary.jucoTransfers,
           source_url: target.url,
+          source_domain: provenance.domain,
+          reader: read.reader,
+          ingest_run_id: runId,
+          suspect: suspicious,
+          suspect_reason: suspicious ? reason : null,
         });
         if (snapshotError) throw new Error(`snapshot write failed: ${snapshotError.message}`);
         snapshotWritten = true;
@@ -825,6 +879,8 @@ export async function ingestProgram(
             season_year: seasonYear,
             season_label: season_label,
             players,
+            source_url: target.url,
+            reader: read.reader,
 
             incomplete_scrape: suspicious,
             review_reason: reason,
