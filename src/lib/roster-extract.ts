@@ -69,6 +69,8 @@ export type RosterShape = {
     withClass: number;
     withHeightWeight: number;
     withHometown: number;
+    withBats: number;
+    withThrows: number;
     bareNames: number;
     furniture: number;
     duplicates: number;
