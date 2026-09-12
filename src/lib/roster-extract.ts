@@ -160,11 +160,16 @@ function weightValue(cell: string): string | null {
   return value >= 100 && value <= 400 ? trimmed : null;
 }
 
+/** State/province/country tails, so "Smith, John" is never read as a hometown. */
+const PLACE_TAIL =
+  /^(ala|alaska|ariz|ark|calif|cal|colo|conn|del|fla|ga|hawaii|idaho|ill|ind|iowa|kan|kans|ky|la|maine|md|mass|mich|minn|miss|mo|mont|neb|nebr|nev|ohio|okla|ore|pa|penn|tenn|texas|tex|utah|vt|va|wash|wis|wisc|wyo|d\.?c|n\.?[hjmycd]|r\.?i|s\.?[cd]|w\.?va|[A-Z]{2}|canada|japan|mexico|australia|puerto rico|dominican republic|venezuela|cuba|panama|colombia|curacao|curaçao|bahamas|germany|england|netherlands|aruba|nicaragua|brazil|taiwan|korea|ontario|quebec|alberta|british columbia|manitoba|saskatchewan)\.?$/i;
+
 function hometownValue(cell: string, options: { inHometownColumn?: boolean } = {}): string | null {
   // Pages often print "Hometown / High School" or "Hometown / Last School" in
   // one cell; the town and state are the part before the first slash.
   const trimmed = cell.trim().split(/\s+\/\s+/)[0]!.trim();
-  if (/^[A-Za-z .'’-]{2,40},\s?[A-Za-z .]{2,30}$/.test(trimmed)) return trimmed;
+  const comma = trimmed.match(/^([A-Za-z .'’-]{2,40}),\s?([A-Za-z .]{2,30})$/);
+  if (comma && (PLACE_TAIL.test(comma[2]!.trim()) || options.inHometownColumn)) return trimmed;
   // Under a hometown column, a town with no comma is still a hometown —
   // single-town entries and many international formats carry no state.
   if (options.inHometownColumn && /^[A-Za-z][A-Za-z .'’-]{1,40}$/.test(trimmed) && !POSITION_WORDS.test(trimmed)) {
