@@ -358,7 +358,7 @@ const wrongIdRows = q(`
      or u.name in ('Buffalo State, State University of New York','St. Thomas University','College of the Ozarks')`);
 
 const CORRECT: Record<string, { unitid: number; why: string }> = {
-  "Buffalo State, State University of New York": { unitid: 196079, why: "Buffalo State is SUNY Buffalo State (Buffalo State College); 196088 is University at Buffalo, a different institution" },
+  "Buffalo State, State University of New York": { unitid: 196130, why: "Buffalo State is SUNY Buffalo State University (196130); 196088 is University at Buffalo, a different institution — and our unidentified 'University at Buffalo' record is the one that should hold 196088" },
   "St. Thomas University": { unitid: 174914, why: "every stored address belongs to University of St. Thomas, Minnesota (174914); 137476 is St. Thomas University, Florida" },
   "College of the Ozarks": { unitid: 107558, why: "stored state Arkansas and the stored addresses are University of the Ozarks (107558, AR); 178697 is College of the Ozarks, Missouri" },
 };
