@@ -451,6 +451,9 @@ function parseCards(lines: string[]): PlayerRow[] {
     let hometown: string | null = null;
     let bats: string | null = null;
     let throwsHand: string | null = null;
+    let previousSchool: string | null = null;
+    let transfer = false;
+    let juco = false;
 
     for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
       const next = lines[ahead]!;
@@ -548,6 +551,8 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   // hand only under the right column and never mistaken for a position.
   let batsColumn = -1;
   let throwsColumn = -1;
+  // The previous/last school column, read as the transfer signal.
+  let previousSchoolColumn = -1;
 
   for (const line of lines) {
     for (const match of line.matchAll(/\b(20\d{2})\s?[-–]\s?(\d{2})\b|\b(20\d{2})\s+(baseball|softball)\s+roster\b/gi)) {
@@ -570,6 +575,8 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       batsColumn = -1;
       throwsColumn = -1;
     }
+    const headerPrevious = cells.findIndex((cell) => PREVIOUS_SCHOOL_HEADER.test(cell));
+    if (headerPrevious >= 0) previousSchoolColumn = headerPrevious;
 
     let name: string | null = null;
     let number: string | null = null;
@@ -580,9 +587,30 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     let hometown: string | null = null;
     let bats: string | null = null;
     let throwsHand: string | null = null;
+    let previousSchool: string | null = null;
+    let transfer = false;
+    let juco = false;
 
     for (const [cellIndex, cell] of cells.entries()) {
       if (!cell) continue;
+      // Where the page came from: an outright "TR"/"JUCO" cell, and the
+      // previous-school column when the page carries one.
+      if (JUCO_TOKEN.test(cell.trim())) {
+        juco = true;
+        continue;
+      }
+      if (TRANSFER_TOKEN.test(cell.trim())) {
+        transfer = true;
+        continue;
+      }
+      if (cellIndex === previousSchoolColumn && !previousSchool) {
+        const school = rowText(cell).trim();
+        // A dash or a blank means "not a transfer", not an unnamed school.
+        if (school && !/^[-–—]$/.test(school) && school.length >= 4 && !PREVIOUS_SCHOOL_HEADER.test(school)) {
+          previousSchool = school.slice(0, 120);
+          continue;
+        }
+      }
       // A combined "R/R" cell, wherever it sits — Stetson prints it under an
       // unnamed "Custom Field 1" column, so this cannot wait on a header.
       const hands = batsThrowsCell(cell);
@@ -719,6 +747,11 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const withClass = players.filter((p) => p.class_year).length;
   const withHeightWeight = players.filter((p) => p.height || p.weight).length;
   const withHometown = players.filter((p) => p.hometown).length;
+  const withState = players.filter((p) => p.home_state).length;
+  const withCountry = players.filter((p) => p.home_country).length;
+  const withTransfer = players.filter((p) => p.is_transfer).length;
+  const withJucoTransfer = players.filter((p) => p.is_juco_transfer).length;
+  const withPreviousSchool = players.filter((p) => p.previous_school).length;
   const withBats = players.filter((p) => p.bats).length;
   const withThrows = players.filter((p) => p.throws).length;
 
@@ -755,6 +788,9 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     height: players.filter((p) => p.height).length,
     weight: players.filter((p) => p.weight).length,
     hometown: withHometown,
+    home_state: withState,
+    home_country: withCountry,
+    transfer: withTransfer,
     bats: withBats,
     throws: withThrows,
   };
@@ -763,6 +799,12 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   // trusted to declare them.
   if (withBats) columns.bats = "published";
   if (withThrows) columns.throws = "published";
+  // State and country are not columns of their own: they are what the hometown
+  // cell carries. A page printing towns with no state publishes hometowns but
+  // not states, and that is reported as such rather than as a defect of ours.
+  columns.home_state = withState ? "published" : columns.hometown === "unknown" ? "unknown" : "not_published";
+  columns.home_country = withCountry ? "published" : columns.hometown === "unknown" ? "unknown" : "not_published";
+  if (withTransfer) columns.transfer = "published";
   const parserDefects = players.length
     ? ALL_ATTRIBUTES.filter((attribute) => columns[attribute] === "published" && extracted[attribute] === 0)
     : [];
