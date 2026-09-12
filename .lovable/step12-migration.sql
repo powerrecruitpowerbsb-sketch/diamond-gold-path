@@ -190,3 +190,76 @@ CREATE OR REPLACE VIEW public.active_universities AS
   SELECT * FROM public.universities WHERE retired_at IS NULL;
 
 GRANT SELECT ON public.active_universities TO authenticated;
+
+-- ============================================================================
+-- 5. Quarantine division and conference until confirmed against a member list
+-- ============================================================================
+DO $$ BEGIN
+  CREATE TYPE public.value_verification AS ENUM ('unverified','verified');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+ALTER TABLE public.programs
+  ADD COLUMN IF NOT EXISTS division_verification public.value_verification
+    NOT NULL DEFAULT 'unverified',
+  ADD COLUMN IF NOT EXISTS conference_verification public.value_verification
+    NOT NULL DEFAULT 'unverified',
+  ADD COLUMN IF NOT EXISTS division_source text,
+  ADD COLUMN IF NOT EXISTS conference_source text,
+  ADD COLUMN IF NOT EXISTS division_verified_at timestamptz,
+  ADD COLUMN IF NOT EXISTS conference_verified_at timestamptz;
+
+COMMENT ON COLUMN public.programs.division_verification IS
+  'Unverified values are never used as a search filter and are shown as "not confirmed".';
+
+-- Any later edit to the value drops it back to unverified.
+CREATE OR REPLACE FUNCTION public.reset_level_verification()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.division IS DISTINCT FROM OLD.division
+     OR NEW.governing_body IS DISTINCT FROM OLD.governing_body THEN
+    IF NEW.division_verification = OLD.division_verification THEN
+      NEW.division_verification := 'unverified';
+      NEW.division_verified_at := NULL;
+    END IF;
+  END IF;
+  IF NEW.conference IS DISTINCT FROM OLD.conference
+     OR NEW.governing_body IS DISTINCT FROM OLD.governing_body THEN
+    IF NEW.conference_verification = OLD.conference_verification THEN
+      NEW.conference_verification := 'unverified';
+      NEW.conference_verified_at := NULL;
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS reset_level_verification ON public.programs;
+CREATE TRIGGER reset_level_verification
+  BEFORE UPDATE OF division, conference, governing_body ON public.programs
+  FOR EACH ROW EXECUTE FUNCTION public.reset_level_verification();
+
+-- Append-only archive so the junk clean-up and the verification pass are
+-- reversible in one operation, by run id.
+CREATE TABLE IF NOT EXISTS public.program_level_archive (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id uuid NOT NULL,
+  program_id uuid NOT NULL REFERENCES public.programs(id) ON DELETE CASCADE,
+  field text NOT NULL,
+  prior_value text,
+  new_value text,
+  reason text,
+  restored_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS program_level_archive_run_idx
+  ON public.program_level_archive (run_id);
+GRANT SELECT ON public.program_level_archive TO authenticated;
+GRANT ALL ON public.program_level_archive TO service_role;
+ALTER TABLE public.program_level_archive ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "level archive readable by authenticated"
+  ON public.program_level_archive FOR SELECT TO authenticated USING (true);
+CREATE POLICY "level archive writable by superadmin"
+  ON public.program_level_archive FOR INSERT TO authenticated
+  WITH CHECK (is_superadmin());
