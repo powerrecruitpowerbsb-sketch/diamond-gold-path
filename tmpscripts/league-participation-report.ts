@@ -211,7 +211,13 @@ const schoolByUnitid = new Map(schools.filter((s) => s.unitid).map((s) => [s.uni
 
 /* --------------------------------- match ---------------------------------- */
 
-type Method = "federal id" | "exact name" | "same significant words" | "ambiguous" | "no match";
+type Method =
+  | "federal id"
+  | "exact name"
+  | "same significant words"
+  | "ambiguous"
+  | "governing body disagreement"
+  | "no match";
 type Result = { school: School | null; how: string; method: Method; candidates: School[] };
 const cache = new Map<string, Result>();
 
@@ -330,6 +336,7 @@ type MatchRow = {
 const matchRows: MatchRow[] = [];
 const notOnFileRows: unknown[][] = [];
 const ambiguousRows: unknown[][] = [];
+const conflictRows: unknown[][] = [];
 
 function federalCandidate(row: CsvRow) {
   const states = row.state ? [row.state] : (LEAGUE_STATES[row.gb] ?? []);
@@ -358,6 +365,15 @@ for (const row of csvRows) {
       ambiguousRows.push([
         row.raw, row.gb, row.sport, row.state ?? "", how,
         candidates.map((c) => `${c.name} (${c.state})`).join(" | "),
+      ]);
+      continue;
+    }
+    if (method === "governing body disagreement") {
+      const c = candidates[0]!;
+      const held = programOf.get(`${c.id}::${row.sport}`)!;
+      conflictRows.push([
+        row.raw, row.gb, row.sport, row.state ?? "", c.name, c.id, c.unitid || "none", c.state,
+        held.gb || "none", held.id, held.offering, how,
       ]);
       continue;
     }
