@@ -607,7 +607,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       bareNames.push(name);
       continue;
     }
-    players.push({ name, number, position, class_year: klass, height, weight, hometown });
+    players.push({ name, number, position, class_year: klass, height, weight, hometown, bats, throws: throwsHand });
   }
 
   // Card-style pages carry no table; read them the other way and keep whichever
