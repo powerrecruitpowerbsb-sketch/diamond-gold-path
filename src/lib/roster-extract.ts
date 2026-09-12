@@ -19,6 +19,15 @@ export type PlayerRow = {
   height: string | null;
   weight: string | null;
   hometown: string | null;
+  /** Two-letter state or province, split off the hometown. */
+  home_state: string | null;
+  /** Two-letter country code. US territories count as US. */
+  home_country: string | null;
+  /** The school named as the player's previous stop, when the page names one. */
+  previous_school: string | null;
+  is_transfer: boolean;
+  /** Only ever true on an explicit junior-college signal from the page. */
+  is_juco_transfer: boolean;
   /** Batting side: R, L or S (switch). */
   bats: string | null;
   /** Throwing arm: R or L. */
@@ -32,6 +41,9 @@ export type RosterAttribute =
   | "height"
   | "weight"
   | "hometown"
+  | "home_state"
+  | "home_country"
+  | "transfer"
   | "bats"
   | "throws";
 
