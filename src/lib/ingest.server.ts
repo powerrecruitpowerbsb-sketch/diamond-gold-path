@@ -629,6 +629,14 @@ export async function ingestProgram(
   supabase: any,
   userId: string,
   programId: string,
+  options: {
+    /**
+     * "athletics" reads only the athletics, coaching-staff and roster pages —
+     * school-level facts come from the federal directory, so a nationwide crawl
+     * has no reason to re-read a school's own website or admissions page.
+     */
+    pages?: "all" | "athletics";
+  } = {},
 ): Promise<IngestOutcome> {
   const { data: program, error: programError } = await supabase
     .from("programs")
@@ -647,8 +655,10 @@ export async function ingestProgram(
     const value = typeof url === "string" ? url.trim() : "";
     if (value) targets.push({ url: value, purpose, kind });
   };
-  push(university?.["website_url"], "School website", "university");
-  push(university?.["admissions_url"], "Admissions page", "university");
+  if (options.pages !== "athletics") {
+    push(university?.["website_url"], "School website", "university");
+    push(university?.["admissions_url"], "Admissions page", "university");
+  }
   push(program["athletic_website"], "Athletics site", "program");
   push(program["coaching_staff_url"], "Coaching staff", "program");
   push(program["roster_url"], "Roster page", "roster");
@@ -881,6 +891,8 @@ export async function ingestProgram(
             players,
             source_url: target.url,
             reader: read.reader,
+            run_id: runId,
+
 
             incomplete_scrape: suspicious,
             review_reason: reason,
