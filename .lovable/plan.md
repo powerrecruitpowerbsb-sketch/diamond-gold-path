@@ -19,7 +19,7 @@ Nothing about the run changes existing addresses, and nothing is deleted.
 
 ## What you get when it finishes
 
-Seven files in your documents folder, plus a short summary in chat.
+All seven reports, one file each in your documents folder, plus a short summary in chat — and an eighth short file for the quarantined-site retry.
 
 1. **Coverage by governing body** — programs attempted, usable roster %, head coach %, side by side with the 100-school sample (45% rosters, 26% head coaches).
 2. **Which reader read each roster** — structural vs AI fallback, counted overall and by governing body, with the reason the fallback fired each time it did.
