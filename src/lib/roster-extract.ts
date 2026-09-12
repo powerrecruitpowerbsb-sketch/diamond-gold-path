@@ -267,13 +267,21 @@ function detectColumns(lines: string[]): Record<RosterAttribute, ColumnState> {
         if (matched || cells.some((cell) => /^(name|player|athlete)$/i.test(cell))) headerSeen = true;
       }
     }
-    // Card labels.
-    if (/\bjersey(\s+number)?\b|^no\.?\s*#?\d/i.test(line)) published.add("number");
-    if (/\bposition\b/i.test(line)) published.add("position");
+    // Card labels. These must look like a LABEL — the word standing alone in a
+    // cell, or followed by a colon — not merely the word appearing somewhere on
+    // the page. A filter menu or a sort control saying "Height" is not evidence
+    // that the page publishes heights, and treating it as such invented a
+    // "parser defect" on pages we had in fact read correctly.
+    const label = (word: string) =>
+      new RegExp(`(^|\\|)\\s*${word}\\s*(:|\\||$)`, "i").test(line) ||
+      new RegExp(`\\b${word}\\s*:`, "i").test(line);
+    if (/\bjersey(\s+number)?\s*:|^no\.?\s*#?\d/i.test(line) || label("jersey")) published.add("number");
+    if (label("position") || label("pos\\.?")) published.add("position");
     if (/\b(academic year|class year|class:|year:)\b/i.test(line)) published.add("class_year");
-    if (/\bheight\b/i.test(line)) published.add("height");
-    if (/\bweight\b/i.test(line)) published.add("weight");
-    if (/\bhometown\b/i.test(line)) published.add("hometown");
+    if (label("height") || label("ht\\.?")) published.add("height");
+    if (label("weight") || label("wt\\.?")) published.add("weight");
+    if (label("hometown") || label("home\\s?town")) published.add("hometown");
+
   });
 
   const columns = {} as Record<RosterAttribute, ColumnState>;
