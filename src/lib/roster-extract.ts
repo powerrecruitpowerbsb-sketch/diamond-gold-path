@@ -683,7 +683,14 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     height: players.filter((p) => p.height).length,
     weight: players.filter((p) => p.weight).length,
     hometown: withHometown,
+    bats: withBats,
+    throws: withThrows,
   };
+  // Reading a value IS evidence the page publishes it. Stetson prints bats and
+  // throws under an unnamed "Custom Field 1" column; the header cannot be
+  // trusted to declare them.
+  if (withBats) columns.bats = "published";
+  if (withThrows) columns.throws = "published";
   const parserDefects = players.length
     ? ALL_ATTRIBUTES.filter((attribute) => columns[attribute] === "published" && extracted[attribute] === 0)
     : [];
