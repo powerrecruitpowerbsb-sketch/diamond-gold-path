@@ -92,9 +92,38 @@ const POSITION_WORDS = {
 };
 
 
-/** Navigation, section and story text that shows up in the same tables as players. */
+/**
+ * Navigation, section and story text that shows up in the same tables as players.
+ *
+ * Every alternative is anchored on BOTH sides. Unanchored "more", "all", "news"
+ * and "store" were matching ordinary surnames — Hall, Marshall, Small, Wall,
+ * Ball, Randall, Kendall, Crandall, Whitmore, Sizemore, Newsome, Storey — and
+ * silently deleting real players from rosters we had already called correct.
+ *
+ * It is also only ever run against the ROW, never against a person's name:
+ * furniture is a property of where the text came from (a nav link, a heading, a
+ * story), not of somebody's surname.
+ */
 const FURNITURE =
-  /(roster|schedule|stats|standings|tickets|shop|news|store|coaches|staff|directory|facilities|camps|donate|giving|social|instagram|twitter|facebook|youtube|privacy|terms|sitemap|search|menu|skip to|main content|composite|archive|history|records|awards|honors|gameday|watch|listen|live stats|box score|recap|preview|announce|sign(s|ed)?\b|commit(s|ted)?\b|hire(s|d)?\b|named\b|full bio|view profile|hide\/show|photo gallery|more\b|all\b)/i;
+  /\b(roster|schedule|stats|standings|tickets|shop|news|store|coaches|staff|directory|facilities|camps|donate|giving|social|instagram|twitter|facebook|youtube|privacy|terms|sitemap|search|menu|skip to|main content|composite|archive|history|records|awards|honors|gameday|watch|listen|live stats|box score|recap|preview|announce|signs|signed|commits|committed|hires|hired|named|full bio|view profile|hide\/show|photo gallery|more|all)\b/i;
+
+/** Strip markdown link targets — "/sports/baseball/roster/john-hall" is not furniture text. */
+function rowText(line: string): string {
+  return line.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1");
+}
+
+/**
+ * Is this ROW page furniture rather than a player? Judged on the row's origin: a
+ * heading, a bullet/nav link, or a line of navigation or story text.
+ */
+function rowIsFurniture(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return true;
+  if (/^#{1,6}\s/.test(trimmed)) return true;
+  if (/^[-*•]\s*!?\[/.test(trimmed)) return true;
+  const text = rowText(trimmed);
+  return FURNITURE.test(text);
+}
 
 const STAFF_TITLE =
   /(head coach|assistant coach|associate coach|pitching coach|hitting coach|volunteer|coordinator|director|manager|trainer|athletic trainer|strength|operations|graduate assistant|student assistant|analyst|scout)/i;
@@ -116,7 +145,7 @@ function classYear(cell: string): string | null {
 
 function jerseyNumber(cell: string): string | null {
   const trimmed = cell.trim().replace(/^#/, "");
-  return /^\d{1,2}$/.test(trimmed) ? trimmed : null;
+  return /^\d{1,3}$/.test(trimmed) ? trimmed : null;
 }
 
 function heightValue(cell: string): string | null {
@@ -131,16 +160,24 @@ function weightValue(cell: string): string | null {
   return value >= 100 && value <= 400 ? trimmed : null;
 }
 
-function hometownValue(cell: string): string | null {
+function hometownValue(cell: string, options: { inHometownColumn?: boolean } = {}): string | null {
   // Pages often print "Hometown / High School" or "Hometown / Last School" in
   // one cell; the town and state are the part before the first slash.
   const trimmed = cell.trim().split(/\s+\/\s+/)[0]!.trim();
-  return /^[A-Za-z .'’-]{2,40},\s?[A-Za-z .]{2,30}$/.test(trimmed) ? trimmed : null;
+  if (/^[A-Za-z .'’-]{2,40},\s?[A-Za-z .]{2,30}$/.test(trimmed)) return trimmed;
+  // Under a hometown column, a town with no comma is still a hometown —
+  // single-town entries and many international formats carry no state.
+  if (options.inHometownColumn && /^[A-Za-z][A-Za-z .'’-]{1,40}$/.test(trimmed) && !POSITION_WORDS.test(trimmed)) {
+    return trimmed;
+  }
+  return null;
 }
 
-/** Two to four capitalised words, no digits, no title words. */
+const NAME_SHAPE = /^[A-Z][A-Za-z.'’-]*(\s+[A-Za-z.'’-]+){1,3}$/;
+
+/** Two to four capitalised words, no digits. "Last, First" is normalised. */
 function personName(cell: string): string | null {
-  const raw = cell
+  let raw = cell
     .trim()
     // A name is usually a link to the player's bio: read the link text.
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
@@ -149,10 +186,16 @@ function personName(cell: string): string | null {
     .trim();
   if (raw.length < 4 || raw.length > 48) return null;
   if (/[0-9@|]|https?:/i.test(raw)) return null;
-  if (!/^[A-Z][A-Za-z.'’-]*(\s+[A-Za-z.'’-]+){1,3}$/.test(raw)) return null;
+
+  // Rosters printed "Smith, John" or "O'Brien, Pat Michael" used to parse as an
+  // empty page. Flip them to "First Last".
+  const inverted = raw.match(/^([A-Z][A-Za-z.'’-]+(?:\s+(?:de|la|van|von|del|di|da|St\.?)\s*[A-Za-z.'’-]+)?),\s*([A-Za-z.'’-]+(?:\s+[A-Za-z.'’-]+){0,2})$/);
+  if (inverted) raw = `${inverted[2]!.trim()} ${inverted[1]!.trim()}`;
+  if (raw.includes(",")) return null;
+
+  if (!NAME_SHAPE.test(raw)) return null;
   return raw;
 }
-
 
 function splitCells(line: string): string[] {
   const trimmed = line.trim();
@@ -271,11 +314,13 @@ function parseCards(lines: string[]): PlayerRow[] {
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
     // Either a bare number on its own line, or a labelled one ("Jersey Number 12").
-    const labelled = line.match(/^(?:jersey(?:\s+number)?|no\.?|number)\s*#?\s*(\d{1,2})$/i);
+    const labelled = line.match(/^(?:jersey(?:\s+number)?|no\.?|number)\s*#?\s*(\d{1,3})$/i);
     const number = labelled ? labelled[1]! : jerseyNumber(line);
     if (number === null) continue;
-    const name = personName(lines[index + 1] ?? "");
-    if (!name || FURNITURE.test(name) || STAFF_TITLE.test(name)) continue;
+    const nameLine = lines[index + 1] ?? "";
+    const name = personName(nameLine);
+    // Judge the ROW, not the surname.
+    if (!name || rowIsFurniture(nameLine) || STAFF_TITLE.test(name)) continue;
 
     let position: string | null = null;
     let klass: string | null = null;
@@ -334,6 +379,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const seasons: string[] = [];
   const seenSports = new Set<string>();
   let rowsConsidered = 0;
+  let hometownColumn = -1;
 
   for (const line of lines) {
     for (const match of line.matchAll(/\b(20\d{2})\s?[-–]\s?(\d{2})\b|\b(20\d{2})\s+(baseball|softball)\s+roster\b/gi)) {
@@ -346,6 +392,8 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
 
     const cells = splitCells(line);
     if (cells.length < 2 || SEPARATOR.test(line)) continue;
+    const headerHometown = cells.findIndex((cell) => COLUMN_WORDS[5]![1].test(cell));
+    if (headerHometown >= 0) hometownColumn = headerHometown;
 
     let name: string | null = null;
     let number: string | null = null;
@@ -355,7 +403,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     let weight: string | null = null;
     let hometown: string | null = null;
 
-    for (const cell of cells) {
+    for (const [cellIndex, cell] of cells.entries()) {
       if (!cell) continue;
       if (!number) {
         const jersey = jerseyNumber(cell);
@@ -390,7 +438,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
         }
       }
       if (!hometown) {
-        const town = hometownValue(cell);
+        const town = hometownValue(cell, { inHometownColumn: cellIndex === hometownColumn });
         if (town) {
           hometown = town;
           continue;
@@ -405,7 +453,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     if (!name) continue;
     rowsConsidered += 1;
 
-    if (FURNITURE.test(name) || STAFF_TITLE.test(name)) {
+    if (rowIsFurniture(line) || STAFF_TITLE.test(name)) {
       furniture.push(name);
       continue;
     }
@@ -453,7 +501,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const withHometown = players.filter((p) => p.hometown).length;
 
   const wanted = String(sport ?? "").toLowerCase();
-  const otherSports = [...seenSports].filter((s) => s !== wanted && (s === "baseball" || s === "softball" || true));
+  const otherSports = [...seenSports].filter((s) => s !== wanted);
 
   const flags: string[] = [];
   const considered = rowsConsidered || 1;
