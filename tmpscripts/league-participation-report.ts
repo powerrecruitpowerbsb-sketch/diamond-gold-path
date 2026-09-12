@@ -222,7 +222,7 @@ const cache = new Map<string, Result>();
  *  - fallback: the school has no program of this sport at all (its slot may be
  *    missing) and sits in the state the listing points at.
  */
-function pools(row: CsvRow): { primary: School[]; fallback: School[] } {
+function pools(row: CsvRow): { primary: School[]; fallback: School[]; conflict: School[] } {
   const states = row.state ? [row.state] : (LEAGUE_STATES[row.gb] ?? []);
   const inStates = (s: School) =>
     states.length === 0 ? true : states.some((code) => sameState(s.state, code));
@@ -231,11 +231,18 @@ function pools(row: CsvRow): { primary: School[]; fallback: School[] } {
   const fallback = schools.filter(
     (s) => !programOf.has(`${s.id}::${row.sport}`) && inStates(s),
   );
-  return { primary, fallback };
+  // Explains a refusal only: the school holds this sport under a DIFFERENT body.
+  const conflict = schools.filter(
+    (s) =>
+      programOf.has(`${s.id}::${row.sport}`) &&
+      !holdsSportUnder(s.id, row.sport, row.gb) &&
+      inStates(s),
+  );
+  return { primary, fallback, conflict };
 }
 
 function resolve(row: CsvRow): Result {
-  const { primary, fallback } = pools(row);
+  const { primary, fallback, conflict } = pools(row);
   const allowed = new Set([...primary, ...fallback].map((s) => s.id));
 
   // 1. Federal ID — same governing-body and state filter as every other path.
@@ -277,6 +284,19 @@ function resolve(row: CsvRow): Result {
       };
     if (r.method === "ambiguous")
       return { school: null, how: `${r.how} (${label})`, method: "ambiguous", candidates: r.candidates };
+  }
+
+  // 3. Nothing assignable — but say so precisely when the school IS on file and
+  //    simply carries this sport under another governing body.
+  const c = resolveByName(row.name, conflict);
+  if (c.school) {
+    const held = programOf.get(`${c.school.id}::${row.sport}`)!;
+    return {
+      school: null,
+      how: `school on file as ${held.gb || "no governing body"} for ${row.sport} — league says ${row.gb}`,
+      method: "governing body disagreement",
+      candidates: [c.school],
+    };
   }
   return { school: null, how: "no name match", method: "no match", candidates: [] };
 }
