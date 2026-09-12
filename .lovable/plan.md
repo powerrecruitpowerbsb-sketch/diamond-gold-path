@@ -9,19 +9,24 @@ I verified against the code rather than the notes. Current state of the roster r
 
 One consequence worth naming: the search screen already offers state and transfer as filters, and reads those exact fields, so today those filters have nothing to work with for anything the reader collected.
 
-(An older path that asks an AI model to read a page does fill state and transfer flags. The structural reader — the one the crawl will use — does not.)
-
 ## What I would build
 
 1. **Split the hometown into town, state and country.** Handle "Tampa, FL", newspaper style ("Tampa, Fla."), full state names, Canadian provinces, and a bare town under a hometown column. Puerto Rico and other US territories count as US. When the tail names a country, set the country and leave the state empty. Never guess: an unrecognised tail stays part of the town text.
 2. **Read transfer signals.** Use previous-school / last-school columns and "TR" style class cells. Mark a junior-college transfer only when the named previous school matches a two-year school on our own list; otherwise a named four-year school is a plain transfer. No named school means no flag.
-3. **Group positions.** Keep the page's own label, and add a derived group so middle infield (2B, SS) and corner infield (1B, 3B) are searchable. Outfield stays one group — not split into left/centre/right.
+3. **Group positions, from the stored value only.** The page's wording is first normalised to our stored position value; the group is then derived from that stored value, never from the page's words. So a page printing "MIF" and a page printing "SS" both end up in middle infield. Middle infield = 2B + SS, corner infield = 1B + 3B, and outfield stays a single bucket — never split into left/centre/right.
 4. **Report published vs captured, per field.** Extend the existing "did the page publish this column" reporting to cover state, country and transfers, so a blank is always attributable either to the page or to us.
-5. **Prove it on the saved pages.** Run items 1-3 against the four saved real pages already in the project and report, per page, what the page publishes versus what we now capture. New tests for each rule; existing player counts must not drop.
+5. **Prove it on the saved pages.** Run items 1-3 against the four saved real pages and report, per page and per field, what the page publishes versus what we capture — hometown split into town/state/country, country, both transfer flags, and the position group each player lands in. New tests for each rule; existing player counts must not drop.
+6. **Report on the second reader (no deletion).** Where it lives, what calls it, whether anything still runs it, and whether it can reach player rows without the source-page and domain checks. What I have found so far, to be confirmed and written up in full:
+   - It is the AI-model page reader in `src/lib/ingest.server.ts` (`extractRoster`, used by `ingestProgram`).
+   - It is reached from the admin ingest panel, from the unattended collection loop, and from the roster re-check pass.
+   - It does not write player rows directly: it files one whole-roster item for review, which is applied through the same guarded path as everything else, so the source-page and domain checks do apply on that route.
+   - Two things still to pin down and report: it writes a roster summary row straight to the database before review, with no domain check; and some proposals are marked for automatic application, so I need to confirm whether a roster can be applied without a person looking at it.
 
 ## Technical notes
 
-- All changes in `src/lib/roster-extract.ts` plus a new town/state/country splitter with its own tests; `parseRoster` gains `home_state`, `home_country`, `is_transfer`, `is_juco_transfer`, `previous_school`, and a derived `position_group`.
-- Write path: `replaceRoster` in `src/lib/review.server.ts` already writes `home_state`, `is_transfer`, `is_juco_transfer`; it will pass the new values through. `home_country` already exists on `roster_players`. Position grouping is derived at query time from the stored position — no new column, no enum change, so no migration.
+- All changes in `src/lib/roster-extract.ts` plus a new town/state/country splitter with its own tests; `parseRoster` gains `home_state`, `home_country`, `is_transfer`, `is_juco_transfer`, `previous_school`.
+- Position group is derived from the stored `player_position` enum value (a pure mapping, applied after position normalisation), not from raw page text: `2B`/`SS` → middle infield, `1B`/`3B` → corner infield, `OF` → outfield as one bucket, pitchers/catcher/util unchanged. No new column and no enum change, so no migration.
+- Write path: `replaceRoster` in `src/lib/review.server.ts` already writes `home_state`, `is_transfer`, `is_juco_transfer`; it will pass the new values through. `home_country` already exists on `roster_players`.
 - The junior-college test uses our own `universities` rows (two-year federal flag / NJCAA-CCCAA-NWAC governing body) rather than a keyword list.
+- Second-reader report covers `ingest.server.ts` (`extractRoster`, `ingestProgram`, the `roster_snapshots` insert, `isAutoApplicable`), its callers `ingest.functions.ts`, `collection.server.ts`, `roster-recheck.server.ts`, and the apply path `review.server.ts:191 applyRosterProposal` → `replaceRoster`.
 - Report only until you approve; no crawl, no writes to player rows.
