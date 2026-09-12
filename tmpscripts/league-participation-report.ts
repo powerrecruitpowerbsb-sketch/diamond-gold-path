@@ -32,6 +32,7 @@ import {
   normalizeName,
   resolveByName,
   sameState,
+  significantWords,
   stateCode,
   STATE_CODES,
   STATE_NAMES,
