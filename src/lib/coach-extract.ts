@@ -235,10 +235,9 @@ export function extractCoaches(
   const body = String(text ?? "");
   const { kind } = classifyStaffPage({ url: options.url, text: body, sport: wanted });
 
-  const lines = body
-    .split("\n")
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+  // Blank lines are kept: they are the card/block boundaries the neighbour-line
+  // fallback needs, so a nav item three blocks away can't become a coach.
+  const all = body.split("\n").map((line) => line.replace(/\s+/g, " ").trim());
 
   const coaches: CoachRow[] = [];
   const otherSportRows: CoachShape["otherSportRows"] = [];
@@ -247,14 +246,19 @@ export function extractCoaches(
   let titles = 0;
   let currentSection: string | null = null;
 
+  const headAmbiguity: CoachShape["headAmbiguity"] = [];
+
   const push = (
     name: string,
-    title: string,
+    found: { title: string; email: string | null; phone: string | null },
     sportOnPage: string | null,
     attribution: SportAttribution | null,
   ) => {
+    let title = found.title;
     // Cell text often repeats the person's name before the job.
     title = title.replace(new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s,–-]*`, "i"), "").trim() || title;
+    // A row whose name IS its title is not a person at all.
+    if (title.toLowerCase() === name.toLowerCase()) return;
     const key = `${name.toLowerCase()}|${title.toLowerCase()}`;
     if (seen.has(key)) return;
     seen.add(key);
@@ -270,14 +274,17 @@ export function extractCoaches(
     coaches.push({
       name,
       title,
-      isHead: HEAD_TITLE.test(title),
+      isHead: isHeadTitle(title),
+      email: found.email,
+      phone: found.phone,
       sportOnPage,
       attribution,
       sourceKind: kind,
     });
   };
 
-  lines.forEach((line, index) => {
+  all.forEach((line, index) => {
+    if (!line) return;
     const heading = sectionSport(line);
     if (heading) {
       currentSection = heading;
@@ -315,9 +322,17 @@ export function extractCoaches(
       }
     }
     if (!named) {
-      // Title on its own line: the person is usually the line before or after.
-      for (const candidate of [lines[index - 1], lines[index + 1]]) {
-        const name = candidate ? personName(candidate) : null;
+      // Title on its own line: the person is usually the line immediately
+      // before or after — but only within the same table row or card block.
+      // An empty line between them means a different block; a link, a nav item
+      // or another title is not a person. That is how "Skip To Main Content"
+      // and "All Videos" used to become coaches.
+      const isTableRow = line.includes("|");
+      for (const candidate of [all[index - 1], all[index + 1]]) {
+        if (!candidate) continue;
+        if (candidate.includes("|") !== isTableRow) continue;
+        if (navLike(candidate)) continue;
+        const name = personName(candidate);
         if (name) {
           push(name, rowTitle, sportOnPage, attribution);
           break;
@@ -326,11 +341,24 @@ export function extractCoaches(
     }
   });
 
-  const headCoach = coaches.find((coach) => coach.isHead) ?? null;
-  const assistants = coaches.filter((coach) => !coach.isHead);
+  // Page order alone used to decide this, so an associate listed above the head
+  // coach won. Prefer the plain, unqualified "Head Coach" title, and report any
+  // remaining contest instead of guessing.
+  const heads = coaches.filter((coach) => coach.isHead);
+  const plain = heads.filter((coach) => PLAIN_HEAD.test(coach.title));
+  const shortlist = plain.length ? plain : heads;
+  if (heads.length > 1) {
+    for (const coach of heads) headAmbiguity.push({ name: coach.name, title: coach.title });
+  }
+  const headCoach = shortlist.length === 1 ? shortlist[0]! : null;
+  const assistants = coaches.filter((coach) => coach !== headCoach);
 
   let failure: string | null = null;
-  if (!headCoach) {
+  if (!headCoach && shortlist.length > 1) {
+    failure = `${shortlist.length} people on the page carry a head coach title (${shortlist
+      .map((coach) => `${coach.name} — ${coach.title}`)
+      .join("; ")}), so none can be stored`;
+  } else if (!headCoach) {
     failure = coaches.length
       ? `${coaches.length} ${wanted || "sport"} staff read but no head coach title among them`
       : otherSportRows.length
@@ -343,6 +371,7 @@ export function extractCoaches(
   return {
     headCoach,
     assistants,
+    headAmbiguity,
     coaches,
     pageKind: kind,
     otherSportRows,
