@@ -331,14 +331,35 @@ const matched: unknown[][] = [
   ["school_on_file", "school_id", "federal_id", "state", "sport", "csv_division", "stored_division", "change", "program_id", "matched_how"],
 ];
 const noProgram: unknown[][] = [["csv_school", "matched_school_on_file", "school_id", "state", "sport", "csv_division", "matched_how"]];
-const noSchool: unknown[][] = [["csv_school", "state_hint", "sport", "csv_division", "reason"]];
+const noSchool: unknown[][] = [
+  ["csv_school", "state_hint", "sport", "csv_division", "reason",
+   "federal_candidate_id", "federal_candidate_name", "federal_candidate_state", "held_on_file"],
+];
+
+/** For an unmatched list name, does the federal directory know the school? */
+function federalCandidate(row: CsvRow) {
+  const t = tokens(row.name);
+  const pool = row.state ? fedRows.filter((f) => f.state === row.state) : fedRows;
+  const hits = pool
+    .map((f) => ({ f, score: containment(t, f.tokens) }))
+    .filter((c) => c.score >= 0.85 && c.f.tokens.some((x) => t.includes(x)))
+    .sort((a, b) => b.score - a.score || a.f.tokens.length - b.f.tokens.length);
+  const top = hits[0];
+  if (!top || (hits[1] && hits[1].score === top.score)) return null;
+  return top.f;
+}
 
 const claimed = new Set<string>(); // program ids the NJCAA does list
 
 for (const row of csvRows) {
   const { school, how } = bestSchool(row);
   if (!school) {
-    noSchool.push([row.name, row.state ?? "", row.sport, row.division, how]);
+    const fed = federalCandidate(row);
+    noSchool.push([
+      row.raw, row.state ?? "", row.sport, row.division, how,
+      fed?.unitid ?? "", fed?.name ?? "", fed?.state ?? "",
+      fed ? (schoolByUnitid.has(fed.unitid) ? "yes" : "no") : "",
+    ]);
     continue;
   }
   const prog = programs.find((p) => p.schoolId === school.id && p.sport === row.sport);
