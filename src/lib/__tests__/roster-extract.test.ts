@@ -290,3 +290,21 @@ describe("jersey numbers and hometowns", () => {
     expect(shape.players[0]?.hometown).toBe("Osaka");
   });
 });
+
+describe("column labels are not players", () => {
+  it("refuses a header row that ran into the first data row", () => {
+    const shape = parseRoster(
+      "Image | # | Name | Pos. | Ht. | Wt. | Cl. | Hometown | High School | Previous School\n| 0 |\nJackson Davis\n| INF | R/R | 5-7 | 150 | So. | Atlanta, Ga. | The Walker School |",
+      "baseball",
+    );
+    expect(shape.players.map((p) => p.name)).toEqual(["Jackson Davis"]);
+  });
+
+  it("refuses a label cell wherever it appears", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. |\n| --- | --- | --- |\n| 3 | Jake Hall | INF |\n| | Full Name | |\n| | Previous School | |",
+      "baseball",
+    );
+    expect(shape.players.map((p) => p.name)).toEqual(["Jake Hall"]);
+  });
+});
