@@ -1,21 +1,13 @@
-# Power Recruit build roadmap
+# Power Recruit roadmap
 
-## Now
-- [x] Export the list of wrong pages cleared in the page check (`/mnt/documents/wrong-pages-cleared.csv`)
-- [x] Record every page that can't be read (new `unreadable_pages` record) instead of only counting it
-- [x] Re-read the stored pages so the unreadable ones are named, then export `/mnt/documents/unreadable-pages.csv` (170 pages still unreadable)
+## Done (this round)
+- Roster/coach provenance: source page, domain, read time, run id on every player row and coach name; roster and coach writes refused without a source page, or when the domain belongs to another school (logged to roster_write_refusals).
+- Provenance sweep: 87 rosters from another school's domain (2,530 players), 209 with no traceable source.
+- Duplicate-squad sweep + cluster resolution applied: 84 wrong-school rosters removed, 2,298 players, run 665eac0c-340a-4df0-aeca-34eafed8649f.
+- Name matcher: league shorthand ("Everett", "Modesto", "Loyola (La.)") now matches when only one school in the pool answers to it; sibling shorthand still refused. Both league passes re-issued.
+- Coverage measurement on 100 stratified programs.
 
-## Next
-- [ ] Step 2: finish rosters (drain pending/stuck roster work)
-- [ ] Step 3: coach pilot — 25 hand-checked programs; broad coach auto-fill stays off until the self-check passes
-- [ ] Step 4: close out leftovers (unconfirmed sponsorship, remaining found pages and proposed changes)
-- [ ] Schedule refreshes (rosters twice a year, school facts yearly) and weekly accuracy samples
-
-## Roster extractor fixes (2026-09-12, report only)
-- [ ] FURNITURE regex: \b on both sides; never run against a player name, judge the row's origin (link/heading/story); same in parseCards
-- [ ] Report players dropped into the furniture bucket across the database, with names
-- [ ] Accept "Last, First" / "Last, First Middle", normalize to "First Last"
-- [ ] jerseyNumber: accept 0-3 digits
-- [ ] hometownValue: accept comma-less town under a hometown column
-- [ ] Remove dead `|| true` clause
-- [ ] Re-run 20-school extraction; report per-program player gains
+## Open
+- Decide on the 87 provenance wrong-school rosters (report only so far) and the 209 untraceable ones.
+- Apply the re-issued league pass (556 matched, 149 proposed not_offered) — awaiting go-ahead.
+- Coach extraction only names a head coach on 16% of sampled programs; 36% of coach addresses are 404 and 15% blocked.
