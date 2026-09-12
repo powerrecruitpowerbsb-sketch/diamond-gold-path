@@ -1,0 +1,1 @@
+ALTER VIEW public.active_universities SET (security_invoker = on);
