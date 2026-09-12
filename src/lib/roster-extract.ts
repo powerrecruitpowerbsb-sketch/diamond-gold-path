@@ -418,9 +418,28 @@ function parseCards(lines: string[]): PlayerRow[] {
     let height: string | null = null;
     let weight: string | null = null;
     let hometown: string | null = null;
+    let bats: string | null = null;
+    let throwsHand: string | null = null;
 
     for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
       const next = lines[ahead]!;
+      // "Bats/Throws R/L", "B/T: S/R", or a bare "R/R" line on a card.
+      const combined = next.match(/(?:bats\s*[/-]\s*throws|b\s*[/-]\s*t)\s*:?\s*([LRSB])\s*[/-]\s*([LR])\b/i);
+      const bare = batsThrowsCell(next);
+      if (combined) {
+        bats = bats ?? batsSide(combined[1]!);
+        throwsHand = throwsHand ?? throwsSide(combined[2]!);
+        continue;
+      }
+      if (bare) {
+        bats = bats ?? bare.bats;
+        throwsHand = throwsHand ?? bare.throws;
+        continue;
+      }
+      const labelBats = next.match(/\bbats\s*:?\s*([LRSB])\b/i);
+      if (labelBats) bats = bats ?? batsSide(labelBats[1]!);
+      const labelThrows = next.match(/\bthrows\s*:?\s*([LR])\b/i);
+      if (labelThrows) throwsHand = throwsHand ?? throwsSide(labelThrows[1]!);
       if (POSITION_WORDS.test(next)) {
         position = position ?? next.toUpperCase();
         continue;
