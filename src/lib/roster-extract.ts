@@ -716,6 +716,8 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       withClass,
       withHeightWeight,
       withHometown,
+      withBats,
+      withThrows,
       bareNames: bareNames.length,
       furniture: furniture.length,
       duplicates: duplicates.length,
