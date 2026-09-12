@@ -11,6 +11,10 @@
  * one of jersey number, position or class year. A bare name is not a player.
  */
 
+import { splitHometown } from "./hometown-split";
+
+
+
 export type PlayerRow = {
   name: string;
   number: string | null;
@@ -830,6 +834,11 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       withClass,
       withHeightWeight,
       withHometown,
+      withState,
+      withCountry,
+      withTransfer,
+      withJucoTransfer,
+      withPreviousSchool,
       withBats,
       withThrows,
       bareNames: bareNames.length,
