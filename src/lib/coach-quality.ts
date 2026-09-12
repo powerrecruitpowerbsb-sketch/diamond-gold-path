@@ -17,39 +17,9 @@ import {
   newsPath,
   wrongSportPath,
 } from "@/lib/link-quality";
+import { hasNonPersonWord } from "@/lib/person-words";
 
 export const COACH_FIELDS = new Set(["head_coach_name", "recruiting_coordinator_name"]);
-
-/** Words that mean we read a title, a department or a placeholder — not a person. */
-const NOT_A_PERSON = [
-  "coach",
-  "staff",
-  "director",
-  "athletic",
-  "athletics",
-  "department",
-  "vacant",
-  "tba",
-  "tbd",
-  "interim",
-  "position",
-  "open",
-  "unknown",
-  "n/a",
-  "none",
-  "assistant",
-  "coordinator",
-  "university",
-  "college",
-  "baseball",
-  "softball",
-  "contact",
-  "email",
-  "phone",
-  "twitter",
-  "roster",
-  "schedule",
-];
 
 /**
  * Does this read like a real person's name? Two to four words, letters only,
@@ -69,8 +39,9 @@ export function coachNameSane(value: unknown): { ok: boolean; reason: string | n
   if (words.length < 2 || words.length > 5) {
     return { ok: false, reason: "a head coach name should be a first and last name" };
   }
-  const lowered = raw.toLowerCase();
-  if (NOT_A_PERSON.some((word) => new RegExp(`(^|[^a-z])${word}([^a-z]|$)`).test(lowered))) {
+  // "Interim" is deliberately not a name word: an interim head coach is a real
+  // person, and the word belongs to the title. It is handled there.
+  if (hasNonPersonWord(raw)) {
     return { ok: false, reason: "that reads like a job title or a department, not a person" };
   }
   // "JOHN SMITH BASEBALL HEAD COACH" style headings are caught above; an
@@ -158,7 +129,8 @@ export function headCoachStated(pageText: string | null | undefined, value: unkn
   if (!text || name.length < 4) return false;
 
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const title = /head\s+(baseball\s+|softball\s+|women'?s\s+|men'?s\s+)?coach/i;
+  // Interim counts; associate and assistant heads do not.
+  const title = /\b(?<!associate\s)(?<!assistant\s)(interim\s+)?head\s+(baseball\s+|softball\s+|women'?s\s+|men'?s\s+)?coach/i;
   const nameHits = [...text.matchAll(new RegExp(escaped, "gi"))];
   if (!nameHits.length) return false;
 

@@ -194,3 +194,16 @@ describe("rejected value memory", () => {
     expect(one).not.toBe(two);
   });
 });
+
+describe("interim head coaches", () => {
+  it("accepts the person's name and leaves 'interim' to the title", () => {
+    expect(coachNameSane("Mary Lane").ok).toBe(true);
+    const verdict = coachEvidenceVerdict({
+      value: "Mary Lane",
+      sourceUrl: "https://ucfknights.com/sports/baseball/coaches",
+      pageText: "Baseball Coaches\nMary Lane Interim Head Coach",
+      ...ucf,
+    });
+    expect(verdict.ok).toBe(true);
+  });
+});

@@ -167,3 +167,126 @@ describe("sport-specific staff pages", () => {
     );
   });
 });
+
+describe("page furniture is never a coach", () => {
+  it("refuses a consent-banner row", () => {
+    const shape = extractCoaches(
+      "| Close consent manager | Head Coach |\n| Rich Wallace | Head Coach |",
+      "baseball",
+      { url: "https://ucfknights.com/sports/baseball/coaches" },
+    );
+    expect(shape.coaches.map((c) => c.name)).toEqual(["Rich Wallace"]);
+    expect(shape.headCoach?.name).toBe("Rich Wallace");
+  });
+
+  it("refuses a nav link sitting next to a bare title", () => {
+    const shape = extractCoaches(
+      "[Skip To Main Content](/#main)\n\nHead Coach\n\n[All Videos](/videos)",
+      "baseball",
+      { url: "https://x.edu/sports/baseball/coaches" },
+    );
+    expect(shape.coaches).toHaveLength(0);
+  });
+
+  it("keeps a real name on the line above a bare title in the same block", () => {
+    const shape = extractCoaches("Rich Wallace\nHead Coach", "baseball", {
+      url: "https://ucfknights.com/sports/baseball/coaches",
+    });
+    expect(shape.headCoach?.name).toBe("Rich Wallace");
+  });
+});
+
+describe("titles, emails and phone numbers", () => {
+  it("keeps the email out of the title and stores it as its own field", () => {
+    const shape = extractCoaches("| Hannah Smith | Head Coach hannahsm@usf.edu (813) 974-1000 |", "softball", {
+      url: "https://gousfbulls.com/sports/softball/coaches",
+    });
+    expect(shape.headCoach?.title).toBe("Head Coach");
+    expect(shape.headCoach?.email).toBe("hannahsm@usf.edu");
+    expect(shape.headCoach?.phone).toBe("(813) 974-1000");
+  });
+});
+
+describe("who is actually the head coach", () => {
+  it("does not promote an associate head coach listed above the head coach", () => {
+    const shape = extractCoaches(
+      "| Norberto Lopez | Associate Head Coach |\n| Rich Wallace | Head Coach |",
+      "baseball",
+      { url: "https://ucfknights.com/sports/baseball/coaches" },
+    );
+    expect(shape.headCoach?.name).toBe("Rich Wallace");
+    expect(shape.assistants.map((c) => c.name)).toContain("Norberto Lopez");
+    expect(shape.headAmbiguity).toHaveLength(0);
+  });
+
+  it("accepts an interim head coach", () => {
+    const shape = extractCoaches("| Mary Lane | Interim Head Coach |", "softball", {
+      url: "https://x.edu/sports/softball/coaches",
+    });
+    expect(shape.headCoach?.name).toBe("Mary Lane");
+  });
+
+  it("reports the ambiguity rather than guessing between two plain head coaches", () => {
+    const shape = extractCoaches(
+      "| Rich Wallace | Head Coach |\n| Norberto Lopez | Head Coach |",
+      "baseball",
+      { url: "https://ucfknights.com/sports/baseball/coaches" },
+    );
+    expect(shape.headCoach).toBeNull();
+    expect(shape.headAmbiguity.map((c) => c.name)).toEqual(["Rich Wallace", "Norberto Lopez"]);
+    expect(shape.failure).toMatch(/head coach title/i);
+  });
+});
+
+describe("surnames are not page furniture", () => {
+  const surnames = [
+    "Hall", "Marshall", "Small", "Wall", "Ball", "Randall",
+    "Kendall", "Crandall", "Whitmore", "Sizemore", "Newsome", "Storey",
+  ];
+
+  it("keeps players whose surname contains a furniture word", () => {
+    const rows = surnames.map((last, i) => `| ${i + 1} | Jake ${last} | INF | Jr. |`).join("\n");
+    const shape = parseRoster(`| No. | Name | Pos. | Cl. |\n| --- | --- | --- | --- |\n${rows}`, "baseball");
+    expect(shape.players).toHaveLength(surnames.length);
+    expect(shape.furniture).toHaveLength(0);
+    for (const last of surnames) {
+      expect(shape.players.map((p) => p.name)).toContain(`Jake ${last}`);
+    }
+  });
+
+  it("still drops a navigation row", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. |\n| --- | --- | --- |\n| 3 | Jake Hall | INF |\n- [Full Schedule](/schedule)\n| | [Composite Schedule](/composite) | |",
+      "baseball",
+    );
+    expect(shape.players.map((p) => p.name)).toEqual(["Jake Hall"]);
+  });
+});
+
+describe("rosters printed Last, First", () => {
+  it("reads them and normalises to First Last", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. | Cl. |\n| --- | --- | --- | --- |\n| 12 | Smith, John | RHP | Sr. |\n| 5 | O'Brien, Pat | C | Fr. |",
+      "baseball",
+    );
+    expect(shape.players.map((p) => p.name)).toEqual(["John Smith", "Pat O'Brien"]);
+  });
+});
+
+describe("jersey numbers and hometowns", () => {
+  it("accepts a three-digit jersey number", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. |\n| --- | --- | --- |\n| 100 | Jake Hall | INF |\n| 0 | Ty Moore | OF |",
+      "baseball",
+    );
+    expect(shape.players.map((p) => p.number)).toEqual(["100", "0"]);
+  });
+
+  it("accepts a hometown with no state when it sits under the hometown column", () => {
+    const shape = parseRoster(
+      "| No. | Name | Pos. | Hometown |\n| --- | --- | --- | --- |\n| 7 | Kenji Tanaka | RHP | Osaka |",
+      "baseball",
+    );
+    expect(shape.players[0]?.hometown).toBe("Osaka");
+  });
+});

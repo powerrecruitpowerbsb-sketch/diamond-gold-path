@@ -20,7 +20,7 @@ import { safeFetch, setProtectedHosts } from "@/lib/safe-fetch.server";
 
 const OUT = "/mnt/documents";
 const STATE = "/tmp/step3-state.json";
-const PASS = "2026-09-12-sport-scoped-5";
+const PASS = "2026-09-12-name-guards-2";
 const budgetMs = Number(process.argv[process.argv.indexOf("--budget") + 1]) * 1000 || 500_000;
 const startedAt = Date.now();
 
@@ -246,8 +246,14 @@ for (const program of (programs ?? []) as any[]) {
         for (const coach of shape.coaches) {
           record.coaches.push([
             school.name, program.sport, coach.name, coach.title, coach.isHead ? "head coach" : "",
+            coach.email ?? "", coach.phone ?? "",
             coach.sportOnPage, coach.attribution, shape.pageKind, url,
           ]);
+        }
+        if (shape.headAmbiguity.length) {
+          record.note += ` [more than one head coach title: ${shape.headAmbiguity
+            .map((c) => `${c.name} — ${c.title}`)
+            .join("; ")}]`;
         }
         if (!shape.headCoach) {
           record.note += ` [page kind: ${shape.pageKind} — ${pageKind.reason}; other-sport rows ${shape.counts.otherSport}; unattributed ${shape.counts.unattributed}]`;
@@ -270,7 +276,7 @@ write("step3-players.csv", [
   ...records.flatMap((r) => r.players),
 ]);
 write("step3-coaches.csv", [
-  ["school", "sport", "coach", "title", "head coach", "sport assigned on page", "how assigned", "page kind", "source URL"],
+  ["school", "sport", "coach", "title", "head coach", "email", "phone", "sport assigned on page", "how assigned", "page kind", "source URL"],
   ...records.flatMap((r) => r.coaches),
 ]);
 write("step3-columns.csv", [
