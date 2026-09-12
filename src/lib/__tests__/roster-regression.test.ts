@@ -31,7 +31,12 @@ const countFor = (school: string, sport: string) =>
   baseline.programs.find((p) => p.school === school && p.sport === sport)?.players ?? 0;
 
 /** school|sport → why a drop below the 10% band is expected. Empty by design. */
-const DELIBERATE_DROPS: Record<string, string> = {};
+const DELIBERATE_DROPS: Record<string, string> = {
+  "Eckerd College|baseball":
+    "52 -> 51 on 2026-09-12: the header row ran into the first data row and 'High School' was " +
+    "counted as a player. Column labels are now refused.",
+};
+
 
 const TOLERANCE = 0.9;
 
