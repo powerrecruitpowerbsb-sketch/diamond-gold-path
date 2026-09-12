@@ -167,3 +167,73 @@ describe("sport-specific staff pages", () => {
     );
   });
 });
+
+describe("page furniture is never a coach", () => {
+  it("refuses a consent-banner row", () => {
+    const shape = extractCoaches(
+      "| Close consent manager | Head Coach |\n| Rich Wallace | Head Coach |",
+      "baseball",
+      { url: "https://ucfknights.com/sports/baseball/coaches" },
+    );
+    expect(shape.coaches.map((c) => c.name)).toEqual(["Rich Wallace"]);
+    expect(shape.headCoach?.name).toBe("Rich Wallace");
+  });
+
+  it("refuses a nav link sitting next to a bare title", () => {
+    const shape = extractCoaches(
+      "[Skip To Main Content](/#main)\n\nHead Coach\n\n[All Videos](/videos)",
+      "baseball",
+      { url: "https://x.edu/sports/baseball/coaches" },
+    );
+    expect(shape.coaches).toHaveLength(0);
+  });
+
+  it("keeps a real name on the line above a bare title in the same block", () => {
+    const shape = extractCoaches("Rich Wallace\nHead Coach", "baseball", {
+      url: "https://ucfknights.com/sports/baseball/coaches",
+    });
+    expect(shape.headCoach?.name).toBe("Rich Wallace");
+  });
+});
+
+describe("titles, emails and phone numbers", () => {
+  it("keeps the email out of the title and stores it as its own field", () => {
+    const shape = extractCoaches("| Hannah Smith | Head Coach hannahsm@usf.edu (813) 974-1000 |", "softball", {
+      url: "https://gousfbulls.com/sports/softball/coaches",
+    });
+    expect(shape.headCoach?.title).toBe("Head Coach");
+    expect(shape.headCoach?.email).toBe("hannahsm@usf.edu");
+    expect(shape.headCoach?.phone).toBe("(813) 974-1000");
+  });
+});
+
+describe("who is actually the head coach", () => {
+  it("does not promote an associate head coach listed above the head coach", () => {
+    const shape = extractCoaches(
+      "| Norberto Lopez | Associate Head Coach |\n| Rich Wallace | Head Coach |",
+      "baseball",
+      { url: "https://ucfknights.com/sports/baseball/coaches" },
+    );
+    expect(shape.headCoach?.name).toBe("Rich Wallace");
+    expect(shape.assistants.map((c) => c.name)).toContain("Norberto Lopez");
+    expect(shape.headAmbiguity).toHaveLength(0);
+  });
+
+  it("accepts an interim head coach", () => {
+    const shape = extractCoaches("| Mary Lane | Interim Head Coach |", "softball", {
+      url: "https://x.edu/sports/softball/coaches",
+    });
+    expect(shape.headCoach?.name).toBe("Mary Lane");
+  });
+
+  it("reports the ambiguity rather than guessing between two plain head coaches", () => {
+    const shape = extractCoaches(
+      "| Rich Wallace | Head Coach |\n| Norberto Lopez | Head Coach |",
+      "baseball",
+      { url: "https://ucfknights.com/sports/baseball/coaches" },
+    );
+    expect(shape.headCoach).toBeNull();
+    expect(shape.headAmbiguity.map((c) => c.name)).toEqual(["Rich Wallace", "Norberto Lopez"]);
+    expect(shape.failure).toMatch(/head coach title/i);
+  });
+});
