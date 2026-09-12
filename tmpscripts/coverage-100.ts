@@ -63,6 +63,9 @@ type Result = Prog & {
   rosterOutcome: string; coachOutcome: string;
   players: number; coaches: number; headCoach: string;
   attributes: Record<string, string>;
+  attributeGaps: string;
+  staffTitles: string;
+  headFailure: string;
   usableRoster: boolean;
 };
 
@@ -140,7 +143,7 @@ for (const p of sample) {
 
   const result: Result = {
     ...p, rosterOutcome: "", coachOutcome: "", players: 0, coaches: 0,
-    headCoach: "", attributes: {}, usableRoster: false,
+    headCoach: "", attributes: {}, attributeGaps: "", staffTitles: "", headFailure: "", usableRoster: false,
   };
 
   /* roster */
@@ -155,11 +158,16 @@ for (const p of sample) {
     if (rosterRead.ok && text) {
       const shape = parseRoster(text, p.sport);
       result.players = shape.players.length;
-      result.usableRoster = shape.players.length >= 8 && !shape.parserDefects.length;
+      // A roster is usable when the SQUAD is sound: enough real players and no
+      // duplicated people. A missing height or weight column is an attribute
+      // gap, reported on its own, never grounds for throwing the squad away.
+      result.usableRoster = shape.players.length >= 8 && shape.duplicates.length === 0;
+      result.attributeGaps = shape.parserDefects.join(" ");
       for (const a of ATTRIBUTES) {
         const got = shape.players.filter((x) => x[a]).length;
         result.attributes[a] = got > 0 ? "published" : shape.columns[a] === "not_published" ? "not on the page" : "unknown";
       }
+
     } else {
       for (const a of ATTRIBUTES) result.attributes[a] = "not read";
     }
@@ -182,6 +190,10 @@ for (const p of sample) {
       const staff = extractCoaches(text, p.sport, { url: p.coach_url });
       result.coaches = staff.coaches.length;
       result.headCoach = staff.headCoach?.name ?? staff.coaches.find((c) => c.isHead)?.name ?? "";
+      // Keep the titles the page actually carried. Without them a "no head coach
+      // found" result cannot be diagnosed afterwards without re-reading the page.
+      result.staffTitles = staff.coaches.map((c) => `${c.name} — ${c.title}`).join(" | ");
+      result.headFailure = staff.failure ?? "";
     }
   }
   result.coachOutcome = outcomeOf(p.coach_url, coachRead);
@@ -200,11 +212,11 @@ writeFileSync(STATE, JSON.stringify({ pass: PASS, results }));
 write("coverage-100-programs.csv", [
   ["school", "state", "sport", "stratum", "program_id", "has_roster_address", "has_coach_address",
    "roster_outcome", "coach_outcome", "players_extracted", "usable_roster", "coaches_extracted",
-   "head_coach_found", "head_coach_name", ...ATTRIBUTES.map((a) => `attr_${a}`)],
+   "head_coach_found", "head_coach_name", "attribute_gaps", "staff_titles", "head_coach_failure", ...ATTRIBUTES.map((a) => `attr_${a}`)],
   ...results.map((r) => [
     r.school, r.state, r.sport, r.stratum, r.id, r.roster_url ? "yes" : "no", r.coach_url ? "yes" : "no",
     r.rosterOutcome, r.coachOutcome, r.players, r.usableRoster ? "yes" : "no", r.coaches,
-    r.headCoach ? "yes" : "no", r.headCoach, ...ATTRIBUTES.map((a) => r.attributes[a] ?? ""),
+    r.headCoach ? "yes" : "no", r.headCoach, r.attributeGaps, r.staffTitles, r.headFailure, ...ATTRIBUTES.map((a) => r.attributes[a] ?? ""),
   ]),
 ]);
 
