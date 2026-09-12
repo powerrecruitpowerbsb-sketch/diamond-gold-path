@@ -39,30 +39,56 @@ UPDATE public.universities u SET identity_basis = 'governing_body'
    AND EXISTS (SELECT 1 FROM public.programs p
                 WHERE p.university_id = u.id AND p.governing_body IS NOT NULL);
 
--- 2. Campus identity: several records may share one unitid, one per campus ----
+-- 2. Campus identity: several records may share one unitid ONLY when the campus
+--    has been registered in advance. Naming a campus is NOT sufficient.
+CREATE TABLE IF NOT EXISTS public.federal_id_campus_registry (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ipeds_unitid integer NOT NULL,
+  campus_name text NOT NULL,
+  note text,
+  approved_by uuid REFERENCES public.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (ipeds_unitid, campus_name)
+);
+GRANT SELECT ON public.federal_id_campus_registry TO authenticated;
+GRANT ALL ON public.federal_id_campus_registry TO service_role;
+ALTER TABLE public.federal_id_campus_registry ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "campus registry readable by authenticated"
+  ON public.federal_id_campus_registry FOR SELECT TO authenticated USING (true);
+CREATE POLICY "campus registry writable by superadmin"
+  ON public.federal_id_campus_registry FOR ALL TO authenticated
+  USING (is_superadmin()) WITH CHECK (is_superadmin());
+
 DROP INDEX IF EXISTS public.universities_ipeds_unitid_key;
 CREATE UNIQUE INDEX universities_unitid_campus_key
   ON public.universities (ipeds_unitid, coalesce(campus_name, ''))
   WHERE ipeds_unitid IS NOT NULL;
 
--- A record sharing a unitid must say so and must name its campus.
+-- A second record on one unitid must name its campus AND that exact campus must
+-- already be registered. A duplicate record cannot pass by inventing a name.
 CREATE OR REPLACE FUNCTION public.guard_campus_identity()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = public
 AS $$
-DECLARE siblings integer;
+DECLARE siblings integer; registered boolean;
 BEGIN
   IF NEW.ipeds_unitid IS NULL THEN RETURN NEW; END IF;
   SELECT count(*) INTO siblings FROM public.universities
-   WHERE ipeds_unitid = NEW.ipeds_unitid AND id <> NEW.id;
+   WHERE ipeds_unitid = NEW.ipeds_unitid AND id <> NEW.id AND retired_at IS NULL;
   IF siblings > 0 THEN
     IF coalesce(NEW.campus_name, '') = '' THEN
-      RAISE EXCEPTION 'unitid % is already held; a second record must set campus_name', NEW.ipeds_unitid;
+      RAISE EXCEPTION 'unitid % is already held; a second record must be a registered campus', NEW.ipeds_unitid;
     END IF;
-    IF NEW.identity_basis <> 'campus_of_federal_id' THEN
-      NEW.identity_basis := 'campus_of_federal_id';
+    SELECT EXISTS (SELECT 1 FROM public.federal_id_campus_registry r
+                    WHERE r.ipeds_unitid = NEW.ipeds_unitid
+                      AND lower(btrim(r.campus_name)) = lower(btrim(NEW.campus_name)))
+      INTO registered;
+    IF NOT registered THEN
+      RAISE EXCEPTION 'campus "%" is not registered for unitid % — register it deliberately or resolve the duplicate',
+        NEW.campus_name, NEW.ipeds_unitid;
     END IF;
+    NEW.identity_basis := 'campus_of_federal_id';
   END IF;
   RETURN NEW;
 END $$;
@@ -72,6 +98,7 @@ CREATE TRIGGER guard_campus_identity
   BEFORE INSERT OR UPDATE OF ipeds_unitid, campus_name, identity_basis
   ON public.universities FOR EACH ROW
   EXECUTE FUNCTION public.guard_campus_identity();
+
 
 -- Retirement is reversible in one operation: clear retired_at for the run id.
 CREATE INDEX IF NOT EXISTS universities_retired_idx
