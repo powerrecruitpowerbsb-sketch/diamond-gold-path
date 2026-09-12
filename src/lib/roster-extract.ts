@@ -193,6 +193,34 @@ function hometownValue(cell: string, options: { inHometownColumn?: boolean } = {
   return null;
 }
 
+/**
+ * Bats and throws. Pages print them three ways:
+ *   - one combined cell, bats first and throws second: "R/R", "L/R", "S/R", "B-R"
+ *   - two cells under Bats and Throws headers, a single letter each
+ *   - a labelled card line: "Bats/Throws R/L", "Bats: L  Throws: R"
+ * "B" (both) and "S" both mean a switch hitter and are stored as S. Throwing has
+ * no switch, so a second letter of S is refused rather than guessed at.
+ */
+const BATS_THROWS_CELL = /^([LRSB])\s*[/\\-]\s*([LR])$/i;
+
+function batsSide(value: string): string | null {
+  const letter = value.trim().toUpperCase();
+  if (letter === "B") return "S";
+  return /^[LRS]$/.test(letter) ? letter : null;
+}
+
+function throwsSide(value: string): string | null {
+  const letter = value.trim().toUpperCase();
+  return /^[LR]$/.test(letter) ? letter : null;
+}
+
+/** A combined bats/throws cell, or null when the cell is something else. */
+function batsThrowsCell(cell: string): { bats: string | null; throws: string | null } | null {
+  const match = cell.trim().match(BATS_THROWS_CELL);
+  if (!match) return null;
+  return { bats: batsSide(match[1]!), throws: throwsSide(match[2]!) };
+}
+
 const NAME_SHAPE = /^[A-Z][A-Za-z.'’-]*(\s+[A-Za-z.'’-]+){1,3}$/;
 
 /**
