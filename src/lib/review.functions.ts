@@ -449,9 +449,11 @@ export const listRosterSnapshots = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("roster_snapshots")
       .select(
-        "id, program_id, season_year, pulled_at, position_counts, class_year_counts, transfer_count, juco_transfer_count, source_url",
+        "id, program_id, season_year, pulled_at, position_counts, class_year_counts, transfer_count, juco_transfer_count, source_url, reader",
       )
       .eq("program_id", data.programId)
+      // A summary from a read that looked wrong is never shown as fact.
+      .eq("suspect", false)
       .order("pulled_at", { ascending: false })
       .limit(24);
     if (error) throw new Error(error.message);

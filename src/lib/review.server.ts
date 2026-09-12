@@ -113,6 +113,8 @@ export async function replaceRoster(
   payload: {
     program_id: string; season_year?: unknown; season_label?: unknown; players: any[];
     source_url: string; run_id?: string | null;
+    /** Which reader read the page: "structural" (tested) or "ai" (fallback). */
+    reader?: string | null;
   },
 ) {
   const players = Array.isArray(payload?.players) ? payload.players : null;
