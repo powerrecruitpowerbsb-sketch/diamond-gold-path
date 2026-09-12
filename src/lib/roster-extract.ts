@@ -508,6 +508,14 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     if (cells.length < 2 || SEPARATOR.test(line)) continue;
     const headerHometown = cells.findIndex((cell) => HOMETOWN_HEADER.test(cell));
     if (headerHometown >= 0) hometownColumn = headerHometown;
+    const headerBats = cells.findIndex((cell) => BATS_HEADER.test(cell));
+    if (headerBats >= 0) batsColumn = headerBats;
+    const headerThrows = cells.findIndex((cell) => THROWS_HEADER.test(cell));
+    if (headerThrows >= 0) throwsColumn = headerThrows;
+    if (cells.some((cell) => BATS_THROWS_HEADER.test(cell))) {
+      batsColumn = -1;
+      throwsColumn = -1;
+    }
 
     let name: string | null = null;
     let number: string | null = null;
@@ -516,9 +524,33 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     let height: string | null = null;
     let weight: string | null = null;
     let hometown: string | null = null;
+    let bats: string | null = null;
+    let throwsHand: string | null = null;
 
     for (const [cellIndex, cell] of cells.entries()) {
       if (!cell) continue;
+      // A combined "R/R" cell, wherever it sits — Stetson prints it under an
+      // unnamed "Custom Field 1" column, so this cannot wait on a header.
+      const hands = batsThrowsCell(cell);
+      if (hands && (!bats || !throwsHand)) {
+        bats = bats ?? hands.bats;
+        throwsHand = throwsHand ?? hands.throws;
+        continue;
+      }
+      if (cellIndex === batsColumn && !bats) {
+        const side = batsSide(cell);
+        if (side) {
+          bats = side;
+          continue;
+        }
+      }
+      if (cellIndex === throwsColumn && !throwsHand) {
+        const side = throwsSide(cell);
+        if (side) {
+          throwsHand = side;
+          continue;
+        }
+      }
       if (!number) {
         const jersey = jerseyNumber(cell);
         if (jersey !== null) {
