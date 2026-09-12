@@ -229,21 +229,102 @@ try {
 
 /* --------------------------------- match ---------------------------------- */
 
-function bestSchool(row: CsvRow): { school: School | null; how: string } {
-  const t = tokens(row.name);
-  const pool = row.state ? schools.filter((s) => s.state === row.state) : schools;
-  const exact = pool.filter((s) => norm(s.name) === norm(row.name));
-  if (exact.length === 1) return { school: exact[0]!, how: "exact name" };
-  if (exact.length > 1) return { school: null, how: `ambiguous: ${exact.length} exact-name records` };
+/**
+ * Federal directory, used to resolve an NJCAA list name to a federal ID first.
+ * Matching through the ID is stronger than any name comparison: the ID is what
+ * every school-to-record link in this database is supposed to be keyed to.
+ */
+type FedRow = { unitid: string; name: string; alias: string; state: string; tokens: string[] };
+const fedRows: FedRow[] = q(`
+  select unitid::text, name, coalesce(alias,''), coalesce(state,'')
+    from public.federal_directory`).map(([unitid, name, alias, state]) => ({
+  unitid: unitid!,
+  name: name!,
+  alias: alias!,
+  state: state!,
+  tokens: tokens(name!),
+}));
+const schoolByUnitid = new Map(schools.filter((s) => s.unitid).map((s) => [s.unitid, s]));
 
-  const scored = pool
-    .map((s) => ({ s, score: overlap(t, s.tokens) }))
-    .filter((c) => c.score >= 0.7)
-    .sort((a, b) => b.score - a.score);
-  if (!scored.length) return { school: null, how: "no candidate above threshold" };
-  if (scored.length > 1 && scored[1]!.score === scored[0]!.score)
-    return { school: null, how: `ambiguous: tie between ${scored[0]!.s.name} and ${scored[1]!.s.name}` };
-  return { school: scored[0]!.s, how: `token overlap ${scored[0]!.score.toFixed(2)}` };
+/** Does the school already have a program of this sport marked NJCAA? */
+const hasNjcaa = (schoolId: string, sport: string) =>
+  programs.some((p) => p.schoolId === schoolId && p.sport === sport && p.gb === "NJCAA");
+
+function pick(
+  candidates: { s: School; score: number }[],
+  row: CsvRow,
+): { school: School | null; how: string } {
+  if (!candidates.length) return { school: null, how: "no candidate above threshold" };
+  const top = candidates[0]!.score;
+  const tied = candidates.filter((c) => c.score === top);
+  if (tied.length === 1) return { school: tied[0]!.s, how: `name match ${top.toFixed(2)}` };
+
+  // A genuine tie on the name alone: prefer the record that already carries an
+  // NJCAA program for this sport. Butler KS and Butler PA tie on name; only one
+  // of them is in this league for this sport.
+  const league = tied.filter((c) => hasNjcaa(c.s.id, row.sport));
+  if (league.length === 1)
+    return { school: league[0]!.s, how: `name tie broken by existing NJCAA ${row.sport} program` };
+  return {
+    school: null,
+    how: `ambiguous: ${tied.map((c) => `${c.s.name} (${c.s.state})`).join(" | ")}`,
+  };
+}
+
+const matchCache = new Map<string, { school: School | null; how: string }>();
+
+function bestSchool(row: CsvRow): { school: School | null; how: string } {
+  const key = `${row.raw}::${row.sport}`;
+  const cached = matchCache.get(key);
+  if (cached) return cached;
+  const result = resolve(row);
+  matchCache.set(key, result);
+  return result;
+}
+
+function resolve(row: CsvRow): { school: School | null; how: string } {
+  const t = tokens(row.name);
+  const target = norm(row.name);
+
+  // 1. Through the federal ID: exact federal name or alias, state-filtered.
+  const fedPool = row.state ? fedRows.filter((f) => f.state === row.state) : fedRows;
+  const fedHits = fedPool.filter(
+    (f) =>
+      norm(f.name) === target ||
+      f.alias.split("|").some((a) => a.trim() && norm(a) === target),
+  );
+  const fedIds = [...new Set(fedHits.map((f) => f.unitid))];
+  if (fedIds.length === 1) {
+    const held = schoolByUnitid.get(fedIds[0]!);
+    if (held) return { school: held, how: `federal id ${fedIds[0]}` };
+  }
+
+  // 2. Exact stored name.
+  const pool = row.state ? schools.filter((s) => s.state === row.state) : schools;
+  const exact = pool.filter((s) => norm(s.name) === target);
+  if (exact.length === 1) return { school: exact[0]!, how: "exact stored name" };
+  if (exact.length > 1)
+    return pick(exact.map((s) => ({ s, score: 1 })), row);
+
+  // 3. Token containment, both directions, on the state-filtered pool first.
+  const score = (candidates: School[]) =>
+    candidates
+      .map((s) => ({ s, score: containment(t, s.tokens) }))
+      .filter((c) => c.score >= 0.75 && c.s.tokens.some((x) => t.includes(x)))
+      .sort((a, b) => b.score - a.score || a.s.tokens.length - b.s.tokens.length);
+
+  const local = score(pool);
+  if (local.length) return pick(local, row);
+  if (row.state) {
+    const wide = score(schools);
+    if (wide.length) {
+      const result = pick(wide, row);
+      if (result.school)
+        return { school: result.school, how: `${result.how} (state hint ${row.state} not on record)` };
+      return result;
+    }
+  }
+  return { school: null, how: "no candidate above threshold" };
 }
 
 const matched: unknown[][] = [
