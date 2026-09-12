@@ -183,6 +183,13 @@ function hometownValue(cell: string, options: { inHometownColumn?: boolean } = {
 
 const NAME_SHAPE = /^[A-Z][A-Za-z.'’-]*(\s+[A-Za-z.'’-]+){1,3}$/;
 
+/**
+ * A column label is not a player. Eckerd's table header ran into the first data
+ * row and "High School" was stored as a player with hometown "Hometown".
+ */
+const COLUMN_LABEL =
+  /^(full\s+name|name|player|athlete|image|photo|jersey(\s+number)?|number|position|pos|class|class\s+year|academic\s+year|height|weight|hometown|home\s?town|high\s+school|previous\s+school|last\s+school|club\s+team|bats\s*\/?\s*throws|custom\s+field(\s*\d+)?|connect|roster|hometown\s*\/\s*high\s+school)$/i;
+
 /** Two to four capitalised words, no digits. "Last, First" is normalised. */
 function personName(cell: string): string | null {
   let raw = cell
@@ -194,6 +201,8 @@ function personName(cell: string): string | null {
     .trim();
   if (raw.length < 4 || raw.length > 48) return null;
   if (/[0-9@|]|https?:/i.test(raw)) return null;
+  if (COLUMN_LABEL.test(raw)) return null;
+
 
   // Rosters printed "Smith, John" or "O'Brien, Pat Michael" used to parse as an
   // empty page. Flip them to "First Last".
