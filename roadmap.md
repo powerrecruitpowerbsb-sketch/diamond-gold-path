@@ -18,3 +18,5 @@
 - [ ] is_transfer / is_juco_transfer — previous-school columns, "TR" class cells; JUCO checked against our own school list
 - [ ] position — confirm middle (2B+SS) and corner (1B+3B) infield groupings are derivable; do NOT split OF
 - [ ] Prove 1-3 against the saved fixtures: what each fixture publishes vs what is captured
+- [ ] Position groups derived from the STORED position value, never the page's wording (MIF and SS land together); OF stays one bucket
+- [ ] Report on the second reader (the AI page reader in ingest.server.ts): what calls it, what still runs it, whether it can reach player rows without the source-page and domain checks. Do not delete.

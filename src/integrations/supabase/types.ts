@@ -3065,6 +3065,8 @@ export type Database = {
         | "RHP"
         | "LHP"
         | "TWO_WAY"
+        | "MIF"
+        | "CIF"
       program_offering_status: "unverified" | "verified" | "not_offered"
       public_private: "public" | "private"
       saved_school_status:
@@ -3271,6 +3273,8 @@ export const Constants = {
         "RHP",
         "LHP",
         "TWO_WAY",
+        "MIF",
+        "CIF",
       ],
       program_offering_status: ["unverified", "verified", "not_offered"],
       public_private: ["public", "private"],
