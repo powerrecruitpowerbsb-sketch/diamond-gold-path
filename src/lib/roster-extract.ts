@@ -19,9 +19,21 @@ export type PlayerRow = {
   height: string | null;
   weight: string | null;
   hometown: string | null;
+  /** Batting side: R, L or S (switch). */
+  bats: string | null;
+  /** Throwing arm: R or L. */
+  throws: string | null;
 };
 
-export type RosterAttribute = "number" | "position" | "class_year" | "height" | "weight" | "hometown";
+export type RosterAttribute =
+  | "number"
+  | "position"
+  | "class_year"
+  | "height"
+  | "weight"
+  | "hometown"
+  | "bats"
+  | "throws";
 
 /**
  * Three distinct states, so a coach can be told "this school doesn't publish
@@ -57,6 +69,8 @@ export type RosterShape = {
     withClass: number;
     withHeightWeight: number;
     withHometown: number;
+    withBats: number;
+    withThrows: number;
     bareNames: number;
     furniture: number;
     duplicates: number;
@@ -181,6 +195,34 @@ function hometownValue(cell: string, options: { inHometownColumn?: boolean } = {
   return null;
 }
 
+/**
+ * Bats and throws. Pages print them three ways:
+ *   - one combined cell, bats first and throws second: "R/R", "L/R", "S/R", "B-R"
+ *   - two cells under Bats and Throws headers, a single letter each
+ *   - a labelled card line: "Bats/Throws R/L", "Bats: L  Throws: R"
+ * "B" (both) and "S" both mean a switch hitter and are stored as S. Throwing has
+ * no switch, so a second letter of S is refused rather than guessed at.
+ */
+const BATS_THROWS_CELL = /^([LRSB])\s*[/\\-]\s*([LR])$/i;
+
+function batsSide(value: string): string | null {
+  const letter = value.trim().toUpperCase();
+  if (letter === "B") return "S";
+  return /^[LRS]$/.test(letter) ? letter : null;
+}
+
+function throwsSide(value: string): string | null {
+  const letter = value.trim().toUpperCase();
+  return /^[LR]$/.test(letter) ? letter : null;
+}
+
+/** A combined bats/throws cell, or null when the cell is something else. */
+function batsThrowsCell(cell: string): { bats: string | null; throws: string | null } | null {
+  const match = cell.trim().match(BATS_THROWS_CELL);
+  if (!match) return null;
+  return { bats: batsSide(match[1]!), throws: throwsSide(match[2]!) };
+}
+
 const NAME_SHAPE = /^[A-Z][A-Za-z.'’-]*(\s+[A-Za-z.'’-]+){1,3}$/;
 
 /**
@@ -236,9 +278,25 @@ const COLUMN_WORDS: Array<[RosterAttribute, RegExp]> = [
   ["height", /^(ht\.?|height)$/i],
   ["weight", /^(wt\.?|weight)$/i],
   ["hometown", /^(hometown|home\s?town|hometown\s*\/.*|hometown\s*\(.*\)|hometown\/high school|hometown \/ last school)$/i],
+  ["bats", /^(b|bats|bat|b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i],
+  ["throws", /^(t|throws|throw|b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i],
 ];
 
-const ALL_ATTRIBUTES: RosterAttribute[] = ["number", "position", "class_year", "height", "weight", "hometown"];
+/** Headers that carry bats and throws in one cell. */
+const BATS_THROWS_HEADER = /^(b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i;
+const BATS_HEADER = /^(b|bats|bat)\.?$/i;
+const THROWS_HEADER = /^(t|throws|throw)\.?$/i;
+
+const ALL_ATTRIBUTES: RosterAttribute[] = [
+  "number",
+  "position",
+  "class_year",
+  "height",
+  "weight",
+  "hometown",
+  "bats",
+  "throws",
+];
 
 /**
  * Which columns does the PAGE offer? Read from the table header where there is
@@ -281,6 +339,13 @@ function detectColumns(lines: string[]): Record<RosterAttribute, ColumnState> {
     if (label("height") || label("ht\\.?")) published.add("height");
     if (label("weight") || label("wt\\.?")) published.add("weight");
     if (label("hometown") || label("home\\s?town")) published.add("hometown");
+    if (label("bats\\s*/\\s*throws") || label("b\\s*/\\s*t")) {
+      published.add("bats");
+      published.add("throws");
+    }
+    if (label("bats")) published.add("bats");
+    if (label("throws")) published.add("throws");
+
 
   });
 
@@ -355,9 +420,28 @@ function parseCards(lines: string[]): PlayerRow[] {
     let height: string | null = null;
     let weight: string | null = null;
     let hometown: string | null = null;
+    let bats: string | null = null;
+    let throwsHand: string | null = null;
 
     for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
       const next = lines[ahead]!;
+      // "Bats/Throws R/L", "B/T: S/R", or a bare "R/R" line on a card.
+      const combined = next.match(/(?:bats\s*[/-]\s*throws|b\s*[/-]\s*t)\s*:?\s*([LRSB])\s*[/-]\s*([LR])\b/i);
+      const bare = batsThrowsCell(next);
+      if (combined) {
+        bats = bats ?? batsSide(combined[1]!);
+        throwsHand = throwsHand ?? throwsSide(combined[2]!);
+        continue;
+      }
+      if (bare) {
+        bats = bats ?? bare.bats;
+        throwsHand = throwsHand ?? bare.throws;
+        continue;
+      }
+      const labelBats = next.match(/\bbats\s*:?\s*([LRSB])\b/i);
+      if (labelBats) bats = bats ?? batsSide(labelBats[1]!);
+      const labelThrows = next.match(/\bthrows\s*:?\s*([LR])\b/i);
+      if (labelThrows) throwsHand = throwsHand ?? throwsSide(labelThrows[1]!);
       if (POSITION_WORDS.test(next)) {
         position = position ?? next.toUpperCase();
         continue;
@@ -386,7 +470,7 @@ function parseCards(lines: string[]): PlayerRow[] {
     }
 
     if (!position && !klass && !number) continue;
-    rows.push({ name, number, position, class_year: klass, height, weight, hometown });
+    rows.push({ name, number, position, class_year: klass, height, weight, hometown, bats, throws: throwsHand });
   }
 
   return rows;
@@ -408,6 +492,10 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const seenSports = new Set<string>();
   let rowsConsidered = 0;
   let hometownColumn = -1;
+  // Where the header put bats and throws, so a lone "R" or "L" is read as a
+  // hand only under the right column and never mistaken for a position.
+  let batsColumn = -1;
+  let throwsColumn = -1;
 
   for (const line of lines) {
     for (const match of line.matchAll(/\b(20\d{2})\s?[-–]\s?(\d{2})\b|\b(20\d{2})\s+(baseball|softball)\s+roster\b/gi)) {
@@ -422,6 +510,14 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     if (cells.length < 2 || SEPARATOR.test(line)) continue;
     const headerHometown = cells.findIndex((cell) => HOMETOWN_HEADER.test(cell));
     if (headerHometown >= 0) hometownColumn = headerHometown;
+    const headerBats = cells.findIndex((cell) => BATS_HEADER.test(cell));
+    if (headerBats >= 0) batsColumn = headerBats;
+    const headerThrows = cells.findIndex((cell) => THROWS_HEADER.test(cell));
+    if (headerThrows >= 0) throwsColumn = headerThrows;
+    if (cells.some((cell) => BATS_THROWS_HEADER.test(cell))) {
+      batsColumn = -1;
+      throwsColumn = -1;
+    }
 
     let name: string | null = null;
     let number: string | null = null;
@@ -430,9 +526,33 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     let height: string | null = null;
     let weight: string | null = null;
     let hometown: string | null = null;
+    let bats: string | null = null;
+    let throwsHand: string | null = null;
 
     for (const [cellIndex, cell] of cells.entries()) {
       if (!cell) continue;
+      // A combined "R/R" cell, wherever it sits — Stetson prints it under an
+      // unnamed "Custom Field 1" column, so this cannot wait on a header.
+      const hands = batsThrowsCell(cell);
+      if (hands && (!bats || !throwsHand)) {
+        bats = bats ?? hands.bats;
+        throwsHand = throwsHand ?? hands.throws;
+        continue;
+      }
+      if (cellIndex === batsColumn && !bats) {
+        const side = batsSide(cell);
+        if (side) {
+          bats = side;
+          continue;
+        }
+      }
+      if (cellIndex === throwsColumn && !throwsHand) {
+        const side = throwsSide(cell);
+        if (side) {
+          throwsHand = side;
+          continue;
+        }
+      }
       if (!number) {
         const jersey = jerseyNumber(cell);
         if (jersey !== null) {
@@ -489,7 +609,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       bareNames.push(name);
       continue;
     }
-    players.push({ name, number, position, class_year: klass, height, weight, hometown });
+    players.push({ name, number, position, class_year: klass, height, weight, hometown, bats, throws: throwsHand });
   }
 
   // Card-style pages carry no table; read them the other way and keep whichever
@@ -500,7 +620,9 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     rows.reduce(
       (total, row) =>
         total +
-        [row.number, row.position, row.class_year, row.height, row.weight, row.hometown].filter(Boolean).length,
+        [row.number, row.position, row.class_year, row.height, row.weight, row.hometown, row.bats, row.throws].filter(
+          Boolean,
+        ).length,
       0,
     );
   const cardsWin =
@@ -527,6 +649,8 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const withClass = players.filter((p) => p.class_year).length;
   const withHeightWeight = players.filter((p) => p.height || p.weight).length;
   const withHometown = players.filter((p) => p.hometown).length;
+  const withBats = players.filter((p) => p.bats).length;
+  const withThrows = players.filter((p) => p.throws).length;
 
   const wanted = String(sport ?? "").toLowerCase();
   const otherSports = [...seenSports].filter((s) => s !== wanted);
@@ -561,7 +685,14 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     height: players.filter((p) => p.height).length,
     weight: players.filter((p) => p.weight).length,
     hometown: withHometown,
+    bats: withBats,
+    throws: withThrows,
   };
+  // Reading a value IS evidence the page publishes it. Stetson prints bats and
+  // throws under an unnamed "Custom Field 1" column; the header cannot be
+  // trusted to declare them.
+  if (withBats) columns.bats = "published";
+  if (withThrows) columns.throws = "published";
   const parserDefects = players.length
     ? ALL_ATTRIBUTES.filter((attribute) => columns[attribute] === "published" && extracted[attribute] === 0)
     : [];
@@ -587,6 +718,8 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       withClass,
       withHeightWeight,
       withHometown,
+      withBats,
+      withThrows,
       bareNames: bareNames.length,
       furniture: furniture.length,
       duplicates: duplicates.length,
