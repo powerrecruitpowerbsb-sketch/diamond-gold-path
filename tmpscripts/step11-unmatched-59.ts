@@ -229,13 +229,13 @@ for (const s of unmatched) {
   const verdict = verdictFor(bestScored);
   const best = bestScored[0];
   const runnerUp = bestScored[1];
-
-  // A federal record we already hold under another school is not a match here.
-  const takenBySomeoneElse = best && heldUnitids.has(best.unitid);
+  const d = DISPOSITION[s.name];
 
   let group: Row["group"] = "no_match";
   let evidence = "";
-  if (verdict === "confirmed" && best && !takenBySomeoneElse) {
+  if (st && CANADIAN.has(st)) {
+    evidence = "Canadian institution — the federal directory covers U.S. institutions only, so no ID can ever be assigned";
+  } else if (verdict === "confirmed" && best) {
     group = "matched";
     evidence = [
       `name form used: "${usedName}"`,
@@ -244,20 +244,16 @@ for (const s of unmatched) {
       st ? `state ${st} agrees` : "no stored state to check",
       best.city && s.city && best.city.toLowerCase() === s.city.toLowerCase() ? `city ${best.city} agrees` : "",
       runnerUp ? `clear of runner-up by ${(best.score - runnerUp.score).toFixed(2)}` : "only candidate in state",
-      "unitid not held by any other record",
     ].filter(Boolean).join("; ");
-  } else if (verdict === "ambiguous" || (verdict === "confirmed" && takenBySomeoneElse)) {
+  } else if (verdict === "ambiguous" && !d) {
     group = "ambiguous";
-    evidence = takenBySomeoneElse
-      ? `best federal match ${best!.unitid} (${best!.name}) is already held by "${heldNameByUnitid.get(best!.unitid)}" — never paired twice`
-      : `${bestScored.filter((c) => c.score >= 0.5).length} plausible federal records; top two within ${(
-          (best?.score ?? 0) - (runnerUp?.score ?? 0)
-        ).toFixed(2)}`;
+    evidence = `${bestScored.filter((c) => c.score >= 0.5).length} plausible federal records; top two within ${(
+      (best?.score ?? 0) - (runnerUp?.score ?? 0)
+    ).toFixed(2)} of each other`;
   } else {
-    const d = DISPOSITION[s.name];
     evidence = d
       ? `${d.kind}${d.survivor ? `; survives as ${d.survivor}` : ""}`
-      : `no federal record scores above ${0.5}; best was ${best ? `${best.name} (${best.score.toFixed(2)})` : "nothing"}`;
+      : `no federal record comes close; best candidate was ${best ? `${best.name} (${best.score.toFixed(2)})` : "nothing"}`;
   }
 
   results.push({
@@ -267,6 +263,31 @@ for (const s of unmatched) {
     runnerUp: runnerUp ? { unitid: runnerUp.unitid, name: runnerUp.name, score: runnerUp.score } : null,
     evidence,
   });
+}
+
+/* ------- one federal institution is never paired to two records ------- */
+
+/**
+ * A confident match whose federal institution is already on file — or wanted by
+ * a second unidentified record — is not an ID assignment. It means this record
+ * is another campus/duplicate of an institution we already hold, which is a
+ * record decision, not a matching one.
+ */
+const proposedCount = new Map<number, number>();
+for (const r of results) if (r.group === "matched") proposedCount.set(r.best!.unitid, (proposedCount.get(r.best!.unitid) ?? 0) + 1);
+
+type DupRow = { row: Row; heldBy: string | null; rivals: string[] };
+const duplicates: DupRow[] = [];
+for (const r of results) {
+  if (r.group !== "matched") continue;
+  const unitid = r.best!.unitid;
+  const heldBy = heldUnitids.has(unitid) ? heldNameByUnitid.get(unitid) ?? "another record" : null;
+  const rivals = results
+    .filter((o) => o !== r && o.group === "matched" && o.best!.unitid === unitid)
+    .map((o) => o.school.name);
+  if (!heldBy && rivals.length === 0) continue;
+  r.group = "duplicate_of_record_on_file";
+  duplicates.push({ row: r, heldBy, rivals });
 }
 
 /* --------------------------- group exports --------------------------- */
