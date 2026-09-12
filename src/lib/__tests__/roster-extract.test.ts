@@ -308,3 +308,89 @@ describe("column labels are not players", () => {
     expect(shape.players.map((p) => p.name)).toEqual(["Jake Hall"]);
   });
 });
+
+describe("bats and throws", () => {
+  it("reads a combined B/T cell, bats first and throws second", () => {
+    const page = `
+| # | Name | Pos. | B/T | Ht. | Cl. | Hometown |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3 | Ella Moore | OF | L/R | 5-6 | JR | Tampa, FL |
+| 5 | Nia Brooks | C | R/R | 5-8 | SO | Mesa, AZ |
+`;
+    const shape = parseRoster(page, "softball");
+    expect(shape.players.map((p) => [p.name, p.bats, p.throws])).toEqual([
+      ["Ella Moore", "L", "R"],
+      ["Nia Brooks", "R", "R"],
+    ]);
+    expect(shape.columns.bats).toBe("published");
+    expect(shape.columns.throws).toBe("published");
+    expect(shape.parserDefects).toEqual([]);
+  });
+
+  it("stores a switch hitter as S, whether the page writes S or B", () => {
+    const page = `
+| # | Name | Pos. | B/T | Cl. |
+| --- | --- | --- | --- | --- |
+| 1 | Chase Williams | OF | S/R | SR |
+| 2 | Ty Marsh | INF | B/L | JR |
+`;
+    const shape = parseRoster(page, "baseball");
+    expect(shape.players.map((p) => p.bats)).toEqual(["S", "S"]);
+    expect(shape.players.map((p) => p.throws)).toEqual(["R", "L"]);
+  });
+
+  it("reads separate Bats and Throws columns without mistaking a hand for a position", () => {
+    const page = `
+| # | Name | Pos. | Bats | Throws | Cl. |
+| --- | --- | --- | --- | --- | --- |
+| 9 | Rae Dalton | 1B | L | R | SO |
+| 11 | Kim Prater | RHP | R | R | FR |
+`;
+    const shape = parseRoster(page, "softball");
+    expect(shape.players.map((p) => [p.position, p.bats, p.throws])).toEqual([
+      ["1B", "L", "R"],
+      ["RHP", "R", "R"],
+    ]);
+  });
+
+  it("reads a combined cell under an unnamed column, as Stetson prints it", () => {
+    const page = `
+| Full Name | # | Hometown / High School | Pos. | Ht. | Academic Year | Custom Field 1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Marta Ruiz | 1 | Marianna, FL / Marianna High School | LHP | 5-7 | So. | L/L |
+`;
+    const shape = parseRoster(page, "softball");
+    expect(shape.players[0]).toMatchObject({ position: "LHP", bats: "L", throws: "L" });
+    expect(shape.columns.bats).toBe("published");
+  });
+
+  it("leaves both empty when the page does not publish them, and calls no defect", () => {
+    const shape = parseRoster(TABLE, "baseball");
+    expect(shape.counts.withBats).toBe(0);
+    expect(shape.columns.bats).toBe("not_published");
+    expect(shape.parserDefects).toEqual([]);
+  });
+
+  it("refuses a nonsense second letter rather than guessing a throwing arm", () => {
+    const page = `
+| # | Name | Pos. | B/T | Cl. |
+| --- | --- | --- | --- | --- |
+| 6 | Pat Vance | OF | R/S | JR |
+`;
+    const shape = parseRoster(page, "baseball");
+    expect(shape.players[0]!.bats).toBeNull();
+    expect(shape.players[0]!.throws).toBeNull();
+  });
+
+  it("reads labelled bats and throws off a card page", () => {
+    const page = `
+Jersey Number 21
+Marcus Hale
+Right-Handed Pitcher
+Bats: L Throws: R
+Academic Year Jr.
+`;
+    const shape = parseRoster(page, "baseball");
+    expect(shape.players[0]).toMatchObject({ name: "Marcus Hale", bats: "L", throws: "R" });
+  });
+});
