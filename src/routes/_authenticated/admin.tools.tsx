@@ -505,62 +505,35 @@ function Tools() {
   }
 
   return (
-    <div className="grid gap-5">
-      <div className="rounded border border-border bg-white p-4">
-        <h2 className="font-display text-lg font-bold text-graphite">Collection tools</h2>
-        <p className="mt-1 text-sm text-steel">
-          Hands-on jobs you only need now and then: pull the membership lists, fill in school facts,
-          and tidy up stray records. Day-to-day, you don't need this page.
-        </p>
-        <Link
-          to="/admin/pipeline"
-          className="meta mt-2 inline-flex text-org-primary underline"
-        >
-          Back to the collection status page
-        </Link>
-      </div>
-
-      <SectionCard
-        title="What we have"
-        blurb="Where the national database stands right now."
-        aside={
+    <div className="grid gap-4">
+      <PageHeader
+        title="Tools"
+        description="Hands-on jobs you only need now and then: pull the membership lists, fill in school facts, tidy up stray records."
+        counts={[
+          `${(status?.schools.total ?? 0).toLocaleString("en-US")} schools`,
+          `${(status?.programs.total ?? 0).toLocaleString("en-US")} programs`,
+          `${(status?.schools.withCost ?? 0).toLocaleString("en-US")} with cost & academics`,
+          `${(status?.programs.withRosterUrl ?? 0).toLocaleString("en-US")} roster pages found`,
+          `${(status?.programs.withCoach ?? 0).toLocaleString("en-US")} head coaches`,
+        ]}
+        actions={
           <button
             type="button"
             onClick={onRebuild}
             disabled={busy !== null}
-            className="touch-target inline-flex items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
+            className="touch-target inline-flex items-center gap-2 rounded border border-border px-3.5 text-sm font-semibold text-steel disabled:opacity-60"
           >
             <RefreshCw className="size-4" aria-hidden />
             {busy === "rebuild" ? "Refreshing…" : "Refresh job list"}
           </button>
         }
+      />
+
+      <SectionCard
+        title="What we have"
+        blurb="Where the national database stands right now."
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat
-            icon={<Building2 className="size-4" aria-hidden />}
-            label="Schools"
-            value={status?.schools.total ?? 0}
-            hint={`${status?.schools.federalConfirmed ?? 0} matched to federal data`}
-          />
-          <Stat
-            icon={<Database className="size-4" aria-hidden />}
-            label="Programs"
-            value={status?.programs.total ?? 0}
-            hint={`${status?.programs.baseball ?? 0} baseball · ${status?.programs.softball ?? 0} softball`}
-          />
-          <Stat
-            icon={<Landmark className="size-4" aria-hidden />}
-            label="Cost & academics filled"
-            value={status?.schools.withCost ?? 0}
-            hint={`${status?.schools.federalNeedsHelp ?? 0} school(s) need a match decision`}
-          />
-          <Stat
-            icon={<Download className="size-4" aria-hidden />}
-            label="Roster pages found"
-            value={status?.programs.withRosterUrl ?? 0}
-            hint={`${status?.programs.withCoach ?? 0} program(s) have a head coach`}
-          />
-        </div>
+
 
         <details className="mt-5">
           <summary className="cursor-pointer text-sm font-semibold text-steel">
