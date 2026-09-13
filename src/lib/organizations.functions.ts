@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
+import { getRequest } from "@tanstack/react-start/server";
+
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
@@ -11,6 +13,16 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const PLANS = ["founding", "standard", "enterprise"] as const;
 type Plan = (typeof PLANS)[number];
+
+/** Where an invited owner lands to set their password. */
+function acceptUrl(): string | undefined {
+  try {
+    const request = getRequest();
+    return new URL("/reset-password", new URL(request.url).origin).toString();
+  } catch {
+    return undefined;
+  }
+}
 
 function str(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -140,7 +152,7 @@ export const createOrganization = createServerFn({ method: "POST" })
         email: data.ownerEmail.toLowerCase(),
         role: "org_admin" as any,
         athleteId: null,
-        redirectTo: `${process.env["PUBLIC_SITE_URL"] ?? ""}/auth`,
+        redirectTo: acceptUrl(),
       });
       ownerInvited = data.ownerEmail;
     }
@@ -231,7 +243,7 @@ export const inviteOrganizationOwner = createServerFn({ method: "POST" })
       email: data.email,
       role: "org_admin" as any,
       athleteId: null,
-      redirectTo: `${process.env["PUBLIC_SITE_URL"] ?? ""}/auth`,
+      redirectTo: acceptUrl(),
     });
     return { ok: true, email: data.email };
   });
