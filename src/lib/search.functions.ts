@@ -102,63 +102,79 @@ export const searchPrograms = createServerFn({ method: "POST" })
     }
 
 
-    let query = supabase
-      .from("programs")
-      .select(
-        `id, sport, governing_body, division, conference, conference_verification,
-         division_verification, scholarships_available, scholarship_details,
-         athletic_website, roster_url, coaching_staff_url, head_coach_name, last_verified_at,
-         universities!inner(${UNIVERSITY_COLS})`,
-        { count: "exact" },
-      )
+    // A major or academic-bucket restriction can name over a thousand schools. Those
+    // ids are sent in chunks: one request carrying them all exceeds the request-line
+    // limit and comes back empty, which would look like "no schools match".
+    const ID_CHUNK = 150;
+    const idChunks: (string[] | null)[] =
+      restrict.ids === null
+        ? [null]
+        : Array.from({ length: Math.ceil(restrict.ids.length / ID_CHUNK) }, (_, i) =>
+            restrict.ids!.slice(i * ID_CHUNK, (i + 1) * ID_CHUNK),
+          );
 
-      .eq("sport", f.sport)
-      .eq("offering_status", "verified");
-
-    if (f.governingBody) query = query.eq("governing_body", f.governingBody);
-    if (f.division) query = query.eq("division", f.division);
-    if (f.conference) query = query.eq("conference", f.conference);
-    if (f.scholarships !== null) query = query.eq("scholarships_available", f.scholarships);
-    if (restrict.ids !== null) query = query.in("university_id", restrict.ids);
-
-    if (f.q) query = query.ilike("universities.name", `%${f.q}%`);
-    // Location: the region is a grouping of states from src/lib/regions.ts, never
-    // the stored universities.region column, which is empty for all but 6 schools.
-    if (f.states.length > 0) query = query.in("universities.state", f.states);
-    if (f.publicPrivate) query = query.eq("universities.public_private", f.publicPrivate);
-    if (f.schoolSize) query = query.eq("universities.school_size_bucket", f.schoolSize);
-    if (f.campusSetting) query = query.eq("universities.campus_setting", f.campusSetting);
-    if (f.religious !== null) query = query.eq("universities.religious_affiliation", f.religious);
-
-    const range = (
-      column: string,
-      min: number | null,
-      max: number | null,
-      scale = 1,
-    ) => {
-      if (min !== null) query = query.gte(column, min * scale);
-      if (max !== null) query = query.lte(column, max * scale);
-    };
-    // Net price is what a family actually pays, and is the primary cost filter.
-    range("universities.est_net_price", f.netPriceMin, f.netPriceMax);
-    range("universities.tuition_out_state", f.tuitionMin, f.tuitionMax);
-    range("universities.est_cost_of_attendance", f.coaMin, f.coaMax);
-    range("universities.avg_sat", f.satMin, f.satMax);
-    range("universities.avg_act", f.actMin, f.actMax);
-    // Acceptance rate is stored 0-100, the same scale the filter uses.
-    range("universities.acceptance_rate", f.acceptanceMin, f.acceptanceMax);
-
-    // Ordered by school name so the cap always takes the same, alphabetical slice
-    // instead of an arbitrary 400 rows.
     const LIMIT = 400;
-    const { data, error, count } = await query
-      .order("name", { referencedTable: "universities" })
-      .limit(LIMIT);
-    if (error) throw new Error(error.message);
 
-    const rows = (data ?? []) as any[];
+    const buildQuery = (ids: string[] | null) => {
+      let query = supabase
+        .from("programs")
+        .select(
+          `id, sport, governing_body, division, conference, conference_verification,
+           division_verification, scholarships_available, scholarship_details,
+           athletic_website, roster_url, coaching_staff_url, head_coach_name, last_verified_at,
+           universities!inner(${UNIVERSITY_COLS})`,
+          { count: "exact" },
+        )
+        .eq("sport", f.sport)
+        .eq("offering_status", "verified");
+
+      if (f.governingBody) query = query.eq("governing_body", f.governingBody);
+      if (f.division) query = query.eq("division", f.division);
+      if (f.conference) query = query.eq("conference", f.conference);
+      if (f.scholarships !== null) query = query.eq("scholarships_available", f.scholarships);
+      if (ids !== null) query = query.in("university_id", ids);
+
+      if (f.q) query = query.ilike("universities.name", `%${f.q}%`);
+      // Location: the region is a grouping of states from src/lib/regions.ts, never
+      // the stored universities.region column, which is empty for all but 6 schools.
+      if (f.states.length > 0) query = query.in("universities.state", f.states);
+      if (f.publicPrivate) query = query.eq("universities.public_private", f.publicPrivate);
+      if (f.schoolSize) query = query.eq("universities.school_size_bucket", f.schoolSize);
+      if (f.campusSetting) query = query.eq("universities.campus_setting", f.campusSetting);
+      if (f.religious !== null) query = query.eq("universities.religious_affiliation", f.religious);
+
+      const range = (column: string, min: number | null, max: number | null, scale = 1) => {
+        if (min !== null) query = query.gte(column, min * scale);
+        if (max !== null) query = query.lte(column, max * scale);
+      };
+      // Net price is what a family actually pays, and is the primary cost filter.
+      range("universities.est_net_price", f.netPriceMin, f.netPriceMax);
+      range("universities.tuition_out_state", f.tuitionMin, f.tuitionMax);
+      range("universities.est_cost_of_attendance", f.coaMin, f.coaMax);
+      range("universities.avg_sat", f.satMin, f.satMax);
+      range("universities.avg_act", f.actMin, f.actMax);
+      // Acceptance rate is stored 0-100, the same scale the filter uses.
+      range("universities.acceptance_rate", f.acceptanceMin, f.acceptanceMax);
+
+      // Ordered by school name so the cap always takes the same, alphabetical slice
+      // instead of an arbitrary 400 rows.
+      return query.order("name", { referencedTable: "universities" }).limit(LIMIT);
+    };
+
+    const responses = await Promise.all(idChunks.map((ids) => buildQuery(ids)));
+    for (const r of responses as any[]) if (r.error) throw new Error(r.error.message);
+
+    let rows = (responses as any[]).flatMap((r) => (r.data ?? []) as any[]);
+    const count = (responses as any[]).reduce((sum, r) => sum + (r.count ?? 0), 0);
+    if (idChunks.length > 1) {
+      rows.sort((a, b) =>
+        String(a.universities?.name ?? "").localeCompare(String(b.universities?.name ?? "")),
+      );
+    }
     const capped = rows.length >= LIMIT;
+    rows = rows.slice(0, LIMIT);
     const programIds = rows.map((r) => r.id);
+
 
     // Roster detail is only read when a composition filter is in use, so an
     // ordinary search stays as fast as it was.
