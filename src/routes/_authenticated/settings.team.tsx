@@ -39,9 +39,10 @@ function TeamSettings() {
       <div className="mt-4 max-w-4xl">
         <h1 className="font-display text-3xl font-bold text-graphite">Team &amp; invites</h1>
         <p className="mt-1 text-sm text-steel">
-          Staff invites use the same email flow as family invites. Admins can invite anyone; staff
-          can invite families from an athlete's page.
+          The owner and admins send invitations, for staff and for families alike. Coaches and staff
+          do not invite.
         </p>
+
 
         <InvitePanel
           title="Invite staff"
