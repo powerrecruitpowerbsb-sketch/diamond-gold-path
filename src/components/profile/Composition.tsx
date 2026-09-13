@@ -66,9 +66,14 @@ function handednessLines(rows: RosterRow[]): Line[] {
       value: positions ? rows.filter((row) => pos(row) === "LHP").length : null,
     },
     {
-      label: "Throws right / left",
+      label: "Throws right",
       value: throwsPublished ? rows.filter((row) => row.throws === "R").length : null,
     },
+    {
+      label: "Throws left",
+      value: throwsPublished ? rows.filter((row) => row.throws === "L").length : null,
+    },
+
   ];
 }
 
