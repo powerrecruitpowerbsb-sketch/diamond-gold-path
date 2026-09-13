@@ -355,8 +355,12 @@ export const getProgramProfile = createServerFn({ method: "GET" })
     const [intel, roster, sources, classifications, siblings, majors, links] = await Promise.all([
       supabase
         .from("recruiting_intelligence")
-        .select("id, field_type, content, updated_at")
+        .select(
+          `id, field_type, content, structured_value, positions, structured_detail,
+           visibility, status, updated_at, author_user_id, editor_user_id`,
+        )
         .eq("program_id", data.programId),
+
       supabase
         .from("roster_players")
         .select(
