@@ -701,7 +701,7 @@ function SearchScreen() {
                   Boolean(row.conference) && row.conference_verification !== "verified";
                 return (
                   <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/50">
-                    <td className="h-[38px] px-3 py-1.5 align-middle">
+                    <td className="h-[38px] max-w-[240px] truncate px-3 py-1.5 align-middle whitespace-nowrap">
                       <Link
                         to="/programs/$id"
                         params={{ id: row.id }}
@@ -710,16 +710,16 @@ function SearchScreen() {
                         {u.name}
                       </Link>
                     </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle text-graphite">
+                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {u.state ?? NOT_REPORTED}
                     </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle text-graphite">
+                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {region ?? NOT_REPORTED}
                     </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle text-graphite">
+                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {[row.governing_body, row.division].filter(Boolean).join(" ") || "Not confirmed"}
                     </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle text-graphite">
+                    <td className="h-[38px] max-w-[200px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {row.conference ? (
                         <>
                           {row.conference}
@@ -731,26 +731,27 @@ function SearchScreen() {
                         "Not confirmed"
                       )}
                     </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle text-graphite">
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {number(u.undergrad_enrollment)}
                     </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle text-graphite">
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {money(u.est_net_price)}
                     </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle text-graphite">
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {plain(u.avg_sat)}
                     </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle text-graphite">
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {plain(u.avg_act)}
                     </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle text-graphite">
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {row.roster?.size ? row.roster.size : "No roster on file"}
                     </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle text-graphite">
+                    <td className="h-[38px] max-w-[170px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {row.head_coach_name ?? "Not published by the school"}
                     </td>
                     <td className="h-[38px] px-3 py-1.5 align-middle">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2 [&_button]:h-8 [&_button]:rounded [&_button]:px-2 [&_button]:text-[11px] [&_button]:whitespace-nowrap">
+
                         <ShortlistSaveButton
                           programId={row.id}
                           athleteId={params.athleteId || undefined}
