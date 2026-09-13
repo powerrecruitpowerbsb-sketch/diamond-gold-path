@@ -93,7 +93,6 @@ const SORTABLE: { key: SortKey; header: string; numeric?: boolean }[] = [
   { key: "enrollment", header: "Enrol", numeric: true },
   { key: "netPrice", header: "Net price", numeric: true },
   { key: "sat", header: "SAT", numeric: true },
-  { key: "act", header: "ACT", numeric: true },
   { key: "roster", header: "Roster", numeric: true },
   { key: "coach", header: "Head coach" },
 ];
@@ -741,9 +740,6 @@ function SearchScreen() {
                       {plain(u.avg_sat)}
                     </td>
                     <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {plain(u.avg_act)}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {row.roster?.size ? row.roster.size : "No roster on file"}
                     </td>
                     <td className="h-[38px] max-w-[170px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
@@ -752,13 +748,14 @@ function SearchScreen() {
                     <td className="h-[38px] px-3 py-1.5 align-middle">
                       <div className="flex items-center justify-end gap-2">
                         <ShortlistSaveButton
+                          iconOnly
                           programId={row.id}
                           athleteId={params.athleteId || undefined}
                           athleteName={
                             (contextAthlete?.["name"] as string | undefined) ?? undefined
                           }
-                          className="!h-8 !min-h-0 rounded px-2 text-[11px] whitespace-nowrap"
                         />
+
 
                         <button
                           type="button"
