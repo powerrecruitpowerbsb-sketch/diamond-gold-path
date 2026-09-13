@@ -102,11 +102,14 @@ price.
 ## Technical notes
 
 - `src/lib/search-schema.ts`: drop `gpaMin`/`gpaMax`; add `netPriceMin`/`netPriceMax`,
-  `positionGroup`/`positionMax`/`positionMin`, `seniorGroup`/`seniorMin`,
-  `transferPctMin`/`transferPctMax`, and `sort`/`dir`; keep `region` but validate it
-  against the computed grouping.
-- New `src/lib/regions.ts`: state-to-region map, region list, `regionOfState()`. Shared
-  by the filter, the results column, and the profile line once approved.
+  `states` (multi-value), `positionGroup`/`positionMax`/`positionMin`,
+  `seniorGroup`/`seniorMin`, `transferPctMin`/`transferPctMax`, and `sort`/`dir`; keep
+  `region` validated against the shared grouping.
+- New `src/lib/regions.ts` — the single definition: state-to-region map, region list,
+  `regionOfState()`, `statesInRegion()`. Imported by search, the results table, compare,
+  the shortlist summary, the dashboard, and the profile line once approved. No screen
+  defines its own grouping.
+
 - `src/lib/search.functions.ts`: `searchPrograms` filters net price on
   `universities.est_net_price`, resolves region to a state list via `in()`, and adds
   `avg_act`, `conference_verification` to the selected columns. When a composition
