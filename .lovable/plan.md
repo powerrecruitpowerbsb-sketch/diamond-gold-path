@@ -34,25 +34,41 @@ Every list of records becomes a table rather than a card grid.
 A fixed 220px left sidebar replaces the overflowing top strip. Seven sections:
 
 ```text
-NEEDS YOU        Review queue · Discovered links · School identity ·
-                 Withheld links · Permanent blocks
-COLLECTION       Live run · Stages · Tools · Blocked sites
-SCHOOLS          All schools · Retired · Not offered
+NEEDS YOU  492    Withheld link conflicts · School identity ·
+                  Review queue · Discovered links · Permanent blocks
+COLLECTION        Live run · Stages · Tools · Blocked sites
+SCHOOLS           All schools · Retired · Not offered
 TEAMS
-PLAYERS
 MAJORS
 ORGANIZATIONS
-ACTIVITY         Audit log · Run archive
+ACTIVITY          Audit log · Run archive
 ```
 
 Console home, Build progress, Data collection and Collection tools merge into Collection as
 tabs — one screen that answers "where is collection at" instead of four that disagree.
-Review queue, Discovered links and Decide-the-last-schools move under Needs you, each
-carrying its own waiting count, so nothing hides. `/dashboard` leaves the console entirely
-and gets a link in the coach navigation, where it belongs. The unused duplicate collection
-panel is deleted.
+`/dashboard` leaves the console entirely and gets a link in the coach navigation, where it
+belongs. The unused duplicate collection panel is deleted. There is no college-player
+directory in the console; the roster table and its composition breakdown belong on the
+program profile, in a later step.
 
 Every old address keeps working and redirects to its new home.
+
+### Needs you — a landing page, not a merged table
+
+The five stay separate working screens: they carry different evidence and different columns,
+and one combined table would be hundreds of unlike rows with mostly empty columns. Above
+them sits a landing page listing each with its live count, so everything waiting is visible
+at a glance and one click deep:
+
+```text
+Withheld link conflicts        287
+Permanent blocks               108
+School identity decisions       58
+Discovered links                27
+Review queue                    12
+```
+
+The sidebar shows the total of those counts beside Needs you.
 
 ## New screens this step can support
 
@@ -67,9 +83,6 @@ read-only reader — no existing server file touched, no write path:
 - **Permanent blocks** — the 108 remaining, with the reason each was blocked.
 - **Run archive** — the 4 reversible runs and what each touched. Undo comes with the write
   phase.
-- **Players** — a browsable list of the 75,536 college players for a team, showing bats,
-  throws, class year, position, home state and transfer status. This is the first time any
-  of that data appears on screen.
 - **Retired schools** (3) and **Not-offered programs** (366) — lists, so they stop being
   invisible. Restoring comes with the write phase.
 
