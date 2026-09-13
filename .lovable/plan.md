@@ -7,14 +7,30 @@ user (policy `USING (true)`) with `UNIQUE (program_id, field_type)` and no
 `organization_id`. So the tenant boundary is genuinely missing, and the backfill affects
 zero rows — the migration is a pure structure change with nothing to rewrite.
 
-## 1. The migration (additive — reported here, run first)
+## 0. Your two confirmations
+
+**Tenant default:** agreed. The column is added with Power Baseball as a temporary default
+only so the NOT NULL can be set, and the last statements of the migration drop that default
+on all three tables. After the migration an insert that omits the organization fails outright.
+
+**Owner vs admin:** the distinction is UI-only today, and no owner-only capability exists.
+Billing, seats, plan, creating an organization and inviting the first owner all run through
+superadmin-gated server functions and a superadmin-only access rule — Power staff, not the
+organization. There is no delete-organization path for any organization role. `org_admin`
+has exactly one write path into its own organization record, meant for branding, and that
+rule is not restricted to the branding columns — so an admin could in principle change its
+own billing fields through the API. Worth tightening whether or not you add a real owner
+role; say the word and it's a one-line access-rule change.
+
+## 1. The migration (additive — run first)
 
 Nothing is dropped and no column changes type. Roles map to the existing enum:
 owner/admin = `org_admin`, coach = `org_staff`.
 
 **recruiting_intelligence**
-- `organization_id uuid NOT NULL REFERENCES organizations` (default Power Baseball so the
-  column can be added safely; existing rows: none)
+- `organization_id uuid NOT NULL REFERENCES organizations` — backfilled to Power Baseball
+  (zero existing rows), default dropped at the end of the migration
+
 - `visibility` enum `intel_visibility` (`org_only`, `shared_with_families`)
 - `status` enum `intel_status` (`draft`, `pending`, `approved`, `rejected`, `changes_requested`)
 - `structured_value text` — the single-choice structured answers (strong/developing/…)
