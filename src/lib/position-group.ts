@@ -13,6 +13,7 @@ export type PositionGroup =
   | "catcher"
   | "middle_infield"
   | "corner_infield"
+  | "infield"
   | "outfield"
   | "utility";
 
@@ -23,16 +24,19 @@ export const STORED_POSITIONS = [
   "2B",
   "3B",
   "SS",
+  "IF",
   "MIF",
   "CIF",
   "OF",
   "UTIL",
+  "P",
   "RHP",
   "LHP",
   "TWO_WAY",
 ] as const;
 
 const GROUPS: Record<string, PositionGroup> = {
+  P: "pitcher",
   RHP: "pitcher",
   LHP: "pitcher",
   C: "catcher",
@@ -42,10 +46,12 @@ const GROUPS: Record<string, PositionGroup> = {
   "1B": "corner_infield",
   "3B": "corner_infield",
   CIF: "corner_infield",
+  IF: "infield",
   OF: "outfield",
   UTIL: "utility",
   TWO_WAY: "utility",
 };
+
 
 /** The group for a stored position value, or null when there is no position. */
 export function positionGroup(stored: unknown): PositionGroup | null {
@@ -59,9 +65,11 @@ export const POSITION_GROUP_LABELS: Record<PositionGroup, string> = {
   catcher: "Catcher",
   middle_infield: "Middle infield",
   corner_infield: "Corner infield",
+  infield: "Infield (spot not stated)",
   outfield: "Outfield",
   utility: "Utility",
 };
+
 
 /** Which stored values belong to a group — used by group filters. */
 export function positionsInGroup(group: PositionGroup): string[] {

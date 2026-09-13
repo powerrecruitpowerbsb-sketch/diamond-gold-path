@@ -3091,6 +3091,8 @@ export type Database = {
         | "TWO_WAY"
         | "MIF"
         | "CIF"
+        | "P"
+        | "IF"
       program_offering_status: "unverified" | "verified" | "not_offered"
       public_private: "public" | "private"
       saved_school_status:
@@ -3299,6 +3301,8 @@ export const Constants = {
         "TWO_WAY",
         "MIF",
         "CIF",
+        "P",
+        "IF",
       ],
       program_offering_status: ["unverified", "verified", "not_offered"],
       public_private: ["public", "private"],

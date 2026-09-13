@@ -239,55 +239,135 @@ export function contradictsGoverningBody(
   return false;
 }
 
+/**
+ * Every wording we've actually seen published on a roster page, mapped to the
+ * value we store. Keys are already normalized (lower case, no punctuation,
+ * hyphens as spaces) because that's how they're looked up.
+ */
 const POSITION_ALIASES: Record<string, string> = {
   c: "C",
   catcher: "C",
+  catchers: "C",
   "1b": "1B",
   "first base": "1B",
+  "first baseman": "1B",
+  firstbase: "1B",
   "2b": "2B",
   "second base": "2B",
+  "second baseman": "2B",
   "3b": "3B",
   "third base": "3B",
+  "third baseman": "3B",
   ss: "SS",
   shortstop: "SS",
+  "short stop": "SS",
   of: "OF",
   outfield: "OF",
   outfielder: "OF",
+  outfielders: "OF",
   lf: "OF",
   cf: "OF",
   rf: "OF",
+  "left field": "OF",
+  "left fielder": "OF",
+  "center field": "OF",
+  "center fielder": "OF",
+  "centre field": "OF",
+  "right field": "OF",
+  "right fielder": "OF",
+  // Pitchers. A page that names the hand keeps the hand; a page that just says
+  // "P" is stored as a pitcher with no hand rather than guessed at.
   rhp: "RHP",
+  "rh pitcher": "RHP",
+  "right handed pitcher": "RHP",
+  "right hand pitcher": "RHP",
+  "righthanded pitcher": "RHP",
   lhp: "LHP",
-  "two way": "TWO_WAY",
-  two_way: "TWO_WAY",
-  util: "UTIL",
-  utility: "UTIL",
-  inf: "UTIL",
-  infield: "UTIL",
-  infielder: "UTIL",
+  "lh pitcher": "LHP",
+  "left handed pitcher": "LHP",
+  "left hand pitcher": "LHP",
+  p: "P",
+  pitcher: "P",
+  pitchers: "P",
+  sp: "P",
+  rp: "P",
+  "starting pitcher": "P",
+  "relief pitcher": "P",
+  reliever: "P",
+  starter: "P",
+  closer: "P",
   // Group-level wordings are stored as group values of their own rather than
   // being dumped into UTIL, so the derived group is right without inventing a
   // specific position the page never claimed.
+  if: "IF",
+  inf: "IF",
+  infield: "IF",
+  infielder: "IF",
+  infielders: "IF",
   mif: "MIF",
   "middle infield": "MIF",
   "middle infielder": "MIF",
   cif: "CIF",
   "corner infield": "CIF",
   "corner infielder": "CIF",
+  "two way": "TWO_WAY",
+  two_way: "TWO_WAY",
+  twoway: "TWO_WAY",
+  "2 way": "TWO_WAY",
+  util: "UTIL",
+  utl: "UTIL",
+  ut: "UTIL",
+  utility: "UTIL",
+  "utility player": "UTIL",
+  dh: "UTIL",
+  "designated hitter": "UTIL",
 };
 
-/**
- * Map a page's position wording onto our list. Unreadable values return null so
- * the player is stored without a position rather than dumped into UTIL, which
- * would quietly distort every position breakdown.
- */
-export function normalizePosition(value: unknown): string | null {
-  const raw = normalizeText(value).replace(/[./]/g, " ").replace(/\s+/g, " ").trim();
+const PITCHER_VALUES = new Set(["P", "RHP", "LHP"]);
+
+/** One part of a cell: "IF", "Third Base", "Right-Handed Pitcher". */
+function positionPart(value: string): string | null {
+  const raw = normalizeText(value).replace(/[.]/g, " ").replace(/\s+/g, " ").trim();
   if (!raw) return null;
   if (POSITION_ALIASES[raw]) return POSITION_ALIASES[raw]!;
   const first = raw.split(" ")[0]!;
   return POSITION_ALIASES[first] ?? null;
 }
+
+/**
+ * Map a page's position wording onto our list. Unreadable values return null so
+ * the player is stored without a position rather than dumped into UTIL, which
+ * would quietly distort every position breakdown.
+ *
+ * A cell naming more than one position is judged as a whole: a pitcher paired
+ * with anything else is a two-way player; two fielding spots is a utility
+ * player, which is not the same thing.
+ */
+export function normalizePosition(value: unknown): string | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  const parts = raw
+    .split(/[/,&+]|\bor\b/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length > 1) {
+    const mapped = parts.map(positionPart).filter(Boolean) as string[];
+    const distinct = [...new Set(mapped)];
+    if (!distinct.length) return null;
+    if (distinct.length === 1) return distinct[0]!;
+    const pitchers = distinct.filter((part) => PITCHER_VALUES.has(part));
+    // Two-way in baseball means a pitcher who also hits.
+    if (pitchers.length && pitchers.length < distinct.length) return "TWO_WAY";
+    // Only pitching wordings, but they disagree on the hand — store "pitcher".
+    if (pitchers.length === distinct.length) return "P";
+    return "UTIL";
+  }
+
+  return positionPart(raw);
+}
+
 
 /** US state names, used to spot a candidate page that belongs to another state. */
 export const US_STATE_NAMES: Record<string, string> = {
