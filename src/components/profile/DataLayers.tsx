@@ -162,32 +162,99 @@ export function ClassificationTable({
   );
 }
 
+export type IntelRow = {
+  id: string;
+  label: string;
+  body: string;
+  /** Who may see this record: shown to staff only. */
+  visibility?: "org_only" | "shared_with_families";
+  attribution?: string | null;
+};
+
 /** Our Intelligence: red, in its own block, never mixed with sourced fact. */
 export function IntelligencePanel({
   rows,
+  emptyText = "Recruiting intelligence for this program hasn’t been written yet.",
+  showVisibility = false,
+  onShare,
 }: {
-  rows: { id: string; label: string; content: string }[];
+  rows: IntelRow[];
+  emptyText?: string;
+  showVisibility?: boolean;
+  onShare?: (row: IntelRow) => void;
 }) {
   if (!rows.length) {
-    return (
-      <p className="py-4 text-sm text-steel">
-        Power hasn’t published recruiting intelligence for this program yet.
-      </p>
-    );
+    return <p className="py-4 text-sm text-steel">{emptyText}</p>;
   }
   return (
     <div className="rounded border border-border border-l-2 border-l-seam-red bg-seam-red-tint p-4">
-      <p className="meta text-seam-red">
-        Power staff opinion — interpretation, not sourced fact.
-      </p>
+      <p className="meta text-seam-red">Staff opinion — interpretation, not sourced fact.</p>
       <dl className="mt-3 grid gap-4 sm:grid-cols-2">
         {rows.map((row) => (
           <div key={row.id}>
-            <dt className="meta text-seam-red">{row.label.toUpperCase()}</dt>
-            <dd className="mt-1 text-sm leading-relaxed text-graphite">{row.content}</dd>
+            <dt className="meta flex flex-wrap items-center gap-2 text-seam-red">
+              {row.label.toUpperCase()}
+              {showVisibility ? (
+                <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-bold text-steel">
+                  {row.visibility === "shared_with_families" ? "SHARED WITH FAMILIES" : "STAFF ONLY"}
+                </span>
+              ) : null}
+            </dt>
+            <dd className="mt-1 text-sm leading-relaxed text-graphite">{row.body}</dd>
+            {row.attribution ? <dd className="meta mt-1">{row.attribution}</dd> : null}
+            {showVisibility && onShare && row.visibility === "org_only" ? (
+              <dd className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => onShare(row)}
+                  className="text-[11px] font-semibold text-org-primary underline decoration-dotted underline-offset-2"
+                >
+                  Share with families
+                </button>
+              </dd>
+            ) : null}
           </div>
         ))}
       </dl>
     </div>
   );
 }
+
+/** Staff-only material, in its own clearly marked internal block. */
+export function InternalIntelPanel({
+  rows,
+  onShare,
+}: {
+  rows: IntelRow[];
+  onShare?: (row: IntelRow) => void;
+}) {
+  if (!rows.length) return null;
+  return (
+    <div className="mt-4 rounded border border-border border-l-2 border-l-graphite bg-muted p-4">
+      <p className="meta text-graphite">
+        Internal — never shown to families. Evidence behind the conclusions above.
+      </p>
+      <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+        {rows.map((row) => (
+          <div key={row.id}>
+            <dt className="meta text-graphite">{row.label.toUpperCase()}</dt>
+            <dd className="mt-1 text-sm leading-relaxed text-graphite">{row.body}</dd>
+            {row.attribution ? <dd className="meta mt-1">{row.attribution}</dd> : null}
+            {onShare ? (
+              <dd className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => onShare(row)}
+                  className="text-[11px] font-semibold text-org-primary underline decoration-dotted underline-offset-2"
+                >
+                  Share with families
+                </button>
+              </dd>
+            ) : null}
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
