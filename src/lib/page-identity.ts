@@ -47,13 +47,42 @@ const NON_VARSITY_PHRASES = [
 const NON_VARSITY_HOST_HINTS = ["clubsports", "club-sports", "intramural", "rec.", "recsports"];
 
 /**
+ * Navigation and accessibility furniture that sits between a page's own name and
+ * the next word. "College of the Desert Skip To Main Content" is the school's own
+ * name plus a screen-reader link, and reading "Skip" as part of the name refused
+ * 197 perfectly correct roster pages. Strip it before any name is derived.
+ */
+const PAGE_FURNITURE = [
+  /skip\s+to\s+(?:main\s+)?(?:content|navigation|nav)\b/gi,
+  /\bskip\s+to\b/gi,
+  /\bskip\s+navigation\b/gi,
+  /\ball\s+rotators\s+playing\b/gi,
+  /\brotators\s+playing\b/gi,
+  /\ball\s+rotators\b/gi,
+  /\brotators\b/gi,
+  /\bskip\b/gi,
+  /\bmain\s+content\b/gi,
+  /\bopen\s+menu\b/gi,
+  /\bclose\s+menu\b/gi,
+  /\btoggle\s+navigation\b/gi,
+  /\bback\s+to\s+top\b/gi,
+];
+
+export function stripPageFurniture(text: string): string {
+  let out = String(text ?? "");
+  for (const pattern of PAGE_FURNITURE) out = out.replace(pattern, " ");
+  return out.replace(/[ \t]+/g, " ");
+}
+
+/**
  * A page's own identity is written at the very top — the title and header. Further
  * down, a roster lists every player's previous college and high school, and a
  * schedule lists opponents, so any school name found there proves nothing.
  */
 function topOfPage(text: string): string {
-  return String(text ?? "").slice(0, 600);
+  return stripPageFurniture(String(text ?? "").slice(0, 900)).slice(0, 600);
 }
+
 
 function normalize(text: string): string {
   return String(text ?? "")
