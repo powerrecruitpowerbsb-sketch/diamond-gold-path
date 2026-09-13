@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Database,
   Home,
+  LayoutDashboard,
   Mail,
   Menu,
   Palette,
@@ -42,7 +43,12 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   const primaryNav: NavItem[] = [
     { to: "/", label: "Home", icon: Home },
     { to: "/search", label: "Search", icon: Search },
-    ...(isOrgManager ? [{ to: "/roster", label: "Roster", icon: Users }] : []),
+    ...(isOrgManager
+      ? [
+          { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { to: "/roster", label: "Roster", icon: Users },
+        ]
+      : []),
     ...(isStaff ? [{ to: "/admin", label: "Console", icon: Table2 }] : []),
   ];
 

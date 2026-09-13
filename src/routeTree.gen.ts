@@ -20,15 +20,22 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminArchiveRouteImport } from './routes/_authenticated/admin.archive'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
+import { Route as AuthenticatedAdminBlocksRouteImport } from './routes/_authenticated/admin.blocks'
 import { Route as AuthenticatedAdminBuildRouteImport } from './routes/_authenticated/admin.build'
 import { Route as AuthenticatedAdminDiscoveryRouteImport } from './routes/_authenticated/admin.discovery'
 import { Route as AuthenticatedAdminFederalDecisionsRouteImport } from './routes/_authenticated/admin.federal-decisions'
+import { Route as AuthenticatedAdminHostsRouteImport } from './routes/_authenticated/admin.hosts'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
+import { Route as AuthenticatedAdminNotOfferedRouteImport } from './routes/_authenticated/admin.not-offered'
+import { Route as AuthenticatedAdminOrganizationsRouteImport } from './routes/_authenticated/admin.organizations'
 import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated/admin.pipeline'
+import { Route as AuthenticatedAdminRetiredRouteImport } from './routes/_authenticated/admin.retired'
 import { Route as AuthenticatedAdminReviewRouteImport } from './routes/_authenticated/admin.review'
 import { Route as AuthenticatedAdminSeedImportRouteImport } from './routes/_authenticated/admin.seed-import'
 import { Route as AuthenticatedAdminToolsRouteImport } from './routes/_authenticated/admin.tools'
+import { Route as AuthenticatedAdminWithheldRouteImport } from './routes/_authenticated/admin.withheld'
 import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
 import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenticated/roster.index'
 import { Route as AuthenticatedRosterIdRouteImport } from './routes/_authenticated/roster.$id'
@@ -102,11 +109,23 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminArchiveRoute =
+  AuthenticatedAdminArchiveRouteImport.update({
+    id: '/archive',
+    path: '/archive',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminBlocksRoute =
+  AuthenticatedAdminBlocksRouteImport.update({
+    id: '/blocks',
+    path: '/blocks',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBuildRoute = AuthenticatedAdminBuildRouteImport.update({
   id: '/build',
   path: '/build',
@@ -124,16 +143,39 @@ const AuthenticatedAdminFederalDecisionsRoute =
     path: '/federal-decisions',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminHostsRoute = AuthenticatedAdminHostsRouteImport.update({
+  id: '/hosts',
+  path: '/hosts',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminMajorsRoute =
   AuthenticatedAdminMajorsRouteImport.update({
     id: '/majors',
     path: '/majors',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminNotOfferedRoute =
+  AuthenticatedAdminNotOfferedRouteImport.update({
+    id: '/not-offered',
+    path: '/not-offered',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminOrganizationsRoute =
+  AuthenticatedAdminOrganizationsRouteImport.update({
+    id: '/organizations',
+    path: '/organizations',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminPipelineRoute =
   AuthenticatedAdminPipelineRouteImport.update({
     id: '/pipeline',
     path: '/pipeline',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminRetiredRoute =
+  AuthenticatedAdminRetiredRouteImport.update({
+    id: '/retired',
+    path: '/retired',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminReviewRoute =
@@ -153,6 +195,12 @@ const AuthenticatedAdminToolsRoute = AuthenticatedAdminToolsRouteImport.update({
   path: '/tools',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminWithheldRoute =
+  AuthenticatedAdminWithheldRouteImport.update({
+    id: '/withheld',
+    path: '/withheld',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedProgramsIdRoute = AuthenticatedProgramsIdRouteImport.update({
   id: '/programs/$id',
   path: '/programs/$id',
@@ -268,15 +316,22 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/blocks': typeof AuthenticatedAdminBlocksRoute
   '/admin/build': typeof AuthenticatedAdminBuildRoute
   '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
+  '/admin/hosts': typeof AuthenticatedAdminHostsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
+  '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
+  '/admin/retired': typeof AuthenticatedAdminRetiredRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/admin/tools': typeof AuthenticatedAdminToolsRoute
+  '/admin/withheld': typeof AuthenticatedAdminWithheldRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
@@ -306,15 +361,22 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/blocks': typeof AuthenticatedAdminBlocksRoute
   '/admin/build': typeof AuthenticatedAdminBuildRoute
   '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
+  '/admin/hosts': typeof AuthenticatedAdminHostsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
+  '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
+  '/admin/retired': typeof AuthenticatedAdminRetiredRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/admin/tools': typeof AuthenticatedAdminToolsRoute
+  '/admin/withheld': typeof AuthenticatedAdminWithheldRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
@@ -347,15 +409,22 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
+  '/_authenticated/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/blocks': typeof AuthenticatedAdminBlocksRoute
   '/_authenticated/admin/build': typeof AuthenticatedAdminBuildRoute
   '/_authenticated/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/_authenticated/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
+  '/_authenticated/admin/hosts': typeof AuthenticatedAdminHostsRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/_authenticated/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
+  '/_authenticated/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
+  '/_authenticated/admin/retired': typeof AuthenticatedAdminRetiredRoute
   '/_authenticated/admin/review': typeof AuthenticatedAdminReviewRoute
   '/_authenticated/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/_authenticated/admin/tools': typeof AuthenticatedAdminToolsRoute
+  '/_authenticated/admin/withheld': typeof AuthenticatedAdminWithheldRoute
   '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/_authenticated/roster/$id': typeof AuthenticatedRosterIdRoute
   '/_authenticated/roster/import': typeof AuthenticatedRosterImportRoute
@@ -388,15 +457,22 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/family'
     | '/search'
+    | '/admin/archive'
     | '/admin/audit'
+    | '/admin/blocks'
     | '/admin/build'
     | '/admin/discovery'
     | '/admin/federal-decisions'
+    | '/admin/hosts'
     | '/admin/majors'
+    | '/admin/not-offered'
+    | '/admin/organizations'
     | '/admin/pipeline'
+    | '/admin/retired'
     | '/admin/review'
     | '/admin/seed-import'
     | '/admin/tools'
+    | '/admin/withheld'
     | '/programs/$id'
     | '/roster/$id'
     | '/roster/import'
@@ -426,15 +502,22 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/family'
     | '/search'
+    | '/admin/archive'
     | '/admin/audit'
+    | '/admin/blocks'
     | '/admin/build'
     | '/admin/discovery'
     | '/admin/federal-decisions'
+    | '/admin/hosts'
     | '/admin/majors'
+    | '/admin/not-offered'
+    | '/admin/organizations'
     | '/admin/pipeline'
+    | '/admin/retired'
     | '/admin/review'
     | '/admin/seed-import'
     | '/admin/tools'
+    | '/admin/withheld'
     | '/programs/$id'
     | '/roster/$id'
     | '/roster/import'
@@ -466,15 +549,22 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/family'
     | '/_authenticated/search'
+    | '/_authenticated/admin/archive'
     | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/blocks'
     | '/_authenticated/admin/build'
     | '/_authenticated/admin/discovery'
     | '/_authenticated/admin/federal-decisions'
+    | '/_authenticated/admin/hosts'
     | '/_authenticated/admin/majors'
+    | '/_authenticated/admin/not-offered'
+    | '/_authenticated/admin/organizations'
     | '/_authenticated/admin/pipeline'
+    | '/_authenticated/admin/retired'
     | '/_authenticated/admin/review'
     | '/_authenticated/admin/seed-import'
     | '/_authenticated/admin/tools'
+    | '/_authenticated/admin/withheld'
     | '/_authenticated/programs/$id'
     | '/_authenticated/roster/$id'
     | '/_authenticated/roster/import'
@@ -585,11 +675,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/archive': {
+      id: '/_authenticated/admin/archive'
+      path: '/archive'
+      fullPath: '/admin/archive'
+      preLoaderRoute: typeof AuthenticatedAdminArchiveRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/audit': {
       id: '/_authenticated/admin/audit'
       path: '/audit'
       fullPath: '/admin/audit'
       preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/blocks': {
+      id: '/_authenticated/admin/blocks'
+      path: '/blocks'
+      fullPath: '/admin/blocks'
+      preLoaderRoute: typeof AuthenticatedAdminBlocksRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/build': {
@@ -613,6 +717,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFederalDecisionsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/hosts': {
+      id: '/_authenticated/admin/hosts'
+      path: '/hosts'
+      fullPath: '/admin/hosts'
+      preLoaderRoute: typeof AuthenticatedAdminHostsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/majors': {
       id: '/_authenticated/admin/majors'
       path: '/majors'
@@ -620,11 +731,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMajorsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/not-offered': {
+      id: '/_authenticated/admin/not-offered'
+      path: '/not-offered'
+      fullPath: '/admin/not-offered'
+      preLoaderRoute: typeof AuthenticatedAdminNotOfferedRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/organizations': {
+      id: '/_authenticated/admin/organizations'
+      path: '/organizations'
+      fullPath: '/admin/organizations'
+      preLoaderRoute: typeof AuthenticatedAdminOrganizationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/pipeline': {
       id: '/_authenticated/admin/pipeline'
       path: '/pipeline'
       fullPath: '/admin/pipeline'
       preLoaderRoute: typeof AuthenticatedAdminPipelineRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/retired': {
+      id: '/_authenticated/admin/retired'
+      path: '/retired'
+      fullPath: '/admin/retired'
+      preLoaderRoute: typeof AuthenticatedAdminRetiredRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/review': {
@@ -646,6 +778,13 @@ declare module '@tanstack/react-router' {
       path: '/tools'
       fullPath: '/admin/tools'
       preLoaderRoute: typeof AuthenticatedAdminToolsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/withheld': {
+      id: '/_authenticated/admin/withheld'
+      path: '/withheld'
+      fullPath: '/admin/withheld'
+      preLoaderRoute: typeof AuthenticatedAdminWithheldRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/programs/$id': {
@@ -778,15 +917,22 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminArchiveRoute: typeof AuthenticatedAdminArchiveRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminBlocksRoute: typeof AuthenticatedAdminBlocksRoute
   AuthenticatedAdminBuildRoute: typeof AuthenticatedAdminBuildRoute
   AuthenticatedAdminDiscoveryRoute: typeof AuthenticatedAdminDiscoveryRoute
   AuthenticatedAdminFederalDecisionsRoute: typeof AuthenticatedAdminFederalDecisionsRoute
+  AuthenticatedAdminHostsRoute: typeof AuthenticatedAdminHostsRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
+  AuthenticatedAdminNotOfferedRoute: typeof AuthenticatedAdminNotOfferedRoute
+  AuthenticatedAdminOrganizationsRoute: typeof AuthenticatedAdminOrganizationsRoute
   AuthenticatedAdminPipelineRoute: typeof AuthenticatedAdminPipelineRoute
+  AuthenticatedAdminRetiredRoute: typeof AuthenticatedAdminRetiredRoute
   AuthenticatedAdminReviewRoute: typeof AuthenticatedAdminReviewRoute
   AuthenticatedAdminSeedImportRoute: typeof AuthenticatedAdminSeedImportRoute
   AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRoute
+  AuthenticatedAdminWithheldRoute: typeof AuthenticatedAdminWithheldRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminProgramsIdRoute: typeof AuthenticatedAdminProgramsIdRoute
   AuthenticatedAdminProgramsNewRoute: typeof AuthenticatedAdminProgramsNewRoute
@@ -799,16 +945,23 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminArchiveRoute: AuthenticatedAdminArchiveRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminBlocksRoute: AuthenticatedAdminBlocksRoute,
   AuthenticatedAdminBuildRoute: AuthenticatedAdminBuildRoute,
   AuthenticatedAdminDiscoveryRoute: AuthenticatedAdminDiscoveryRoute,
   AuthenticatedAdminFederalDecisionsRoute:
     AuthenticatedAdminFederalDecisionsRoute,
+  AuthenticatedAdminHostsRoute: AuthenticatedAdminHostsRoute,
   AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
+  AuthenticatedAdminNotOfferedRoute: AuthenticatedAdminNotOfferedRoute,
+  AuthenticatedAdminOrganizationsRoute: AuthenticatedAdminOrganizationsRoute,
   AuthenticatedAdminPipelineRoute: AuthenticatedAdminPipelineRoute,
+  AuthenticatedAdminRetiredRoute: AuthenticatedAdminRetiredRoute,
   AuthenticatedAdminReviewRoute: AuthenticatedAdminReviewRoute,
   AuthenticatedAdminSeedImportRoute: AuthenticatedAdminSeedImportRoute,
   AuthenticatedAdminToolsRoute: AuthenticatedAdminToolsRoute,
+  AuthenticatedAdminWithheldRoute: AuthenticatedAdminWithheldRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminProgramsIdRoute: AuthenticatedAdminProgramsIdRoute,
   AuthenticatedAdminProgramsNewRoute: AuthenticatedAdminProgramsNewRoute,

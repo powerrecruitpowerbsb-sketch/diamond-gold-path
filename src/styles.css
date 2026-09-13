@@ -76,12 +76,14 @@
   --font-sans: "Public Sans", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --shadow-card: 0 1px 2px rgba(18, 35, 58, 0.04), 0 8px 24px -8px rgba(18, 35, 58, 0.14);
-  --shadow-card-hover: 0 2px 4px rgba(18, 35, 58, 0.06), 0 16px 36px -10px rgba(18, 35, 58, 0.22);
 }
 
 :root {
-  --radius: 0.8125rem; /* 13px — cards land in the 12-14px band */
+  /*
+   * 4px. This is a dense research tool: separation is a 1px hairline border,
+   * never a shadow, and nothing is pill-shaped except a status chip.
+   */
+  --radius: 0.25rem;
 
   /* Themeable brand defaults */
   --org-primary: #1f3a5f;

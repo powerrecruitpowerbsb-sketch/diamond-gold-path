@@ -41,7 +41,7 @@ function AuditScreen() {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-graphite">Audit log</h1>
+          <h1 className="font-display text-2xl font-bold text-graphite">Audit log</h1>
           <p className="mt-1 text-sm text-steel">
             Field-level history of every staff change, captured automatically in the database.
           </p>
@@ -62,13 +62,13 @@ function AuditScreen() {
       </div>
 
       {isPending ? (
-        <div className="h-64 animate-pulse rounded-xl bg-muted" />
+        <div className="h-64 animate-pulse rounded bg-muted" />
       ) : (data ?? []).length === 0 ? (
-        <p className="rounded-xl border border-border bg-card p-8 text-center text-sm text-steel">
+        <p className="rounded border border-border bg-card p-8 text-center text-sm text-steel">
           No changes recorded yet.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)]">
+        <div className="overflow-x-auto rounded border border-border bg-card">
           <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-border text-left">

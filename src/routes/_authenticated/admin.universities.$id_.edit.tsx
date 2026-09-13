@@ -53,7 +53,7 @@ function EditUniversity() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  if (!data) return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
+  if (!data) return <div className="h-64 animate-pulse rounded bg-muted" />;
 
   const currentValues =
     values ??
@@ -91,7 +91,7 @@ function EditUniversity() {
             <ArrowLeft className="size-3" aria-hidden />
             Back to school
           </Link>
-          <h1 className="mt-1 font-display text-3xl font-bold text-graphite">
+          <h1 className="mt-1 font-display text-2xl font-bold text-graphite">
             Edit {(data.university as any).name}
           </h1>
         </div>

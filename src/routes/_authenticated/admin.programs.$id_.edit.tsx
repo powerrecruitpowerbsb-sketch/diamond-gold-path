@@ -50,7 +50,7 @@ function EditProgram() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  if (!data) return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
+  if (!data) return <div className="h-64 animate-pulse rounded bg-muted" />;
 
   const program = data.program as any;
   const currentValues =
@@ -71,7 +71,7 @@ function EditProgram() {
         >
           ← {program.universities?.name}
         </Link>
-        <h1 className="mt-1 font-display text-3xl font-bold text-graphite">
+        <h1 className="mt-1 font-display text-2xl font-bold text-graphite">
           {titleCase(program.sport)} program
         </h1>
       </div>

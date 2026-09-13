@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Wrench } from "lucide-react";
 
 import { BuildChecklist } from "@/components/admin/BuildChecklist";
+import { PageHeader } from "@/components/console/PageHeader";
 import { RunningNow } from "@/components/admin/RunningNow";
 import { countPendingChanges } from "@/lib/review.functions";
 import { countPendingDiscoveries } from "@/lib/discovery.functions";
@@ -107,12 +108,22 @@ function Pipeline() {
   ].filter(Boolean) as Task[];
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4">
+      <PageHeader
+        title="Live run"
+        description="What collection is doing right now, and what it cannot finish without a person."
+        counts={[
+          `${(status?.schools.total ?? 0).toLocaleString("en-US")} schools`,
+          `${facts.toLocaleString("en-US")} changes waiting`,
+          `${links.toLocaleString("en-US")} found pages waiting`,
+        ]}
+      />
+
       <RunningNow />
 
       <BuildChecklist />
 
-      <section className="rounded-xl border border-border bg-white p-5">
+      <section className="rounded border border-border bg-card p-5">
         <h2 className="font-display text-lg font-bold text-graphite">What needs a person</h2>
         <p className="mt-1 text-sm text-steel">
           Everything else runs on its own. Only these need a decision from you.

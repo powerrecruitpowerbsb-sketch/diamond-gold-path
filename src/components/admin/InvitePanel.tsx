@@ -87,7 +87,7 @@ export function InvitePanel({
   const staffBlocked = !athleteId && data && !data.canInviteStaff;
 
   return (
-    <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+    <section className="mt-6 rounded border border-border bg-white p-6">
       <h2 className="font-display text-xl font-bold text-graphite">{title}</h2>
       <p className="mt-1 text-sm text-steel">{description}</p>
 
@@ -125,7 +125,7 @@ export function InvitePanel({
           <button
             type="submit"
             disabled={busy}
-            className="touch-target inline-flex items-center gap-2 rounded-xl bg-seam-red px-4 text-sm font-semibold text-white disabled:opacity-60"
+            className="touch-target inline-flex items-center gap-2 rounded bg-seam-red px-4 text-sm font-semibold text-white disabled:opacity-60"
           >
             <Send className="size-4" aria-hidden />
             {busy ? "Sending…" : "Send invite"}

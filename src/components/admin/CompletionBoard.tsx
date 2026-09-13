@@ -123,7 +123,7 @@ export function CompletionBoard() {
 
       {data ? (
         <>
-          <div className="rounded-xl border border-border bg-background p-4">
+          <div className="rounded border border-border bg-background p-4">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <p className="font-display text-3xl font-bold text-graphite">{percent}% finished</p>
               <p className="text-sm text-steel">
@@ -142,7 +142,7 @@ export function CompletionBoard() {
               { label: `${seasonLabel(data.seasonYear)} roster`, value: data.withCurrentRoster },
               { label: "Head coach", value: data.withCoach },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-border bg-background p-3">
+              <div key={stat.label} className="rounded border border-border bg-background p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-steel">{stat.label}</p>
                 <p className="font-display text-xl font-bold text-graphite">
                   {Number(stat.value).toLocaleString()}
@@ -158,7 +158,7 @@ export function CompletionBoard() {
               { label: "Still need a coach", value: data.needsCoach },
               { label: "Sport not confirmed", value: data.unverifiedSponsorship },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-border bg-background p-3">
+              <div key={stat.label} className="rounded border border-border bg-background p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-steel">{stat.label}</p>
                 <p className="font-display text-xl font-bold text-graphite">
                   {Number(stat.value).toLocaleString()}
@@ -241,7 +241,7 @@ export function CompletionBoard() {
           </div>
 
           {(recheck.data as any)?.rows?.length ? (
-            <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
+            <ul className="mt-4 divide-y divide-border rounded border border-border">
               {(recheck.data as any).rows.map((row: any, index: number) => (
                 <li key={`${row.school}-${row.season}-${index}`} className="p-3 text-sm">
                   <span className="font-semibold text-graphite">{row.school}</span>{" "}
@@ -257,7 +257,7 @@ export function CompletionBoard() {
           ) : null}
 
           {(ownership.data as any)?.problems?.length ? (
-            <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
+            <ul className="mt-4 divide-y divide-border rounded border border-border">
               {(ownership.data as any).problems.slice(0, 12).map((row: any) => (
                 <li key={`${row.programId}-${row.domain}`} className="p-3 text-sm">
                   <span className="font-semibold text-graphite">{row.schoolName ?? "Unknown school"}</span>{" "}
@@ -271,7 +271,7 @@ export function CompletionBoard() {
           ) : null}
 
           {(ownership.data as any)?.standoffs?.length ? (
-            <div className="mt-4 rounded-xl border border-border p-3 text-sm">
+            <div className="mt-4 rounded border border-border p-3 text-sm">
               <p className="font-semibold text-graphite">Needs your eyes: two schools, one site</p>
               <p className="mt-1 text-steel">
                 The address doesn't name either school, so nothing was changed. Tell me which school

@@ -1,39 +1,22 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldAlert } from "lucide-react";
 
 import { useMyAccount } from "@/hooks/use-my-account";
-import { countPendingChanges } from "@/lib/review.functions";
-import { countPendingDiscoveries } from "@/lib/discovery.functions";
-import { AppShell } from "@/components/brand/AppShell";
-import { AuthButton } from "@/components/brand/AuthButton";
-
-const ADMIN_NAV = [
-  { to: "/admin", label: "Console", exact: true },
-  { to: "/admin/build", label: "Build progress", exact: false },
-  { to: "/admin/universities", label: "Schools", exact: false },
-  { to: "/admin/programs", label: "Programs (Baseball / Softball)", exact: false },
-  { to: "/admin/review", label: "Review queue", exact: false },
-  { to: "/admin/discovery", label: "Discovered links", exact: false },
-  { to: "/admin/pipeline", label: "Data collection", exact: false },
-  { to: "/admin/tools", label: "Collection tools", exact: false },
-
-  { to: "/admin/seed-import", label: "Bulk import", exact: false },
-  { to: "/admin/majors", label: "Majors", exact: false },
-  { to: "/admin/audit", label: "Audit log", exact: false },
-];
+import { getNeedsYou } from "@/lib/console.functions";
+import { ConsoleShell, type ConsoleNavSection } from "@/components/console/ConsoleShell";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Admin console — Power Recruit" },
+      { title: "Staff console — Power Recruit" },
       {
         name: "description",
         content:
           "Power Recruit staff console for managing verified university, program, and classification data.",
       },
-      { property: "og:title", content: "Admin console — Power Recruit" },
+      { property: "og:title", content: "Staff console — Power Recruit" },
       {
         property: "og:description",
         content: "Staff tools for managing the Power Recruit college database.",
@@ -46,79 +29,88 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminLayout() {
-  const { account: data, isPending } = useMyAccount();
-  const countFn = useServerFn(countPendingChanges);
-  const discoveryCountFn = useServerFn(countPendingDiscoveries);
-  const { data: pending } = useQuery({
-    queryKey: ["pending-changes-count"],
-    queryFn: () => countFn(),
-    enabled: Boolean(data?.isSuperadmin),
+  const { account, isPending } = useMyAccount();
+  const needsFn = useServerFn(getNeedsYou);
+  const { data: needs } = useQuery({
+    queryKey: ["needs-you"],
+    queryFn: () => needsFn(),
+    enabled: Boolean(account?.isSuperadmin),
   });
-  const { data: pendingDiscoveries } = useQuery({
-    queryKey: ["pending-discoveries-count"],
-    queryFn: () => discoveryCountFn(),
-    enabled: Boolean(data?.isSuperadmin),
-  });
-  // A count we can't produce shows nothing at all — never an estimate.
-  const pendingCount = pending?.pending ?? 0;
-  const discoveryCount = pendingDiscoveries?.pending ?? 0;
 
   if (isPending) {
-    return (
-      <AppShell right={<AuthButton />}>
-        <div className="h-40 animate-pulse rounded-xl bg-muted" />
-      </AppShell>
-    );
+    return <div className="min-h-screen bg-chalk p-6"><div className="h-40 animate-pulse rounded border border-border bg-card" /></div>;
   }
 
-  if (!data?.isSuperadmin) {
+  if (!account?.isSuperadmin) {
     return (
-      <AppShell right={<AuthButton />}>
-        <div className="mx-auto max-w-lg rounded-xl border border-border bg-card p-8 text-center shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)]">
+      <div className="min-h-screen bg-chalk p-6">
+        <div className="mx-auto max-w-lg rounded border border-border bg-card p-8 text-center">
           <ShieldAlert className="mx-auto size-8 text-seam-red" aria-hidden />
           <h1 className="mt-3 font-display text-2xl font-bold text-graphite">Not authorized</h1>
           <p className="mt-2 text-sm text-steel">
-            The admin console is limited to Power Recruit superadmins.
+            The staff console is limited to Power Recruit superadmins.
           </p>
         </div>
-      </AppShell>
+      </div>
     );
   }
 
+  const waiting =
+    (needs?.withheld ?? 0) +
+    (needs?.blocks ?? 0) +
+    (needs?.identity ?? 0) +
+    (needs?.discovered ?? 0) +
+    (needs?.review ?? 0);
+
+  const sections: ConsoleNavSection[] = [
+    {
+      label: "Needs you",
+      to: "/admin",
+      count: waiting || undefined,
+      items: [
+        { to: "/admin/withheld", label: "Withheld links", count: needs?.withheld },
+        { to: "/admin/blocks", label: "Permanent blocks", count: needs?.blocks },
+        { to: "/admin/federal-decisions", label: "School identity", count: needs?.identity },
+        { to: "/admin/discovery", label: "Discovered links", count: needs?.discovered },
+        { to: "/admin/review", label: "Review queue", count: needs?.review },
+      ],
+    },
+    {
+      label: "Collection",
+      items: [
+        { to: "/admin/pipeline", label: "Live run" },
+        { to: "/admin/build", label: "Stages" },
+        { to: "/admin/tools", label: "Tools" },
+        { to: "/admin/hosts", label: "Blocked sites" },
+        { to: "/admin/seed-import", label: "Bulk import" },
+      ],
+    },
+    {
+      label: "Schools",
+      items: [
+        { to: "/admin/universities", label: "All schools" },
+        { to: "/admin/retired", label: "Retired" },
+        { to: "/admin/not-offered", label: "Not offered" },
+      ],
+    },
+    { label: "Teams", items: [{ to: "/admin/programs", label: "All teams" }] },
+    { label: "Majors", items: [{ to: "/admin/majors", label: "All majors" }] },
+    {
+      label: "Organizations",
+      items: [{ to: "/admin/organizations", label: "All organizations" }],
+    },
+    {
+      label: "Activity",
+      items: [
+        { to: "/admin/audit", label: "Audit log" },
+        { to: "/admin/archive", label: "Run archive" },
+      ],
+    },
+  ];
+
   return (
-    <AppShell right={<AuthButton />}>
-      <nav
-        aria-label="Admin sections"
-        className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1.5 shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)]"
-      >
-        {ADMIN_NAV.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            activeOptions={{ exact: item.exact }}
-            className="touch-target flex shrink-0 items-center gap-2 rounded-md px-3.5 text-sm font-semibold text-steel transition-colors hover:bg-muted hover:text-graphite"
-            activeProps={{ className: "bg-org-primary text-white hover:bg-org-primary hover:text-white" }}
-          >
-            {item.label}
-            {item.to === "/admin/review" && pendingCount > 0 ? (
-              <span className="rounded-full bg-seam-red px-1.5 text-xs font-semibold tabular-nums text-white">
-                {pendingCount}
-              </span>
-            ) : null}
-            {item.to === "/admin/discovery" && discoveryCount > 0 ? (
-              <span className="rounded-full bg-seam-red px-1.5 text-xs font-semibold tabular-nums text-white">
-                {discoveryCount}
-              </span>
-            ) : null}
-          </Link>
-        ))}
-      </nav>
-      <p className="mb-6 -mt-4 text-xs text-steel">
-        <strong className="font-semibold text-graphite">Schools</strong> hold academics and cost.{" "}
-        <strong className="font-semibold text-graphite">Programs</strong> are the baseball or softball
-        team at a school — division, conference, coaches, roster, and our intelligence.
-      </p>
+    <ConsoleShell sections={sections}>
       <Outlet />
-    </AppShell>
+    </ConsoleShell>
   );
 }

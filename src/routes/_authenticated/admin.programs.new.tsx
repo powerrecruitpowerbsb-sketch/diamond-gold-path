@@ -55,7 +55,7 @@ function NewProgram() {
 
   return (
     <div className="grid gap-5">
-      <h1 className="font-display text-3xl font-bold text-graphite">Add a program</h1>
+      <h1 className="font-display text-2xl font-bold text-graphite">Add a program</h1>
 
       <SectionCard title="Program placement" blurb="Attach this program to an existing school.">
         <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">

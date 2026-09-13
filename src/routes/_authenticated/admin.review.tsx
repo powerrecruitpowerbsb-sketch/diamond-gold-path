@@ -332,7 +332,7 @@ function ReviewQueue() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-graphite">Review queue</h1>
+          <h1 className="font-display text-2xl font-bold text-graphite">Review queue</h1>
           <p className="mt-1 max-w-2xl text-sm text-steel">
             Only changes that need a human land here — anything that would overwrite existing data,
             where two sources disagree, or where the extraction looked shaky. Blank fields confirmed
@@ -360,7 +360,7 @@ function ReviewQueue() {
       </div>
 
       {programFilter ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-org-primary/30 bg-org-primary/5 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-org-primary/30 bg-org-primary/5 p-4">
           <p className="text-sm text-graphite">
             Showing only items proposed for{" "}
             <span className="font-semibold">{groups[0]?.schoolName ?? "this program"}</span>.
@@ -375,7 +375,7 @@ function ReviewQueue() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
+      <div className="flex flex-wrap items-end gap-3 rounded border border-border bg-card p-4">
         <label className="block">
           <span className="meta mb-1.5 block">SCHOOL</span>
           <input
@@ -458,7 +458,7 @@ function ReviewQueue() {
       </div>
 
       {rejecting ? (
-        <div className="space-y-3 rounded-xl border border-seam-red/40 bg-seam-red-tint p-4">
+        <div className="space-y-3 rounded border border-seam-red/40 bg-seam-red-tint p-4">
           <p className="text-sm font-semibold text-graphite">Declining {rejecting.label}</p>
           <label className="block">
             <span className="meta mb-1.5 block">WHAT WAS WRONG? (OPTIONAL)</span>
@@ -503,7 +503,7 @@ function ReviewQueue() {
 
 
       {sweepPreview ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-org-accent/40 bg-org-accent/10 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-org-accent/40 bg-org-accent/10 p-4">
           <div className="min-w-0 text-sm text-graphite">
             <p className="font-semibold">
               {sweepPreview.noChange} item{sweepPreview.noChange === 1 ? "" : "s"} already match what
@@ -546,9 +546,9 @@ function ReviewQueue() {
 
 
       {isPending ? (
-        <div className="h-48 animate-pulse rounded-xl bg-muted" />
+        <div className="h-48 animate-pulse rounded bg-muted" />
       ) : groups.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-10 text-center shadow-card">
+        <div className="rounded border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-bold text-graphite">Nothing to review</p>
           <p className="mt-1 text-sm text-steel">
             Either every recent pull was confident enough to apply on its own, or no pull has run yet.
@@ -561,7 +561,7 @@ function ReviewQueue() {
             const ids = group.items.map((item) => item.id);
             const allSelected = ids.every((id) => selected.has(id));
             return (
-              <li key={group.key} className="rounded-xl border border-border bg-card shadow-card">
+              <li key={group.key} className="rounded border border-border bg-card">
                 <div className="flex flex-wrap items-center gap-3 p-4">
                   <Checkbox
                     checked={allSelected}

@@ -72,7 +72,7 @@ function NewSchool() {
   return (
     <div className="grid gap-5">
       <div>
-        <h1 className="font-display text-3xl font-bold text-graphite">Add a new school</h1>
+        <h1 className="font-display text-2xl font-bold text-graphite">Add a new school</h1>
         <p className="mt-1 text-sm text-steel">
           Three quick steps. Sourced fields carry a citation so the data stays defensible.
         </p>
