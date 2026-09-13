@@ -73,7 +73,11 @@ function Workstation() {
   const navigate = Route.useNavigate();
   const { account, isPending: accountPending } = useMyAccount();
   const role = account?.primaryRole ?? null;
-  const allowed = role === "org_admin" || role === "org_staff" || role === "superadmin";
+  const allowed =
+    role === "org_owner" ||
+    role === "org_admin" ||
+    role === "org_staff" ||
+    role === "superadmin";
 
   const [tab, setTab] = useState<Tab>("programs");
   const [filters, setFilters] = useState({

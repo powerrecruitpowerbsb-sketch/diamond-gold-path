@@ -87,7 +87,10 @@ function ProgramProfile() {
   const { account } = useMyAccount();
   const viewerRole = account?.primaryRole ?? null;
   const isOrgStaff =
-    viewerRole === "org_admin" || viewerRole === "org_staff" || viewerRole === "superadmin";
+    viewerRole === "org_owner" ||
+    viewerRole === "org_admin" ||
+    viewerRole === "org_staff" ||
+    viewerRole === "superadmin";
   const profileFn = useServerFn(getProgramProfile);
 
   const pickerFn = useServerFn(listAthletePicker);

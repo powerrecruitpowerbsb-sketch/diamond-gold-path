@@ -49,13 +49,13 @@ function TeamSettings() {
           roles={[
             {
               value: "org_staff",
-              label: "Staff",
-              hint: "Staff can manage athletes, shortlists and family invites.",
+              label: "Coach / Staff",
+              hint: "Coaches manage athletes and shortlists, and write recruiting intelligence for review.",
             },
             {
               value: "org_admin",
               label: "Admin",
-              hint: "Admins can additionally invite staff and change organization branding.",
+              hint: "Admins run the organization: invites, seasons, teams and the intelligence approval queue.",
             },
           ]}
           peopleLabel="Coaches & staff"
