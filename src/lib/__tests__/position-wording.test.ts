@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizePosition } from "@/lib/data-quality";
-import { positionGroup } from "@/lib/position-group";
+import { isPitcher, pitcherHand, positionGroup } from "@/lib/position-group";
 
 describe("single wordings", () => {
   it("stores a pitcher with no hand as P", () => {
@@ -79,6 +79,29 @@ describe("combined cells", () => {
 describe("groups", () => {
   it("groups the new values", () => {
     expect(positionGroup("P")).toBe("pitcher");
+    expect(positionGroup("IF")).toBe("infield");
+  });
+});
+
+describe("pitcher hand is derived from the page's own throws column", () => {
+  it("keeps a stated hand", () => {
+    expect(pitcherHand("RHP", null)).toBe("R");
+    expect(pitcherHand("LHP", "R")).toBe("L");
+  });
+  it("derives the hand for a page that printed only P", () => {
+    expect(pitcherHand("P", "L")).toBe("L");
+    expect(pitcherHand("P", "R")).toBe("R");
+  });
+  it("leaves the hand unstated when the school published no throws value", () => {
+    expect(pitcherHand("P", null)).toBeNull();
+  });
+  it("counts a two-way player among the pitchers", () => {
+    expect(isPitcher("TWO_WAY", null)).toBe(true);
+    expect(isPitcher("P", null)).toBe(true);
+    expect(isPitcher("IF", null)).toBe(false);
+    expect(isPitcher(null, true)).toBe(true);
+  });
+  it("never guesses an infield spot", () => {
     expect(positionGroup("IF")).toBe("infield");
   });
 });

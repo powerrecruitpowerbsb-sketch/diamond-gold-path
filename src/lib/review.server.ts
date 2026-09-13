@@ -91,7 +91,7 @@ async function upsertSource(
   if (error) throw new Error(error.message);
 }
 
-const POSITIONS = ["C", "1B", "2B", "3B", "SS", "MIF", "CIF", "OF", "UTIL", "RHP", "LHP", "TWO_WAY"];
+const POSITIONS = ["C", "1B", "2B", "3B", "SS", "MIF", "CIF", "IF", "OF", "UTIL", "P", "RHP", "LHP", "TWO_WAY"];
 const CLASS_YEARS = ["FR", "SO", "JR", "SR", "GR"];
 
 function pickEnum(value: unknown, options: string[]): string | null {
