@@ -106,12 +106,15 @@ export const saveProgramIntel = createServerFn({ method: "POST" })
     const { data: inserted, error } = await context.supabase
       .from("recruiting_intelligence")
       .insert({
+        organization_id: await actorOrgId(context as any),
         program_id: data.programId,
         field_type: data.fieldType as any,
         content: data.content,
+        author_user_id: context.userId,
         created_by: context.userId,
         updated_by: context.userId,
-      })
+      } as any)
+
       .select("id")
       .single();
     if (error) throw new Error(error.message);
