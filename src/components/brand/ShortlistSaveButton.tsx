@@ -25,6 +25,8 @@ type Props = {
   athleteId?: string | undefined;
   athleteName?: string | undefined;
   size?: "sm" | "md";
+  /** Compact square icon button — used inside dense tables where the label would shout. */
+  iconOnly?: boolean;
   className?: string;
 };
 
