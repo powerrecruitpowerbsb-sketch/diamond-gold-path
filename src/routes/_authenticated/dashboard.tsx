@@ -210,7 +210,7 @@ function Dashboard() {
                 <Link
                   to="/roster/$id"
                   params={{ id: String(athlete.id) }}
-                  className="flex h-full flex-col rounded-xl border border-border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
+                  className="flex h-full flex-col rounded-xl border border-border bg-card p-4 "
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -281,7 +281,7 @@ function BarCard({
   loading: boolean;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5 shadow-card">
+    <section className="rounded-xl border border-border bg-card p-5">
       <h3 className="font-display text-lg font-bold text-graphite">{title}</h3>
       <p className="meta mt-0.5">{hint.toUpperCase()}</p>
       {loading ? (

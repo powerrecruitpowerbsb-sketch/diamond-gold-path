@@ -44,7 +44,7 @@ export function RosterHistory({ programId }: { programId: string }) {
   const maxSize = Math.max(1, ...snapshots.map((s) => total(s.position_counts)));
 
   return (
-    <section className="rounded-xl border border-border bg-card shadow-card">
+    <section className="rounded-xl border border-border bg-card">
       <header className="border-b border-border px-5 py-4">
         <h2 className="font-display text-lg font-bold text-org-primary">Roster history</h2>
         <p className="text-sm text-steel">

@@ -63,7 +63,7 @@ function Index() {
       />
 
       <section className="mt-10 grid gap-5 md:grid-cols-3">
-        <Card className="rounded-xl border-0 p-6 shadow-card">
+        <Card className="rounded-xl border-0 p-6">
           <BadgeCheck className="size-6 text-diamond-green" aria-hidden />
           <h2 className="mt-4 text-lg font-semibold">Verified Data</h2>
           <p className="mt-2 text-sm text-steel">
@@ -75,7 +75,7 @@ function Index() {
           </div>
         </Card>
 
-        <Card className="rounded-xl border-0 p-6 shadow-card">
+        <Card className="rounded-xl border-0 p-6">
           <Database className="size-6 text-org-primary" aria-hidden />
           <h2 className="mt-4 text-lg font-semibold">One shared college database</h2>
           <p className="mt-2 text-sm text-steel">
@@ -89,7 +89,7 @@ function Index() {
           />
         </Card>
 
-        <Card className="rounded-xl border-0 p-6 shadow-card">
+        <Card className="rounded-xl border-0 p-6">
           <ShieldCheck className="size-6 text-org-primary" aria-hidden />
           <h2 className="mt-4 text-lg font-semibold">Scoped by organization</h2>
           <p className="mt-2 text-sm text-steel">
@@ -112,7 +112,7 @@ function Index() {
             { label: "Accept rate", value: "5.7%" },
             { label: "Net price", value: "$27,500" },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-xl bg-white p-4 shadow-card">
+            <div key={stat.label} className="rounded-xl bg-white p-4">
               <p className="meta">{stat.label}</p>
               <p className="tabular mt-1 font-display text-2xl font-bold text-org-primary">
                 {stat.value}

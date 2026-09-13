@@ -80,7 +80,7 @@ export function IngestPanel({ programId }: { programId: string }) {
   const busy = pull.isPending || running;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5 shadow-card">
+    <section className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-xl font-bold text-graphite">Data pull</h2>

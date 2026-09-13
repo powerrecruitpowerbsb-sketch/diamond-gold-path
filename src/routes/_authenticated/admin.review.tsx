@@ -375,7 +375,7 @@ function ReviewQueue() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
         <label className="block">
           <span className="meta mb-1.5 block">SCHOOL</span>
           <input
@@ -548,7 +548,7 @@ function ReviewQueue() {
       {isPending ? (
         <div className="h-48 animate-pulse rounded-xl bg-muted" />
       ) : groups.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-10 text-center shadow-card">
+        <div className="rounded-xl border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-bold text-graphite">Nothing to review</p>
           <p className="mt-1 text-sm text-steel">
             Either every recent pull was confident enough to apply on its own, or no pull has run yet.
@@ -561,7 +561,7 @@ function ReviewQueue() {
             const ids = group.items.map((item) => item.id);
             const allSelected = ids.every((id) => selected.has(id));
             return (
-              <li key={group.key} className="rounded-xl border border-border bg-card shadow-card">
+              <li key={group.key} className="rounded-xl border border-border bg-card">
                 <div className="flex flex-wrap items-center gap-3 p-4">
                   <Checkbox
                     checked={allSelected}

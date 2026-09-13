@@ -390,7 +390,7 @@ function SearchScreen() {
             return (
             <div
               key={row.id}
-              className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
+              className="flex flex-col rounded-xl border border-border bg-card p-5 "
             >
             <Link
               to="/programs/$id"
