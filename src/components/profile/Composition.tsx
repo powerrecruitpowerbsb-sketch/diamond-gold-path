@@ -120,13 +120,17 @@ function geographyLines(rows: RosterRow[]): Line[] {
   ];
 }
 
-function Block({ title, lines }: { title: string; lines: Line[] }) {
+function Block({ title, lines, note }: { title: string; lines: Line[]; note?: string | null }) {
   return (
     <div className="rounded border border-border bg-card">
       <p className="border-b border-border px-3 py-2 text-[11px] font-semibold tracking-wide text-steel uppercase">
         {title}
       </p>
+      {note ? (
+        <p className="border-b border-border px-3 py-1.5 text-xs text-steel">{note}</p>
+      ) : null}
       <table className="w-full border-collapse text-sm">
+
         <tbody>
           {lines.map((line) => (
             <tr key={line.label} className="border-b border-border last:border-0">
