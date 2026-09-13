@@ -332,7 +332,7 @@ function ReviewQueue() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-graphite">Review queue</h1>
+          <h1 className="font-display text-2xl font-bold text-graphite">Review queue</h1>
           <p className="mt-1 max-w-2xl text-sm text-steel">
             Only changes that need a human land here — anything that would overwrite existing data,
             where two sources disagree, or where the extraction looked shaky. Blank fields confirmed

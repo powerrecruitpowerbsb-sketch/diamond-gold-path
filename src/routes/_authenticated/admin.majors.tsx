@@ -54,7 +54,7 @@ function MajorsScreen() {
   return (
     <div className="grid gap-5">
       <div>
-        <h1 className="font-display text-3xl font-bold text-graphite">Majors catalog</h1>
+        <h1 className="font-display text-2xl font-bold text-graphite">Majors catalog</h1>
         <p className="mt-1 text-sm text-steel">
           One shared list. Assign majors to schools from each school's page.
         </p>

@@ -87,7 +87,7 @@ function FederalDecisions() {
           <ArrowLeft className="size-3" aria-hidden />
           Back to the collection pipeline
         </Link>
-        <h1 className="mt-1 font-display text-3xl font-bold text-graphite">Decide the last schools</h1>
+        <h1 className="mt-1 font-display text-2xl font-bold text-graphite">Decide the last schools</h1>
         <p className="mt-1 text-sm text-steel">
           Each school below sits beside the closest record in the national list. Confirm it, pick a
           different one, or park the school if it truly isn't listed. Parking can always be undone.

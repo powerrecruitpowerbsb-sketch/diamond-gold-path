@@ -251,7 +251,7 @@ function DiscoveryQueue() {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-graphite">Links to check</h1>
+          <h1 className="font-display text-2xl font-bold text-graphite">Links to check</h1>
           <p className="mt-1 max-w-2xl text-sm text-steel">
             Nothing here is live until you approve it. Start with the tidy-up — it clears the links
             that are plainly wrong so you only look at real decisions.

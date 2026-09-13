@@ -9,6 +9,7 @@ import { AccuracyPanel } from "@/components/admin/AccuracyPanel";
 import { CompletionBoard } from "@/components/admin/CompletionBoard";
 
 import { SectionCard } from "@/components/admin/form-kit";
+import { PageHeader } from "@/components/console/PageHeader";
 import {
   getPipelineStatus,
   importNcaaSlice,
