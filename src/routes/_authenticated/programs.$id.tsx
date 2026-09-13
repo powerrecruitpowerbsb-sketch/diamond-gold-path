@@ -301,11 +301,42 @@ function ProgramProfile() {
     staffSet: Boolean(row.is_staff_overridden),
   }));
 
-  const intelRows = ((intelligence ?? []) as any[]).map((row) => ({
+  /** One record rendered as a sentence: structured answer, positions, then the note. */
+  const intelBody = (row: any): string => {
+    const parts: string[] = [];
+    const choice = structuredLabel(String(row.field_type), row.structured_value);
+    if (choice) parts.push(choice);
+    if ((row.positions ?? []).length) {
+      parts.push(
+        (row.positions as string[]).map((p) => POSITION_LABELS[p] ?? p).join(", "),
+      );
+    }
+    const detail = row.structured_detail as { positions?: string[]; year?: string } | null;
+    if (detail?.positions?.length) {
+      parts.push(
+        `${detail.positions.map((p) => POSITION_LABELS[p] ?? p).join(", ")}${
+          detail.year ? ` (${detail.year})` : ""
+        }`,
+      );
+    }
+    if ((row.content ?? "").trim()) parts.push(String(row.content).trim());
+    return parts.join(" — ");
+  };
+
+  const allIntel = ((intelligence ?? []) as any[]).map((row) => ({
     id: String(row.id),
-    label: INTEL_FIELD_LABELS[row.field_type] ?? String(row.field_type),
-    content: String(row.content),
+    label: fieldLabel(String(row.field_type)) || INTEL_FIELD_LABELS[row.field_type] || String(row.field_type),
+    body: intelBody(row),
+    visibility: (row.visibility ?? "org_only") as "org_only" | "shared_with_families",
+    orgOnlyField: INTEL_FIELD_MAP[String(row.field_type)]?.audience === "org",
   }));
+  // Conclusions (and anything shared on purpose) sit in the family-facing block;
+  // the evidence sits in the internal block, staff only.
+  const intelRows = allIntel.filter((r) => !r.orgOnlyField || r.visibility === "shared_with_families");
+  const internalRows = allIntel.filter((r) => r.orgOnlyField && r.visibility === "org_only");
+  const strength = relationshipSummary?.strength_label ?? null;
+  const placed = relationshipSummary?.placed_players_before ?? null;
+
 
   const majorRows = (majors ?? []) as {
     id: string;
