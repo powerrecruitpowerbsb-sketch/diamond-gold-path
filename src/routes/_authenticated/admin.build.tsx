@@ -103,19 +103,17 @@ function BuildProgress() {
   }
 
   return (
-    <div className="grid gap-5">
-      <section className="stadium-gradient rounded p-6">
-        <p className="meta text-white/60">Build progress</p>
-        <h1 className="mt-1 font-display text-2xl font-bold text-white sm:text-3xl">
-          {data?.headline ?? "Working out where things stand…"}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/70">
-          Four stages, in order. Each button unlocks once the one above it is finished, and picks up
-          where it left off — nothing is ever done twice. Current season: {" "}
-          {data ? seasonLabel(data.seasonYear) : "…"}.
-        </p>
-        {beat ? <p className="meta mt-3 text-white/60">Last activity {beat}</p> : null}
-      </section>
+    <div className="grid gap-4">
+      <PageHeader
+        title="Stages"
+        description="Four stages, in order. Each unlocks once the one above it is finished and picks up where it left off — nothing is ever done twice."
+        counts={[
+          data?.headline ?? "Working out where things stand…",
+          data ? `season ${seasonLabel(data.seasonYear)}` : null,
+          beat ? `last activity ${beat}` : null,
+        ]}
+      />
+
 
       <ol className="grid gap-3">
         {stages.map((stage, index) => {
