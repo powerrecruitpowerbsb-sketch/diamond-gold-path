@@ -151,17 +151,25 @@ export function pageNamesSchool(text: string, schoolName: string | null | undefi
  * for "Alfred University".
  */
 function sameInstitution(theirName: string, ourName: string | null | undefined): boolean {
-  const ours = new Set(distinctiveWords(ourName));
+  const ourWords = distinctiveWords(ourName);
+  const ours = new Set(ourWords);
   const theirs = distinctiveWords(theirName);
   if (!theirs.length || !ours.size) return false;
-  const shared = theirs.filter((word) => ours.has(word));
-  const extra = theirs.filter((word) => !ours.has(word));
-  if (!shared.length || extra.length) return false;
   const theirKind = institutionKind(theirName);
   const ourKind = institutionKind(String(ourName ?? ""));
   if (theirKind && ourKind && theirKind !== ourKind) return false;
+  // The header often runs our own name straight into the next thing on the page
+  // ("College of the Desert Roar Baseball Roster"). Our whole name appearing at
+  // the front, in order, is our name — trailing page words are not identity words.
+  const startsWithOurs =
+    ourWords.length > 0 && ourWords.every((word, index) => theirs[index] === word);
+  if (startsWithOurs) return true;
+  const shared = theirs.filter((word) => ours.has(word));
+  const extra = theirs.filter((word) => !ours.has(word));
+  if (!shared.length || extra.length) return false;
   return true;
 }
+
 
 /**
  * What the page says about itself.
