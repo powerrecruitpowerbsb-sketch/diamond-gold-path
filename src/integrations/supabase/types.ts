@@ -1244,6 +1244,8 @@ export type Database = {
           logo_url: string | null
           name: string
           paid_at: string | null
+          plan: string
+          seat_count: number
           stripe_customer_id: string | null
           stripe_invoice_id: string | null
           stripe_invoice_url: string | null
@@ -1263,6 +1265,8 @@ export type Database = {
           logo_url?: string | null
           name: string
           paid_at?: string | null
+          plan?: string
+          seat_count?: number
           stripe_customer_id?: string | null
           stripe_invoice_id?: string | null
           stripe_invoice_url?: string | null
@@ -1282,6 +1286,8 @@ export type Database = {
           logo_url?: string | null
           name?: string
           paid_at?: string | null
+          plan?: string
+          seat_count?: number
           stripe_customer_id?: string | null
           stripe_invoice_id?: string | null
           stripe_invoice_url?: string | null
