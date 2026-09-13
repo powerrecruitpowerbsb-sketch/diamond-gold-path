@@ -390,7 +390,7 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
           ...base,
           verdict: "failed",
           reason,
-          cleared: false,
+          withheld: false,
           failureCategory: page.failure_category,
           fetchMethod: null,
         });
@@ -415,7 +415,7 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
           ...base,
           verdict: identity.verdict,
           reason: identity.reason,
-          cleared: false,
+          withheld: false,
           fetchMethod: page.fetch_method,
         });
         continue;
@@ -427,7 +427,7 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
           ...base,
           verdict: identity.verdict,
           reason: identity.reason,
-          cleared: false,
+          withheld: false,
           fetchMethod: page.fetch_method,
         });
         continue;
