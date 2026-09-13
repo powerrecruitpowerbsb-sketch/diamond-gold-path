@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Building2, Database, Download, Landmark, RefreshCw } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { AccuracyPanel } from "@/components/admin/AccuracyPanel";
@@ -977,26 +977,4 @@ function Tools() {
 
 
 
-function Stat({
-  icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  hint: string;
-}) {
-  return (
-    <div className="rounded border border-border bg-muted/30 p-4">
-      <p className="flex items-center gap-2 text-xs font-semibold tracking-wide text-steel uppercase">
-        {icon}
-        {label}
-      </p>
-      <p className="mt-1 font-display text-2xl font-bold tabular-nums text-graphite">{value}</p>
-      <p className="meta mt-1">{hint}</p>
-    </div>
-  );
-}
 
