@@ -52,8 +52,12 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           { to: "/roster", label: "Roster", icon: Users },
         ]
       : []),
+    ...(role === "parent" || role === "player"
+      ? [{ to: "/family", label: "Family portal", icon: Database }]
+      : []),
 
     ...(isStaff ? [{ to: "/admin", label: "Console", icon: Table2 }] : []),
+
   ];
 
   const overflowNav: NavItem[] = [
