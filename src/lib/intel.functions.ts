@@ -29,7 +29,30 @@ async function assertSuperadmin(context: { supabase: any; userId: string }) {
   }
 }
 
-const str = (value: unknown) => String(value ?? "").trim();
+/**
+ * Intelligence and relationship rows belong to an organization. Power staff
+ * write into their own; if their account carries no organization we fall back to
+ * the first one on file (Power's own), never to a null tenant key.
+ */
+async function actorOrgId(context: { supabase: any; userId: string }): Promise<string> {
+  const { data: profile } = await context.supabase
+    .from("users")
+    .select("organization_id")
+    .eq("id", context.userId)
+    .maybeSingle();
+  const own = (profile as any)?.organization_id as string | null;
+  if (own) return own;
+  const { data: org } = await context.supabase
+    .from("organizations")
+    .select("id")
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+  const fallback = (org as any)?.id as string | null;
+  if (!fallback) throw new Error("No organization on file to attach this to");
+  return fallback;
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Recruiting intelligence (shown on the public program profile)        */
