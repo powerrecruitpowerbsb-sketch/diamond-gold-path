@@ -4,8 +4,10 @@ import {
   Database,
   Home,
   LayoutDashboard,
+  Lightbulb,
   Mail,
   Menu,
+
   Palette,
   Search,
   Table2,
