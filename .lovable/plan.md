@@ -1,25 +1,41 @@
-# Make Intelligence reachable for Power Recruit staff
+# Roles hierarchy + making Intelligence visible
 
-## What's happening
+## Answering the question: staff vs coach
 
-The Intelligence link is only added to the menu for Power Baseball's admin and coach accounts. When you're signed in as a Power Recruit staff account (`staff@powerrecruit.app` or your Gmail account), the menu shows Home, Search and Console — and no Intelligence, even though the Intelligence screen itself does allow staff in.
+There is no difference. Today there are only two staff levels on file:
 
-So the screen isn't missing, just unlinked for the account you're using.
+- **Admin** (`org_admin`) — can do everything for the organization, including billing fields and logo/colors.
+- **Staff** (`org_staff`) — this *is* the coach level. The word "coach" is used in conversation and on some screens, "Staff" on the invite screen. Same permission set, two names. That inconsistency is the whole difference.
 
-## The fix
+There is currently **no separate Owner level** — the admin who creates the organization is just an admin.
 
-1. Add "Intelligence" to the main menu for Power Recruit staff accounts as well, so it sits next to Console.
-2. Add an "Intelligence" entry inside the console's own left sidebar, so it's reachable while you're working in the console.
-3. Leave the Power Baseball admin and coach menus exactly as they are (Intelligence already shows there).
+## Why Intelligence isn't in your menu
 
-Nothing else changes: no new screens, no data or permission changes, reading only.
+The Intelligence link is only added for organization admin and staff accounts. Signed in as a Power Recruit staff (superadmin) account, the menu shows Home, Search and Console — no Intelligence, even though the screen itself lets staff in. So it exists, it's just unlinked for that account.
 
-## How to check it
+## The hierarchy to build
 
-Sign in as `staff@powerrecruit.app` — Intelligence appears in the menu and opens the workstation. Sign in as `admin@powerbaseball.app` — unchanged.
+| Level | Can do |
+| --- | --- |
+| Super Admin | Everything, all organizations, the console |
+| Org Owner | Everything for their organization **including** billing and logo/colors |
+| Admin | Same as Owner **minus** billing and logo/colors |
+| Coach / Staff | Roster, intelligence (submissions go to the approval queue), no relationship rating, no invites of admins |
+| Player | Reads own family portal and approved intelligence |
+| Parent | Same as Player |
+
+## Work
+
+1. **Add the Owner level.** New role value `org_owner` (schema change — additive, nothing removed). Power Baseball's current admin becomes the Owner; the second existing admin account stays Admin.
+2. **Owner-only surfaces.** Billing fields and Branding settings become Owner-only (and Super Admin). Everything else Admin keeps.
+3. **One name for the coach level.** Every screen and invite dropdown says "Coach / Staff" for `org_staff`; the word "Staff" alone stops being used for it, so it can't be confused with Power Recruit staff.
+4. **Invite rules.** Owner can invite anyone; Admin can invite Coach/Staff, Player, Parent; Coach cannot invite.
+5. **Menu fix.** Intelligence appears for Owner, Admin, Coach/Staff and Super Admin, and also inside the console's own sidebar.
+6. **Verification.** Sign in as each of the five test accounts and confirm the menu and the allowed screens match the table above.
 
 ## Technical notes
 
-- `src/components/brand/AppShell.tsx`: include the `/intelligence` nav item when `isStaff` is true, not only for `isOrgManager`.
-- Console sidebar (`ConsoleShell`): add a link to `/intelligence`.
-- No changes to any `*.server.ts` file, no schema or migration work.
+- Migration: add `org_owner` to the `user_type` enum; update `is_org_manager()` and every RLS policy that lists `org_admin` to include `org_owner`; keep `guard_organization_billing()` but allow Owner (currently superadmin-only path) where billing edits are intended; set the one Power Baseball owner row (`users.user_type` + `user_roles`).
+- Frontend: a single role helper (`isOwner` / `isOrgAdmin` / `isOrgManager`) replacing the ad-hoc checks in `AppShell.tsx`, `intelligence.tsx`, `programs.$id.tsx`, `settings.team.tsx`, and the role labels in `invites.functions.ts`.
+- Reader functions (`*.functions.ts`) get `org_owner` added to their role lists; no `*.server.ts` file is touched.
+- Screens stay read-only apart from the already-approved organization-management and intelligence writes.
