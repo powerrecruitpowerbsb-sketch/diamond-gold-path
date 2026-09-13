@@ -18,10 +18,6 @@ const supabase = createClient(
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
 
-const { data: rows, error } = await supabase.rpc("exec_missing_position_programs" as any).catch(() => ({ data: null, error: null }) as any);
-void rows; void error;
-
-// No RPC — derive the list client side.
 const { data: players } = await supabase
   .from("roster_players")
   .select("program_id, position")
