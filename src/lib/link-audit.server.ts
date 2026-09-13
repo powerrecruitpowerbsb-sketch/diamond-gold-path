@@ -30,7 +30,8 @@ export type AuditRow = {
   url: string;
   verdict: IdentityVerdict | "failed";
   reason: string;
-  cleared: boolean;
+  /** True when the address was withheld from the product. Nothing is ever erased. */
+  withheld: boolean;
   failureCategory?: FailureCategory | null;
   fetchMethod?: FetchMethod | null;
 };
@@ -39,7 +40,9 @@ export type AuditResult = {
   applied: boolean;
   checked: number;
   confirmed: number;
-  cleared: number;
+  withheld: number;
+  /** Archive run id every withholding in this pass is recorded under. */
+  runId: string;
   unclear: number;
   /** Pages skipped or refused because the site blocks automated reading. */
   blocked: number;
