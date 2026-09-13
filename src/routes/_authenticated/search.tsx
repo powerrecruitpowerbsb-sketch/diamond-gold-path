@@ -740,9 +740,6 @@ function SearchScreen() {
                       {plain(u.avg_sat)}
                     </td>
                     <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {plain(u.avg_act)}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {row.roster?.size ? row.roster.size : "No roster on file"}
                     </td>
                     <td className="h-[38px] max-w-[170px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
