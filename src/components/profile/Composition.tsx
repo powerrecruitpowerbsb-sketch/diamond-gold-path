@@ -1,3 +1,4 @@
+import { isPitcher, pitcherHand } from "@/lib/position-group";
 import { cn } from "@/lib/utils";
 
 export type RosterRow = {
@@ -25,6 +26,14 @@ const anyPublished = (rows: RosterRow[], key: keyof RosterRow) =>
 
 const pos = (row: RosterRow) => String(row.position ?? "").toUpperCase();
 
+/**
+ * The hand a pitcher throws with, from the position and the page's own throws
+ * column; null for a pitcher whose hand the school never published.
+ */
+const pitcherOf = (row: RosterRow) =>
+  isPitcher(row.position, row.two_way) ? pitcherHand(row.position, row.throws) : null;
+
+
 function positionLines(rows: RosterRow[]): Line[] {
   const has = anyPublished(rows, "position");
   const n = (test: (p: string, row: RosterRow) => boolean) =>
@@ -38,9 +47,22 @@ function positionLines(rows: RosterRow[]): Line[] {
     { label: "Third basemen", value: n((p) => p === "3B") },
     { label: "Infield, spot not stated", value: n((p) => p === "IF") },
     { label: "Outfielders", value: n((p) => p === "OF") },
-    { label: "Right-handed pitchers", value: n((p) => p === "RHP") },
-    { label: "Left-handed pitchers", value: n((p) => p === "LHP") },
-    { label: "Pitchers, hand not stated", value: n((p) => p === "P") },
+    {
+      label: "Right-handed pitchers",
+      value: has ? rows.filter((row) => pitcherOf(row) === "R").length : null,
+    },
+    {
+      label: "Left-handed pitchers",
+      value: has ? rows.filter((row) => pitcherOf(row) === "L").length : null,
+    },
+    {
+      label: "Pitchers, hand not stated",
+      value: has
+        ? rows.filter((row) => isPitcher(row.position, row.two_way) && pitcherOf(row) === null)
+            .length
+        : null,
+    },
+
     {
       label: "Two-way players",
       value: has ? rows.filter((row) => pos(row) === "TWO_WAY" || row.two_way === true).length : null,
@@ -62,12 +84,13 @@ function handednessLines(rows: RosterRow[]): Line[] {
     { label: "Switch hitters", value: nb("S") },
     {
       label: "Right-handed pitchers",
-      value: positions ? rows.filter((row) => pos(row) === "RHP").length : null,
+      value: positions ? rows.filter((row) => pitcherOf(row) === "R").length : null,
     },
     {
       label: "Left-handed pitchers",
-      value: positions ? rows.filter((row) => pos(row) === "LHP").length : null,
+      value: positions ? rows.filter((row) => pitcherOf(row) === "L").length : null,
     },
+
     {
       label: "Throws right",
       value: throwsPublished ? rows.filter((row) => row.throws === "R").length : null,

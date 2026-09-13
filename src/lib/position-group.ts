@@ -60,6 +60,36 @@ export function positionGroup(stored: unknown): PositionGroup | null {
   return GROUPS[key] ?? null;
 }
 
+/**
+ * Does this player pitch? "TWO_WAY" is only ever stored for a cell that named a
+ * pitching role alongside a fielding one, so it counts.
+ */
+export function isPitcher(position: unknown, twoWay?: boolean | null): boolean {
+  const key = String(position ?? "").trim().toUpperCase();
+  return key === "P" || key === "RHP" || key === "LHP" || key === "TWO_WAY" || twoWay === true;
+}
+
+/**
+ * Which hand does this pitcher throw with?
+ *
+ * The stored position stays faithful to the page: a page printing only "P" is
+ * stored as "P". But RHP and LHP describe a throwing hand, and most pages that
+ * print "P" publish the hand in their own throws column — so the counts combine
+ * the two. A pitcher with no throws value published stays hand-not-stated.
+ */
+export function pitcherHand(
+  position: unknown,
+  throwsValue: unknown,
+): "R" | "L" | null {
+  const key = String(position ?? "").trim().toUpperCase();
+  if (key === "RHP") return "R";
+  if (key === "LHP") return "L";
+  const hand = String(throwsValue ?? "").trim().toUpperCase();
+  if (hand === "R" || hand === "L") return hand;
+  return null;
+}
+
+
 export const POSITION_GROUP_LABELS: Record<PositionGroup, string> = {
   pitcher: "Pitcher",
   catcher: "Catcher",
