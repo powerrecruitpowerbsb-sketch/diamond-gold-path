@@ -54,7 +54,7 @@ export function CompletionBoard() {
     onSuccess: (result: any, apply) => {
       toast.success(
         apply
-          ? `Cleared ${result.cleared} mixed-up page link(s) and queued a fresh search.`
+          ? `Held back ${result.withheld} mixed-up page link(s) for review. Nothing was deleted.`
           : `Found ${result.total} team(s) holding another school's pages.`,
       );
       refresh();

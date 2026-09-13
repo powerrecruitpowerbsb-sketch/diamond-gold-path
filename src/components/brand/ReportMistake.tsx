@@ -15,7 +15,7 @@ const FIELD_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "athletic_website", label: "Athletics website link" },
 ];
 
-/** Lets anyone flag a wrong detail: it is cleared and looked up again. */
+/** Lets anyone flag a wrong detail: it is held back for review and looked up again. */
 export function ReportMistake({ programId }: { programId: string }) {
   const [open, setOpen] = useState(false);
   const [field, setField] = useState(FIELD_OPTIONS[0]!.value);

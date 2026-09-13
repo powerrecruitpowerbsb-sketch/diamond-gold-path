@@ -7,18 +7,18 @@
  * school's JV team. No address test can catch that, because athletics sites use
  * mascot domains. So we fetch each page once and read the school name off it.
  *
- * Wrong-school and non-varsity pages are cleared, remembered as declined, and
- * the program is sent back to search inside its correct athletics domain. Nobody
- * is asked to approve any of that: the page either proves whose team it is or it
- * doesn't. Only pages that name nobody recognisable are listed for a person.
+ * A wrong-school or non-varsity verdict withholds the page: it is logged as
+ * conflicted, archived under a run id, and kept off product surfaces. It is
+ * never erased and never blacklisted — a bad verdict must not make a correct
+ * address unproposable. Only a person deletes a stored address.
  */
 
 import { scrapePage } from "@/lib/ingest.server";
-import { clearWrongLink, type LinkField } from "@/lib/link-repair.server";
+import { withholdLink, type LinkField } from "@/lib/link-repair.server";
 import { verifyPageIdentity, type IdentityVerdict } from "@/lib/page-identity";
 import type { FailureCategory, FetchMethod, SafeFetchResult } from "@/lib/safe-fetch.server";
 
-export { clearWrongLink };
+export { withholdLink };
 export type { LinkField };
 
 export type AuditRow = {
@@ -30,7 +30,8 @@ export type AuditRow = {
   url: string;
   verdict: IdentityVerdict | "failed";
   reason: string;
-  cleared: boolean;
+  /** True when the address was withheld from the product. Nothing is ever erased. */
+  withheld: boolean;
   failureCategory?: FailureCategory | null;
   fetchMethod?: FetchMethod | null;
 };
@@ -39,7 +40,9 @@ export type AuditResult = {
   applied: boolean;
   checked: number;
   confirmed: number;
-  cleared: number;
+  withheld: number;
+  /** Archive run id every withholding in this pass is recorded under. */
+  runId: string;
   unclear: number;
   /** Pages skipped or refused because the site blocks automated reading. */
   blocked: number;
@@ -183,7 +186,8 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
     applied: options.apply,
     checked: 0,
     confirmed: 0,
-    cleared: 0,
+    withheld: 0,
+    runId: crypto.randomUUID(),
     unclear: 0,
     blocked: 0,
     failed: 0,
@@ -386,7 +390,7 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
           ...base,
           verdict: "failed",
           reason,
-          cleared: false,
+          withheld: false,
           failureCategory: page.failure_category,
           fetchMethod: null,
         });
@@ -411,7 +415,7 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
           ...base,
           verdict: identity.verdict,
           reason: identity.reason,
-          cleared: false,
+          withheld: false,
           fetchMethod: page.fetch_method,
         });
         continue;
@@ -423,15 +427,16 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
           ...base,
           verdict: identity.verdict,
           reason: identity.reason,
-          cleared: false,
+          withheld: false,
           fetchMethod: page.fetch_method,
         });
         continue;
       }
 
-      result.cleared += 1;
+      result.withheld += 1;
       if (options.apply) {
-        await clearWrongLink(supabase, {
+        await withholdLink(supabase, {
+          runId: result.runId,
           programId: program.id,
           universityId: program.university_id,
           field,
@@ -444,7 +449,7 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
         ...base,
         verdict: identity.verdict,
         reason: identity.reason,
-        cleared: options.apply,
+        withheld: options.apply,
         fetchMethod: page.fetch_method,
       });
     }

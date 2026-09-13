@@ -1,16 +1,16 @@
 /**
  * "Report a mistake" — the human safety net.
  *
- * Anyone using a program page can flag a wrong value. Reporting does three
- * things: the wrong value is remembered so no future pull can put it back, the
- * field is cleared (a blank is always better than a wrong coach name), and the
- * school goes back in line for a fresh look at its official pages.
+ * Anyone using a program page can flag a wrong value. A report means "this looks
+ * wrong", not "never suggest this again", so nothing is deleted and nothing is
+ * blacklisted: the value is held back from the product, put in the review queue
+ * with the reporter's note, and the school goes back in line for a fresh look at
+ * its official pages.
  */
 
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { normalizeRejectedValue } from "@/lib/rejected-memory";
 
 const clean = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
@@ -49,37 +49,29 @@ export const reportProgramMistake = createServerFn({ method: "POST" })
 
     const current = (program as Record<string, unknown>)[data.fieldName] ?? null;
 
-    // 1. Remember the wrong value so it is never proposed again.
-    if (current !== null && current !== "") {
-      await supabaseAdmin.from("rejected_values").upsert(
-        [
-          {
-            table_name: "programs",
-            record_id: program.id,
-            field_name: data.fieldName,
-            normalized_value: normalizeRejectedValue(current),
-            reason: data.note || "Reported as wrong by a person",
-            created_by: context.userId,
-          },
-        ],
-        { onConflict: "table_name,record_id,field_name,normalized_value", ignoreDuplicates: true },
-      );
-    }
-
-    // 2. Clear it — an empty field is honest, a wrong one is not.
-    const { error: clearError } = await supabaseAdmin
-      .from("programs")
-      .update({ [data.fieldName]: null } as any)
-      .eq("id", program.id);
-    if (clearError) throw new Error(clearError.message);
+    // 1. Hold it back and put it in the review queue. The value stays on the
+    // record — deleting it, or blacklisting it forever, both throw away a value
+    // that may well turn out to be right.
+    const { error: reviewError } = await supabaseAdmin.from("pending_data_changes").insert({
+      table_name: "programs",
+      record_id: program.id,
+      field_name: data.fieldName,
+      original_value: current as any,
+      proposed_value: { action: "withhold", reason: "reported wrong by a person" } as any,
+      source_type: "manual",
+      status: "pending",
+      decided_via: "reported_by_person",
+      review_note: data.note || "Reported as wrong by a person",
+    });
+    if (reviewError) throw new Error(reviewError.message);
 
     await supabaseAdmin.from("audit_log").insert({
       table_name: "programs",
       record_id: program.id,
       field_name: data.fieldName,
-      action: "override",
+      action: "update",
       old_value: current === null ? null : String(current),
-      new_value: null,
+      new_value: current === null ? null : String(current),
       actor_id: context.userId,
     });
 
@@ -109,10 +101,10 @@ export const reportProgramMistake = createServerFn({ method: "POST" })
     }
 
     return clean({
-      cleared: true,
+      withheld: true,
       requeued: requeue.requeued,
       message: requeue.requeued
-        ? "Thanks — we cleared it and queued a fresh look at the school's official pages."
-        : `Thanks — we cleared it. ${requeue.reason}`,
+        ? "Thanks — we've held that back for review and queued a fresh look at the school's official pages."
+        : `Thanks — we've held that back for review. ${requeue.reason}`,
     });
   });
