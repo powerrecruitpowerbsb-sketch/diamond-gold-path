@@ -57,7 +57,7 @@ export const reportProgramMistake = createServerFn({ method: "POST" })
       record_id: program.id,
       field_name: data.fieldName,
       original_value: current as any,
-      proposed_value: null as any,
+      proposed_value: { action: "withhold", reason: "reported wrong by a person" } as any,
       source_type: "manual",
       status: "pending",
       decided_via: "reported_by_person",
