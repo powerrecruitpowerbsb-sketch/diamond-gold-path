@@ -433,9 +433,10 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
         continue;
       }
 
-      result.cleared += 1;
+      result.withheld += 1;
       if (options.apply) {
-        await clearWrongLink(supabase, {
+        await withholdLink(supabase, {
+          runId: result.runId,
           programId: program.id,
           universityId: program.university_id,
           field,
@@ -448,7 +449,7 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
         ...base,
         verdict: identity.verdict,
         reason: identity.reason,
-        cleared: options.apply,
+        withheld: options.apply,
         fetchMethod: page.fetch_method,
       });
     }
