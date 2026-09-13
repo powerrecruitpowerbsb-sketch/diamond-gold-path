@@ -84,7 +84,12 @@ const CLASSIFICATION_LABELS: Record<string, string> = {
 function ProgramProfile() {
   const { id } = Route.useParams();
   const { athleteId } = Route.useSearch();
+  const { account } = useMyAccount();
+  const viewerRole = account?.primaryRole ?? null;
+  const isOrgStaff =
+    viewerRole === "org_admin" || viewerRole === "org_staff" || viewerRole === "superadmin";
   const profileFn = useServerFn(getProgramProfile);
+
   const pickerFn = useServerFn(listAthletePicker);
   const picker = useQuery({
     queryKey: ["athlete-picker"],
