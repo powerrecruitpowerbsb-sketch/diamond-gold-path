@@ -29,7 +29,32 @@ async function assertSuperadmin(context: { supabase: any; userId: string }) {
   }
 }
 
+/**
+ * Intelligence and relationship rows belong to an organization. Power staff
+ * write into their own; if their account carries no organization we fall back to
+ * the first one on file (Power's own), never to a null tenant key.
+ */
+async function actorOrgId(context: { supabase: any; userId: string }): Promise<string> {
+  const { data: profile } = await context.supabase
+    .from("users")
+    .select("organization_id")
+    .eq("id", context.userId)
+    .maybeSingle();
+  const own = (profile as any)?.organization_id as string | null;
+  if (own) return own;
+  const { data: org } = await context.supabase
+    .from("organizations")
+    .select("id")
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+  const fallback = (org as any)?.id as string | null;
+  if (!fallback) throw new Error("No organization on file to attach this to");
+  return fallback;
+}
+
 const str = (value: unknown) => String(value ?? "").trim();
+
 
 /* ------------------------------------------------------------------ */
 /* Recruiting intelligence (shown on the public program profile)        */
@@ -81,12 +106,15 @@ export const saveProgramIntel = createServerFn({ method: "POST" })
     const { data: inserted, error } = await context.supabase
       .from("recruiting_intelligence")
       .insert({
+        organization_id: await actorOrgId(context as any),
         program_id: data.programId,
         field_type: data.fieldType as any,
         content: data.content,
+        author_user_id: context.userId,
         created_by: context.userId,
         updated_by: context.userId,
-      })
+      } as any)
+
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -206,7 +234,7 @@ export const saveProgramRelationship = createServerFn({ method: "POST" })
 
     const { data: inserted, error } = await context.supabase
       .from("program_relationships")
-      .insert({ program_id: data.programId, ...values } as any)
+      .insert({ organization_id: await actorOrgId(context as any), program_id: data.programId, ...values } as any)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -241,7 +269,7 @@ export const addProgramInteraction = createServerFn({ method: "POST" })
     } else {
       const { data: inserted, error } = await context.supabase
         .from("program_relationships")
-        .insert({ program_id: data.programId } as any)
+        .insert({ organization_id: await actorOrgId(context as any), program_id: data.programId } as any)
         .select("id")
         .single();
       if (error) throw new Error(error.message);
@@ -253,6 +281,7 @@ export const addProgramInteraction = createServerFn({ method: "POST" })
       : new Date().toISOString();
 
     const { error: logError } = await context.supabase.from("interaction_log").insert({
+      organization_id: await actorOrgId(context as any),
       relationship_id: relationshipId,
       staff_id: context.userId,
       interaction_date: interactionDate,

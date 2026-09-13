@@ -10,6 +10,7 @@ import { ReportMistake } from "@/components/brand/ReportMistake";
 import {
   ClassificationTable,
   IntelligencePanel,
+  InternalIntelPanel,
   LayerTag,
   Section,
   VerifiedFieldTable,
@@ -17,10 +18,19 @@ import {
 } from "@/components/profile/DataLayers";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
+import { useMyAccount } from "@/hooks/use-my-account";
 import { getProgramProfile } from "@/lib/search.functions";
 import { listAthletePicker } from "@/lib/shortlist.functions";
 import { INTEL_FIELD_LABELS } from "@/lib/search-schema";
+import {
+  fieldLabel,
+  INTEL_FIELD_MAP,
+  POSITION_LABELS,
+  STRENGTH_CHOICES,
+  structuredLabel,
+} from "@/lib/intel-fields";
 import { titleCase } from "@/lib/admin-schemas";
+
 import {
   admissionState,
   count,
@@ -74,7 +84,12 @@ const CLASSIFICATION_LABELS: Record<string, string> = {
 function ProgramProfile() {
   const { id } = Route.useParams();
   const { athleteId } = Route.useSearch();
+  const { account } = useMyAccount();
+  const viewerRole = account?.primaryRole ?? null;
+  const isOrgStaff =
+    viewerRole === "org_admin" || viewerRole === "org_staff" || viewerRole === "superadmin";
   const profileFn = useServerFn(getProgramProfile);
+
   const pickerFn = useServerFn(listAthletePicker);
   const picker = useQuery({
     queryKey: ["athlete-picker"],
@@ -131,7 +146,9 @@ function ProgramProfile() {
     siblingPrograms,
     majors,
     linkHealth,
+    relationshipSummary,
   } = data as any;
+
 
   const rosterRows = (roster ?? []) as RosterRow[];
   const links = (linkHealth ?? []) as LinkHealthRow[];
@@ -299,11 +316,42 @@ function ProgramProfile() {
     staffSet: Boolean(row.is_staff_overridden),
   }));
 
-  const intelRows = ((intelligence ?? []) as any[]).map((row) => ({
+  /** One record rendered as a sentence: structured answer, positions, then the note. */
+  const intelBody = (row: any): string => {
+    const parts: string[] = [];
+    const choice = structuredLabel(String(row.field_type), row.structured_value);
+    if (choice) parts.push(choice);
+    if ((row.positions ?? []).length) {
+      parts.push(
+        (row.positions as string[]).map((p) => POSITION_LABELS[p] ?? p).join(", "),
+      );
+    }
+    const detail = row.structured_detail as { positions?: string[]; year?: string } | null;
+    if (detail?.positions?.length) {
+      parts.push(
+        `${detail.positions.map((p) => POSITION_LABELS[p] ?? p).join(", ")}${
+          detail.year ? ` (${detail.year})` : ""
+        }`,
+      );
+    }
+    if ((row.content ?? "").trim()) parts.push(String(row.content).trim());
+    return parts.join(" — ");
+  };
+
+  const allIntel = ((intelligence ?? []) as any[]).map((row) => ({
     id: String(row.id),
-    label: INTEL_FIELD_LABELS[row.field_type] ?? String(row.field_type),
-    content: String(row.content),
+    label: fieldLabel(String(row.field_type)) || INTEL_FIELD_LABELS[row.field_type] || String(row.field_type),
+    body: intelBody(row),
+    visibility: (row.visibility ?? "org_only") as "org_only" | "shared_with_families",
+    orgOnlyField: INTEL_FIELD_MAP[String(row.field_type)]?.audience === "org",
   }));
+  // Conclusions (and anything shared on purpose) sit in the family-facing block;
+  // the evidence sits in the internal block, staff only.
+  const intelRows = allIntel.filter((r) => !r.orgOnlyField || r.visibility === "shared_with_families");
+  const internalRows = allIntel.filter((r) => r.orgOnlyField && r.visibility === "org_only");
+  const strength = relationshipSummary?.strength_label ?? null;
+  const placed = relationshipSummary?.placed_players_before ?? null;
+
 
   const majorRows = (majors ?? []) as {
     id: string;
@@ -561,9 +609,41 @@ function ProgramProfile() {
         )}
       </Section>
 
-      <Section title="Recruiting intelligence" meta={<LayerTag layer="intelligence" />}>
-        <IntelligencePanel rows={intelRows} />
+      <Section
+        title="Recruiting intelligence"
+        meta={<LayerTag layer="intelligence" />}
+      >
+        {strength || placed !== null ? (
+          <dl className="mb-3 flex flex-wrap gap-6 rounded border border-border bg-card p-3 text-sm">
+            <div>
+              <dt className="meta">Relationship</dt>
+              <dd className="font-semibold text-graphite">
+                {STRENGTH_CHOICES.find((c) => c.value === strength)?.label ?? "Not rated"}
+              </dd>
+            </div>
+            <div>
+              <dt className="meta">Placed players here before</dt>
+              <dd className="font-semibold text-graphite">
+                {placed === null ? "Not recorded" : placed ? "Yes" : "No"}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
+        <IntelligencePanel rows={intelRows} showVisibility={isOrgStaff} />
+        {isOrgStaff ? <InternalIntelPanel rows={internalRows} /> : null}
+        {isOrgStaff ? (
+          <p className="meta mt-2">
+            <Link
+              to="/intelligence"
+              search={{ programId: id }}
+              className="underline decoration-dotted underline-offset-2 hover:text-org-primary"
+            >
+              Write or update intelligence for this program
+            </Link>
+          </p>
+        ) : null}
       </Section>
+
 
       <div className="mt-8 border-t border-border pt-4">
         <ReportMistake programId={id} />
