@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Wrench } from "lucide-react";
 
 import { BuildChecklist } from "@/components/admin/BuildChecklist";
+import { PageHeader } from "@/components/console/PageHeader";
 import { RunningNow } from "@/components/admin/RunningNow";
 import { countPendingChanges } from "@/lib/review.functions";
 import { countPendingDiscoveries } from "@/lib/discovery.functions";
