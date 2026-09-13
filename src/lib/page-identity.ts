@@ -223,6 +223,8 @@ export function verifyPageIdentity(input: {
   schoolWebsite?: string | null;
   /** The athletics site recorded for this team, when we have one. */
   athleticsSite?: string | null;
+  /** Every other address already on this school's record (roster, staff, ...). */
+  ownDomains?: (string | null | undefined)[];
 }): IdentityResult {
   const text = String(input.text ?? "");
   if (text.trim().length < 40) {
@@ -234,6 +236,24 @@ export function verifyPageIdentity(input: {
     return {
       verdict: "non_varsity",
       reason: `this page is a ${nonVarsity} team, not the varsity program`,
+      pageSchool: null,
+    };
+  }
+
+  // ADDRESS FIRST. If the page sits on a domain this school already holds, it is
+  // this school's page — full stop, no name comparison. Page text carries
+  // navigation and carousel furniture, and reading a school name out of it refused
+  // hundreds of correct pages on their own websites.
+  const ownDomain = registrableDomain(hostOf(input.url));
+  const held = new Set(
+    [input.schoolWebsite, input.athleticsSite, ...(input.ownDomains ?? [])]
+      .map((u) => registrableDomain(hostOf(u)))
+      .filter(Boolean),
+  );
+  if (ownDomain && held.has(ownDomain)) {
+    return {
+      verdict: "confirmed",
+      reason: "the page sits on a domain already on this school's record",
       pageSchool: null,
     };
   }
@@ -257,23 +277,7 @@ export function verifyPageIdentity(input: {
     return { verdict: "confirmed", reason: "the page names this school", pageSchool: null };
   }
 
-  const ownDomain = registrableDomain(hostOf(input.url));
-  const schoolDomain = registrableDomain(hostOf(input.schoolWebsite));
-  if (ownDomain && schoolDomain && ownDomain === schoolDomain) {
-    return {
-      verdict: "confirmed",
-      reason: "the page sits on the school's own website",
-      pageSchool: null,
-    };
-  }
-  const athleticsDomain = registrableDomain(hostOf(input.athleticsSite));
-  if (ownDomain && athleticsDomain && ownDomain === athleticsDomain) {
-    return {
-      verdict: "confirmed",
-      reason: "the page sits on this team's own athletics site",
-      pageSchool: null,
-    };
-  }
+
 
   // A page can name an unrelated school for innocent reasons — a scoreboard
   // strip, a visiting team, a player's former college. That is never enough to
