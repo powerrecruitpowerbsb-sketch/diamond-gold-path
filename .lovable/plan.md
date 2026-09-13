@@ -83,9 +83,6 @@ read-only reader — no existing server file touched, no write path:
 - **Permanent blocks** — the 108 remaining, with the reason each was blocked.
 - **Run archive** — the 4 reversible runs and what each touched. Undo comes with the write
   phase.
-- **Players** — a browsable list of the 75,536 college players for a team, showing bats,
-  throws, class year, position, home state and transfer status. This is the first time any
-  of that data appears on screen.
 - **Retired schools** (3) and **Not-offered programs** (366) — lists, so they stop being
   invisible. Restoring comes with the write phase.
 
