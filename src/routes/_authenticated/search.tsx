@@ -93,7 +93,6 @@ const SORTABLE: { key: SortKey; header: string; numeric?: boolean }[] = [
   { key: "enrollment", header: "Enrol", numeric: true },
   { key: "netPrice", header: "Net price", numeric: true },
   { key: "sat", header: "SAT", numeric: true },
-  { key: "act", header: "ACT", numeric: true },
   { key: "roster", header: "Roster", numeric: true },
   { key: "coach", header: "Head coach" },
 ];
