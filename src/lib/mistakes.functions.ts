@@ -101,10 +101,10 @@ export const reportProgramMistake = createServerFn({ method: "POST" })
     }
 
     return clean({
-      cleared: true,
+      withheld: true,
       requeued: requeue.requeued,
       message: requeue.requeued
-        ? "Thanks — we cleared it and queued a fresh look at the school's official pages."
-        : `Thanks — we cleared it. ${requeue.reason}`,
+        ? "Thanks — we've held that back for review and queued a fresh look at the school's official pages."
+        : `Thanks — we've held that back for review. ${requeue.reason}`,
     });
   });
