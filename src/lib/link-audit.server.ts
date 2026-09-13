@@ -7,18 +7,18 @@
  * school's JV team. No address test can catch that, because athletics sites use
  * mascot domains. So we fetch each page once and read the school name off it.
  *
- * Wrong-school and non-varsity pages are cleared, remembered as declined, and
- * the program is sent back to search inside its correct athletics domain. Nobody
- * is asked to approve any of that: the page either proves whose team it is or it
- * doesn't. Only pages that name nobody recognisable are listed for a person.
+ * A wrong-school or non-varsity verdict withholds the page: it is logged as
+ * conflicted, archived under a run id, and kept off product surfaces. It is
+ * never erased and never blacklisted — a bad verdict must not make a correct
+ * address unproposable. Only a person deletes a stored address.
  */
 
 import { scrapePage } from "@/lib/ingest.server";
-import { clearWrongLink, type LinkField } from "@/lib/link-repair.server";
+import { withholdLink, type LinkField } from "@/lib/link-repair.server";
 import { verifyPageIdentity, type IdentityVerdict } from "@/lib/page-identity";
 import type { FailureCategory, FetchMethod, SafeFetchResult } from "@/lib/safe-fetch.server";
 
-export { clearWrongLink };
+export { withholdLink };
 export type { LinkField };
 
 export type AuditRow = {
