@@ -339,11 +339,12 @@ export async function auditPageOwnership(
   }
 
   const problems: OwnershipProblem[] = [];
-  let cleared = 0;
+  const runId = crypto.randomUUID();
+  const { withholdLink } = await import("@/lib/link-repair.server");
+  let withheld = 0;
 
   for (const program of programs) {
-    const fields: string[] = [];
-    const patch: Record<string, null> = {};
+    const fields: ("athletic_website" | "roster_url" | "coaching_staff_url")[] = [];
     let domain = "";
     let keptBy: string | null = null;
 
@@ -354,7 +355,6 @@ export async function auditPageOwnership(
       const loss = losingSchools.get(`${program.university_id}:${linkDomain}`);
       if (!loss) continue;
       fields.push(field);
-      patch[field] = null;
       domain = linkDomain;
       keptBy = loss.keptBy;
     }
@@ -370,36 +370,25 @@ export async function auditPageOwnership(
     });
 
     if (!options.apply) continue;
-    const { error } = await supabase.from("programs").update(patch).eq("id", program.id);
-    if (error) throw new Error(error.message);
-    cleared += fields.length;
 
-    // The school's own web address was sometimes overwritten with the other
-    // school's athletics domain too (Cincinnati State pointing at gobearcats.com).
-    // Clear that as well, or the next search inherits the same wrong site.
-    const schoolSite = program.universities?.website_url ?? null;
-    if (schoolSite && registrableDomain(hostOf(schoolSite)) === domain) {
-      const { error: schoolError } = await supabase
-        .from("universities")
-        .update({ website_url: null })
-        .eq("id", program.university_id);
-      if (schoolError) throw new Error(schoolError.message);
-      cleared += 1;
+    // Withhold, never blank. The losing claim is logged and archived under a run
+    // id; the address stays on the record so a wrong verdict costs nothing. The
+    // school's own website is never touched here — that field comes from the
+    // federal record and nothing in the athletics pipeline may write or clear it.
+    for (const field of fields) {
+      await withholdLink(supabase, {
+        runId,
+        programId: program.id,
+        universityId: program.university_id,
+        field,
+        url: program[field]!,
+        reason: keptBy
+          ? `${domain} is held by ${keptBy}; this address is withheld pending review`
+          : `${domain} is claimed by another school; this address is withheld pending review`,
+      });
+      withheld += 1;
     }
-
-    await supabase.from("ingest_queue").upsert(
-      {
-        university_id: program.university_id,
-        program_id: program.id,
-        stage: "url_discovery",
-        status: "pending",
-        attempts: 0,
-        leased_at: null,
-        last_error: null,
-      },
-      { onConflict: "program_id,stage" },
-    );
   }
 
-  return { checked: programs.length, problems, standoffs, cleared };
+  return { checked: programs.length, problems, standoffs, withheld, runId };
 }
