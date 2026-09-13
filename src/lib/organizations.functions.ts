@@ -197,7 +197,7 @@ export const updateOrganization = createServerFn({ method: "POST" })
     if (data.annualFee !== undefined) patch["annual_fee_amount"] = data.annualFee;
     if (!Object.keys(patch).length) return { ok: true };
 
-    const { error } = await context.supabase.from("organizations").update(patch).eq("id", data.id);
+    const { error } = await context.supabase.from("organizations").update(patch as any).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
