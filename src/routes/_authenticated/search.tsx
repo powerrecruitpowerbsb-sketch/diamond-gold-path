@@ -750,15 +750,16 @@ function SearchScreen() {
                       {row.head_coach_name ?? "Not published by the school"}
                     </td>
                     <td className="h-[38px] px-3 py-1.5 align-middle">
-                      <div className="flex items-center justify-end gap-2 [&_button]:h-8 [&_button]:rounded [&_button]:px-2 [&_button]:text-[11px] [&_button]:whitespace-nowrap">
-
+                      <div className="flex items-center justify-end gap-2">
                         <ShortlistSaveButton
                           programId={row.id}
                           athleteId={params.athleteId || undefined}
                           athleteName={
                             (contextAthlete?.["name"] as string | undefined) ?? undefined
                           }
+                          className="!h-8 !min-h-0 rounded px-2 text-[11px] whitespace-nowrap"
                         />
+
                         <button
                           type="button"
                           aria-pressed={selected}
