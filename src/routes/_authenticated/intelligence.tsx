@@ -175,7 +175,7 @@ function Workstation() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Program", "Level", "Fields", "Relationship", "Last touched"].map((head) => (
+                    {["Program", "Level", "Fields", "Rel.", "Touched"].map((head) => (
                       <th
                         key={head}
                         className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-steel uppercase"
@@ -208,7 +208,7 @@ function Workstation() {
                           row.id === selected && "bg-muted",
                         )}
                       >
-                        <td className="max-w-[220px] truncate px-3 py-1.5 whitespace-nowrap text-graphite">
+                        <td className="max-w-[170px] truncate px-3 py-1.5 whitespace-nowrap text-graphite">
                           {row.school}
                           {row.state ? <span className="text-steel"> · {row.state}</span> : null}
                         </td>
@@ -230,15 +230,11 @@ function Workstation() {
                           {STRENGTH_CHOICES.find((c) => c.value === row.strength)?.label ??
                             "Not rated"}
                         </td>
-                        <td className="px-3 py-1.5 whitespace-nowrap text-steel">
-                          {row.lastAt ? (
-                            <>
-                              {new Date(row.lastAt).toLocaleDateString()}
-                              {row.lastBy ? ` · ${row.lastBy}` : ""}
-                            </>
-                          ) : (
-                            "Never"
-                          )}
+                        <td
+                          className="px-3 py-1.5 whitespace-nowrap text-steel"
+                          title={row.lastBy ? `Last touched by ${row.lastBy}` : ""}
+                        >
+                          {row.lastAt ? new Date(row.lastAt).toLocaleDateString() : "Never"}
                         </td>
                       </tr>
                     ))
