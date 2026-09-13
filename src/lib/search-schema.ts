@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { fallback } from "@tanstack/zod-adapter";
 
+import { isRegion, stateCode, statesInRegion } from "@/lib/regions";
+
+
 export const UNIVERSITY_COLS =
   "id, name, city, state, region, campus_setting, school_size_bucket, public_private, religious_affiliation, religious_tradition, undergrad_enrollment, avg_gpa, avg_sat, avg_act, acceptance_rate, graduation_rate, student_faculty_ratio, test_optional, tuition_in_state, tuition_out_state, room_board, est_cost_of_attendance, est_net_price, tuition_source_url, admissions_url, website_url, financial_aid_url, updated_at";
 
@@ -26,10 +29,12 @@ export const DIVISIONS_BY_BODY: Record<string, string[]> = {
 export const searchParamsSchema = z.object({
   sport: fallback(z.string(), "baseball").default("baseball"),
   q: fallback(z.string(), "").default(""),
+  /** Location is one control: a region, or one or more states within it. */
+  region: fallback(z.string(), "").default(""),
+  states: fallback(z.string().array(), []).default([]),
   state: fallback(z.string(), "").default(""),
   governingBody: fallback(z.string(), "").default(""),
   division: fallback(z.string(), "").default(""),
-  region: fallback(z.string(), "").default(""),
   conference: fallback(z.string(), "").default(""),
   publicPrivate: fallback(z.string(), "").default(""),
   schoolSize: fallback(z.string(), "").default(""),
@@ -38,10 +43,12 @@ export const searchParamsSchema = z.object({
   majorId: fallback(z.string(), "").default(""),
   religious: fallback(z.string(), "").default(""),
   scholarships: fallback(z.string(), "").default(""),
+  netPriceMin: fallback(z.number(), 0).default(0),
+  netPriceMax: fallback(z.number(), 0).default(0),
   tuitionMin: fallback(z.number(), 0).default(0),
   tuitionMax: fallback(z.number(), 0).default(0),
-  gpaMin: fallback(z.number(), 0).default(0),
-  gpaMax: fallback(z.number(), 0).default(0),
+  coaMin: fallback(z.number(), 0).default(0),
+  coaMax: fallback(z.number(), 0).default(0),
   satMin: fallback(z.number(), 0).default(0),
   satMax: fallback(z.number(), 0).default(0),
   actMin: fallback(z.number(), 0).default(0),
@@ -50,20 +57,31 @@ export const searchParamsSchema = z.object({
   acceptanceMax: fallback(z.number(), 0).default(0),
   rosterMin: fallback(z.number(), 0).default(0),
   rosterMax: fallback(z.number(), 0).default(0),
+  /** Roster composition, read only when one of these is in use. */
+  positionGroup: fallback(z.string(), "").default(""),
+  positionMin: fallback(z.number(), 0).default(0),
+  positionMax: fallback(z.number(), 0).default(0),
+  seniorGroup: fallback(z.string(), "").default(""),
+  seniorMin: fallback(z.number(), 0).default(0),
+  transferPctMin: fallback(z.number(), 0).default(0),
+  transferPctMax: fallback(z.number(), 0).default(0),
+  sort: fallback(z.string(), "name").default("name"),
+  dir: fallback(z.string(), "asc").default("asc"),
   more: fallback(z.boolean(), false).default(false),
   athleteId: fallback(z.string(), "").default(""),
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;
 
+
 /** Default values stripped from the URL so a fresh search has a clean link. */
 export const SEARCH_DEFAULTS = {
   sport: "baseball",
   q: "",
+  region: "",
   state: "",
   governingBody: "",
   division: "",
-  region: "",
   conference: "",
   publicPrivate: "",
   schoolSize: "",
@@ -72,10 +90,12 @@ export const SEARCH_DEFAULTS = {
   majorId: "",
   religious: "",
   scholarships: "",
+  netPriceMin: 0,
+  netPriceMax: 0,
   tuitionMin: 0,
   tuitionMax: 0,
-  gpaMin: 0,
-  gpaMax: 0,
+  coaMin: 0,
+  coaMax: 0,
   satMin: 0,
   satMax: 0,
   actMin: 0,
@@ -84,6 +104,15 @@ export const SEARCH_DEFAULTS = {
   acceptanceMax: 0,
   rosterMin: 0,
   rosterMax: 0,
+  positionGroup: "",
+  positionMin: 0,
+  positionMax: 0,
+  seniorGroup: "",
+  seniorMin: 0,
+  transferPctMin: 0,
+  transferPctMax: 0,
+  sort: "name",
+  dir: "asc",
   athleteId: "",
   more: false,
 } as const;
@@ -91,10 +120,11 @@ export const SEARCH_DEFAULTS = {
 export type SearchFilters = {
   sport: string;
   q: string;
-  state: string;
+  region: string;
+  /** Resolved list of states: chosen states, or every state in the chosen region. */
+  states: string[];
   governingBody: string;
   division: string;
-  region: string;
   conference: string;
   publicPrivate: string;
   schoolSize: string;
@@ -103,10 +133,12 @@ export type SearchFilters = {
   majorId: string;
   religious: boolean | null;
   scholarships: boolean | null;
+  netPriceMin: number | null;
+  netPriceMax: number | null;
   tuitionMin: number | null;
   tuitionMax: number | null;
-  gpaMin: number | null;
-  gpaMax: number | null;
+  coaMin: number | null;
+  coaMax: number | null;
   satMin: number | null;
   satMax: number | null;
   actMin: number | null;
@@ -115,6 +147,13 @@ export type SearchFilters = {
   acceptanceMax: number | null;
   rosterMin: number | null;
   rosterMax: number | null;
+  positionGroup: string;
+  positionMin: number | null;
+  positionMax: number | null;
+  seniorGroup: string;
+  seniorMin: number | null;
+  transferPctMin: number | null;
+  transferPctMax: number | null;
 };
 
 const str = (value: unknown) => String(value ?? "").trim();
@@ -134,13 +173,32 @@ const num = (value: unknown, lo: number, hi: number): number | null => {
 export function normalizeSearchInput(input: unknown): SearchFilters {
   const raw = (input ?? {}) as Record<string, unknown>;
   const at = (key: string) => raw[key];
+
+  // Location is one control. States picked by hand win; otherwise the region
+  // resolves to its states through the shared grouping, never a stored column.
+  const region = isRegion(at("region")) ? str(at("region")) : "";
+  const picked = [
+    ...(Array.isArray(at("states")) ? (at("states") as unknown[]) : []),
+    at("state"),
+  ]
+    .map((value) => stateCode(value))
+    .filter((code): code is string => Boolean(code));
+  const withinRegion = region ? statesInRegion(region) : [];
+  const chosen = Array.from(new Set(picked));
+  const states =
+    chosen.length > 0
+      ? region
+        ? chosen.filter((code) => withinRegion.includes(code))
+        : chosen
+      : withinRegion;
+
   return {
     sport: str(at("sport")) === "softball" ? "softball" : "baseball",
     q: str(at("q")).slice(0, 100),
-    state: str(at("state")),
+    region,
+    states,
     governingBody: str(at("governingBody")),
     division: str(at("division")),
-    region: str(at("region")),
     conference: str(at("conference")),
     publicPrivate: str(at("publicPrivate")),
     schoolSize: str(at("schoolSize")),
@@ -149,10 +207,12 @@ export function normalizeSearchInput(input: unknown): SearchFilters {
     majorId: str(at("majorId")),
     religious: bool(at("religious")),
     scholarships: bool(at("scholarships")),
+    netPriceMin: num(at("netPriceMin"), 0, 200000),
+    netPriceMax: num(at("netPriceMax"), 0, 200000),
     tuitionMin: num(at("tuitionMin"), 0, 200000),
     tuitionMax: num(at("tuitionMax"), 0, 200000),
-    gpaMin: num(at("gpaMin"), 0, 5),
-    gpaMax: num(at("gpaMax"), 0, 5),
+    coaMin: num(at("coaMin"), 0, 200000),
+    coaMax: num(at("coaMax"), 0, 200000),
     satMin: num(at("satMin"), 400, 1600),
     satMax: num(at("satMax"), 400, 1600),
     actMin: num(at("actMin"), 1, 36),
@@ -161,25 +221,42 @@ export function normalizeSearchInput(input: unknown): SearchFilters {
     acceptanceMax: num(at("acceptanceMax"), 0, 100),
     rosterMin: num(at("rosterMin"), 0, 200),
     rosterMax: num(at("rosterMax"), 0, 200),
+    positionGroup: str(at("positionGroup")),
+    positionMin: num(at("positionMin"), 0, 100),
+    positionMax: num(at("positionMax"), 0, 100),
+    seniorGroup: str(at("seniorGroup")),
+    seniorMin: num(at("seniorMin"), 0, 100),
+    transferPctMin: num(at("transferPctMin"), 0, 100),
+    transferPctMax: num(at("transferPctMax"), 0, 100),
   };
+}
+
+/** Is any roster-composition filter in use? Those need per-player reads. */
+export function compositionActive(f: SearchFilters): boolean {
+  return Boolean(
+    (f.positionGroup && (f.positionMin !== null || f.positionMax !== null)) ||
+      (f.seniorGroup && f.seniorMin !== null) ||
+      f.transferPctMin !== null ||
+      f.transferPctMax !== null ||
+      f.rosterMin !== null ||
+      f.rosterMax !== null,
+  );
 }
 
 /** Count of applied (non-default) secondary filters, for the "More filters" badge. */
 export function activeSecondaryCount(params: SearchParams): number {
   const keys: (keyof SearchParams)[] = [
-    "region",
     "conference",
     "publicPrivate",
     "schoolSize",
     "campusSetting",
     "academicBucket",
-    "majorId",
     "religious",
     "scholarships",
     "tuitionMin",
     "tuitionMax",
-    "gpaMin",
-    "gpaMax",
+    "coaMin",
+    "coaMax",
     "satMin",
     "satMax",
     "actMin",
@@ -188,9 +265,14 @@ export function activeSecondaryCount(params: SearchParams): number {
     "acceptanceMax",
     "rosterMin",
     "rosterMax",
+    "positionGroup",
+    "seniorGroup",
+    "transferPctMin",
+    "transferPctMax",
   ];
   return keys.filter((key) => {
     const value = params[key];
     return typeof value === "number" ? value > 0 : Boolean(value);
   }).length;
 }
+

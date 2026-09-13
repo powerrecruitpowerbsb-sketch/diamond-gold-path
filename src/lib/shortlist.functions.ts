@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { regionOfState } from "@/lib/regions";
+
 
 const str = (value: unknown) => String(value ?? "").trim();
 
@@ -260,8 +262,10 @@ export const getOrgDashboard = createServerFn({ method: "GET" })
       byDivision[division] = (byDivision[division] ?? 0) + 1;
 
       const university = program?.universities ?? {};
-      const region = str(university?.region) || str(university?.state) || "Unspecified";
+      // One shared definition of region, derived from the school's state.
+      const region = regionOfState(university?.state) ?? "Unspecified";
       byRegion[region] = (byRegion[region] ?? 0) + 1;
+
     }
 
     return {
