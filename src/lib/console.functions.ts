@@ -66,7 +66,9 @@ export const getNeedsYou = createServerFn({ method: "GET" })
       count(supabase, "link_conflicts", (q) => q.eq("status", "withheld")),
       count(supabase, "rejected_values"),
       count(supabase, "universities", (q) => q.is("ipeds_unitid", null).is("retired_at", null)),
-      count(supabase, "discovered_urls", (q) => q.eq("status", "pending")),
+      count(supabase, "url_discovery_queue", (q) =>
+        q.eq("status", "pending_review").not("discovered_url", "is", null),
+      ),
       count(supabase, "pending_data_changes", (q) => q.eq("status", "pending")),
     ]);
     return { withheld, blocks, identity, discovered, review };
