@@ -10,6 +10,7 @@ import { ReportMistake } from "@/components/brand/ReportMistake";
 import {
   ClassificationTable,
   IntelligencePanel,
+  InternalIntelPanel,
   LayerTag,
   Section,
   VerifiedFieldTable,
@@ -17,10 +18,19 @@ import {
 } from "@/components/profile/DataLayers";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
+import { useMyAccount } from "@/hooks/use-my-account";
 import { getProgramProfile } from "@/lib/search.functions";
 import { listAthletePicker } from "@/lib/shortlist.functions";
 import { INTEL_FIELD_LABELS } from "@/lib/search-schema";
+import {
+  fieldLabel,
+  INTEL_FIELD_MAP,
+  POSITION_LABELS,
+  STRENGTH_CHOICES,
+  structuredLabel,
+} from "@/lib/intel-fields";
 import { titleCase } from "@/lib/admin-schemas";
+
 import {
   admissionState,
   count,
