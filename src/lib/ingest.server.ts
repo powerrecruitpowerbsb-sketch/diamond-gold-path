@@ -717,7 +717,13 @@ export async function ingestProgram(
         url: target.url,
         schoolName: university?.["name"] ?? null,
         schoolWebsite: university?.["website_url"] ?? null,
+        athleticsSite: (program as any)?.["athletic_website"] ?? null,
+        ownDomains: [
+          (program as any)?.["roster_url"] ?? null,
+          (program as any)?.["coaching_staff_url"] ?? null,
+        ],
       });
+
       if (identity.verdict === "wrong_school" || identity.verdict === "non_varsity") {
         const field = target.kind === "roster" ? "roster_url" : null;
         urlResults.push({
