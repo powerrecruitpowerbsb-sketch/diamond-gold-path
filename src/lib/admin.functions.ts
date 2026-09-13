@@ -41,7 +41,14 @@ export const validateInviteCode = createServerFn({ method: "POST" })
     return { valid: true, organizationName };
   });
 
-/** Signed-in user's profile + authoritative roles. */
+/**
+ * Signed-in user's profile + authoritative roles.
+ *
+ * When Power Recruit staff have entered an organization, `actingOrg` names it
+ * and `primaryRole` becomes the Owner role so every screen behaves exactly as
+ * it does for that organization's owner. `isSuperadmin` still tells the truth
+ * about who is signed in.
+ */
 export const getMyAccount = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -54,15 +61,37 @@ export const getMyAccount = createServerFn({ method: "GET" })
       context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
     ]);
     const roleList = ((roles ?? []) as { role: string }[]).map((r) => r.role);
+    const isSuperadmin = roleList.includes("superadmin");
+
+    let actingOrg: { id: string; name: string | null } | null = null;
+    if (isSuperadmin) {
+      const { data: acting } = await context.supabase
+        .from("admin_acting_org")
+        .select("organization_id, entered_at, organizations(name)")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      if (acting) {
+        actingOrg = {
+          id: (acting as any).organization_id as string,
+          name: ((acting as any).organizations?.name ?? null) as string | null,
+        };
+      }
+    }
+
     return {
       profile: profile ?? null,
       roles: roleList,
-      isSuperadmin: roleList.includes("superadmin"),
-      primaryRole: roleList.includes("superadmin")
-        ? "superadmin"
-        : ((profile as any)?.user_type ?? "player"),
+      isSuperadmin,
+      actingOrg,
+      organizationId: actingOrg?.id ?? ((profile as any)?.organization_id ?? null),
+      primaryRole: actingOrg
+        ? "org_owner"
+        : isSuperadmin
+          ? "superadmin"
+          : ((profile as any)?.user_type ?? "player"),
     };
   });
+
 
 export const getAdminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

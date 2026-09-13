@@ -60,8 +60,11 @@ async function requireOrgActor(context: Ctx) {
   ]);
   const roleList = ((roles ?? []) as { role: string }[]).map((r) => r.role);
   const isSuperadmin = roleList.includes("superadmin");
-  const isManager = roleList.includes("org_admin") || roleList.includes("org_staff");
-  const organizationId = (profile as { organization_id?: string | null } | null)?.organization_id ?? null;
+  const { actingOrgId } = await import("@/lib/acting-org");
+  // Power Recruit staff inside an organization act on that organization.
+  const acting = await actingOrgId(context, isSuperadmin);
+  const isManager = (roleList.includes("org_admin") || roleList.includes("org_owner")) || roleList.includes("org_staff");
+  const organizationId = acting ?? ((profile as { organization_id?: string | null } | null)?.organization_id ?? null);
 
   if (!isSuperadmin && !isManager) throw new Error("Forbidden: organization staff only");
   if (!isSuperadmin && !organizationId) throw new Error("Forbidden: no organization on this account");
@@ -69,7 +72,7 @@ async function requireOrgActor(context: Ctx) {
   return {
     organizationId,
     isSuperadmin,
-    isOrgAdmin: roleList.includes("org_admin"),
+    isOrgAdmin: (roleList.includes("org_admin") || roleList.includes("org_owner")),
   };
 }
 

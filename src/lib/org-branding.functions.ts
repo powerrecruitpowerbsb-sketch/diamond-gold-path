@@ -14,19 +14,29 @@ async function actor(context: Ctx) {
   const [{ data: profile }, { data: roles }] = await Promise.all([
     context.supabase
       .from("users")
-      .select("organization_id")
+      .select("organization_id, user_type")
       .eq("id", context.userId)
       .maybeSingle(),
     context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
   ]);
   const roleList = ((roles ?? []) as { role: string }[]).map((r) => r.role);
+  const isSuperadmin = roleList.includes("superadmin");
+  const { actingOrgId } = await import("@/lib/acting-org");
+  const acting = await actingOrgId(context, isSuperadmin);
+  const type = (profile as { user_type?: string | null } | null)?.user_type ?? null;
   return {
+    // Staff inside an organization act as its owner; everyone else is pinned
+    // to their own organization.
     organizationId:
-      (profile as { organization_id?: string | null } | null)?.organization_id ?? null,
-    isSuperadmin: roleList.includes("superadmin"),
-    isOrgAdmin: roleList.includes("org_admin"),
+      acting ??
+      ((profile as { organization_id?: string | null } | null)?.organization_id ?? null),
+    isSuperadmin,
+    acting: Boolean(acting),
+    // Logo and colors are the owner's to change.
+    isOrgOwner: Boolean(acting) || type === "org_owner",
   };
 }
+
 
 /**
  * Resolves a stored logo reference to something an <img> can load. Logos live
@@ -44,17 +54,18 @@ async function resolveLogo(context: Ctx, stored: string | null) {
 }
 
 /**
- * Branding for the signed-in user's organization. Superadmins have no
- * organization, so this returns nulls for them and the shell keeps the fixed
- * Power Recruit navy/gold identity.
+ * Branding for the organization the caller is working in. Power Recruit staff
+ * outside an organization get nulls and the shell keeps the fixed Power
+ * Recruit navy/gold identity.
  */
 export const getMyBranding = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const me = await actor(context as any);
-    if (!me.organizationId || me.isSuperadmin) {
+    if (!me.organizationId || (me.isSuperadmin && !me.acting)) {
       return { organizationId: null, name: null, logoUrl: null, primary: null, accent: null, logoPath: null, canEdit: false };
     }
+
     const { data: org } = await context.supabase
       .from("organizations")
       .select("id, name, logo_url, brand_primary_color, brand_accent_color")
@@ -68,7 +79,7 @@ export const getMyBranding = createServerFn({ method: "GET" })
       logoUrl: await resolveLogo(context as any, row?.['logo_url'] ?? null),
       primary: row?.['brand_primary_color'] ?? null,
       accent: row?.['brand_accent_color'] ?? null,
-      canEdit: me.isOrgAdmin,
+      canEdit: me.isOrgOwner,
     };
   });
 
@@ -83,8 +94,8 @@ export const saveOrgBranding = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const me = await actor(context as any);
-    if (!me.isOrgAdmin || !me.organizationId) {
-      throw new Error("Forbidden: organization admins only");
+    if (!me.isOrgOwner || !me.organizationId) {
+      throw new Error("Forbidden: organization owners only");
     }
     if (data.primary && !HEX.test(data.primary)) throw new Error("Primary color must be a hex value");
     if (data.accent && !HEX.test(data.accent)) throw new Error("Accent color must be a hex value");

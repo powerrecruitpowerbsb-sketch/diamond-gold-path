@@ -17,15 +17,19 @@ export type OrgBranding = {
 /**
  * Branding for the signed-in user's organization. Gated on the session (like
  * useMyAccount) so pre-session renders never call the protected fn, and always
- * null for superadmins — the console keeps the fixed Power Recruit identity.
+ * null for staff outside an organization — the console keeps the fixed Power
+ * Recruit identity.
  */
 export function useOrgBranding() {
   const brandingFn = useServerFn(getMyBranding);
   const { account, signedIn } = useMyAccount();
-  const hasOrg = Boolean(account?.profile?.organization_id) && !account?.isSuperadmin;
+  // Staff have no organization of their own, but they do have one while they
+  // are inside a customer organization.
+  const actingOrgId = account?.actingOrg?.id ?? null;
+  const hasOrg = Boolean(actingOrgId) || (Boolean(account?.profile?.organization_id) && !account?.isSuperadmin);
 
   const query = useQuery({
-    queryKey: ["org-branding", account?.profile?.organization_id ?? null],
+    queryKey: ["org-branding", actingOrgId ?? account?.profile?.organization_id ?? null],
     queryFn: () => brandingFn(),
     enabled: signedIn && hasOrg,
     retry: false,

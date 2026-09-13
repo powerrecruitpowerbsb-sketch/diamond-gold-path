@@ -17,10 +17,13 @@ import {
 } from "lucide-react";
 
 import { OrgTheme } from "@/components/brand/OrgTheme";
+import { ActingOrgBar } from "@/components/brand/ActingOrgBar";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { useMyAccount } from "@/hooks/use-my-account";
 import { useOrgBranding } from "@/hooks/use-org-branding";
+import { isOrgManagerRole, isOwnerRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
+
 
 type NavItem = { to: string; label: string; icon: typeof Home };
 
@@ -30,10 +33,14 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   const { branding } = useOrgBranding();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const isStaff = Boolean(account?.isSuperadmin);
   const role = account?.primaryRole ?? null;
-  const isOrgManager = role === "org_admin" || role === "org_staff";
-  const isOrgAdmin = role === "org_admin";
+  const actingOrg = account?.actingOrg ?? null;
+  // Power Recruit staff see the console — unless they have entered an
+  // organization, in which case they run it as its owner.
+  const isStaff = Boolean(account?.isSuperadmin) && !actingOrg;
+  const isOrgManager = isOrgManagerRole(role);
+  const isOrgOwner = isOwnerRole(role);
+  
 
   // The superadmin console always shows the fixed Power Recruit identity —
   // never an organization's colors or logo, whatever the database holds.
@@ -41,6 +48,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   const themed = !isStaff && !consoleView;
   const orgLogo = themed ? branding?.logoUrl : null;
   const orgName = themed ? branding?.name : null;
+
 
   const primaryNav: NavItem[] = [
     { to: "/", label: "Home", icon: Home },
@@ -63,9 +71,10 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   const overflowNav: NavItem[] = [
     ...(isStaff ? [{ to: "/admin/universities", label: "College database", icon: Database }] : []),
     ...(isOrgManager ? [{ to: "/settings/team", label: "Team & invites", icon: Mail }] : []),
-    ...(isOrgAdmin
+    ...(isOrgOwner
       ? [{ to: "/settings/branding", label: "Branding settings", icon: Palette }]
       : []),
+
     ...(role === "parent" || role === "player"
       ? [{ to: "/family", label: "Family portal", icon: Database }]
       : []),
@@ -89,6 +98,8 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       accentColor={themed ? (branding?.accent ?? null) : null}
     >
     <div className="min-h-screen bg-chalk pb-[76px] min-[680px]:pb-0">
+      {actingOrg ? <ActingOrgBar name={actingOrg.name} /> : null}
+
       {/* Chrome: top nav on desktop, condensed bar + hamburger on mobile */}
       <header className="sticky top-0 z-40 bg-org-primary text-white shadow-[0_1px_0_rgba(255,255,255,0.08)]">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">

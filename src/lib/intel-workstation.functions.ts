@@ -17,7 +17,7 @@ const str = (value: unknown) => String(value ?? "").trim();
 export type IntelViewer = {
   userId: string;
   organizationId: string | null;
-  role: "org_admin" | "org_staff" | "superadmin" | "family";
+  role: "org_owner" | "org_admin" | "org_staff" | "superadmin" | "family";
   canApprove: boolean;
   canRate: boolean;
 };
@@ -33,20 +33,28 @@ async function viewer(context: Ctx): Promise<IntelViewer> {
   ]);
   const list = ((roles ?? []) as { role: string }[]).map((r) => r.role);
   const superadmin = list.includes("superadmin");
+  const { actingOrgId } = await import("@/lib/acting-org");
+  // Power Recruit staff inside an organization work it as its owner.
+  const acting = await actingOrgId(context, superadmin);
   const type = (profile as any)?.user_type ?? "player";
-  const role: IntelViewer["role"] = superadmin
-    ? "superadmin"
-    : type === "org_admin"
-      ? "org_admin"
-      : type === "org_staff"
-        ? "org_staff"
-        : "family";
+  const role: IntelViewer["role"] = acting
+    ? "org_owner"
+    : superadmin
+      ? "superadmin"
+      : type === "org_owner"
+        ? "org_owner"
+        : type === "org_admin"
+          ? "org_admin"
+          : type === "org_staff"
+            ? "org_staff"
+            : "family";
+  const adminLevel = role === "org_owner" || role === "org_admin" || role === "superadmin";
   return {
     userId: context.userId,
-    organizationId: ((profile as any)?.organization_id ?? null) as string | null,
+    organizationId: (acting ?? ((profile as any)?.organization_id ?? null)) as string | null,
     role,
-    canApprove: role === "org_admin" || role === "superadmin",
-    canRate: role === "org_admin" || role === "superadmin",
+    canApprove: adminLevel,
+    canRate: adminLevel,
   };
 }
 
