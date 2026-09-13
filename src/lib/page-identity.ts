@@ -47,13 +47,42 @@ const NON_VARSITY_PHRASES = [
 const NON_VARSITY_HOST_HINTS = ["clubsports", "club-sports", "intramural", "rec.", "recsports"];
 
 /**
+ * Navigation and accessibility furniture that sits between a page's own name and
+ * the next word. "College of the Desert Skip To Main Content" is the school's own
+ * name plus a screen-reader link, and reading "Skip" as part of the name refused
+ * 197 perfectly correct roster pages. Strip it before any name is derived.
+ */
+const PAGE_FURNITURE = [
+  /skip\s+to\s+(?:main\s+)?(?:content|navigation|nav)\b/gi,
+  /\bskip\s+to\b/gi,
+  /\bskip\s+navigation\b/gi,
+  /\ball\s+rotators\s+playing\b/gi,
+  /\brotators\s+playing\b/gi,
+  /\ball\s+rotators\b/gi,
+  /\brotators\b/gi,
+  /\bskip\b/gi,
+  /\bmain\s+content\b/gi,
+  /\bopen\s+menu\b/gi,
+  /\bclose\s+menu\b/gi,
+  /\btoggle\s+navigation\b/gi,
+  /\bback\s+to\s+top\b/gi,
+];
+
+export function stripPageFurniture(text: string): string {
+  let out = String(text ?? "");
+  for (const pattern of PAGE_FURNITURE) out = out.replace(pattern, " ");
+  return out.replace(/[ \t]+/g, " ");
+}
+
+/**
  * A page's own identity is written at the very top — the title and header. Further
  * down, a roster lists every player's previous college and high school, and a
  * schedule lists opponents, so any school name found there proves nothing.
  */
 function topOfPage(text: string): string {
-  return String(text ?? "").slice(0, 600);
+  return stripPageFurniture(String(text ?? "").slice(0, 900)).slice(0, 600);
 }
+
 
 function normalize(text: string): string {
   return String(text ?? "")
@@ -122,17 +151,25 @@ export function pageNamesSchool(text: string, schoolName: string | null | undefi
  * for "Alfred University".
  */
 function sameInstitution(theirName: string, ourName: string | null | undefined): boolean {
-  const ours = new Set(distinctiveWords(ourName));
+  const ourWords = distinctiveWords(ourName);
+  const ours = new Set(ourWords);
   const theirs = distinctiveWords(theirName);
   if (!theirs.length || !ours.size) return false;
-  const shared = theirs.filter((word) => ours.has(word));
-  const extra = theirs.filter((word) => !ours.has(word));
-  if (!shared.length || extra.length) return false;
   const theirKind = institutionKind(theirName);
   const ourKind = institutionKind(String(ourName ?? ""));
   if (theirKind && ourKind && theirKind !== ourKind) return false;
+  // The header often runs our own name straight into the next thing on the page
+  // ("College of the Desert Roar Baseball Roster"). Our whole name appearing at
+  // the front, in order, is our name — trailing page words are not identity words.
+  const startsWithOurs =
+    ourWords.length > 0 && ourWords.every((word, index) => theirs[index] === word);
+  if (startsWithOurs) return true;
+  const shared = theirs.filter((word) => ours.has(word));
+  const extra = theirs.filter((word) => !ours.has(word));
+  if (!shared.length || extra.length) return false;
   return true;
 }
+
 
 /**
  * What the page says about itself.
@@ -172,12 +209,22 @@ export function nonVarsityPage(text: string, url?: string | null): string | null
   for (const hint of NON_VARSITY_HOST_HINTS) {
     if (host.includes(hint)) return hint;
   }
-  const window = normalize(topOfPage(text));
+  // The address decides it when it says so outright.
+  const path = String(url ?? "").toLowerCase();
   for (const phrase of NON_VARSITY_PHRASES) {
-    if (window.includes(normalize(phrase))) return phrase;
+    const slug = phrase.replace(/\s+/g, "-");
+    if (path.includes(slug) || path.includes(phrase.replace(/\s+/g, "_"))) return phrase;
+  }
+  // Otherwise only the page's own headline counts. A varsity page's site menu
+  // routinely links "JV Baseball" and "Club Sports", and reading those menu links
+  // as the page's own identity threw away real varsity rosters.
+  const headline = normalize(stripPageFurniture(String(text ?? "").slice(0, 220)));
+  for (const phrase of NON_VARSITY_PHRASES) {
+    if (headline.includes(normalize(phrase))) return phrase;
   }
   return null;
 }
+
 
 /**
  * Decide whether a fetched roster or staff page may be trusted for this school.
@@ -194,6 +241,8 @@ export function verifyPageIdentity(input: {
   schoolWebsite?: string | null;
   /** The athletics site recorded for this team, when we have one. */
   athleticsSite?: string | null;
+  /** Every other address already on this school's record (roster, staff, ...). */
+  ownDomains?: (string | null | undefined)[];
 }): IdentityResult {
   const text = String(input.text ?? "");
   if (text.trim().length < 40) {
@@ -205,6 +254,24 @@ export function verifyPageIdentity(input: {
     return {
       verdict: "non_varsity",
       reason: `this page is a ${nonVarsity} team, not the varsity program`,
+      pageSchool: null,
+    };
+  }
+
+  // ADDRESS FIRST. If the page sits on a domain this school already holds, it is
+  // this school's page — full stop, no name comparison. Page text carries
+  // navigation and carousel furniture, and reading a school name out of it refused
+  // hundreds of correct pages on their own websites.
+  const ownDomain = registrableDomain(hostOf(input.url));
+  const held = new Set(
+    [input.schoolWebsite, input.athleticsSite, ...(input.ownDomains ?? [])]
+      .map((u) => registrableDomain(hostOf(u)))
+      .filter(Boolean),
+  );
+  if (ownDomain && held.has(ownDomain)) {
+    return {
+      verdict: "confirmed",
+      reason: "the page sits on a domain already on this school's record",
       pageSchool: null,
     };
   }
@@ -228,23 +295,7 @@ export function verifyPageIdentity(input: {
     return { verdict: "confirmed", reason: "the page names this school", pageSchool: null };
   }
 
-  const ownDomain = registrableDomain(hostOf(input.url));
-  const schoolDomain = registrableDomain(hostOf(input.schoolWebsite));
-  if (ownDomain && schoolDomain && ownDomain === schoolDomain) {
-    return {
-      verdict: "confirmed",
-      reason: "the page sits on the school's own website",
-      pageSchool: null,
-    };
-  }
-  const athleticsDomain = registrableDomain(hostOf(input.athleticsSite));
-  if (ownDomain && athleticsDomain && ownDomain === athleticsDomain) {
-    return {
-      verdict: "confirmed",
-      reason: "the page sits on this team's own athletics site",
-      pageSchool: null,
-    };
-  }
+
 
   // A page can name an unrelated school for innocent reasons — a scoreboard
   // strip, a visiting team, a player's former college. That is never enough to

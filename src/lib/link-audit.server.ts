@@ -401,7 +401,9 @@ export async function auditStoredLinks(supabase: any, options: AuditOptions): Pr
         schoolName: school,
         schoolWebsite: program.universities?.website_url ?? null,
         athleticsSite: program.athletic_website,
+        ownDomains: [program.roster_url ?? null, program.coaching_staff_url ?? null],
       });
+
 
       if (identity.verdict === "confirmed") {
         result.confirmed += 1;
