@@ -54,17 +54,18 @@ async function resolveLogo(context: Ctx, stored: string | null) {
 }
 
 /**
- * Branding for the signed-in user's organization. Superadmins have no
- * organization, so this returns nulls for them and the shell keeps the fixed
- * Power Recruit navy/gold identity.
+ * Branding for the organization the caller is working in. Power Recruit staff
+ * outside an organization get nulls and the shell keeps the fixed Power
+ * Recruit navy/gold identity.
  */
 export const getMyBranding = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const me = await actor(context as any);
-    if (!me.organizationId || me.isSuperadmin) {
+    if (!me.organizationId || (me.isSuperadmin && !me.acting)) {
       return { organizationId: null, name: null, logoUrl: null, primary: null, accent: null, logoPath: null, canEdit: false };
     }
+
     const { data: org } = await context.supabase
       .from("organizations")
       .select("id, name, logo_url, brand_primary_color, brand_accent_color")
