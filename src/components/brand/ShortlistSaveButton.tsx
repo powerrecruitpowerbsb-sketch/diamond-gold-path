@@ -35,6 +35,7 @@ export function ShortlistSaveButton({
   athleteId,
   athleteName,
   size = "sm",
+  iconOnly = false,
   className,
 }: Props) {
   const [open, setOpen] = useState(false);
