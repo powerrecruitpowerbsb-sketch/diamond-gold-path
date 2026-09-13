@@ -874,21 +874,14 @@ function Tools() {
         title="Which schools actually have baseball or softball"
         blurb="Every college that gives athletic aid files a federal athletics report listing the sports it fields and how many athletes played. That settles each sport slot, so we stop hunting for team pages that don't exist."
       >
-        <div className="grid gap-2 sm:grid-cols-4">
+        <p className="meta tabular">
           {[
-            { label: "Confirmed offered", value: status?.sponsorship?.offered ?? 0 },
-            { label: "Not offered", value: status?.sponsorship?.notOffered ?? 0 },
-            { label: "Still undecided", value: status?.sponsorship?.undecided ?? 0 },
-            { label: "Checked so far", value: status?.sponsorship?.checked ?? 0 },
-          ].map((tile) => (
-            <div key={tile.label} className="rounded-lg border border-border bg-white p-3">
-              <p className="meta">{tile.label}</p>
-              <p className="mt-0.5 font-display text-2xl font-bold tabular-nums text-graphite">
-                {tile.value}
-              </p>
-            </div>
-          ))}
-        </div>
+            `${(status?.sponsorship?.offered ?? 0).toLocaleString("en-US")} confirmed offered`,
+            `${(status?.sponsorship?.notOffered ?? 0).toLocaleString("en-US")} not offered`,
+            `${(status?.sponsorship?.undecided ?? 0).toLocaleString("en-US")} still undecided`,
+            `${(status?.sponsorship?.checked ?? 0).toLocaleString("en-US")} checked so far`,
+          ].join(" · ")}
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
