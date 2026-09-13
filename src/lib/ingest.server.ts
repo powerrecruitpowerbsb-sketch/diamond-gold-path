@@ -18,7 +18,6 @@ import {
   valuesEquivalent,
 } from "@/lib/data-quality";
 import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
-import { clearWrongLink } from "@/lib/link-repair.server";
 import { verifyPageIdentity } from "@/lib/page-identity";
 import { safeFetch, type SafeFetchResult } from "@/lib/safe-fetch.server";
 import { readRoster } from "@/lib/roster-read.server";
@@ -725,25 +724,25 @@ export async function ingestProgram(
       });
 
       if (identity.verdict === "wrong_school" || identity.verdict === "non_varsity") {
-        const field = target.kind === "roster" ? "roster_url" : null;
+        // A refusal skips the write and logs it. It must never clear the stored
+        // address: a mistaken refusal would then destroy a correct link.
         urlResults.push({
           url: target.url,
           purpose: target.purpose,
           status: "rejected",
           detail: identity.reason,
         });
-        if (field || target.purpose === "Coaching staff") {
-          await clearWrongLink(supabase, {
-            programId,
-            universityId: university["id"],
-            field: field ?? "coaching_staff_url",
-            url: target.url,
-            reason: identity.reason,
-            actorId: userId,
-          });
-        }
+        await recordRefusal(supabase, {
+          programId,
+          universityId: university["id"],
+          kind: target.kind === "roster" ? "roster" : "coach",
+          sourceUrl: target.url,
+          domain: sourceDomain(target.url),
+          reason: identity.reason,
+        });
         continue;
       }
+
     }
 
     try {
