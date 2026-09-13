@@ -209,12 +209,22 @@ export function nonVarsityPage(text: string, url?: string | null): string | null
   for (const hint of NON_VARSITY_HOST_HINTS) {
     if (host.includes(hint)) return hint;
   }
-  const window = normalize(topOfPage(text));
+  // The address decides it when it says so outright.
+  const path = String(url ?? "").toLowerCase();
   for (const phrase of NON_VARSITY_PHRASES) {
-    if (window.includes(normalize(phrase))) return phrase;
+    const slug = phrase.replace(/\s+/g, "-");
+    if (path.includes(slug) || path.includes(phrase.replace(/\s+/g, "_"))) return phrase;
+  }
+  // Otherwise only the page's own headline counts. A varsity page's site menu
+  // routinely links "JV Baseball" and "Club Sports", and reading those menu links
+  // as the page's own identity threw away real varsity rosters.
+  const headline = normalize(stripPageFurniture(String(text ?? "").slice(0, 220)));
+  for (const phrase of NON_VARSITY_PHRASES) {
+    if (headline.includes(normalize(phrase))) return phrase;
   }
   return null;
 }
+
 
 /**
  * Decide whether a fetched roster or staff page may be trusted for this school.
