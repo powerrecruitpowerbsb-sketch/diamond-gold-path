@@ -154,9 +154,23 @@ function Block({ title, lines, note }: { title: string; lines: Line[]; note?: st
 }
 
 /**
+ * How many players the school left this field blank for. A count of 0 built on
+ * a field the school didn't publish would read as fact, so the gap is stated.
+ */
+function gap(rows: RosterRow[], key: keyof RosterRow): string | null {
+  const missing = rows.filter(
+    (row) => row[key] === null || row[key] === undefined || row[key] === "",
+  ).length;
+  if (!missing || !rows.length) return null;
+  if (missing === rows.length) return "The school didn’t publish this for any player.";
+  return `Not published by the school for ${missing} of ${rows.length} players — the counts below cover only the ones it listed.`;
+}
+
+/**
  * Roster composition — the summary a family actually reads. Counts first; the
  * player table underneath is how these counts are derived.
  */
+
 export function RosterComposition({
   rows,
   season,
