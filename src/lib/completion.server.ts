@@ -277,7 +277,9 @@ export async function auditPageOwnership(
   checked: number;
   problems: OwnershipProblem[];
   standoffs: OwnershipStandoff[];
-  cleared: number;
+  withheld: number;
+  /** Archive run id every withholding is recorded under. */
+  runId: string;
 }> {
   const programs = await loadPrograms(supabase);
 
