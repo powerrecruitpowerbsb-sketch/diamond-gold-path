@@ -53,7 +53,7 @@ export const getSearchFacets = createServerFn({ method: "GET" })
         .map(([name, isConfirmed]) => ({ name, confirmed: isConfirmed }))
         .sort((a, b) => a.name.localeCompare(b.name)),
       divisions: uniq((programs as any[]).map((r) => r.division)),
-      majors: (((majors as any).data ?? []) as any[]).map((m) => ({ id: m.id, name: m.name })),
+      majors: ((majors ?? []) as any[]).map((m) => ({ id: m.id, name: m.name })),
     };
   });
 
