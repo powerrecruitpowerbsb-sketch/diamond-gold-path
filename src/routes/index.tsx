@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+
+import { getPublicStats } from "@/lib/console.functions";
 import { BadgeCheck, Database, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
@@ -25,24 +27,27 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  loader: async () => await getPublicStats(),
   component: Index,
 });
 
-const VERIFIED_FIELDS = [
-  { label: "Programs tracked", value: "9" },
-  { label: "Universities", value: "6" },
-  { label: "Roster entries", value: "8" },
-  { label: "Sourced fields", value: "15" },
-];
-
 function Index() {
+  const stats = Route.useLoaderData();
+  const fmt = (value: number) => value.toLocaleString("en-US");
+  const verifiedFields = [
+    { label: "Programs tracked", value: fmt(stats.programs) },
+    { label: "Universities", value: fmt(stats.schools) },
+    { label: "Roster entries", value: fmt(stats.players) },
+    { label: "Sourced fields", value: fmt(stats.sourcedFields) },
+  ];
+
   return (
     <AppShell right={<AuthButton />}>
       <StadiumHero
         eyebrow="College baseball & softball"
         headline="Recruiting research that separates fact from opinion."
         subhead="Every academic, athletic and cost figure is sourced and dated. Every judgment call is labeled as ours. No blended guesswork."
-        stats={VERIFIED_FIELDS}
+        stats={verifiedFields}
         actions={
           <>
             <Button
@@ -100,26 +105,17 @@ function Index() {
       </section>
 
       <section className="mt-10 grid gap-5 lg:grid-cols-2">
-        <IntelBlock className="shadow-card">
+        <IntelBlock>
           Roster construction at this level leans heavily on JUCO arms in the spring. Expect a
           walk-on-first conversation unless the recruit is a two-way with a plus fastball.
         </IntelBlock>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[
-            { label: "Avg GPA", value: "3.83" },
-            { label: "Avg SAT", value: "1520" },
-            { label: "Accept rate", value: "5.7%" },
-            { label: "Net price", value: "$27,500" },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-xl bg-white p-4">
-              <p className="meta">{stat.label}</p>
-              <p className="tabular mt-1 font-display text-2xl font-bold text-org-primary">
-                {stat.value}
-              </p>
-              <VerifiedChip className="mt-3">Sourced</VerifiedChip>
-            </div>
-          ))}
+        <div className="rounded border border-border bg-card p-5">
+          <p className="text-sm text-steel">
+            Every academic, athletic and cost figure on a school's page carries the source it came
+            from and the date it was last checked. Judgment calls are labelled as ours.
+          </p>
+          <VerifiedChip className="mt-4">Sourced and dated</VerifiedChip>
         </div>
       </section>
     </AppShell>
