@@ -1,16 +1,16 @@
 /**
  * "Report a mistake" — the human safety net.
  *
- * Anyone using a program page can flag a wrong value. Reporting does three
- * things: the wrong value is remembered so no future pull can put it back, the
- * field is cleared (a blank is always better than a wrong coach name), and the
- * school goes back in line for a fresh look at its official pages.
+ * Anyone using a program page can flag a wrong value. A report means "this looks
+ * wrong", not "never suggest this again", so nothing is deleted and nothing is
+ * blacklisted: the value is held back from the product, put in the review queue
+ * with the reporter's note, and the school goes back in line for a fresh look at
+ * its official pages.
  */
 
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { normalizeRejectedValue } from "@/lib/rejected-memory";
 
 const clean = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
