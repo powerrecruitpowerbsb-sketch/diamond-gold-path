@@ -72,6 +72,38 @@ export type Database = {
           },
         ]
       }
+      admin_acting_org: {
+        Row: {
+          created_at: string
+          entered_at: string
+          organization_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entered_at?: string
+          organization_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entered_at?: string
+          organization_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_acting_org_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athlete_family_links: {
         Row: {
           created_at: string
@@ -3119,7 +3151,9 @@ export type Database = {
       }
       invite_code_valid: { Args: { _code: string }; Returns: boolean }
       is_linked_athlete: { Args: { _athlete_id: string }; Returns: boolean }
+      is_org_admin_level: { Args: never; Returns: boolean }
       is_org_manager: { Args: never; Returns: boolean }
+      is_org_owner: { Args: never; Returns: boolean }
       is_platform_host: { Args: { _host: string }; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
       link_host: { Args: { _url: string }; Returns: string }
@@ -3249,7 +3283,13 @@ export type Database = {
         | "athletic_website"
         | "roster_page"
         | "coaching_staff_page"
-      user_type: "superadmin" | "org_admin" | "org_staff" | "parent" | "player"
+      user_type:
+        | "superadmin"
+        | "org_owner"
+        | "org_admin"
+        | "org_staff"
+        | "parent"
+        | "player"
       value_verification: "unverified" | "verified"
     }
     CompositeTypes: {
@@ -3484,7 +3524,14 @@ export const Constants = {
         "roster_page",
         "coaching_staff_page",
       ],
-      user_type: ["superadmin", "org_admin", "org_staff", "parent", "player"],
+      user_type: [
+        "superadmin",
+        "org_owner",
+        "org_admin",
+        "org_staff",
+        "parent",
+        "player",
+      ],
       value_verification: ["unverified", "verified"],
     },
   },

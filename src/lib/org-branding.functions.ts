@@ -14,19 +14,29 @@ async function actor(context: Ctx) {
   const [{ data: profile }, { data: roles }] = await Promise.all([
     context.supabase
       .from("users")
-      .select("organization_id")
+      .select("organization_id, user_type")
       .eq("id", context.userId)
       .maybeSingle(),
     context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
   ]);
   const roleList = ((roles ?? []) as { role: string }[]).map((r) => r.role);
+  const isSuperadmin = roleList.includes("superadmin");
+  const { actingOrgId } = await import("@/lib/acting-org");
+  const acting = await actingOrgId(context, isSuperadmin);
+  const type = (profile as { user_type?: string | null } | null)?.user_type ?? null;
   return {
+    // Staff inside an organization act as its owner; everyone else is pinned
+    // to their own organization.
     organizationId:
-      (profile as { organization_id?: string | null } | null)?.organization_id ?? null,
-    isSuperadmin: roleList.includes("superadmin"),
-    isOrgAdmin: roleList.includes("org_admin"),
+      acting ??
+      ((profile as { organization_id?: string | null } | null)?.organization_id ?? null),
+    isSuperadmin,
+    acting: Boolean(acting),
+    // Logo and colors are the owner's to change.
+    isOrgOwner: Boolean(acting) || type === "org_owner",
   };
 }
+
 
 /**
  * Resolves a stored logo reference to something an <img> can load. Logos live
