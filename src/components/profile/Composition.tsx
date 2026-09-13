@@ -180,10 +180,11 @@ export function RosterComposition({
       </div>
 
       <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <Block title="By position" lines={positionLines(rows)} />
-        <Block title="Handedness" lines={handednessLines(rows)} />
-        <Block title="By class year" lines={classLines(rows)} />
+        <Block title="By position" lines={positionLines(rows)} note={gap(rows, "position")} />
+        <Block title="Handedness" lines={handednessLines(rows)} note={gap(rows, "bats")} />
+        <Block title="By class year" lines={classLines(rows)} note={gap(rows, "class_year")} />
         <Block title="Transfers" lines={transferLines(rows)} />
+
         <Block title="Geographic makeup" lines={geographyLines(rows)} />
       </div>
     </div>
