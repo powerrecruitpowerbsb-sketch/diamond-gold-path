@@ -153,3 +153,26 @@ describe("nonVarsityPage", () => {
     expect(nonVarsityPage(page("Barry University Buccaneers Baseball Coaching Staff"))).toBeNull();
   });
 });
+
+describe("non-varsity menu links", () => {
+  it("does not treat a site-menu JV link as the page's own team", () => {
+    const body =
+      "Corban University Warriors Baseball 2026 Roster " +
+      "Pitchers Catchers Infielders Outfielders ".repeat(6) +
+      "More Sports JV Baseball Club Sports Intramural";
+    expect(nonVarsityPage(body, "https://corbanwarriors.com/sports/baseball/roster")).toBeNull();
+    expect(
+      verifyPageIdentity({
+        text: body,
+        url: "https://corbanwarriors.com/sports/baseball/roster",
+        schoolName: "Corban University",
+        athleticsSite: "https://corbanwarriors.com",
+      }).verdict,
+    ).toBe("confirmed");
+  });
+
+  it("still catches a JV page by its own headline or address", () => {
+    expect(nonVarsityPage(page("JV Baseball Roster 2026 Lancaster"))).toBeTruthy();
+    expect(nonVarsityPage("Baseball Roster", "https://x.com/sports/club-softball/roster")).toBeTruthy();
+  });
+});
