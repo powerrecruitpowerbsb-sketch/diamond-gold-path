@@ -62,13 +62,13 @@ function AuditScreen() {
       </div>
 
       {isPending ? (
-        <div className="h-64 animate-pulse rounded-xl bg-muted" />
+        <div className="h-64 animate-pulse rounded bg-muted" />
       ) : (data ?? []).length === 0 ? (
-        <p className="rounded-xl border border-border bg-card p-8 text-center text-sm text-steel">
+        <p className="rounded border border-border bg-card p-8 text-center text-sm text-steel">
           No changes recorded yet.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)]">
+        <div className="overflow-x-auto rounded border border-border bg-card">
           <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-border text-left">

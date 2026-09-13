@@ -49,7 +49,7 @@ export function AccuracyPanel() {
           { label: "Changed", value: data?.mismatch ?? 0 },
           { label: "Unproven", value: data?.unproven ?? 0 },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-border bg-background p-3">
+          <div key={stat.label} className="rounded border border-border bg-background p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-steel">{stat.label}</p>
             <p className="font-display text-xl font-bold text-graphite">{String(stat.value)}</p>
           </div>
@@ -74,7 +74,7 @@ export function AccuracyPanel() {
       </div>
 
       {(data?.recentProblems ?? []).length ? (
-        <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
+        <ul className="mt-4 divide-y divide-border rounded border border-border">
           {(data.recentProblems as any[]).map((row, index) => (
             <li key={`${row.programId}-${index}`} className="flex flex-wrap items-center gap-2 p-3 text-sm">
               <span className="font-semibold text-graphite">{row.schoolName ?? "Unknown school"}</span>

@@ -53,7 +53,7 @@ function EditUniversity() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  if (!data) return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
+  if (!data) return <div className="h-64 animate-pulse rounded bg-muted" />;
 
   const currentValues =
     values ??

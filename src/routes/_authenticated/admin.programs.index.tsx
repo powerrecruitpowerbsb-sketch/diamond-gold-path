@@ -57,7 +57,7 @@ function ProgramsList() {
         </Button>
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-border bg-card p-4 shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)] sm:grid-cols-[1fr_auto_auto_auto]">
+      <div className="grid gap-3 rounded border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto_auto]">
         <div className="relative">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-steel" aria-hidden />
           <Input
@@ -110,9 +110,9 @@ function ProgramsList() {
       </div>
 
       {isPending ? (
-        <div className="h-64 animate-pulse rounded-xl bg-muted" />
+        <div className="h-64 animate-pulse rounded bg-muted" />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)]">
+        <div className="overflow-x-auto rounded border border-border bg-card">
           <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="border-b border-border text-left">

@@ -29,7 +29,7 @@ export function SectionCard({
   aside?: ReactNode | undefined;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5 shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)] sm:p-6">
+    <section className="rounded border border-border bg-card p-5 sm:p-6">
       <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-xl font-bold text-graphite">{title}</h2>

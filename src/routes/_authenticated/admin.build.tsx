@@ -104,7 +104,7 @@ function BuildProgress() {
 
   return (
     <div className="grid gap-5">
-      <section className="stadium-gradient rounded-xl p-6">
+      <section className="stadium-gradient rounded p-6">
         <p className="meta text-white/60">Build progress</p>
         <h1 className="mt-1 font-display text-2xl font-bold text-white sm:text-3xl">
           {data?.headline ?? "Working out where things stand…"}
@@ -125,7 +125,7 @@ function BuildProgress() {
           const running = stage.state === "running";
 
           return (
-            <li key={stage.key} className="rounded-xl border border-border bg-white p-5">
+            <li key={stage.key} className="rounded border border-border bg-white p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2">
@@ -190,7 +190,7 @@ function BuildProgress() {
         })}
       </ol>
 
-      <section className="rounded-xl border border-border bg-white p-5">
+      <section className="rounded border border-border bg-white p-5">
         <h2 className="font-display text-lg font-bold text-graphite">When something needs you</h2>
         <p className="mt-1 text-sm text-steel">
           These are the only two places a decision is ever asked for. Everything else is handled

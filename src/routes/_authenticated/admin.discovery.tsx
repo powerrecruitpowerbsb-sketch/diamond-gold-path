@@ -329,7 +329,7 @@ function DiscoveryQueue() {
           </p>
         ) : null}
         {list.isPending ? (
-          <div className="h-40 animate-pulse rounded-xl bg-muted" />
+          <div className="h-40 animate-pulse rounded bg-muted" />
         ) : !rows.length ? (
           <p className="text-sm text-steel">Nothing left to decide here.</p>
         ) : (
@@ -448,7 +448,7 @@ function DiscoveryQueue() {
         }
       >
         {unfound.isPending ? (
-          <div className="h-24 animate-pulse rounded-xl bg-muted" />
+          <div className="h-24 animate-pulse rounded bg-muted" />
         ) : !rowsLeft.length ? (
           <p className="text-sm text-steel">
             {(unfound.data?.total ?? 0) > 0
@@ -508,7 +508,7 @@ function DiscoveryQueue() {
             <p className="meta">
               {(unfound.data?.total ?? 0).toLocaleString()} left · working on one at a time
             </p>
-            <div className="rounded-xl border border-border bg-white p-4">
+            <div className="rounded border border-border bg-white p-4">
               <h3 className="font-display text-xl font-bold text-graphite">
                 {current.universities?.name ?? "School"}
                 {current.universities?.state ? (

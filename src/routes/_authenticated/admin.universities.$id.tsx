@@ -65,7 +65,7 @@ function UniversityDetail() {
 
 
   if (isPending || !data) {
-    return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
+    return <div className="h-64 animate-pulse rounded bg-muted" />;
   }
 
   const u = data.university as any;
@@ -74,7 +74,7 @@ function UniversityDetail() {
 
   return (
     <div className="grid gap-5">
-      <div className="stadium-gradient rounded-xl p-6 sm:p-8">
+      <div className="stadium-gradient rounded p-6 sm:p-8">
         <p className="meta text-white/60">{[u.city, u.state].filter(Boolean).join(", ")}</p>
         <h1 className="mt-1 font-display text-3xl font-bold text-white sm:text-4xl">{u.name}</h1>
         <div className="mt-4 flex flex-wrap gap-2">

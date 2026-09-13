@@ -58,7 +58,7 @@ function UniversitiesList() {
         </Button>
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-border bg-card p-4 shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)] sm:grid-cols-[1fr_auto_auto_auto_auto]">
+      <div className="grid gap-3 rounded border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto_auto_auto]">
         <div className="relative">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-steel" aria-hidden />
           <Input
@@ -78,11 +78,11 @@ function UniversitiesList() {
       {isPending ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-52 animate-pulse rounded-xl bg-muted" />
+            <div key={i} className="h-52 animate-pulse rounded bg-muted" />
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <p className="rounded-xl border border-border bg-card p-8 text-center text-sm text-steel">
+        <p className="rounded border border-border bg-card p-8 text-center text-sm text-steel">
           No schools match those filters.
         </p>
       ) : (
@@ -92,7 +92,7 @@ function UniversitiesList() {
               key={u.id}
               to="/admin/universities/$id"
               params={{ id: u.id }}
-              className="group rounded-xl border border-border bg-card p-5 shadow-[0_2px_14px_-8px_rgba(18,35,58,0.35)] transition-shadow hover:shadow-[0_12px_28px_-18px_rgba(18,35,58,0.5)]"
+              className="group rounded border border-border bg-card p-5 "
             >
               <div className="flex items-start justify-between gap-2">
                 <h2 className="font-display text-lg font-bold text-graphite group-hover:text-org-primary">

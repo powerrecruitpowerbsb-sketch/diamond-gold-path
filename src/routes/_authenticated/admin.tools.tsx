@@ -506,7 +506,7 @@ function Tools() {
 
   return (
     <div className="grid gap-5">
-      <div className="rounded-xl border border-border bg-white p-4">
+      <div className="rounded border border-border bg-white p-4">
         <h2 className="font-display text-lg font-bold text-graphite">Collection tools</h2>
         <p className="mt-1 text-sm text-steel">
           Hands-on jobs you only need now and then: pull the membership lists, fill in school facts,
@@ -1022,7 +1022,7 @@ function Stat({
   hint: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4">
+    <div className="rounded border border-border bg-muted/30 p-4">
       <p className="flex items-center gap-2 text-xs font-semibold tracking-wide text-steel uppercase">
         {icon}
         {label}

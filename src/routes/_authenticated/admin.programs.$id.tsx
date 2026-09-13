@@ -39,7 +39,7 @@ function AdminProgramDetail() {
     queryFn: () => fetchProgram({ data: { id } }),
   });
 
-  if (!data) return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
+  if (!data) return <div className="h-64 animate-pulse rounded bg-muted" />;
   const program = data.program as any;
   const university = (data as any).university ?? program.universities ?? null;
 
@@ -54,7 +54,7 @@ function AdminProgramDetail() {
           All programs
         </Link>
 
-        <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 rounded border border-border bg-card p-5">
           <div>
             <p className="meta">{titleCase(program.sport)} PROGRAM</p>
             <h1 className="font-display text-2xl font-bold text-org-primary">
@@ -148,7 +148,7 @@ function IntelSection({ programId }: { programId: string }) {
   const showForm = adding || editingId !== null;
 
   return (
-    <section className="rounded-xl border border-border bg-card">
+    <section className="rounded border border-border bg-card">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-seam-red-tint px-5 py-4">
         <div>
           <h2 className="font-display text-lg font-bold text-seam-red">Recruiting Intelligence</h2>
@@ -347,7 +347,7 @@ function RelationshipSection({ programId }: { programId: string }) {
   });
 
   return (
-    <section className="rounded-xl border-2 border-dashed border-org-primary/40 bg-card">
+    <section className="rounded border-2 border-dashed border-org-primary/40 bg-card">
       <header className="border-b border-border bg-org-primary/5 px-5 py-4">
         <h2 className="flex items-center gap-2 font-display text-lg font-bold text-org-primary">
           <Lock className="size-4" aria-hidden />

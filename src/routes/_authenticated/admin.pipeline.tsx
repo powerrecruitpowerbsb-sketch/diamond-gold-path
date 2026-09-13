@@ -112,7 +112,7 @@ function Pipeline() {
 
       <BuildChecklist />
 
-      <section className="rounded-xl border border-border bg-white p-5">
+      <section className="rounded border border-border bg-white p-5">
         <h2 className="font-display text-lg font-bold text-graphite">What needs a person</h2>
         <p className="mt-1 text-sm text-steel">
           Everything else runs on its own. Only these need a decision from you.

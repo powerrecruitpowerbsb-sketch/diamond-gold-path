@@ -139,7 +139,7 @@ function FederalDecisions() {
       </SectionCard>
 
       {isPending ? (
-        <div className="h-40 animate-pulse rounded-xl bg-muted" />
+        <div className="h-40 animate-pulse rounded bg-muted" />
       ) : isError ? (
         <SectionCard title="Couldn't prepare the suggestions" blurb="Nothing was changed.">
           <p className="mt-2 text-sm text-steel">{plainError(error)}</p>
