@@ -212,15 +212,17 @@ function Workstation() {
                           {row.school}
                           {row.state ? <span className="text-steel"> · {row.state}</span> : null}
                         </td>
-                        <td className="px-3 py-1.5 whitespace-nowrap text-steel">
+                        <td
+                          className="px-3 py-1.5 whitespace-nowrap text-steel"
+                          title={
+                            row.conference
+                              ? `${row.conference}${row.conferenceConfirmed ? "" : " (not confirmed)"}`
+                              : "Conference not on file"
+                          }
+                        >
                           {[row.governingBody, row.division].filter(Boolean).join(" ") || "—"}
-                          {row.conference ? (
-                            <span className="block text-xs text-steel">
-                              {row.conference}
-                              {row.conferenceConfirmed ? "" : " (not confirmed)"}
-                            </span>
-                          ) : null}
                         </td>
+
                         <td className="tabular px-3 py-1.5 whitespace-nowrap text-graphite">
                           {row.filled} / {INTEL_FIELD_COUNT}
                         </td>
