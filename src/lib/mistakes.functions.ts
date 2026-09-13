@@ -49,37 +49,29 @@ export const reportProgramMistake = createServerFn({ method: "POST" })
 
     const current = (program as Record<string, unknown>)[data.fieldName] ?? null;
 
-    // 1. Remember the wrong value so it is never proposed again.
-    if (current !== null && current !== "") {
-      await supabaseAdmin.from("rejected_values").upsert(
-        [
-          {
-            table_name: "programs",
-            record_id: program.id,
-            field_name: data.fieldName,
-            normalized_value: normalizeRejectedValue(current),
-            reason: data.note || "Reported as wrong by a person",
-            created_by: context.userId,
-          },
-        ],
-        { onConflict: "table_name,record_id,field_name,normalized_value", ignoreDuplicates: true },
-      );
-    }
-
-    // 2. Clear it — an empty field is honest, a wrong one is not.
-    const { error: clearError } = await supabaseAdmin
-      .from("programs")
-      .update({ [data.fieldName]: null } as any)
-      .eq("id", program.id);
-    if (clearError) throw new Error(clearError.message);
+    // 1. Hold it back and put it in the review queue. The value stays on the
+    // record — deleting it, or blacklisting it forever, both throw away a value
+    // that may well turn out to be right.
+    const { error: reviewError } = await supabaseAdmin.from("pending_data_changes").insert({
+      table_name: "programs",
+      record_id: program.id,
+      field_name: data.fieldName,
+      original_value: current as any,
+      proposed_value: null as any,
+      source_type: "manual",
+      status: "pending",
+      decided_via: "reported_by_person",
+      review_note: data.note || "Reported as wrong by a person",
+    });
+    if (reviewError) throw new Error(reviewError.message);
 
     await supabaseAdmin.from("audit_log").insert({
       table_name: "programs",
       record_id: program.id,
       field_name: data.fieldName,
-      action: "override",
+      action: "update",
       old_value: current === null ? null : String(current),
-      new_value: null,
+      new_value: current === null ? null : String(current),
       actor_id: context.userId,
     });
 
