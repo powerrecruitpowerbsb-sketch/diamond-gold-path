@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
+import { enterOrganization } from "@/lib/impersonation.functions";
 import {
   createOrganization,
   inviteOrganizationOwner,
@@ -33,6 +34,8 @@ function Organizations() {
   const updateFn = useServerFn(updateOrganization);
   const accessFn = useServerFn(setOrganizationAccess);
   const inviteFn = useServerFn(inviteOrganizationOwner);
+  const enterFn = useServerFn(enterOrganization);
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const { data, isPending } = useQuery({ queryKey: ["organizations"], queryFn: () => listFn() });
@@ -49,6 +52,21 @@ function Organizations() {
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["organizations"] });
+
+  /**
+   * Enter an organization and run it as its owner. Nothing about this account
+   * changes; the bar at the top of every screen says where you are.
+   */
+  const enter = useMutation({
+    mutationFn: (id: string) => enterFn({ data: { organizationId: id } }),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries();
+      toast.success(`Now working inside ${result.name}.`);
+      await router.navigate({ to: "/dashboard" });
+    },
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "Could not enter that organization"),
+  });
 
   const create = useMutation({
     mutationFn: () =>
@@ -281,6 +299,14 @@ function Organizations() {
               header: "Actions",
               cell: (row) => (
                 <span className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => enter.mutate(row.id)}
+                    disabled={enter.isPending}
+                  >
+                    Enter
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
