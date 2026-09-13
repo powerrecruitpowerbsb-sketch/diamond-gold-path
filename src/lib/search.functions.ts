@@ -200,14 +200,17 @@ export const getProgramProfile = createServerFn({ method: "GET" })
 
     const university = (program as any).universities;
 
-    const [intel, roster, sources, classifications] = await Promise.all([
+    const [intel, roster, sources, classifications, siblings, majors, links] = await Promise.all([
       supabase
         .from("recruiting_intelligence")
         .select("id, field_type, content, updated_at")
         .eq("program_id", data.programId),
       supabase
         .from("roster_players")
-        .select("id, season_year, name, class_year, position, home_state, is_transfer, is_juco_transfer")
+        .select(
+          `id, season_year, name, class_year, position, bats, throws, hometown, home_state,
+           home_country, is_transfer, is_juco_transfer, two_way`,
+        )
         .eq("program_id", data.programId),
       supabase
         .from("data_field_sources")
@@ -217,6 +220,21 @@ export const getProgramProfile = createServerFn({ method: "GET" })
         .from("classifications")
         .select("classification_type, value, ai_suggested_value, is_staff_overridden, evidence_text")
         .eq("university_id", (program as any).university_id),
+      // Sibling team at the same school — powers the baseball/softball toggle.
+      supabase
+        .from("programs")
+        .select("id, sport, offering_status, division, governing_body")
+        .eq("university_id", (program as any).university_id),
+      // Majors on file for the school.
+      supabase
+        .from("university_majors")
+        .select("award_levels, completions, majors!inner(id, name, category, cip_family)")
+        .eq("university_id", (program as any).university_id),
+      // Link health, so a blocked host reads as blocked instead of blank.
+      supabase
+        .from("link_health")
+        .select("field, url, link_status, last_failure_category, last_verified_ok_at")
+        .eq("program_id", data.programId),
     ]);
 
     const rosterRows = ((roster.data ?? []) as any[]).filter((r) => r.season_year !== null);
@@ -236,5 +254,15 @@ export const getProgramProfile = createServerFn({ method: "GET" })
       sources: (sources.data ?? []) as any[],
       roster: currentRoster,
       latestSeason,
+      siblingPrograms: ((siblings.data ?? []) as any[]).filter((r) => r.id !== data.programId),
+      majors: ((majors.data ?? []) as any[]).map((row) => ({
+        id: (row as any).majors?.id,
+        name: (row as any).majors?.name,
+        category: (row as any).majors?.category ?? null,
+        awardLevels: row.award_levels ?? null,
+        completions: row.completions ?? null,
+      })),
+      linkHealth: (links.data ?? []) as any[],
     };
+
   });
