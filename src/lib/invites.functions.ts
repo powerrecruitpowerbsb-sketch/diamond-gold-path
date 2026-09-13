@@ -14,7 +14,7 @@ export type InviteRole = (typeof INVITE_ROLES)[number];
 
 export const INVITE_ROLE_LABEL: Record<string, string> = {
   org_admin: "Admin",
-  org_staff: "Staff",
+  org_staff: "Coach / Staff",
   parent: "Parent",
   player: "Player",
 };
@@ -57,12 +57,19 @@ async function requireInviteActor(context: Ctx, organizationId?: string | null) 
   return { orgId, isSuperadmin, isOrgAdmin, isManager };
 }
 
+/**
+ * Owners and admins invite people; coaches invite nobody. Staff invites and
+ * family invites are both an admin-level action.
+ */
 function assertCanInviteRole(
   actor: { isSuperadmin: boolean; isOrgAdmin: boolean },
   role: string,
 ) {
-  if ((STAFF_ROLES as readonly string[]).includes(role) && !actor.isSuperadmin && !actor.isOrgAdmin) {
-    throw new Error("Only organization admins can invite staff members");
+  if (!actor.isSuperadmin && !actor.isOrgAdmin) {
+    if ((STAFF_ROLES as readonly string[]).includes(role)) {
+      throw new Error("Only the organization owner or an admin can invite coaches and staff");
+    }
+    throw new Error("Only the organization owner or an admin can send invitations");
   }
 }
 
