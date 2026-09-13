@@ -2,8 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchAllRows } from "@/lib/paginate";
+import { isPitcher, positionGroup, type PositionGroup } from "@/lib/position-group";
 import {
   UNIVERSITY_COLS,
+  compositionActive,
   normalizeSearchInput,
   type SearchFilters,
 } from "@/lib/search-schema";
@@ -16,10 +18,14 @@ export const getSearchFacets = createServerFn({ method: "GET" })
     // truncated read would quietly drop states and conferences from the filters.
     const [universities, programs, majors] = await Promise.all([
       fetchAllRows((from, to) =>
-        context.supabase.from("universities").select("state, region").order("id").range(from, to) as any,
+        context.supabase.from("universities").select("state").order("id").range(from, to) as any,
       ),
       fetchAllRows((from, to) =>
-        context.supabase.from("programs").select("conference, division").order("id").range(from, to) as any,
+        context.supabase
+          .from("programs")
+          .select("conference, division, conference_verification")
+          .order("id")
+          .range(from, to) as any,
       ),
       context.supabase.from("majors").select("id, name").order("name"),
     ]);
@@ -27,14 +33,26 @@ export const getSearchFacets = createServerFn({ method: "GET" })
     const uniq = (values: (string | null)[]) =>
       Array.from(new Set(values.filter((v): v is string => Boolean(v && v.trim())))).sort();
 
+    // A conference counts as confirmed only when every stored row carrying it is
+    // verified. One unverified row is enough for the list to flag it.
+    const confirmed = new Map<string, boolean>();
+    for (const row of programs as any[]) {
+      const name = String(row.conference ?? "").trim();
+      if (!name) continue;
+      const verified = row.conference_verification === "verified";
+      confirmed.set(name, (confirmed.get(name) ?? true) && verified);
+    }
+
     return {
       states: uniq((universities as any[]).map((r) => r.state)),
-      regions: uniq((universities as any[]).map((r) => r.region)),
-      conferences: uniq((programs as any[]).map((r) => r.conference)),
+      conferences: Array.from(confirmed.entries())
+        .map(([name, isConfirmed]) => ({ name, confirmed: isConfirmed }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
       divisions: uniq((programs as any[]).map((r) => r.division)),
       majors: (((majors as any).data ?? []) as any[]).map((m) => ({ id: m.id, name: m.name })),
     };
   });
+
 
 
 /** Filtered program search. RLS applies as the signed-in user. */
@@ -50,33 +68,45 @@ export const searchPrograms = createServerFn({ method: "POST" })
       restrict.ids = restrict.ids === null ? ids : restrict.ids.filter((id) => ids.includes(id));
     };
 
+    // Paged: a major can be offered by more schools than one request returns, and a
+    // truncated read would silently hide matching schools.
     if (f.majorId) {
-      const { data } = await supabase
-        .from("university_majors")
-        .select("university_id")
-        .eq("major_id", f.majorId);
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from("university_majors")
+          .select("university_id")
+          .eq("major_id", f.majorId)
+          .order("university_id")
+          .range(from, to),
+      );
       intersect(((data ?? []) as any[]).map((r) => r.university_id));
     }
 
     if (f.academicBucket) {
-      const { data } = await supabase
-        .from("classifications")
-        .select("university_id, value")
-        .eq("classification_type", "academic_bucket")
-        .eq("value", f.academicBucket);
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from("classifications")
+          .select("university_id, value")
+          .eq("classification_type", "academic_bucket")
+          .eq("value", f.academicBucket)
+          .order("university_id")
+          .range(from, to),
+      );
       intersect(
         ((data ?? []) as any[]).map((r) => r.university_id).filter((id: string | null) => !!id),
       );
     }
 
     if (restrict.ids !== null && restrict.ids.length === 0) {
-      return { results: [], total: 0 };
+      return { results: [], total: 0, matches: 0, capped: false, unpublishedPositions: 0 };
     }
+
 
     let query = supabase
       .from("programs")
       .select(
-        `id, sport, governing_body, division, conference, scholarships_available, scholarship_details,
+        `id, sport, governing_body, division, conference, conference_verification,
+         division_verification, scholarships_available, scholarship_details,
          athletic_website, roster_url, coaching_staff_url, head_coach_name, last_verified_at,
          universities!inner(${UNIVERSITY_COLS})`,
         { count: "exact" },
@@ -92,8 +122,9 @@ export const searchPrograms = createServerFn({ method: "POST" })
     if (restrict.ids !== null) query = query.in("university_id", restrict.ids);
 
     if (f.q) query = query.ilike("universities.name", `%${f.q}%`);
-    if (f.state) query = query.eq("universities.state", f.state);
-    if (f.region) query = query.eq("universities.region", f.region);
+    // Location: the region is a grouping of states from src/lib/regions.ts, never
+    // the stored universities.region column, which is empty for all but 6 schools.
+    if (f.states.length > 0) query = query.in("universities.state", f.states);
     if (f.publicPrivate) query = query.eq("universities.public_private", f.publicPrivate);
     if (f.schoolSize) query = query.eq("universities.school_size_bucket", f.schoolSize);
     if (f.campusSetting) query = query.eq("universities.campus_setting", f.campusSetting);
@@ -108,8 +139,10 @@ export const searchPrograms = createServerFn({ method: "POST" })
       if (min !== null) query = query.gte(column, min * scale);
       if (max !== null) query = query.lte(column, max * scale);
     };
-    range("universities.est_cost_of_attendance", f.tuitionMin, f.tuitionMax);
-    range("universities.avg_gpa", f.gpaMin, f.gpaMax);
+    // Net price is what a family actually pays, and is the primary cost filter.
+    range("universities.est_net_price", f.netPriceMin, f.netPriceMax);
+    range("universities.tuition_out_state", f.tuitionMin, f.tuitionMax);
+    range("universities.est_cost_of_attendance", f.coaMin, f.coaMax);
     range("universities.avg_sat", f.satMin, f.satMax);
     range("universities.avg_act", f.actMin, f.actMax);
     // Acceptance rate is stored 0-100, the same scale the filter uses.
@@ -127,52 +160,151 @@ export const searchPrograms = createServerFn({ method: "POST" })
     const capped = rows.length >= LIMIT;
     const programIds = rows.map((r) => r.id);
 
+    // Roster detail is only read when a composition filter is in use, so an
+    // ordinary search stays as fast as it was.
+    const detailed = compositionActive(f);
+    const rosterCols = detailed
+      ? "program_id, season_year, position, class_year, is_transfer, two_way, throws"
+      : "program_id, season_year";
 
-    // Roster size = player count for the most recent season on file per program.
-    const rosterSizes = new Map<string, { seasonYear: number | null; size: number }>();
+    type Composition = {
+      seasonYear: number | null;
+      size: number;
+      /** Null where the school published no positions at all. */
+      groupCounts: Record<string, number> | null;
+      seniorCounts: Record<string, number> | null;
+      transfers: number;
+    };
+
+    const compositions = new Map<string, Composition>();
     if (programIds.length > 0) {
       const { data: roster } = await supabase
         .from("roster_players")
-        .select("program_id, season_year")
+        .select(rosterCols)
         .in("program_id", programIds);
-      const byProgram = new Map<string, Map<number, number>>();
+
+      const byProgram = new Map<string, Map<number, any[]>>();
       for (const row of (roster ?? []) as any[]) {
-        const seasons = byProgram.get(row.program_id) ?? new Map<number, number>();
+        const seasons = byProgram.get(row.program_id) ?? new Map<number, any[]>();
         const year = Number(row.season_year ?? 0);
-        seasons.set(year, (seasons.get(year) ?? 0) + 1);
+        const bucket = seasons.get(year) ?? [];
+        bucket.push(row);
+        seasons.set(year, bucket);
         byProgram.set(row.program_id, seasons);
       }
+
       for (const [programId, seasons] of byProgram) {
         const latest = Math.max(...seasons.keys());
-        rosterSizes.set(programId, {
+        const players = seasons.get(latest) ?? [];
+        let groupCounts: Record<string, number> | null = null;
+        let seniorCounts: Record<string, number> | null = null;
+        let transfers = 0;
+
+        if (detailed) {
+          const groups: Record<string, number> = {};
+          const seniors: Record<string, number> = {};
+          let anyPosition = false;
+          for (const player of players) {
+            if (player.is_transfer === true) transfers += 1;
+            const group: PositionGroup | null = isPitcher(player.position, player.two_way)
+              ? "pitcher"
+              : positionGroup(player.position);
+            if (!group) continue;
+            anyPosition = true;
+            groups[group] = (groups[group] ?? 0) + 1;
+            if (String(player.class_year ?? "").toUpperCase() === "SR") {
+              seniors[group] = (seniors[group] ?? 0) + 1;
+            }
+          }
+          groupCounts = anyPosition ? groups : null;
+          seniorCounts = anyPosition ? seniors : null;
+        }
+
+        compositions.set(programId, {
           seasonYear: latest || null,
-          size: seasons.get(latest) ?? 0,
+          size: players.length,
+          groupCounts,
+          seniorCounts,
+          transfers,
         });
       }
     }
 
     let results = rows.map((row) => {
-      const roster = rosterSizes.get(row.id) ?? { seasonYear: null, size: 0 };
+      const composition =
+        compositions.get(row.id) ??
+        ({
+          seasonYear: null,
+          size: 0,
+          groupCounts: null,
+          seniorCounts: null,
+          transfers: 0,
+        } as Composition);
       const { universities, ...program } = row;
-      return { ...program, university: universities, roster };
+      return {
+        ...program,
+        university: universities,
+        roster: { seasonYear: composition.seasonYear, size: composition.size },
+        composition,
+      };
     });
+
+    // Programs whose school never published a position are excluded from a
+    // position filter and counted separately — never treated as zero.
+    let unpublishedPositions = 0;
 
     if (f.rosterMin !== null) results = results.filter((r) => r.roster.size >= f.rosterMin!);
     if (f.rosterMax !== null) results = results.filter((r) => r.roster.size <= f.rosterMax!);
 
+    if (f.positionGroup && (f.positionMin !== null || f.positionMax !== null)) {
+      results = results.filter((r) => {
+        const counts = r.composition.groupCounts;
+        if (!counts) {
+          unpublishedPositions += 1;
+          return false;
+        }
+        const n = counts[f.positionGroup] ?? 0;
+        if (f.positionMin !== null && n < f.positionMin) return false;
+        if (f.positionMax !== null && n > f.positionMax) return false;
+        return true;
+      });
+    }
+
+    if (f.seniorGroup && f.seniorMin !== null) {
+      results = results.filter((r) => {
+        const counts = r.composition.seniorCounts;
+        if (!counts) {
+          unpublishedPositions += 1;
+          return false;
+        }
+        return (counts[f.seniorGroup] ?? 0) >= f.seniorMin!;
+      });
+    }
+
+    if (f.transferPctMin !== null || f.transferPctMax !== null) {
+      results = results.filter((r) => {
+        if (r.roster.size === 0) return false;
+        const share = (r.composition.transfers / r.roster.size) * 100;
+        if (f.transferPctMin !== null && share < f.transferPctMin) return false;
+        if (f.transferPctMax !== null && share > f.transferPctMax) return false;
+        return true;
+      });
+    }
+
     results.sort((a, b) => String(a.university?.name).localeCompare(String(b.university?.name)));
 
-    const rosterFiltered = f.rosterMin !== null || f.rosterMax !== null;
     const matches = Number(count ?? results.length);
 
     return {
       results,
       total: results.length,
       // How many programs match the filters in total, and whether the list was cut
-      // off at the display cap (roster-size filtering happens after the fetch).
-      matches: rosterFiltered ? results.length : matches,
-      capped: capped && !rosterFiltered,
+      // off at the display cap (composition filtering happens after the fetch).
+      matches: detailed ? results.length : matches,
+      capped: capped && !detailed,
+      unpublishedPositions,
     };
+
 
   });
 

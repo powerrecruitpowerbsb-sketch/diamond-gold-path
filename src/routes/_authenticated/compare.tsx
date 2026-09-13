@@ -9,6 +9,8 @@ import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { getComparePrograms, MAX_COMPARE } from "@/lib/compare.functions";
 import { titleCase } from "@/lib/admin-schemas";
+import { regionOfState } from "@/lib/regions";
+
 import { cn } from "@/lib/utils";
 
 const compareSearchSchema = z.object({
@@ -58,7 +60,9 @@ const ROWS: Row[] = [
     label: "Location",
     value: (e) => [e.university?.city, e.university?.state].filter(Boolean).join(", ") || "—",
   },
-  { label: "Region", value: (e) => plain(e.university?.region) },
+  // Region comes from the shared state grouping, so it reads the same here as in search.
+  { label: "Region", value: (e) => regionOfState(e.university?.state) ?? "Not reported" },
+
   { label: "Conference", value: (e) => plain(e.program.conference) },
   { label: "Average GPA", verified: true, value: (e) => plain(e.university?.avg_gpa) },
   { label: "Avg SAT", verified: true, value: (e) => plain(e.university?.avg_sat) },
