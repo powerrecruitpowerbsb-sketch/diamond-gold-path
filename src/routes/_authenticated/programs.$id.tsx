@@ -604,9 +604,41 @@ function ProgramProfile() {
         )}
       </Section>
 
-      <Section title="Recruiting intelligence" meta={<LayerTag layer="intelligence" />}>
-        <IntelligencePanel rows={intelRows} />
+      <Section
+        title="Recruiting intelligence"
+        meta={<LayerTag layer="intelligence" />}
+      >
+        {strength || placed !== null ? (
+          <dl className="mb-3 flex flex-wrap gap-6 rounded border border-border bg-card p-3 text-sm">
+            <div>
+              <dt className="meta">Relationship</dt>
+              <dd className="font-semibold text-graphite">
+                {STRENGTH_CHOICES.find((c) => c.value === strength)?.label ?? "Not rated"}
+              </dd>
+            </div>
+            <div>
+              <dt className="meta">Placed players here before</dt>
+              <dd className="font-semibold text-graphite">
+                {placed === null ? "Not recorded" : placed ? "Yes" : "No"}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
+        <IntelligencePanel rows={intelRows} showVisibility={isOrgStaff} />
+        {isOrgStaff ? <InternalIntelPanel rows={internalRows} /> : null}
+        {isOrgStaff ? (
+          <p className="meta mt-2">
+            <Link
+              to="/intelligence"
+              search={{ programId: id }}
+              className="underline decoration-dotted underline-offset-2 hover:text-org-primary"
+            >
+              Write or update intelligence for this program
+            </Link>
+          </p>
+        ) : null}
       </Section>
+
 
       <div className="mt-8 border-t border-border pt-4">
         <ReportMistake programId={id} />
