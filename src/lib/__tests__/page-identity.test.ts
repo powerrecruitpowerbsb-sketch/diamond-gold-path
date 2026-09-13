@@ -94,10 +94,50 @@ describe("verifyPageIdentity", () => {
     expect(result.verdict).toBe("unclear");
   });
 
+  it("ignores skip-to-content furniture attached to the school's own name", () => {
+    const result = verifyPageIdentity({
+      text: page("College of the Desert Skip To Main Content Roar Baseball Roster"),
+      url: "https://codathletics.com/sports/baseball/roster",
+      schoolName: "College of the Desert",
+    });
+    expect(result.verdict).toBe("confirmed");
+  });
+
+  it("ignores carousel furniture in a header", () => {
+    const result = verifyPageIdentity({
+      text: page("All Rotators Playing Millersville University Marauders Baseball Roster"),
+      url: "https://millersvilleathletics.com/sports/baseball/roster",
+      schoolName: "Millersville University",
+    });
+    expect(result.verdict).toBe("confirmed");
+  });
+
+  it("trusts a page on a domain already on the record without reading any name", () => {
+    const result = verifyPageIdentity({
+      text: page("Rotators Playing Louisiana Tech University Athletics Skip To"),
+      url: "https://latechsports.com/sports/baseball/roster/2026",
+      schoolName: "Louisiana Tech University",
+      athleticsSite: "https://latechsports.com",
+    });
+    expect(result.verdict).toBe("confirmed");
+    expect(result.reason).toContain("already on this school's record");
+  });
+
+  it("still refuses a genuine look-alike on an unrelated domain", () => {
+    const result = verifyPageIdentity({
+      text: page("Georgetown College Tigers Baseball Roster Skip To Main Content"),
+      url: "https://gohoyas.com/sports/baseball/roster",
+      schoolName: "Georgetown University",
+      athleticsSite: "https://guhoyas.com",
+    });
+    expect(result.verdict).toBe("wrong_school");
+  });
+
   it("says nothing about a page that came back empty", () => {
     expect(verifyPageIdentity({ text: "", schoolName: "Rollins College" }).verdict).toBe("unclear");
   });
 });
+
 
 describe("nonVarsityPage", () => {
   it("catches club-sports subdomains", () => {
