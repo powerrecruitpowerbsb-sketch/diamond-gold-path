@@ -683,6 +683,7 @@ export type Database = {
           id: string
           interaction_date: string
           notes: string | null
+          organization_id: string
           relationship_id: string
           staff_id: string | null
           updated_at: string
@@ -693,6 +694,7 @@ export type Database = {
           id?: string
           interaction_date?: string
           notes?: string | null
+          organization_id: string
           relationship_id: string
           staff_id?: string | null
           updated_at?: string
@@ -703,11 +705,19 @@ export type Database = {
           id?: string
           interaction_date?: string
           notes?: string | null
+          organization_id?: string
           relationship_id?: string
           staff_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "interaction_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "interaction_log_relationship_id_fkey"
             columns: ["relationship_id"]
@@ -1473,30 +1483,61 @@ export type Database = {
           created_at: string
           id: string
           last_meaningful_interaction_at: string | null
+          organization_id: string
+          placed_players_before: boolean | null
+          primary_college_contact: string | null
           primary_contact_staff_id: string | null
           program_id: string
+          program_stability_note: string | null
           relationship_strength: number | null
+          strength_label:
+            | Database["public"]["Enums"]["relationship_strength_level"]
+            | null
           updated_at: string
+          visibility: Database["public"]["Enums"]["intel_visibility"]
         }
         Insert: {
           created_at?: string
           id?: string
           last_meaningful_interaction_at?: string | null
+          organization_id: string
+          placed_players_before?: boolean | null
+          primary_college_contact?: string | null
           primary_contact_staff_id?: string | null
           program_id: string
+          program_stability_note?: string | null
           relationship_strength?: number | null
+          strength_label?:
+            | Database["public"]["Enums"]["relationship_strength_level"]
+            | null
           updated_at?: string
+          visibility?: Database["public"]["Enums"]["intel_visibility"]
         }
         Update: {
           created_at?: string
           id?: string
           last_meaningful_interaction_at?: string | null
+          organization_id?: string
+          placed_players_before?: boolean | null
+          primary_college_contact?: string | null
           primary_contact_staff_id?: string | null
           program_id?: string
+          program_stability_note?: string | null
           relationship_strength?: number | null
+          strength_label?:
+            | Database["public"]["Enums"]["relationship_strength_level"]
+            | null
           updated_at?: string
+          visibility?: Database["public"]["Enums"]["intel_visibility"]
         }
         Relationships: [
+          {
+            foreignKeyName: "program_relationships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "program_relationships_primary_contact_staff_id_fkey"
             columns: ["primary_contact_staff_id"]
@@ -1507,7 +1548,7 @@ export type Database = {
           {
             foreignKeyName: "program_relationships_program_id_fkey"
             columns: ["program_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "programs"
             referencedColumns: ["id"]
           },
@@ -1693,36 +1734,76 @@ export type Database = {
       }
       recruiting_intelligence: {
         Row: {
+          author_user_id: string | null
           content: string | null
           created_at: string
           created_by: string | null
+          editor_user_id: string | null
           field_type: Database["public"]["Enums"]["intel_field_type"]
           id: string
+          organization_id: string
+          positions: string[] | null
           program_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["intel_status"]
+          structured_detail: Json | null
+          structured_value: string | null
           updated_at: string
           updated_by: string | null
+          visibility: Database["public"]["Enums"]["intel_visibility"]
         }
         Insert: {
+          author_user_id?: string | null
           content?: string | null
           created_at?: string
           created_by?: string | null
+          editor_user_id?: string | null
           field_type: Database["public"]["Enums"]["intel_field_type"]
           id?: string
+          organization_id: string
+          positions?: string[] | null
           program_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["intel_status"]
+          structured_detail?: Json | null
+          structured_value?: string | null
           updated_at?: string
           updated_by?: string | null
+          visibility?: Database["public"]["Enums"]["intel_visibility"]
         }
         Update: {
+          author_user_id?: string | null
           content?: string | null
           created_at?: string
           created_by?: string | null
+          editor_user_id?: string | null
           field_type?: Database["public"]["Enums"]["intel_field_type"]
           id?: string
+          organization_id?: string
+          positions?: string[] | null
           program_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["intel_status"]
+          structured_detail?: Json | null
+          structured_value?: string | null
           updated_at?: string
           updated_by?: string | null
+          visibility?: Database["public"]["Enums"]["intel_visibility"]
         }
         Relationships: [
+          {
+            foreignKeyName: "recruiting_intelligence_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recruiting_intelligence_created_by_fkey"
             columns: ["created_by"]
@@ -1731,10 +1812,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "recruiting_intelligence_editor_user_id_fkey"
+            columns: ["editor_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruiting_intelligence_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "recruiting_intelligence_program_id_fkey"
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruiting_intelligence_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -3011,6 +3113,10 @@ export type Database = {
         Returns: boolean
       }
       hash_invite_code: { Args: { _code: string }; Returns: string }
+      intel_field_family_visible: {
+        Args: { _field_type: string }
+        Returns: boolean
+      }
       invite_code_valid: { Args: { _code: string }; Returns: boolean }
       is_linked_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       is_org_manager: { Args: never; Returns: boolean }
@@ -3020,6 +3126,13 @@ export type Database = {
       link_host_only: { Args: { _url: string }; Returns: string }
       link_key: { Args: { _url: string }; Returns: string }
       pages_check_on: { Args: never; Returns: boolean }
+      program_relationship_summary: {
+        Args: { _program_id: string }
+        Returns: {
+          placed_players_before: boolean
+          strength_label: Database["public"]["Enums"]["relationship_strength_level"]
+        }[]
+      }
       program_roster_summary: {
         Args: { _program_id: string }
         Returns: {
@@ -3069,6 +3182,25 @@ export type Database = {
         | "geographic_tendencies"
         | "recruiting_timeline"
         | "roster_construction_tendencies"
+        | "portal_usage"
+        | "juco_recruiting"
+        | "hs_vs_transfer_lean"
+        | "physical_traits_valued"
+        | "development_philosophy"
+        | "coaching_staff_reputation"
+        | "program_stability"
+        | "roster_needs"
+        | "current_priorities"
+        | "graduation_needs"
+        | "staff_notes"
+        | "players_previously_recruited"
+      intel_status:
+        | "draft"
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "changes_requested"
+      intel_visibility: "org_only" | "shared_with_families"
       link_health_status: "verified" | "unverified" | "dead"
       page_failure_category:
         | "timeout"
@@ -3095,6 +3227,7 @@ export type Database = {
         | "IF"
       program_offering_status: "unverified" | "verified" | "not_offered"
       public_private: "public" | "private"
+      relationship_strength_level: "strong" | "developing" | "minimal" | "none"
       saved_school_status:
         | "researching"
         | "contacted"
@@ -3277,7 +3410,27 @@ export const Constants = {
         "geographic_tendencies",
         "recruiting_timeline",
         "roster_construction_tendencies",
+        "portal_usage",
+        "juco_recruiting",
+        "hs_vs_transfer_lean",
+        "physical_traits_valued",
+        "development_philosophy",
+        "coaching_staff_reputation",
+        "program_stability",
+        "roster_needs",
+        "current_priorities",
+        "graduation_needs",
+        "staff_notes",
+        "players_previously_recruited",
       ],
+      intel_status: [
+        "draft",
+        "pending",
+        "approved",
+        "rejected",
+        "changes_requested",
+      ],
+      intel_visibility: ["org_only", "shared_with_families"],
       link_health_status: ["verified", "unverified", "dead"],
       page_failure_category: [
         "timeout",
@@ -3306,6 +3459,7 @@ export const Constants = {
       ],
       program_offering_status: ["unverified", "verified", "not_offered"],
       public_private: ["public", "private"],
+      relationship_strength_level: ["strong", "developing", "minimal", "none"],
       saved_school_status: [
         "researching",
         "contacted",
