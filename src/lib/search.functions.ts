@@ -402,10 +402,31 @@ export const getProgramProfile = createServerFn({ method: "GET" })
 
     const { universities: _drop, ...programFields } = program as any;
 
+    // The rating and the placed-players answer only — the narrow lookup exposes
+    // nothing else from the relationship record, whoever is reading.
+    const { data: relationship } = await supabase.rpc("program_relationship_summary" as any, {
+      _program_id: data.programId,
+    } as any);
+    const summary = Array.isArray(relationship) ? (relationship[0] ?? null) : (relationship ?? null);
+
     return {
       program: programFields,
       university,
-      intelligence: ((intel.data ?? []) as any[]).filter((r) => (r.content ?? "").trim().length > 0),
+      // Access rules already limit these rows to the reader's own organization
+      // and, for families, to conclusions or records shared with them.
+      intelligence: ((intel.data ?? []) as any[]).filter(
+        (r) =>
+          r.status === "approved" &&
+          ((r.content ?? "").trim().length > 0 ||
+            r.structured_value ||
+            (r.positions ?? []).length > 0 ||
+            r.structured_detail),
+      ),
+      relationshipSummary: summary as {
+        strength_label: string | null;
+        placed_players_before: boolean | null;
+      } | null,
+
       classifications: (classifications.data ?? []) as any[],
       sources: (sources.data ?? []) as any[],
       roster: currentRoster,
