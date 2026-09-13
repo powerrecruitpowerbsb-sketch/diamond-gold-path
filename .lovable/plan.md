@@ -1,37 +1,43 @@
-# Three sign-in accounts: staff, organization admin, coach
+# Five sign-in accounts: staff, admin, coach, parent, player
 
-You need working credentials for each of the three views. There are only two accounts on
-the system today and no password I can read, so I'll create a clean set with passwords you
-choose (or ones I generate and hand to you).
+You need working credentials for each view. There are only two accounts on the system today
+and no password I can read, so I'll create a clean set, all with the password you gave me.
 
 ## The accounts
 
 | Sign-in email | Sees | Role |
 | --- | --- | --- |
-| staff@powerrecruit.app | The full Power Recruit console: database, collection, review queues, organizations | Power staff (superadmin) |
-| admin@powerbaseball.app | Power Baseball's own side: dashboard, roster, intelligence workstation with the approval queue, team invites, branding | Organization admin |
-| coach@powerbaseball.app | The same organization, coach permissions: writes intelligence that goes to the approval queue, cannot set relationship strength, no billing | Coach |
+| staff@powerrecruit.app | The full Power Recruit console: database, collection, review queues, organizations | Power staff |
+| admin@powerbaseball.app | Power Baseball's side: dashboard, roster, intelligence workstation with the approval queue, invites, branding | Organization admin |
+| coach@powerbaseball.app | Same organization, coach permissions: writes intelligence that goes to the approval queue, cannot set relationship strength, no billing | Coach |
+| parent@powerbaseball.app | The family portal for one player: shortlist, school and program pages, the family-visible intelligence only | Parent |
+| player@powerbaseball.app | The same player's own view | Player |
 
-Both organization accounts belong to Power Baseball, so you can sign in as the coach, write
-something up, sign in as the admin and approve it — the whole loop.
+All four organization accounts belong to Power Baseball, so you can sign in as the coach,
+write something up, sign in as the admin to approve it, then sign in as the parent to check
+exactly what a family sees — and confirm the staff-only material stays hidden.
 
-The existing accounts are left alone: your Gmail account keeps its staff access, and the
-old test account stays as it is.
+Password for all five: **Power1234!**
 
-## Password
+The existing accounts are left alone: your Gmail account keeps its staff access, and the old
+test account stays as it is.
 
-All three accounts get the password you gave me: **Power1234!**
+## One test player
 
-I'll confirm each of the three signs in before telling you it's ready.
-
+Power Baseball currently has no players on file, so the parent and player accounts would
+have nothing to look at. I'll add one test athlete — "Test Player", graduating 2027,
+shortstop — and link both the parent and the player account to him. Nothing else in the
+organization changes.
 
 ## Technical notes
 
-- Accounts are created through the Auth admin API with email confirmation already done, so
-  there's no confirmation email to click.
-- Each gets a matching profile row (`public.users`) with the right `user_type` and Power
-  Baseball's organization id, plus a `user_roles` row (`superadmin`, `org_admin`,
-  `org_staff`) — roles stay in the separate roles table, never on the profile.
+- Accounts created through the Auth admin API with email already confirmed, so there is no
+  confirmation link to click.
+- Each gets a `public.users` profile row with the right `user_type` and Power Baseball's
+  organization id, plus a `user_roles` row (`superadmin`, `org_admin`, `org_staff`,
+  `parent`, `player`) — roles stay in the separate roles table, never on the profile.
+- One `org_athletes` row for the test player; the parent linked through
+  `athlete_family_links`, the player through `users.linked_org_athlete_id`.
 - No schema change; no existing row is modified.
-- I'll verify each login in a browser and confirm what each one lands on: staff to the
-  console, admin and coach to their dashboard with Intelligence in the nav.
+- I'll sign in as each of the five in a browser and confirm where each one lands and that
+  the parent sees no staff-only intelligence.
