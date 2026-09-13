@@ -79,7 +79,7 @@ export const getMyBranding = createServerFn({ method: "GET" })
       logoUrl: await resolveLogo(context as any, row?.['logo_url'] ?? null),
       primary: row?.['brand_primary_color'] ?? null,
       accent: row?.['brand_accent_color'] ?? null,
-      canEdit: me.isOrgAdmin,
+      canEdit: me.isOrgOwner,
     };
   });
 
@@ -94,8 +94,8 @@ export const saveOrgBranding = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const me = await actor(context as any);
-    if (!me.isOrgAdmin || !me.organizationId) {
-      throw new Error("Forbidden: organization admins only");
+    if (!me.isOrgOwner || !me.organizationId) {
+      throw new Error("Forbidden: organization owners only");
     }
     if (data.primary && !HEX.test(data.primary)) throw new Error("Primary color must be a hex value");
     if (data.accent && !HEX.test(data.accent)) throw new Error("Accent color must be a hex value");
