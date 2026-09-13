@@ -89,7 +89,7 @@ export function RosterTable({ rows }: { rows: RosterRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((row, index) => (
+          {sorted.map((row) => (
             <tr
               key={row.id}
               className={cn("border-b border-border last:border-0 hover:bg-muted/50")}
