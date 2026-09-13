@@ -250,19 +250,19 @@ export const listNotOfferedPrograms = createServerFn({ method: "GET" })
     }));
   });
 
-/** Counts for the public home page. Deliberately unauthenticated. */
+/**
+ * Counts for the public home page. Unauthenticated by design, and read through
+ * the privileged client only because the database is closed to signed-out
+ * readers — four totals, no rows, nothing written.
+ */
 export const getPublicStats = createServerFn({ method: "GET" }).handler(async () => {
-  const { createClient } = await import("@supabase/supabase-js");
-  const url = process.env["SUPABASE_URL"] ?? process.env["VITE_SUPABASE_URL"]!;
-  const key =
-    process.env["SUPABASE_PUBLISHABLE_KEY"] ?? process.env["VITE_SUPABASE_PUBLISHABLE_KEY"]!;
-  const supabase = createClient(url, key, { auth: { persistSession: false } });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const [schools, programs, players, sourced] = await Promise.all([
-    supabase.from("universities").select("id", { count: "exact", head: true }),
-    supabase.from("programs").select("id", { count: "exact", head: true }),
-    supabase.from("roster_players").select("id", { count: "exact", head: true }),
-    supabase.from("data_field_sources").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("universities").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("programs").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("roster_players").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("data_field_sources").select("id", { count: "exact", head: true }),
   ]);
 
   return {
