@@ -113,14 +113,9 @@ export function RosterTable({ rows }: { rows: RosterRow[] }) {
                 {row.home_state ?? row.home_country ?? blank}
               </td>
               <td className="h-[38px] px-3 py-1.5 align-middle text-steel">
-                {row.is_juco_transfer
-                  ? "JUCO transfer"
-                  : row.is_transfer
-                    ? "Transfer"
-                    : index >= 0
-                      ? "—"
-                      : "—"}
+                {row.is_juco_transfer ? "JUCO transfer" : row.is_transfer ? "Transfer" : "—"}
               </td>
+
             </tr>
           ))}
         </tbody>
