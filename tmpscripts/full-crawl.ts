@@ -65,6 +65,31 @@ const state: State = existsSync(STATE)
   : { pass: "2026-09-12-full-crawl", done: {} };
 const save = () => writeFileSync(STATE, JSON.stringify(state));
 
+/* --------------------------------- heartbeat ------------------------------- */
+const HEARTBEAT = "/tmp/crawl/heartbeat.json";
+const beat = (note: string, total?: number) => {
+  try {
+    writeFileSync(
+      HEARTBEAT,
+      JSON.stringify(
+        {
+          at: new Date().toISOString(),
+          epoch: Date.now(),
+          pid: process.pid,
+          phase: quarantinePhase ? "quarantine" : "main",
+          completed: Object.keys(state.done).length,
+          total: total ?? null,
+          last: note,
+        },
+        null,
+        2,
+      ),
+    );
+  } catch {
+    /* heartbeat must never break the crawl */
+  }
+};
+
 /* ------------------------------ the population ---------------------------- */
 
 type Prog = Omit<Outcome, "status" | "runId" | "players" | "snapshot" | "warning" | "error" | "pages" | "reason">;
@@ -235,6 +260,7 @@ if (quarantinePhase) {
           state.done[p.id] = result;
           save();
           console.log(`[lifted] ${result.school} ${result.sport}: ${result.status} ${result.players}p`);
+          beat(`[lifted] ${result.school} ${result.sport}`, now.length);
         }
       }),
     );
@@ -255,6 +281,7 @@ if (quarantinePhase) {
         state.done[p.id] = result;
         n += 1;
         if (n % 5 === 0) save();
+        beat(`${result.school} ${result.sport}: ${result.status}`, all.length);
         if (n % 25 === 0) {
           console.log(
             `${Object.keys(state.done).length}/${all.length} — ${result.school} ${result.sport}: ${result.status} ${result.players}p`,

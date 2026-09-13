@@ -212,6 +212,8 @@ async function applyRosterProposal(supabase: any, row: PendingRow) {
     players: Array.isArray(payload?.players) ? payload.players : [],
     source_url: sourceUrl,
     run_id: payload?.run_id ?? null,
+    // Carry the reader through, or every player looks structurally read.
+    reader: payload?.reader ?? null,
   });
 }
 

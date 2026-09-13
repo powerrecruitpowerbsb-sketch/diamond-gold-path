@@ -1,292 +1,239 @@
 /**
- * REPORTING FOR THE FULL CRAWL — read only.
- *
- * Reads the crawl checkpoint, the follow-up reads, and what the crawl wrote, and
- * emits the seven requested reports as CSVs.
- *
- *   bun tmpscripts/full-crawl-report.ts --since 2026-09-12T21:45:00Z
+ * Reports for the full crawl. Read-only: queries the checkpoint file and the
+ * database, writes CSVs to /mnt/documents. Writes nothing to the database.
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-
-const OUT = "/mnt/documents";
-const argIdx = process.argv.indexOf("--since");
-const since = argIdx >= 0 ? process.argv[argIdx + 1]! : new Date(Date.now() - 86_400_000).toISOString();
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
 const sb = createClient(process.env["SUPABASE_URL"]!, process.env["SUPABASE_SERVICE_ROLE_KEY"]!, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const esc = (v: unknown) => {
-  const s = v === null || v === undefined ? "" : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+type Outcome = {
+  id: string; school: string; state: string; sport: string; gb: string; division: string;
+  offering: string; rosterUrl: string; coachUrl: string; athleticUrl: string; status: string;
+  runId: string | null; players: number; snapshot: boolean; warning: string | null;
+  error: string | null; pages: { url: string; purpose: string; status: string; detail: string }[];
+  reason: string;
 };
-const write = (name: string, rows: unknown[][]) => {
-  writeFileSync(`${OUT}/${name}`, rows.map((r) => r.map(esc).join(",")).join("\n") + "\n");
-  console.log(`wrote ${name} (${rows.length - 1} rows)`);
+const state = JSON.parse(readFileSync("/tmp/full-crawl-state.json", "utf8")) as {
+  done: Record<string, Outcome>;
+  quarantine?: { probed: number; lifted: string[] };
 };
-const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "—");
+const done = Object.values(state.done);
 
-async function page(table: string, select: string, shape: (q: any) => any) {
-  const out: any[] = [];
+mkdirSync("/mnt/documents", { recursive: true });
+const csv = (name: string, header: string[], rows: (string | number | null)[][]) => {
+  const esc = (v: string | number | null) => {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  writeFileSync(
+    `/mnt/documents/${name}`,
+    [header.join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n") + "\n",
+  );
+  console.log(`wrote /mnt/documents/${name} (${rows.length} rows)`);
+};
+
+const page = (o: Outcome, purpose: string) => o.pages.find((p) => p.purpose === purpose);
+
+/* ---- pull DB state for the crawled programs ---- */
+async function all<T>(table: string, select: string, tweak?: (q: any) => any): Promise<T[]> {
+  const out: T[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await shape(sb.from(table).select(select)).range(from, from + 999);
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []) as any[];
+    let q = sb.from(table).select(select).order("id", { ascending: true }).range(from, from + 999);
+    if (tweak) q = tweak(q);
+    const { data, error } = await q;
+    if (error) throw new Error(`${table}: ${error.message}`);
+    const rows = (data ?? []) as T[];
     out.push(...rows);
     if (rows.length < 1000) break;
   }
   return out;
 }
 
-/* ------------------------------- the crawl log ---------------------------- */
+const progs = await all<any>("programs", "id, sport, governing_body, division, offering_status, head_coach_name, roster_url, coaching_staff_url, universities(name, state)", (q) => q.neq("offering_status", "not_offered"));
+const players = await all<any>("roster_players", "id, program_id, bats, throws, class_year, is_transfer, is_juco_transfer, home_state, home_country, reader, source_url, position, hometown");
+const snaps = await all<any>("roster_snapshots", "id, program_id, reader, suspect, suspect_reason, pulled_at");
+const refusals = await all<any>("roster_write_refusals", "id, program_id, kind, reason, source_url, source_domain, rows_refused, holder_detail, university_id, status");
 
-const crawl = JSON.parse(readFileSync("/tmp/full-crawl-state.json", "utf8"));
-const outcomes = Object.values(crawl.done) as any[];
-const extras = existsSync("/tmp/full-crawl-extras.json")
-  ? JSON.parse(readFileSync("/tmp/full-crawl-extras.json", "utf8"))
-  : { notOffered: {}, noHead: {} };
+const byProg = new Map<string, any[]>();
+for (const p of players) {
+  if (!byProg.has(p.program_id)) byProg.set(p.program_id, []);
+  byProg.get(p.program_id)!.push(p);
+}
+const progById = new Map(progs.map((p) => [p.id, p]));
 
-const stratum = (o: any) => {
-  const div = String(o.division ?? "").toUpperCase();
-  return o.gb === "NCAA"
-    ? `NCAA ${/3|III/.test(div) ? "D3" : /2|II/.test(div) ? "D2" : /1|I/.test(div) ? "D1" : "division unrecorded"}`
-    : o.gb;
+/* ---------------- 1. coverage by governing body ---------------- */
+type Cov = { programs: number; roster: number; head: number; rosterUrl: number; coachUrl: number };
+const cov = new Map<string, Cov>();
+const key = (p: any) =>
+  (p.governing_body ?? "unknown") === "NCAA" ? `NCAA ${p.division || "?"}` : (p.governing_body ?? "unknown");
+for (const p of progs) {
+  const k = key(p);
+  if (!cov.has(k)) cov.set(k, { programs: 0, roster: 0, head: 0, rosterUrl: 0, coachUrl: 0 });
+  const c = cov.get(k)!;
+  c.programs += 1;
+  if ((byProg.get(p.id) ?? []).length > 0) c.roster += 1;
+  if (p.head_coach_name) c.head += 1;
+  if (p.roster_url) c.rosterUrl += 1;
+  if (p.coaching_staff_url) c.coachUrl += 1;
+}
+const pct = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : "—");
+csv(
+  "crawl-1-coverage-by-governing-body.csv",
+  ["governing_body", "programs", "with_roster_address", "usable_roster", "usable_roster_pct", "head_coach", "head_coach_pct"],
+  [...cov.entries()]
+    .sort((a, b) => b[1].programs - a[1].programs)
+    .map(([k, c]) => [k, c.programs, c.rosterUrl, c.roster, pct(c.roster, c.programs), c.head, pct(c.head, c.programs)]),
+);
+const tot = [...cov.values()].reduce(
+  (a, c) => ({ programs: a.programs + c.programs, roster: a.roster + c.roster, head: a.head + c.head, rosterUrl: a.rosterUrl + c.rosterUrl, coachUrl: a.coachUrl + c.coachUrl }),
+  { programs: 0, roster: 0, head: 0, rosterUrl: 0, coachUrl: 0 },
+);
+
+/* ---------------- 2. which reader produced each roster ---------------- */
+const runSince = new Date(Date.now() - 6 * 3600e3).toISOString();
+const runSnaps = snaps.filter((s) => (s.pulled_at ?? "") > runSince);
+const snapReaders = new Map<string, number>();
+for (const s2 of runSnaps) snapReaders.set(s2.reader ?? "unrecorded", (snapReaders.get(s2.reader ?? "unrecorded") ?? 0) + 1);
+csv("crawl-2-reader-usage-by-page.csv", ["reader", "roster_pages_read_this_run"], [...snapReaders.entries()]);
+const readerRows = new Map<string, number>();
+for (const p of players) readerRows.set(p.reader ?? "unrecorded", (readerRows.get(p.reader ?? "unrecorded") ?? 0) + 1);
+const readerProgs = new Map<string, Set<string>>();
+for (const p of players) {
+  const r = p.reader ?? "unrecorded";
+  if (!readerProgs.has(r)) readerProgs.set(r, new Set());
+  readerProgs.get(r)!.add(p.program_id);
+}
+csv(
+  "crawl-2-reader-usage.csv",
+  ["reader", "programs", "players"],
+  [...readerRows.entries()].map(([r, n]) => [r, readerProgs.get(r)!.size, n]),
+);
+
+/* ---------------- 3. every refused write ---------------- */
+const rejectedPages: (string | number | null)[][] = [];
+for (const o of done) {
+  for (const pg of o.pages) {
+    if (pg.status !== "rejected") continue;
+    rejectedPages.push([pg.purpose, o.school, o.state, o.sport, o.gb, pg.url, pg.detail, o.id]);
+  }
+}
+csv(
+  "crawl-3-refused-writes.csv",
+  ["page", "school", "state", "sport", "governing_body", "stored_url", "reason", "program_id"],
+  rejectedPages,
+);
+csv(
+  "crawl-3-refused-writes-logged-table.csv",
+  ["kind", "school", "state", "sport", "stored_url", "source_domain", "rows_refused", "reason", "holder_detail", "status", "program_id"],
+  refusals.map((r) => {
+    const p = progById.get(r.program_id);
+    return [r.kind, p?.universities?.name ?? "", p?.universities?.state ?? "", p?.sport ?? "", r.source_url, r.source_domain, r.rows_refused, r.reason, r.holder_detail, r.status, r.program_id];
+  }),
+);
+
+/* ---------------- 4. programs that ended with no data ---------------- */
+const nodata = done.filter((o) => o.players === 0);
+const bucket = (o: Outcome) => {
+  if (o.reason === "no address on file") return "no address on file";
+  if (/blocked host|blocked by the site|blocked_by_host/i.test(o.reason)) return "blocked host";
+  if (o.reason.startsWith("roster write refused")) return "roster write refused (wrong school)";
+  if (o.reason === "no roster address on file") return "no roster address on file";
+  const rp = page(o, "Roster page");
+  if (rp && /404|not found/i.test(rp.detail + rp.status)) return "404";
+  if (o.error) return "error reading page";
+  if (rp) return "page read but nothing extracted";
+  return "other";
 };
-
-/* head coach names as they stand now */
-const programs = await page(
-  "programs",
-  "id, head_coach_name, coaching_staff_url, roster_url, offering_status",
-  (q) => q.neq("offering_status", "not_offered").order("id", { ascending: true }),
+const buckets = new Map<string, number>();
+for (const o of nodata) buckets.set(bucket(o), (buckets.get(bucket(o)) ?? 0) + 1);
+csv(
+  "crawl-4-no-data.csv",
+  ["reason_group", "school", "state", "sport", "governing_body", "roster_url", "coach_url", "detail", "program_id"],
+  nodata.map((o) => [bucket(o), o.school, o.state, o.sport, o.gb, o.rosterUrl, o.coachUrl, o.reason || o.error || page(o, "Roster page")?.detail || "", o.id]),
 );
-const headByProgram = new Map(programs.map((p) => [p.id, p.head_coach_name as string | null]));
+csv("crawl-4-no-data-summary.csv", ["reason_group", "programs"], [...buckets.entries()].sort((a, b) => b[1] - a[1]));
 
-/* ------------------ 1. coverage by governing body -------------------------- */
-
-const SAMPLE = { roster: "45%", head: "26%" };
-const groups = new Map<string, any[]>();
-for (const o of outcomes) {
-  const key = stratum(o);
-  if (!groups.has(key)) groups.set(key, []);
-  groups.get(key)!.push(o);
-}
-const coverage: unknown[][] = [[
-  "governing body", "programs attempted", "roster address on file", "usable rosters (8+ players)",
-  "usable roster %", "head coach named", "head coach %", "100-school sample rosters", "100-school sample head coaches",
-]];
-let totalUsable = 0;
-let totalHead = 0;
-for (const [key, list] of [...groups.entries()].sort()) {
-  const usable = list.filter((o) => o.players >= 8).length;
-  const head = list.filter((o) => (headByProgram.get(o.id) ?? "").trim()).length;
-  totalUsable += usable;
-  totalHead += head;
-  coverage.push([
-    key, list.length, list.filter((o) => o.rosterUrl).length, usable, pct(usable, list.length),
-    head, pct(head, list.length), SAMPLE.roster, SAMPLE.head,
-  ]);
-}
-coverage.push([
-  "ALL", outcomes.length, outcomes.filter((o) => o.rosterUrl).length, totalUsable,
-  pct(totalUsable, outcomes.length), totalHead, pct(totalHead, outcomes.length), SAMPLE.roster, SAMPLE.head,
-]);
-write("crawl-1-coverage-by-governing-body.csv", coverage);
-
-/* ------------------ 2. which reader read each roster ---------------------- */
-
-const snapshots = await page(
-  "roster_snapshots",
-  "program_id, reader, source_url, suspect, suspect_reason, created_at",
-  (q) => q.gte("created_at", since).order("program_id", { ascending: true }),
-);
-const fallbackReasons = new Map<string, string>();
-for (const file of ["/tmp/crawl/run.log", "/tmp/crawl/quarantine.log"]) {
-  if (!existsSync(file)) continue;
-  for (const line of readFileSync(file, "utf8").split("\n")) {
-    const m = /^Roster read \((\w+)\) (\S+?): .*fell back because (.+)$/.exec(line);
-    if (m) fallbackReasons.set(m[2]!, m[3]!.trim());
+/* ---------------- 5. roster composition at scale ---------------- */
+const count = (f: (p: any) => string | null) => {
+  const m = new Map<string, number>();
+  for (const p of players) {
+    const v = f(p);
+    m.set(v ?? "(not published)", (m.get(v ?? "(not published)") ?? 0) + 1);
   }
-}
-const byProgram = new Map(outcomes.map((o) => [o.id, o]));
-const readerRows: unknown[][] = [[
-  "school", "sport", "governing body", "reader", "roster page", "players written", "fell back because", "marked suspect",
-]];
-const readerTally = new Map<string, { structural: number; ai: number }>();
-for (const s of snapshots) {
-  const o = byProgram.get(s.program_id);
-  const key = o ? stratum(o) : "unknown";
-  if (!readerTally.has(key)) readerTally.set(key, { structural: 0, ai: 0 });
-  const t = readerTally.get(key)!;
-  if (s.reader === "ai") t.ai += 1;
-  else t.structural += 1;
-  readerRows.push([
-    o?.school ?? "", o?.sport ?? "", key, s.reader ?? "unrecorded", s.source_url,
-    o?.players ?? "", fallbackReasons.get(s.source_url) ?? "", s.suspect ? `yes — ${s.suspect_reason}` : "no",
-  ]);
-}
-readerRows.push([]);
-readerRows.push(["SUMMARY: governing body", "structural", "AI fallback", "AI share"]);
-let ss = 0;
-let aa = 0;
-for (const [key, t] of [...readerTally.entries()].sort()) {
-  ss += t.structural;
-  aa += t.ai;
-  readerRows.push([key, t.structural, t.ai, pct(t.ai, t.structural + t.ai)]);
-}
-readerRows.push(["ALL", ss, aa, pct(aa, ss + aa)]);
-write("crawl-2-reader-per-roster.csv", readerRows);
-
-/* ------------------ 3. every refused write -------------------------------- */
-
-const refusals = await page(
-  "roster_write_refusals",
-  "program_id, university_id, kind, source_url, source_domain, holder_detail, reason, rows_refused, created_at",
-  (q) => q.gte("created_at", since).order("created_at", { ascending: true }),
-);
-const suspectSnapshots = snapshots.filter((s) => s.suspect);
-const refusalRows: unknown[][] = [[
-  "school", "sport", "governing body", "what was refused", "stored address", "domain",
-  "domain belongs to", "reason", "rows refused",
-]];
-for (const r of refusals) {
-  const o = byProgram.get(r.program_id);
-  refusalRows.push([
-    o?.school ?? "", o?.sport ?? "", o ? stratum(o) : "", r.kind, r.source_url, r.source_domain,
-    r.holder_detail ?? "", r.reason, r.rows_refused,
-  ]);
-}
-for (const s of suspectSnapshots) {
-  const o = byProgram.get(s.program_id);
-  refusalRows.push([
-    o?.school ?? "", o?.sport ?? "", o ? stratum(o) : "", "composition summary held (written, hidden)",
-    s.source_url, "", "", s.suspect_reason ?? "", "",
-  ]);
-}
-write("crawl-3-refused-writes.csv", refusalRows);
-
-/* ------------------ 4. programs that ended with no data ------------------- */
-
-const noData = outcomes.filter((o) => o.players < 8);
-const reasonRows: unknown[][] = [[
-  "school", "sport", "governing body", "offering status", "reason", "roster address", "coach address", "detail",
-]];
-const reasonTally = new Map<string, number>();
-for (const o of noData) {
-  const reason = o.reason || (o.players ? "fewer than 8 players read" : "no roster produced");
-  reasonTally.set(reason, (reasonTally.get(reason) ?? 0) + 1);
-  const rosterPage = (o.pages ?? []).find((p: any) => p.purpose === "Roster page");
-  reasonRows.push([
-    o.school, o.sport, stratum(o), o.offering, reason, o.rosterUrl, o.coachUrl,
-    rosterPage?.detail ?? o.error ?? "",
-  ]);
-}
-reasonRows.push([]);
-reasonRows.push(["SUMMARY: reason", "programs"]);
-for (const [reason, n] of [...reasonTally.entries()].sort((a, b) => b[1] - a[1])) reasonRows.push([reason, n]);
-write("crawl-4-no-data-by-reason.csv", reasonRows);
-
-/* ------------------ 5. roster composition at scale ------------------------ */
-
-const fresh = await page(
-  "roster_players",
-  "id, program_id, bats, throws, class_year, is_transfer, is_juco_transfer, home_state, home_country, position, reader",
-  (q) => q.gte("extracted_at", since).order("id", { ascending: true }),
-);
-const share = (rows: any[], test: (r: any) => boolean) => pct(rows.filter(test).length, rows.length);
-const spread = (rows: any[], field: string) => {
-  const tally = new Map<string, number>();
-  for (const r of rows) {
-    const key = r[field] === null || r[field] === undefined || r[field] === "" ? "(blank)" : String(r[field]);
-    tally.set(key, (tally.get(key) ?? 0) + 1);
-  }
-  return [...tally.entries()].sort((a, b) => b[1] - a[1]);
+  return m;
 };
-const { count: allPlayers } = await sb.from("roster_players").select("id", { count: "exact", head: true });
-const compRows: unknown[][] = [["measure", "value", "share of this crawl's players"]];
-compRows.push(["players written by this crawl", fresh.length, "100%"]);
-compRows.push(["players on file in total", allPlayers ?? 0, ""]);
-compRows.push(["programs with players from this crawl", new Set(fresh.map((r) => r.program_id)).size, ""]);
-compRows.push(["bats recorded", fresh.filter((r) => r.bats).length, share(fresh, (r) => r.bats)]);
-compRows.push(["throws recorded", fresh.filter((r) => r.throws).length, share(fresh, (r) => r.throws)]);
-compRows.push(["class year recorded", fresh.filter((r) => r.class_year).length, share(fresh, (r) => r.class_year)]);
-compRows.push(["home state recorded", fresh.filter((r) => r.home_state).length, share(fresh, (r) => r.home_state)]);
-compRows.push(["home country recorded", fresh.filter((r) => r.home_country).length, share(fresh, (r) => r.home_country)]);
-compRows.push(["transfers", fresh.filter((r) => r.is_transfer).length, share(fresh, (r) => r.is_transfer)]);
-compRows.push(["JUCO transfers", fresh.filter((r) => r.is_juco_transfer).length, share(fresh, (r) => r.is_juco_transfer)]);
-for (const field of ["bats", "throws", "class_year", "position", "home_state", "home_country", "reader"]) {
-  compRows.push([]);
-  compRows.push([`SPREAD: ${field}`, "players", "share"]);
-  for (const [value, n] of spread(fresh, field).slice(0, 60)) compRows.push([value, n, pct(n, fresh.length)]);
-}
-write("crawl-5-roster-composition.csv", compRows);
+const compRows: (string | number)[][] = [];
+const addField = (field: string, m: Map<string, number>) => {
+  for (const [v, n] of [...m.entries()].sort((a, b) => b[1] - a[1])) compRows.push([field, v, n, pct(n, players.length)]);
+};
+addField("bats", count((p) => p.bats));
+addField("throws", count((p) => p.throws));
+addField("class_year", count((p) => p.class_year));
+addField("transfer", count((p) => (p.is_transfer ? "transfer" : "not flagged")));
+addField("juco_transfer", count((p) => (p.is_juco_transfer ? "juco transfer" : "not flagged")));
+addField("home_state", count((p) => p.home_state));
+addField("home_country", count((p) => p.home_country));
+csv("crawl-5-roster-composition.csv", ["field", "value", "players", "share_of_all_players"], compRows);
 
-/* ------------------ 6. disagreements with the league lists ---------------- */
+/* ---------------- 6. disagreements with the league lists ---------------- */
+const notOffered = await all<any>("programs", "id, sport, governing_body, offering_status, offering_source, roster_url, universities(name, state)", (q) => q.eq("offering_status", "not_offered"));
+const notOfferedWithPlayers = notOffered.filter((p) => (byProg.get(p.id) ?? []).length > 0);
+const offeredNothing = progs.filter((p) => p.offering_status !== "not_offered" && (byProg.get(p.id) ?? []).length === 0 && p.roster_url);
+csv(
+  "crawl-6-league-disagreements.csv",
+  ["disagreement", "school", "state", "sport", "governing_body", "offering_status", "players_on_file", "roster_url", "program_id"],
+  [
+    ...notOfferedWithPlayers.map((p) => ["marked not_offered but page yields a roster", p.universities?.name, p.universities?.state, p.sport, p.governing_body, p.offering_status, (byProg.get(p.id) ?? []).length, p.roster_url, p.id]),
+    ...offeredNothing.map((p) => ["marked offered but yields nothing", p.universities?.name, p.universities?.state, p.sport, p.governing_body, p.offering_status, 0, p.roster_url, p.id]),
+  ] as (string | number | null)[][],
+);
 
-const leagueRows: unknown[][] = [[
-  "disagreement", "school", "sport", "governing body", "address read", "players read", "page outcome",
-]];
-for (const r of Object.values(extras.notOffered) as any[]) {
-  if (r.players >= 8) {
-    leagueRows.push(["marked not offered but the page yields a roster", r.school, r.sport, r.gb, r.rosterUrl, r.players, r.outcome]);
-  }
-}
-for (const o of outcomes) {
-  if (o.offering !== "not_offered" && o.rosterUrl && o.players === 0) {
-    const rosterPage = (o.pages ?? []).find((p: any) => p.purpose === "Roster page");
-    leagueRows.push([
-      "marked offered but the page yields nothing", o.school, o.sport, stratum(o), o.rosterUrl, 0,
-      rosterPage?.detail ?? o.reason,
-    ]);
-  }
-}
-write("crawl-6-league-list-disagreements.csv", leagueRows);
+/* ---------------- 7. head coach outcomes and page titles ---------------- */
+const withHead = progs.filter((p) => p.head_coach_name);
+const readNoHead = done.filter((o) => {
+  const cp = page(o, "Coaching staff");
+  return cp && cp.status !== "rejected" && !progById.get(o.id)?.head_coach_name;
+});
+csv(
+  "crawl-7-head-coach-gaps.csv",
+  ["school", "state", "sport", "governing_body", "coach_url", "page_status", "titles_the_page_carried", "program_id"],
+  readNoHead.map((o) => {
+    const cp = page(o, "Coaching staff")!;
+    return [o.school, o.state, o.sport, o.gb, o.coachUrl, cp.status, cp.detail, o.id];
+  }),
+);
 
-/* ------------------ 7. head coach ---------------------------------------- */
-
-const headRows: unknown[][] = [[
-  "school", "sport", "governing body", "head coach", "coach address", "staff rows found",
-  "titles the page carried", "why no head coach",
-]];
-let withHead = 0;
-for (const o of outcomes) {
-  const head = (headByProgram.get(o.id) ?? "").trim();
-  if (head) withHead += 1;
-}
-for (const r of Object.values(extras.noHead) as any[]) {
-  headRows.push([r.school, r.sport, r.gb, "", r.coachUrl, r.staff, r.titles, r.failure || r.outcome]);
-}
-headRows.push([]);
-headRows.push(["SUMMARY", "programs"]);
-headRows.push(["programs attempted", outcomes.length]);
-headRows.push(["ended with a head coach name", withHead]);
-headRows.push(["head coach share", pct(withHead, outcomes.length)]);
-headRows.push(["coach page read but no head coach named", Object.keys(extras.noHead).length]);
-write("crawl-7-head-coach.csv", headRows);
-
-/* --------------------------- quarantine retry ---------------------------- */
-
-const quarantine = crawl.quarantine as { probed: number; lifted: string[]; stillBlocked: string[] } | undefined;
-if (quarantine) {
-  const qRows: unknown[][] = [["site", "one attempt outcome"]];
-  for (const host of quarantine.lifted) qRows.push([host, "responds again — quarantine lifted"]);
-  for (const host of quarantine.stillBlocked) qRows.push([host, "still blocking — stays quarantined"]);
-  write("crawl-8-quarantined-site-retry.csv", qRows);
+/* ---------------- quarantine retry ---------------- */
+if (state.quarantine) {
+  csv("crawl-quarantine-retry.csv", ["host", "result"], (state.quarantine.lifted ?? []).map((h) => [h, "responded — lifted"]));
 }
 
 console.log(
   JSON.stringify(
     {
-      programsAttempted: outcomes.length,
-      usableRosters: totalUsable,
-      usableRosterShare: pct(totalUsable, outcomes.length),
-      headCoaches: withHead,
-      headCoachShare: pct(withHead, outcomes.length),
-      readerStructural: ss,
-      readerAi: aa,
-      refusedWrites: refusals.length,
-      suspectSummaries: suspectSnapshots.length,
-      playersWritten: fresh.length,
+      programs_crawled: done.length,
+      total_programs: progs.length,
+      usable_roster: tot.roster,
+      usable_roster_pct: pct(tot.roster, tot.programs),
+      head_coach: tot.head,
+      head_coach_pct: pct(tot.head, tot.programs),
+      players_on_file: players.length,
+      snapshots: snaps.length,
+      suspect_snapshots: snaps.filter((s) => s.suspect).length,
+      refused_pages: rejectedPages.length,
+      refused_pages_by_kind: Object.fromEntries(rejectedPages.reduce((m: Map<string, number>, r) => m.set(String(r[0]), (m.get(String(r[0])) ?? 0) + 1), new Map<string, number>())),
+      refusals_logged_in_table: refusals.length,
+      no_data: nodata.length,
+      no_data_groups: Object.fromEntries(buckets),
+      reader_players: Object.fromEntries(readerRows),
+      reader_pages_this_run: Object.fromEntries(snapReaders),
+      not_offered_with_roster: notOfferedWithPlayers.length,
+      offered_no_roster_despite_address: offeredNothing.length,
+      head_coach_gaps_pages_read: readNoHead.length,
+      quarantine: state.quarantine ? { probed: state.quarantine.probed, lifted: state.quarantine.lifted.length } : null,
     },
     null,
     2,
