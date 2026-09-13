@@ -109,6 +109,8 @@ export function ShortlistSaveButton({
       <button
         type="button"
         disabled={busy || Boolean(savedStatus)}
+        title={iconOnly ? label : undefined}
+        aria-label={iconOnly ? label : undefined}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -116,11 +118,21 @@ export function ShortlistSaveButton({
           else setOpen(true);
         }}
         className={cn(
-          "touch-target inline-flex items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors",
-          savedStatus
-            ? "border-diamond-green/30 bg-diamond-green-tint text-diamond-green"
-            : "border-seam-red bg-seam-red text-white hover:bg-seam-red/90",
-          size === "sm" && "h-11",
+          "inline-flex items-center justify-center transition-colors",
+          iconOnly
+            ? cn(
+                "size-8 rounded border",
+                savedStatus
+                  ? "border-diamond-green/30 bg-diamond-green-tint text-diamond-green"
+                  : "border-border text-org-primary hover:bg-muted",
+              )
+            : cn(
+                "touch-target gap-2 rounded-xl border px-3 text-sm font-semibold",
+                savedStatus
+                  ? "border-diamond-green/30 bg-diamond-green-tint text-diamond-green"
+                  : "border-seam-red bg-seam-red text-white hover:bg-seam-red/90",
+                size === "sm" && "h-11",
+              ),
           className,
         )}
       >
@@ -129,7 +141,7 @@ export function ShortlistSaveButton({
         ) : (
           <BookmarkPlus className="size-4" aria-hidden />
         )}
-        {label}
+        {iconOnly ? null : label}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
