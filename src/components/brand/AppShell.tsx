@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Database,
   Home,
+  LayoutDashboard,
   Mail,
   Menu,
   Palette,
