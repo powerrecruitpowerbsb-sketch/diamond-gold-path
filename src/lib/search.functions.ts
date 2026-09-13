@@ -27,7 +27,11 @@ export const getSearchFacets = createServerFn({ method: "GET" })
           .order("id")
           .range(from, to) as any,
       ),
-      context.supabase.from("majors").select("id, name").order("name"),
+      // Paged: there are more majors than one request returns, and a truncated read
+      // dropped every major past the letter C from the filter.
+      fetchAllRows((from, to) =>
+        context.supabase.from("majors").select("id, name").order("name").range(from, to) as any,
+      ),
     ]);
 
     const uniq = (values: (string | null)[]) =>
