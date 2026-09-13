@@ -136,12 +136,14 @@ function Workstation() {
     <AppShell right={<AuthButton />}>
       <PageHeader
         title="Intelligence workstation"
+        description="Work the list: write up a program, save field by field, move to the next."
         counts={[
-          { label: "programs", value: rows.length },
-          { label: "with intelligence", value: rows.filter((r) => r.filled > 0).length },
-          { label: "awaiting review", value: rows.filter((r) => r.statuses.includes("pending")).length },
+          `${rows.length} programs`,
+          `${rows.filter((r) => r.filled > 0).length} with intelligence`,
+          `${rows.filter((r) => r.statuses.includes("pending")).length} awaiting review`,
         ]}
       />
+
 
       <div className="mt-4 flex flex-wrap gap-2">
         {(
