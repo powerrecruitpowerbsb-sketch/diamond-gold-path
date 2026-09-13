@@ -16,11 +16,15 @@ on all three tables. After the migration an insert that omits the organization f
 **Owner vs admin:** the distinction is UI-only today, and no owner-only capability exists.
 Billing, seats, plan, creating an organization and inviting the first owner all run through
 superadmin-gated server functions and a superadmin-only access rule — Power staff, not the
-organization. There is no delete-organization path for any organization role. `org_admin`
-has exactly one write path into its own organization record, meant for branding, and that
-rule is not restricted to the branding columns — so an admin could in principle change its
-own billing fields through the API. Worth tightening whether or not you add a real owner
-role; say the word and it's a one-line access-rule change.
+organization. There is no delete-organization path for any organization role. Deferred to
+the user-and-role pass, and recorded as an open item on the roadmap so it isn't lost.
+
+**Billing hole closed in this migration:** `org_admin`'s single write path into its own
+organization record was meant for branding but wasn't restricted to those columns, so an
+admin could change plan, seats, billing status, fee or expiry through the API. The rule is
+replaced with one that permits changes to logo and the two brand colours only — any edit
+touching a billing or plan column is refused. Billing stays superadmin-only.
+
 
 ## 1. The migration (additive — run first)
 
