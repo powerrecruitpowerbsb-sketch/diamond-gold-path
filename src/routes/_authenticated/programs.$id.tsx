@@ -131,7 +131,9 @@ function ProgramProfile() {
     siblingPrograms,
     majors,
     linkHealth,
+    relationshipSummary,
   } = data as any;
+
 
   const rosterRows = (roster ?? []) as RosterRow[];
   const links = (linkHealth ?? []) as LinkHealthRow[];
