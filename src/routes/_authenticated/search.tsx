@@ -748,13 +748,14 @@ function SearchScreen() {
                     <td className="h-[38px] px-3 py-1.5 align-middle">
                       <div className="flex items-center justify-end gap-2">
                         <ShortlistSaveButton
+                          iconOnly
                           programId={row.id}
                           athleteId={params.athleteId || undefined}
                           athleteName={
                             (contextAthlete?.["name"] as string | undefined) ?? undefined
                           }
-                          className="!h-8 !min-h-0 rounded px-2 text-[11px] whitespace-nowrap"
                         />
+
 
                         <button
                           type="button"
