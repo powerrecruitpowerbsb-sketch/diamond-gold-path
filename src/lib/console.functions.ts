@@ -262,7 +262,7 @@ export const getPublicStats = createServerFn({ method: "GET" }).handler(async ()
     supabase.from("universities").select("id", { count: "exact", head: true }),
     supabase.from("programs").select("id", { count: "exact", head: true }),
     supabase.from("roster_players").select("id", { count: "exact", head: true }),
-    supabase.from("field_sources").select("id", { count: "exact", head: true }),
+    supabase.from("data_field_sources").select("id", { count: "exact", head: true }),
   ]);
 
   return {
