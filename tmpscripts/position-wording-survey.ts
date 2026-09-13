@@ -18,24 +18,8 @@ const supabase = createClient(
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
 
-const { data: players } = await supabase
-  .from("roster_players")
-  .select("program_id, position")
-  .limit(100000);
-
-const tally = new Map<string, { total: number; missing: number }>();
-for (const row of players ?? []) {
-  const entry = tally.get(row.program_id) ?? { total: 0, missing: 0 };
-  entry.total += 1;
-  if (!row.position) entry.missing += 1;
-  tally.set(row.program_id, entry);
-}
-
-const worst = [...tally.entries()]
-  .filter(([, v]) => v.missing >= Math.max(5, v.total * 0.5))
-  .sort((a, b) => b[1].missing - a[1].missing)
-  .slice(0, limit)
-  .map(([id]) => id);
+import { readFileSync } from "node:fs";
+const worst = readFileSync("/tmp/nopos.txt", "utf8").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, limit);
 
 const { data: programs } = await supabase
   .from("programs")
