@@ -18,11 +18,12 @@ something up, sign in as the admin and approve it — the whole loop.
 The existing accounts are left alone: your Gmail account keeps its staff access, and the
 old test account stays as it is.
 
-## Passwords
+## Password
 
-Tell me the password you want (one for all three is fine), or say "generate them" and I'll
-create strong ones and give them to you here. Either way I'll confirm each account signs in
-before handing them over.
+All three accounts get the password you gave me: **Power1234!**
+
+I'll confirm each of the three signs in before telling you it's ready.
+
 
 ## Technical notes
 
