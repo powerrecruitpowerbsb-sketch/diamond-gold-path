@@ -53,6 +53,8 @@ async function actorOrgId(context: { supabase: any; userId: string }): Promise<s
   return fallback;
 }
 
+const str = (value: unknown) => String(value ?? "").trim();
+
 
 /* ------------------------------------------------------------------ */
 /* Recruiting intelligence (shown on the public program profile)        */
