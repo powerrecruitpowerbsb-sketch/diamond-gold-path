@@ -60,9 +60,9 @@ function Organizations() {
   const enter = useMutation({
     mutationFn: (id: string) => enterFn({ data: { organizationId: id } }),
     onSuccess: async (result) => {
-      await queryClient.invalidateQueries();
       toast.success(`Now working inside ${result.name}.`);
       await router.navigate({ to: "/dashboard" });
+      void queryClient.invalidateQueries();
     },
     onError: (error: unknown) =>
       toast.error(error instanceof Error ? error.message : "Could not enter that organization"),

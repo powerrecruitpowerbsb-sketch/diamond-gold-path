@@ -20,8 +20,8 @@ export function ActingOrgBar({ name }: { name: string | null }) {
     setLeaving(true);
     try {
       await exitFn({ data: undefined as never });
-      await queryClient.invalidateQueries();
       await router.navigate({ to: "/admin/organizations" });
+      void queryClient.invalidateQueries();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not leave the organization");
     } finally {
