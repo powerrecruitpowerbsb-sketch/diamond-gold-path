@@ -36,9 +36,11 @@ function positionLines(rows: RosterRow[]): Line[] {
     { label: "Corner infield (1B, 3B)", value: n((p) => p === "1B" || p === "3B" || p === "CIF") },
     { label: "First basemen", value: n((p) => p === "1B") },
     { label: "Third basemen", value: n((p) => p === "3B") },
+    { label: "Infield, spot not stated", value: n((p) => p === "IF") },
     { label: "Outfielders", value: n((p) => p === "OF") },
     { label: "Right-handed pitchers", value: n((p) => p === "RHP") },
     { label: "Left-handed pitchers", value: n((p) => p === "LHP") },
+    { label: "Pitchers, hand not stated", value: n((p) => p === "P") },
     {
       label: "Two-way players",
       value: has ? rows.filter((row) => pos(row) === "TWO_WAY" || row.two_way === true).length : null,
@@ -46,6 +48,7 @@ function positionLines(rows: RosterRow[]): Line[] {
     { label: "Utility", value: n((p) => p === "UTIL") },
     { label: "Position not listed", value: has ? rows.filter((row) => !pos(row)).length : null },
   ];
+
 }
 
 function handednessLines(rows: RosterRow[]): Line[] {
