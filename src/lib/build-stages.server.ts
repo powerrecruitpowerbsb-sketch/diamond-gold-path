@@ -263,7 +263,7 @@ export async function runPagesSlice(
     schoolNames?: string[] | null;
     onlyPreviouslyFailed?: boolean;
   },
-): Promise<{ checked: number; cleared: number; unclear: number; failed: number; finished: boolean }> {
+): Promise<{ checked: number; withheld: number; unclear: number; failed: number; finished: boolean }> {
   if (!options.schoolIds?.length && !options.schoolNames?.length) {
     throw new Error(
       "The page check needs a list of schools to look at. There is no setting that means every school.",
@@ -289,7 +289,7 @@ export async function runPagesSlice(
     status: finished ? "done" : "running",
     cursor: finished ? null : result.nextCursor,
     checked,
-    changed: rows.pages.changed + result.cleared,
+    changed: rows.pages.changed + result.withheld,
     failed: rows.pages.failed + result.failed,
     last_message: finished
       ? "Every stored page has been checked."
@@ -299,7 +299,7 @@ export async function runPagesSlice(
 
   return {
     checked: result.checked,
-    cleared: result.cleared,
+    withheld: result.withheld,
     unclear: result.unclear,
     failed: result.failed,
     finished,

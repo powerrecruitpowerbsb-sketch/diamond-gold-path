@@ -228,7 +228,7 @@ export async function runSweep(
       .from("sweep_runs")
       .update({
         last_host: host,
-        last_message: `${host}: ${result.confirmed} confirmed, ${result.cleared} cleared, ${result.unclear} unclear, ${result.blocked} blocked, ${result.failed} failed`,
+        last_message: `${host}: ${result.confirmed} confirmed, ${result.withheld} withheld, ${result.unclear} unclear, ${result.blocked} blocked, ${result.failed} failed`,
       })
       .eq("run_key", input.runKey);
   }
