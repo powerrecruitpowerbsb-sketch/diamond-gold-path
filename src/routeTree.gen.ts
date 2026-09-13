@@ -18,6 +18,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
+import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authenticated/intelligence'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminArchiveRouteImport } from './routes/_authenticated/admin.archive'
@@ -99,6 +100,12 @@ const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
   path: '/family',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedIntelligenceRoute =
+  AuthenticatedIntelligenceRouteImport.update({
+    id: '/intelligence',
+    path: '/intelligence',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -315,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/search': typeof AuthenticatedSearchRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -360,6 +368,7 @@ export interface FileRoutesByTo {
   '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/search': typeof AuthenticatedSearchRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -408,6 +417,7 @@ export interface FileRoutesById {
   '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
+  '/_authenticated/intelligence': typeof AuthenticatedIntelligenceRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -456,6 +466,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/dashboard'
     | '/family'
+    | '/intelligence'
     | '/search'
     | '/admin/archive'
     | '/admin/audit'
@@ -501,6 +512,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/dashboard'
     | '/family'
+    | '/intelligence'
     | '/search'
     | '/admin/archive'
     | '/admin/audit'
@@ -548,6 +560,7 @@ export interface FileRouteTypes {
     | '/_authenticated/compare'
     | '/_authenticated/dashboard'
     | '/_authenticated/family'
+    | '/_authenticated/intelligence'
     | '/_authenticated/search'
     | '/_authenticated/admin/archive'
     | '/_authenticated/admin/audit'
@@ -659,6 +672,13 @@ declare module '@tanstack/react-router' {
       path: '/family'
       fullPath: '/family'
       preLoaderRoute: typeof AuthenticatedFamilyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/intelligence': {
+      id: '/_authenticated/intelligence'
+      path: '/intelligence'
+      fullPath: '/intelligence'
+      preLoaderRoute: typeof AuthenticatedIntelligenceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/search': {
@@ -983,6 +1003,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
+  AuthenticatedIntelligenceRoute: typeof AuthenticatedIntelligenceRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedProgramsIdRoute: typeof AuthenticatedProgramsIdRoute
   AuthenticatedRosterIdRoute: typeof AuthenticatedRosterIdRoute
@@ -999,6 +1020,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
+  AuthenticatedIntelligenceRoute: AuthenticatedIntelligenceRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedProgramsIdRoute: AuthenticatedProgramsIdRoute,
   AuthenticatedRosterIdRoute: AuthenticatedRosterIdRoute,
