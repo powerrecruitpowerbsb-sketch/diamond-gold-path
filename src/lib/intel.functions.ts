@@ -234,7 +234,7 @@ export const saveProgramRelationship = createServerFn({ method: "POST" })
 
     const { data: inserted, error } = await context.supabase
       .from("program_relationships")
-      .insert({ program_id: data.programId, ...values } as any)
+      .insert({ organization_id: await actorOrgId(context as any), program_id: data.programId, ...values } as any)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -269,7 +269,7 @@ export const addProgramInteraction = createServerFn({ method: "POST" })
     } else {
       const { data: inserted, error } = await context.supabase
         .from("program_relationships")
-        .insert({ program_id: data.programId } as any)
+        .insert({ organization_id: await actorOrgId(context as any), program_id: data.programId } as any)
         .select("id")
         .single();
       if (error) throw new Error(error.message);
@@ -281,6 +281,7 @@ export const addProgramInteraction = createServerFn({ method: "POST" })
       : new Date().toISOString();
 
     const { error: logError } = await context.supabase.from("interaction_log").insert({
+      organization_id: await actorOrgId(context as any),
       relationship_id: relationshipId,
       staff_id: context.userId,
       interaction_date: interactionDate,
