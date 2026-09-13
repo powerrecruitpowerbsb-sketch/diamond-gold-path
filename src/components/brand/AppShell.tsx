@@ -46,9 +46,11 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
     ...(isOrgManager
       ? [
           { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { to: "/intelligence", label: "Intelligence", icon: Lightbulb },
           { to: "/roster", label: "Roster", icon: Users },
         ]
       : []),
+
     ...(isStaff ? [{ to: "/admin", label: "Console", icon: Table2 }] : []),
   ];
 
