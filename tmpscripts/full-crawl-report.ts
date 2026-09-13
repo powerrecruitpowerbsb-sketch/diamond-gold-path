@@ -93,6 +93,11 @@ const tot = [...cov.values()].reduce(
 );
 
 /* ---------------- 2. which reader produced each roster ---------------- */
+const runSince = new Date(Date.now() - 6 * 3600e3).toISOString();
+const runSnaps = snaps.filter((s) => (s.pulled_at ?? "") > runSince);
+const snapReaders = new Map<string, number>();
+for (const s2 of runSnaps) snapReaders.set(s2.reader ?? "unrecorded", (snapReaders.get(s2.reader ?? "unrecorded") ?? 0) + 1);
+csv("crawl-2-reader-usage-by-page.csv", ["reader", "roster_pages_read_this_run"], [...snapReaders.entries()]);
 const readerRows = new Map<string, number>();
 for (const p of players) readerRows.set(p.reader ?? "unrecorded", (readerRows.get(p.reader ?? "unrecorded") ?? 0) + 1);
 const readerProgs = new Map<string, Set<string>>();
@@ -108,8 +113,20 @@ csv(
 );
 
 /* ---------------- 3. every refused write ---------------- */
+const rejectedPages: (string | number | null)[][] = [];
+for (const o of done) {
+  for (const pg of o.pages) {
+    if (pg.status !== "rejected") continue;
+    rejectedPages.push([pg.purpose, o.school, o.state, o.sport, o.gb, pg.url, pg.detail, o.id]);
+  }
+}
 csv(
   "crawl-3-refused-writes.csv",
+  ["page", "school", "state", "sport", "governing_body", "stored_url", "reason", "program_id"],
+  rejectedPages,
+);
+csv(
+  "crawl-3-refused-writes-logged-table.csv",
   ["kind", "school", "state", "sport", "stored_url", "source_domain", "rows_refused", "reason", "holder_detail", "status", "program_id"],
   refusals.map((r) => {
     const p = progById.get(r.program_id);
@@ -177,14 +194,14 @@ csv(
 /* ---------------- 7. head coach outcomes and page titles ---------------- */
 const withHead = progs.filter((p) => p.head_coach_name);
 const readNoHead = done.filter((o) => {
-  const cp = page(o, "Coaching staff page");
+  const cp = page(o, "Coaching staff");
   return cp && cp.status !== "rejected" && !progById.get(o.id)?.head_coach_name;
 });
 csv(
   "crawl-7-head-coach-gaps.csv",
   ["school", "state", "sport", "governing_body", "coach_url", "page_status", "titles_the_page_carried", "program_id"],
   readNoHead.map((o) => {
-    const cp = page(o, "Coaching staff page")!;
+    const cp = page(o, "Coaching staff")!;
     return [o.school, o.state, o.sport, o.gb, o.coachUrl, cp.status, cp.detail, o.id];
   }),
 );
@@ -206,10 +223,13 @@ console.log(
       players_on_file: players.length,
       snapshots: snaps.length,
       suspect_snapshots: snaps.filter((s) => s.suspect).length,
-      refused_writes: refusals.length,
+      refused_pages: rejectedPages.length,
+      refused_pages_by_kind: Object.fromEntries(rejectedPages.reduce((m: Map<string, number>, r) => m.set(String(r[0]), (m.get(String(r[0])) ?? 0) + 1), new Map<string, number>())),
+      refusals_logged_in_table: refusals.length,
       no_data: nodata.length,
       no_data_groups: Object.fromEntries(buckets),
       reader_players: Object.fromEntries(readerRows),
+      reader_pages_this_run: Object.fromEntries(snapReaders),
       not_offered_with_roster: notOfferedWithPlayers.length,
       offered_no_roster_despite_address: offeredNothing.length,
       head_coach_gaps_pages_read: readNoHead.length,
