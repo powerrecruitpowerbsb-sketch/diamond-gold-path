@@ -228,7 +228,7 @@ function SearchScreen() {
     });
   if (params.conference)
     chips.push({
-      label: `${params.conference}${unconfirmedPicked ? " (not confirmed)" : ""}`,
+      label: params.conference,
       clear: { conference: "" },
     });
   if (params.publicPrivate)
