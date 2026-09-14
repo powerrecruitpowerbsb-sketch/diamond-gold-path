@@ -448,11 +448,20 @@ function normalizeLines(text: string): string[] {
  *  - the jersey number and the name on the SAME line ("48 Zane Kelly"), which
  *    the pass needs split in two before it can read the block.
  */
-export function cardLines(lines: string[]): string[] {
-  const pipeOnly = lines.filter((line) => /^\|+$/.test(line.trim())).length;
+export function cardLines(input: string[]): string[] {
+  // A one-token-per-line page arrives with the pipes already partly attached to
+  // the token ("44 |"); strip a leading or trailing pipe when the line holds no
+  // real cells, so the token itself can be recognised.
+  const lines = input.map((line) => {
+    const trimmed = line.trim();
+    if (splitCells(trimmed).length >= 2) return trimmed;
+    return trimmed.replace(/^\|+/, "").replace(/\|+$/, "").trim();
+  });
+  const pipeOnly = input.filter((line) => /\|/.test(line)).length;
   let stream = lines;
 
   if (pipeOnly >= 8) {
+
     const grouped: string[] = [];
     let buffer: string[] = [];
     const flush = () => {
