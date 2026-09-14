@@ -36,6 +36,14 @@ export type PlayerRow = {
   bats: string | null;
   /** Throwing arm: R or L. */
   throws: string | null;
+  /**
+   * Exactly what the page printed, before our mapping. Kept so an unrecognised
+   * wording is countable and fixable offline instead of by another crawl.
+   */
+  position_raw: string | null;
+  class_year_raw: string | null;
+  bats_raw: string | null;
+  throws_raw: string | null;
 };
 
 export type RosterAttribute =
@@ -458,6 +466,10 @@ function parseCards(lines: string[]): PlayerRow[] {
     let previousSchool: string | null = null;
     let transfer = false;
     let juco = false;
+    let positionRaw: string | null = null;
+    let classRaw: string | null = null;
+    let batsRaw: string | null = null;
+    let throwsRaw: string | null = null;
 
     for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
       const next = lines[ahead]!;
@@ -467,19 +479,30 @@ function parseCards(lines: string[]): PlayerRow[] {
       if (combined) {
         bats = bats ?? batsSide(combined[1]!);
         throwsHand = throwsHand ?? throwsSide(combined[2]!);
+        batsRaw = batsRaw ?? combined[0]!.trim();
+        throwsRaw = throwsRaw ?? combined[0]!.trim();
         continue;
       }
       if (bare) {
         bats = bats ?? bare.bats;
         throwsHand = throwsHand ?? bare.throws;
+        batsRaw = batsRaw ?? next.trim();
+        throwsRaw = throwsRaw ?? next.trim();
         continue;
       }
       const labelBats = next.match(/\bbats\s*:?\s*([LRSB])\b/i);
-      if (labelBats) bats = bats ?? batsSide(labelBats[1]!);
+      if (labelBats) {
+        bats = bats ?? batsSide(labelBats[1]!);
+        batsRaw = batsRaw ?? labelBats[0]!.trim();
+      }
       const labelThrows = next.match(/\bthrows\s*:?\s*([LR])\b/i);
-      if (labelThrows) throwsHand = throwsHand ?? throwsSide(labelThrows[1]!);
+      if (labelThrows) {
+        throwsHand = throwsHand ?? throwsSide(labelThrows[1]!);
+        throwsRaw = throwsRaw ?? labelThrows[0]!.trim();
+      }
       if (POSITION_WORDS.test(next)) {
         position = position ?? next.toUpperCase();
+        positionRaw = positionRaw ?? next.trim();
         continue;
       }
       const sizes = next.match(/^(\d-\d{1,2})\s+(\d{2,3})\s*(?:lbs?\.?)?\s*(.*)$/i);
@@ -491,9 +514,15 @@ function parseCards(lines: string[]): PlayerRow[] {
       }
       // Labelled attribute lines: "Position INF Academic Year Sr. Height 5' 10'' Weight 175 lbs".
       const labelPosition = next.match(/\bposition\s+([A-Za-z/-]{1,12})\b/i);
-      if (labelPosition && POSITION_WORDS.test(labelPosition[1]!)) position = position ?? labelPosition[1]!.toUpperCase();
+      if (labelPosition && POSITION_WORDS.test(labelPosition[1]!)) {
+        position = position ?? labelPosition[1]!.toUpperCase();
+        positionRaw = positionRaw ?? labelPosition[1]!.trim();
+      }
       const labelClass = next.match(/\b(?:academic year|class(?: year)?|year)\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i);
-      if (labelClass) klass = klass ?? classYear(labelClass[1]!.trim());
+      if (labelClass) {
+        klass = klass ?? classYear(labelClass[1]!.trim());
+        classRaw = classRaw ?? labelClass[1]!.trim();
+      }
       const labelHeight = next.match(/\bheight\s+(\d\s*['’]\s*\d{1,2}\s*(?:["”]|'')?)/i);
       if (labelHeight) height = height ?? labelHeight[1]!.replace(/\s+/g, "");
       const labelWeight = next.match(/\bweight\s+(\d{2,3})/i);
@@ -508,7 +537,10 @@ function parseCards(lines: string[]): PlayerRow[] {
       if (JUCO_TOKEN.test(next.trim())) juco = true;
       if (TRANSFER_TOKEN.test(next.trim())) transfer = true;
 
-      if (!klass) klass = classYear(next);
+      if (!klass) {
+        klass = classYear(next);
+        if (klass) classRaw = classRaw ?? next.trim().slice(0, 60);
+      }
       if (!hometown) hometown = hometownValue(next);
     }
 
@@ -529,6 +561,10 @@ function parseCards(lines: string[]): PlayerRow[] {
       is_juco_transfer: juco,
       bats,
       throws: throwsHand,
+      position_raw: positionRaw,
+      class_year_raw: classRaw,
+      bats_raw: batsRaw,
+      throws_raw: throwsRaw,
     });
   }
 
@@ -557,6 +593,11 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   let throwsColumn = -1;
   // The previous/last school column, read as the transfer signal.
   let previousSchoolColumn = -1;
+  // Where the header put position and class, so the page's wording is kept even
+  // when our mapper does not recognise it — that is how an unknown wording gets
+  // counted instead of vanishing.
+  let positionColumn = -1;
+  let classColumn = -1;
 
   for (const line of lines) {
     for (const match of line.matchAll(/\b(20\d{2})\s?[-–]\s?(\d{2})\b|\b(20\d{2})\s+(baseball|softball)\s+roster\b/gi)) {
@@ -579,6 +620,12 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       batsColumn = -1;
       throwsColumn = -1;
     }
+    const headerPosition = cells.findIndex((cell) => /^(pos\.?|position(s)?)$/i.test(cell));
+    if (headerPosition >= 0) positionColumn = headerPosition;
+    const headerClass = cells.findIndex((cell) =>
+      /^(cl\.?|class(\s+year)?|yr\.?|year|academic\s+year|eligibility)$/i.test(cell),
+    );
+    if (headerClass >= 0) classColumn = headerClass;
     const headerPrevious = cells.findIndex((cell) => PREVIOUS_SCHOOL_HEADER.test(cell));
     if (headerPrevious >= 0) previousSchoolColumn = headerPrevious;
 
@@ -594,9 +641,16 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     let previousSchool: string | null = null;
     let transfer = false;
     let juco = false;
+    // The page's own wording, kept verbatim alongside our mapped value.
+    let positionRaw: string | null = null;
+    let classRaw: string | null = null;
+    let batsRaw: string | null = null;
+    let throwsRaw: string | null = null;
 
     for (const [cellIndex, cell] of cells.entries()) {
       if (!cell) continue;
+      if (cellIndex === positionColumn && !positionRaw) positionRaw = cell.trim().slice(0, 60);
+      if (cellIndex === classColumn && !classRaw) classRaw = cell.trim().slice(0, 60);
       // Where the page came from: an outright "TR"/"JUCO" cell, and the
       // previous-school column when the page carries one.
       if (JUCO_TOKEN.test(cell.trim())) {
@@ -621,9 +675,12 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       if (hands && (!bats || !throwsHand)) {
         bats = bats ?? hands.bats;
         throwsHand = throwsHand ?? hands.throws;
+        batsRaw = batsRaw ?? cell.trim();
+        throwsRaw = throwsRaw ?? cell.trim();
         continue;
       }
       if (cellIndex === batsColumn && !bats) {
+        batsRaw = batsRaw ?? cell.trim();
         const side = batsSide(cell);
         if (side) {
           bats = side;
@@ -631,6 +688,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
         }
       }
       if (cellIndex === throwsColumn && !throwsHand) {
+        throwsRaw = throwsRaw ?? cell.trim();
         const side = throwsSide(cell);
         if (side) {
           throwsHand = side;
@@ -648,11 +706,13 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
         const year = classYear(cell);
         if (year) {
           klass = year;
+          classRaw = cell.trim();
           continue;
         }
       }
       if (!position && POSITION_WORDS.test(cell.trim())) {
         position = cell.trim().toUpperCase();
+        positionRaw = cell.trim();
         continue;
       }
       if (!height) {
@@ -711,6 +771,10 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       is_juco_transfer: juco,
       bats,
       throws: throwsHand,
+      position_raw: positionRaw,
+      class_year_raw: classRaw,
+      bats_raw: batsRaw,
+      throws_raw: throwsRaw,
     });
   }
 
@@ -730,14 +794,51 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const cardsWin =
     cards.length > 0 &&
     (cards.length > players.length || (cards.length === players.length && filled(cards) > filled(players)));
+  const losing = cardsWin ? [...players] : cards;
   if (cardsWin) {
     players.length = 0;
     players.push(...cards);
     rowsConsidered = Math.max(rowsConsidered, cards.length);
-
   }
 
-
+  // The losing pass is not discarded. Pages like Florida Atlantic's print a
+  // label-style card block that omits bats and throws AND a full table below
+  // that carries them; taking one pass whole meant the batting side on the page
+  // was never stored. Blanks on the winning pass are filled from the other
+  // pass, matched on the player's own name, and a value the winner already read
+  // is never overwritten.
+  if (losing.length) {
+    const byName = new Map<string, PlayerRow>();
+    for (const row of losing) byName.set(row.name.trim().toLowerCase(), row);
+    const FILLABLE = [
+      "number",
+      "position",
+      "class_year",
+      "height",
+      "weight",
+      "hometown",
+      "home_state",
+      "home_country",
+      "previous_school",
+      "bats",
+      "throws",
+      "position_raw",
+      "class_year_raw",
+      "bats_raw",
+      "throws_raw",
+    ] as const;
+    for (const player of players) {
+      const other = byName.get(player.name.trim().toLowerCase());
+      if (!other) continue;
+      for (const key of FILLABLE) {
+        if (player[key] === null || player[key] === undefined || player[key] === "") {
+          (player as Record<string, unknown>)[key] = other[key];
+        }
+      }
+      if (!player.is_transfer && other.is_transfer) player.is_transfer = true;
+      if (!player.is_juco_transfer && other.is_juco_transfer) player.is_juco_transfer = true;
+    }
+  }
 
   const seen = new Map<string, number>();
   for (const player of players) {
@@ -745,6 +846,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     seen.set(key, (seen.get(key) ?? 0) + 1);
   }
   const duplicates = [...seen.entries()].filter(([, n]) => n > 1).map(([key]) => key);
+
 
   const withNumber = players.filter((p) => p.number).length;
   const withPosition = players.filter((p) => p.position).length;

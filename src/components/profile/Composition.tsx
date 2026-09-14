@@ -73,35 +73,48 @@ function positionLines(rows: RosterRow[]): Line[] {
 
 }
 
-function handednessLines(rows: RosterRow[]): Line[] {
+/**
+ * Pitcher handedness comes from the POSITION column ("RHP", "LHP"), which most
+ * pages publish even when they publish no bats/throws column at all. Mixing it
+ * into one "handedness" panel made a page like Clemson's — which genuinely does
+ * not print bats or throws — look as though nothing about handedness was
+ * published, when the pitching hands were right there. The two are separate
+ * facts from separate columns, so they are now separate panels.
+ */
+function pitcherHandLines(rows: RosterRow[]): Line[] {
+  const has = anyPublished(rows, "position");
+  const n = (test: (row: RosterRow) => boolean) => (has ? rows.filter(test).length : null);
+  return [
+    { label: "Right-handed pitchers", value: n((row) => pitcherOf(row) === "R") },
+    { label: "Left-handed pitchers", value: n((row) => pitcherOf(row) === "L") },
+    {
+      label: "Pitchers, hand not stated",
+      value: n((row) => isPitcher(row.position, row.two_way) && pitcherOf(row) === null),
+    },
+  ];
+}
+
+/** Batting side, from the page's own bats column and nothing else. */
+function hitterLines(rows: RosterRow[]): Line[] {
   const bats = anyPublished(rows, "bats");
-  const throwsPublished = anyPublished(rows, "throws");
-  const positions = anyPublished(rows, "position");
   const nb = (value: string) => (bats ? rows.filter((row) => row.bats === value).length : null);
   return [
     { label: "Right-handed hitters", value: nb("R") },
     { label: "Left-handed hitters", value: nb("L") },
     { label: "Switch hitters", value: nb("S") },
-    {
-      label: "Right-handed pitchers",
-      value: positions ? rows.filter((row) => pitcherOf(row) === "R").length : null,
-    },
-    {
-      label: "Left-handed pitchers",
-      value: positions ? rows.filter((row) => pitcherOf(row) === "L").length : null,
-    },
-
-    {
-      label: "Throws right",
-      value: throwsPublished ? rows.filter((row) => row.throws === "R").length : null,
-    },
-    {
-      label: "Throws left",
-      value: throwsPublished ? rows.filter((row) => row.throws === "L").length : null,
-    },
-
   ];
 }
+
+/** Throwing arm, from the page's own throws column and nothing else. */
+function throwsLines(rows: RosterRow[]): Line[] {
+  const published = anyPublished(rows, "throws");
+  const n = (value: string) => (published ? rows.filter((row) => row.throws === value).length : null);
+  return [
+    { label: "Throws right", value: n("R") },
+    { label: "Throws left", value: n("L") },
+  ];
+}
+
 
 function classLines(rows: RosterRow[]): Line[] {
   const has = anyPublished(rows, "class_year");
@@ -221,7 +234,14 @@ export function RosterComposition({
 
       <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <Block title="By position" lines={positionLines(rows)} note={gap(rows, "position")} />
-        <Block title="Handedness" lines={handednessLines(rows)} note={gap(rows, "bats")} />
+        <Block
+          title="Pitcher handedness"
+          lines={pitcherHandLines(rows)}
+          note={gap(rows, "position")}
+        />
+        <Block title="Batting side" lines={hitterLines(rows)} note={gap(rows, "bats")} />
+        <Block title="Throwing arm" lines={throwsLines(rows)} note={gap(rows, "throws")} />
+
         <Block title="By class year" lines={classLines(rows)} note={gap(rows, "class_year")} />
         <Block title="Transfers" lines={transferLines(rows)} />
 

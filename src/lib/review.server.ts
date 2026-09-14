@@ -155,6 +155,12 @@ export async function replaceRoster(
     : new Set<string>();
   const resolved = markJucoTransfers(players as any[], jucoNames);
 
+  /** Page wording, trimmed only — never normalised. */
+  const raw = (value: unknown) => {
+    const text = value === null || value === undefined ? "" : String(value).trim();
+    return text ? text.slice(0, 60) : null;
+  };
+
   const rows = resolved.map((player: any) => {
     const position = pickEnum(normalizePosition(player?.position), POSITIONS);
     return {
@@ -177,6 +183,12 @@ export async function replaceRoster(
       source_domain: verdict.domain,
       extracted_at: extractedAt,
       ingest_run_id: payload?.run_id ?? null,
+      // Exactly what the page printed, kept next to our mapped value so an
+      // unrecognised wording can be counted and fixed without a re-crawl.
+      position_raw: raw(player?.position_raw ?? player?.position),
+      class_year_raw: raw(player?.class_year_raw ?? player?.class_year),
+      bats_raw: raw(player?.bats_raw ?? player?.bats),
+      throws_raw: raw(player?.throws_raw ?? player?.throws),
       provenance: "traced",
       // Which reader read the page: the tested structural one, or the AI fallback.
       reader: payload?.reader === "ai" ? "ai" : "structural",

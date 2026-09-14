@@ -158,10 +158,10 @@ function SearchScreen() {
 
   const divisions = DIVISIONS_BY_BODY[params.governingBody] ?? [];
   const secondaryCount = activeSecondaryCount(params);
+  // Verified vs unverified is an internal data-quality signal, kept in the
+  // console. A family sees the conference we hold, and it filters normally.
   const conferences = facets.data?.conferences ?? [];
-  const unconfirmedPicked = conferences.some(
-    (c) => c.name === params.conference && !c.confirmed,
-  );
+
 
   // Location is one control: a region, or states within it.
   const regionStates = params.region ? statesInRegion(params.region) : [];
@@ -228,7 +228,7 @@ function SearchScreen() {
     });
   if (params.conference)
     chips.push({
-      label: `${params.conference}${unconfirmedPicked ? " (not confirmed)" : ""}`,
+      label: params.conference,
       clear: { conference: "" },
     });
   if (params.publicPrivate)
@@ -416,7 +416,7 @@ function SearchScreen() {
                 placeholder="All conferences"
                 options={conferences.map((c) => ({
                   value: c.name,
-                  label: c.confirmed ? c.name : `${c.name} — not confirmed`,
+                  label: c.name,
                 }))}
               />
             </Field>
@@ -627,11 +627,8 @@ function SearchScreen() {
         </div>
       ) : null}
 
-      {unconfirmedPicked ? (
-        <p className="mt-3 rounded border border-border bg-muted/50 p-2.5 text-sm text-steel">
-          This conference is not confirmed for every team on file, so the list may be incomplete.
-        </p>
-      ) : null}
+
+
 
       {results.data?.unpublishedPositions ? (
         <p className="mt-3 rounded border border-border bg-muted/50 p-2.5 text-sm text-steel">
@@ -696,8 +693,6 @@ function SearchScreen() {
                 const u = row.university ?? {};
                 const selected = compare.isSelected(row.id);
                 const region = regionOfState(u.state);
-                const unconfirmedConference =
-                  Boolean(row.conference) && row.conference_verification !== "verified";
                 return (
                   <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/50">
                     <td className="h-[38px] max-w-[240px] truncate px-3 py-1.5 align-middle whitespace-nowrap">
@@ -716,19 +711,15 @@ function SearchScreen() {
                       {region ?? NOT_REPORTED}
                     </td>
                     <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {[row.governing_body, row.division].filter(Boolean).join(" ") || "Not confirmed"}
+                      {[row.governing_body, row.division].filter(Boolean).join(" ") || NOT_REPORTED}
                     </td>
                     <td className="h-[38px] max-w-[200px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {row.conference ? (
-                        <>
-                          {row.conference}
-                          {unconfirmedConference ? (
-                            <span className="meta ml-1.5">NOT CONFIRMED</span>
-                          ) : null}
-                        </>
+                        row.conference
                       ) : (
-                        "Not confirmed"
+                        NOT_REPORTED
                       )}
+
                     </td>
                     <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {number(u.undergrad_enrollment)}

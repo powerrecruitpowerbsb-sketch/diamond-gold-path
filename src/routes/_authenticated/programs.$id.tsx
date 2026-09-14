@@ -261,16 +261,9 @@ function ProgramProfile() {
       program.athletic_website),
     {
       label: "Division",
-      state:
-        program.division_verification === "verified" && program.division
-          ? { kind: "value", text: String(program.division) }
-          : program.division
-            ? { kind: "value", text: String(program.division) }
-            : { kind: "not-published" },
-      note:
-        program.division && program.division_verification !== "verified"
-          ? "Not confirmed — held back from filtering"
-          : null,
+      state: program.division
+        ? { kind: "value", text: String(program.division) }
+        : { kind: "not-published" },
       sourceUrl: program.division_source ?? null,
       verifiedAt: program.division_verified_at ?? null,
     },
@@ -279,13 +272,10 @@ function ProgramProfile() {
       state: program.conference
         ? { kind: "value", text: String(program.conference) }
         : { kind: "not-published" },
-      note:
-        program.conference && program.conference_verification !== "verified"
-          ? "Not confirmed — held back from filtering"
-          : null,
       sourceUrl: program.conference_source ?? null,
       verifiedAt: program.conference_verified_at ?? null,
     },
+
   ];
 
   const coachBlocked = isBlocked(links, "coaching_staff_url");

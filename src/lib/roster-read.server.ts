@@ -73,6 +73,11 @@ function asPlayers(rows: PlayerRow[]) {
     previous_school: row.previous_school,
     is_transfer: row.is_transfer,
     is_juco_transfer: row.is_juco_transfer,
+    // The page's own wording, carried through to storage unmodified.
+    position_raw: row.position_raw,
+    class_year_raw: row.class_year_raw,
+    bats_raw: row.bats_raw,
+    throws_raw: row.throws_raw,
   }));
 }
 
