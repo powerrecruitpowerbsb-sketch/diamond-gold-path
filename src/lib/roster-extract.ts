@@ -593,6 +593,11 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   let throwsColumn = -1;
   // The previous/last school column, read as the transfer signal.
   let previousSchoolColumn = -1;
+  // Where the header put position and class, so the page's wording is kept even
+  // when our mapper does not recognise it — that is how an unknown wording gets
+  // counted instead of vanishing.
+  let positionColumn = -1;
+  let classColumn = -1;
 
   for (const line of lines) {
     for (const match of line.matchAll(/\b(20\d{2})\s?[-–]\s?(\d{2})\b|\b(20\d{2})\s+(baseball|softball)\s+roster\b/gi)) {
@@ -615,6 +620,12 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       batsColumn = -1;
       throwsColumn = -1;
     }
+    const headerPosition = cells.findIndex((cell) => /^(pos\.?|position(s)?)$/i.test(cell));
+    if (headerPosition >= 0) positionColumn = headerPosition;
+    const headerClass = cells.findIndex((cell) =>
+      /^(cl\.?|class(\s+year)?|yr\.?|year|academic\s+year|eligibility)$/i.test(cell),
+    );
+    if (headerClass >= 0) classColumn = headerClass;
     const headerPrevious = cells.findIndex((cell) => PREVIOUS_SCHOOL_HEADER.test(cell));
     if (headerPrevious >= 0) previousSchoolColumn = headerPrevious;
 
@@ -638,6 +649,8 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
 
     for (const [cellIndex, cell] of cells.entries()) {
       if (!cell) continue;
+      if (cellIndex === positionColumn && !positionRaw) positionRaw = cell.trim().slice(0, 60);
+      if (cellIndex === classColumn && !classRaw) classRaw = cell.trim().slice(0, 60);
       // Where the page came from: an outright "TR"/"JUCO" cell, and the
       // previous-school column when the page carries one.
       if (JUCO_TOKEN.test(cell.trim())) {
