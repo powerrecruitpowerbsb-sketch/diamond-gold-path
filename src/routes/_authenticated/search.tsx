@@ -416,7 +416,7 @@ function SearchScreen() {
                 placeholder="All conferences"
                 options={conferences.map((c) => ({
                   value: c.name,
-                  label: c.confirmed ? c.name : `${c.name} — not confirmed`,
+                  label: c.name,
                 }))}
               />
             </Field>
