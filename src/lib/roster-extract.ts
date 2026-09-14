@@ -110,13 +110,16 @@ export type RosterShape = {
 
 
 const CLASS_MAP: Array<[RegExp, string]> = [
-  [/^(r-?)?fr(\.|eshman)?$/i, "FR"],
-  [/^(r-?)?so(\.|phomore)?$/i, "SO"],
-  [/^(r-?)?jr(\.|unior)?$/i, "JR"],
-  [/^(r-?)?sr(\.|enior)?$/i, "SR"],
-  [/^(gr|grad(uate)?|5th year|gs)\.?$/i, "GR"],
+  // Spelled-out forms are listed in full: "jr" + "unior" never spelled "Junior",
+  // so writing them as one optional suffix silently dropped Junior and Senior.
+  [/^(r-?)?(fr\.?|freshman)$/i, "FR"],
+  [/^(r-?)?(so\.?|soph\.?|sophomore)$/i, "SO"],
+  [/^(r-?)?(jr\.?|junior)$/i, "JR"],
+  [/^(r-?)?(sr\.?|senior)$/i, "SR"],
+  [/^(gr|grad(uate)?|graduate student|5th year|gs)\.?$/i, "GR"],
   [/^redshirt\s+(freshman|sophomore|junior|senior)$/i, ""],
 ];
+
 
 const POSITION_TOKEN =
   /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|mif|cif|of|lf|cf|rf|dh|util|utl|uti|ut|two-?way|pitcher|catcher|infielder|outfielder|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
