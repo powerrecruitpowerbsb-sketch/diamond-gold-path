@@ -552,6 +552,9 @@ function parseCards(input: string[]): PlayerRow[] {
   const lines = cardLines(input);
 
   const rows: PlayerRow[] = [];
+  // A name line belongs to one player only: pages that list the squad twice
+  // otherwise read each player once per reading order.
+  const usedNames = new Set<number>();
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
     // Either a bare number on its own line, or a labelled one ("Jersey Number 12").
@@ -564,17 +567,21 @@ function parseCards(input: string[]): PlayerRow[] {
     let nameLine = lines[index + 1] ?? "";
     let name = personName(nameLine);
     let start = index + 2;
+    let nameAt = index + 1;
+    if (name && usedNames.has(nameAt)) name = null;
     if (!name) {
       const above = lines[index - 1] ?? "";
       const aboveName = personName(above);
-      if (aboveName && !rowIsFurniture(above) && !STAFF_TITLE.test(aboveName)) {
+      if (aboveName && !usedNames.has(index - 1) && !rowIsFurniture(above) && !STAFF_TITLE.test(aboveName)) {
         nameLine = above;
         name = aboveName;
+        nameAt = index - 1;
         start = index + 1;
       }
     }
     // Judge the ROW, not the surname.
     if (!name || rowIsFurniture(nameLine) || STAFF_TITLE.test(name)) continue;
+    usedNames.add(nameAt);
 
 
 
