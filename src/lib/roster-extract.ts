@@ -565,6 +565,16 @@ function parseCards(input: string[]): PlayerRow[] {
         positionRaw = positionRaw ?? next.trim();
         continue;
       }
+      // "OF Las Vegas, Nev. Faith Lutheran HS" — the position and the hometown
+      // share one line, so reading the whole line as a position lost both.
+      const positionThenPlace = next.match(/^([A-Za-z]{1,4}(?:\s*\/\s*[A-Za-z]{1,4}){0,3})\s+(.+)$/);
+      if (positionThenPlace && POSITION_WORDS.test(positionThenPlace[1]!)) {
+        position = position ?? positionThenPlace[1]!.toUpperCase();
+        positionRaw = positionRaw ?? positionThenPlace[1]!.trim();
+        const place = positionThenPlace[2]!.match(/^([A-Za-z .'’-]{2,40},\s*[A-Za-z]{2,20}\.?)\b/);
+        if (place) hometown = hometown ?? hometownValue(place[1]!);
+        continue;
+      }
       const sizes = next.match(/^(\d-\d{1,2})\s+(\d{2,3})\s*(?:lbs?\.?)?\s*(.*)$/i);
       if (sizes) {
         height = height ?? sizes[1]!;
@@ -572,23 +582,37 @@ function parseCards(input: string[]): PlayerRow[] {
         klass = klass ?? classYear(sizes[3]!.trim());
         continue;
       }
+      // "Senior 6 2 200 lbs" — class first, then feet, inches and pounds spaced.
+      const classThenSizes = next.match(/^(redshirt\s+[A-Za-z]+|[A-Za-z]+)\s+(\d)\s+(\d{1,2})\s+(\d{2,3})\s*lbs?\.?$/i);
+      if (classThenSizes && classYear(classThenSizes[1]!)) {
+        klass = klass ?? classYear(classThenSizes[1]!);
+        classRaw = classRaw ?? classThenSizes[1]!.trim();
+        height = height ?? `${classThenSizes[2]!}-${classThenSizes[3]!}`;
+        weight = weight ?? weightValue(classThenSizes[4]!);
+        continue;
+      }
       // Labelled attribute lines: "Position INF Academic Year Sr. Height 5' 10'' Weight 175 lbs".
-      const labelPosition = next.match(/\bposition\s+([A-Za-z/-]{1,12})\b/i);
+      const labelPosition = next.match(/\b(?:position|pos)\.?\s*:?\s+([A-Za-z0-9/\s-]{1,14}?)(?:\s{2,}|$|\s+(?:cl|class|academic|ht|height|wt|weight)\b)/i);
       if (labelPosition && POSITION_WORDS.test(labelPosition[1]!)) {
-        position = position ?? labelPosition[1]!.toUpperCase();
+        position = position ?? labelPosition[1]!.trim().toUpperCase();
         positionRaw = positionRaw ?? labelPosition[1]!.trim();
       }
-      const labelClass = next.match(/\b(?:academic year|class(?: year)?|year)\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i);
+      const labelClass = next.match(
+        /\b(?:academic year|class(?: year)?|year|cl)\.?\s*:?\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i,
+      );
       if (labelClass) {
         klass = klass ?? classYear(labelClass[1]!.trim());
         classRaw = classRaw ?? labelClass[1]!.trim();
       }
-      const labelHeight = next.match(/\bheight\s+(\d\s*['’]\s*\d{1,2}\s*(?:["”]|'')?)/i);
+      const labelHeight = next.match(/\b(?:height|ht)\.?\s*:?\s*(\d\s*['’]\s*\d{1,2}\s*(?:["”]|'')?)/i);
       if (labelHeight) height = height ?? labelHeight[1]!.replace(/\s+/g, "");
-      const labelWeight = next.match(/\bweight\s+(\d{2,3})/i);
+      const labelWeight = next.match(/\b(?:weight|wt)\.?\s*:?\s*(\d{2,3})/i);
       if (labelWeight) weight = weight ?? weightValue(labelWeight[1]!);
-      const labelHometown = next.match(/\bhometown\s+(.+?)(?:\s+(?:last school|previous school|high school)\b|$)/i);
-      if (labelHometown) hometown = hometown ?? hometownValue(labelHometown[1]!);
+      const labelHometown = next.match(
+        /\bhometown[^:]*:\s*(.+)$|\bhometown\s+(.+?)(?:\s+(?:last school|previous school|high school)\b|$)/i,
+      );
+      if (labelHometown) hometown = hometown ?? hometownValue(labelHometown[1] ?? labelHometown[2] ?? "");
+
       // "Previous School Chipola College" on a card is the transfer signal.
       const labelPrevious = next.match(
         /\b(?:previous|last|prior|former)\s+(?:school|college|institution)\s*:?\s+(.+?)(?:\s+(?:hometown|high school|position|class)\b|$)/i,
