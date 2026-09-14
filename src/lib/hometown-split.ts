@@ -129,20 +129,52 @@ function normalizeTail(value: string): string {
     .trim();
 }
 
+/**
+ * A period-separated abbreviation is one word, not several.
+ *
+ * "N.C." became "n c" once the periods were turned into spaces, which matched no
+ * table entry, so every player from a state a page abbreviates that way — N.C.,
+ * N.J., S.D., R.I., W.Va. — lost their home state. The spaced form is tried
+ * first, then the same text with the gaps closed up, so "n c" also answers to
+ * "nc" while "new york" keeps working.
+ */
+function compactKey(value: string): string {
+  return normalizeTail(value).replace(/\s+/g, "");
+}
+
+function compact<T>(table: Record<string, T>): Record<string, T> {
+  const out: Record<string, T> = {};
+  for (const [key, value] of Object.entries(table)) {
+    const short = key.replace(/\s+/g, "");
+    if (!(short in out)) out[short] = value;
+  }
+  return out;
+}
+
+const US_STATES_COMPACT = compact(US_STATES);
+const US_TERRITORIES_COMPACT = compact(US_TERRITORIES);
+const CA_PROVINCES_COMPACT = compact(CA_PROVINCES);
+const COUNTRIES_COMPACT = compact(COUNTRIES);
+
 function lookupState(tail: string): { state: string; country: string } | null {
   const key = normalizeTail(tail);
   if (!key) return null;
   if (US_STATES[key]) return { state: US_STATES[key]!, country: "US" };
   if (US_TERRITORIES[key]) return { state: US_TERRITORIES[key]!, country: "US" };
   if (CA_PROVINCES[key]) return { state: CA_PROVINCES[key]!, country: "CA" };
+  const short = compactKey(tail);
+  if (US_STATES_COMPACT[short]) return { state: US_STATES_COMPACT[short]!, country: "US" };
+  if (US_TERRITORIES_COMPACT[short]) return { state: US_TERRITORIES_COMPACT[short]!, country: "US" };
+  if (CA_PROVINCES_COMPACT[short]) return { state: CA_PROVINCES_COMPACT[short]!, country: "CA" };
   return null;
 }
 
 function lookupCountry(tail: string): string | null {
   const key = normalizeTail(tail);
   if (!key) return null;
-  return COUNTRIES[key] ?? null;
+  return COUNTRIES[key] ?? COUNTRIES_COMPACT[compactKey(tail)] ?? null;
 }
+
 
 /**
  * Split a hometown string. The whole original text is always preserved in `town`
