@@ -420,4 +420,132 @@ Position OF Academic Year Jr. Height 6' 2'' Weight 200 lbs
     expect(baez.throws).toBe("R");
     expect(baez.bats_raw).toBe("L/R");
   });
+  it("reads a page that prints the jersey number and the name on one line", () => {
+    // San Diego State: "48 Zane Kelly", then the class and size on one line,
+    // then the position and hometown sharing a line.
+    const page = `
+2026 Baseball Roster
+48 Zane Kelly
+Senior 6 2 200 lbs
+RHP Las Vegas, Nev. Faith Lutheran HS
+12 Jabin Trosky
+Freshman 6 0 170 lbs
+IF Carmel, Calif. Palma HS
+`;
+    const shape = parseRoster(page, "baseball");
+    expect(shape.players).toHaveLength(2);
+    expect(shape.players[0]).toMatchObject({
+      name: "Zane Kelly",
+      number: "48",
+      position: "RHP",
+      class_year: "SR",
+      height: "6-2",
+      weight: "200",
+      home_state: "NV",
+    });
+    expect(shape.players[1]).toMatchObject({ name: "Jabin Trosky", position: "IF", home_state: "CA" });
+  });
+
+  it("reads a page that prints one value per line between pipes", () => {
+    // Raritan Valley: every token on its own line, the name printed twice, and
+    // labels ("Cl.:") separated from their value by a pipe.
+    const page = `
+2026 Baseball Roster
+44
+|
+Teodoro
+Garcia
+Teodoro
+Garcia
+|
+Pos.:
+2B/SS
+|
+Cl.:
+So
+|
+Ht.:
+5'8"
+|
+Wt.:
+140
+|
+Hometown/High School:
+Kendall Park, NJ
+/
+South Brunswick HS
+1
+|
+Nico
+Pachamango
+Nico
+Pachamango
+|
+Pos.:
+RHP
+|
+Cl.:
+So
+|
+Ht.:
+5'6"
+|
+Wt.:
+160
+|
+Hometown/High School:
+Hazlet, NJ
+/
+Raritan HS
+`;
+    const shape = parseRoster(page, "baseball");
+    expect(shape.players).toHaveLength(2);
+    expect(shape.players[0]).toMatchObject({
+      name: "Teodoro Garcia",
+      number: "44",
+      position: "2B/SS",
+      class_year: "SO",
+      weight: "140",
+      home_state: "NJ",
+    });
+  });
+  it("reads a card that prints the name above the number and spells the position out", () => {
+    // UTSA: name, then the jersey number, then "Outfielder 5 9 180 lbs Freshman",
+    // then the hometown and high school on one line.
+    const page = `
+Baseball Roster
+Damian Montanez
+1
+Outfielder 5 9 180 lbs Freshman
+Killeen, Texas Shoemaker HS
+Jordan Ballin
+2
+Infielder 5 9 175 lbs Sophomore
+Boerne, Texas Boerne Champion HS
+`;
+    const shape = parseRoster(page, "baseball");
+    expect(shape.players).toHaveLength(2);
+    expect(shape.players[0]).toMatchObject({
+      name: "Damian Montanez",
+      number: "1",
+      position: "OUTFIELDER",
+      class_year: "FR",
+      height: "5-9",
+      weight: "180",
+      home_state: "TX",
+    });
+  });
+
+  it("recognises Junior and Senior spelled out on a card", () => {
+    const page = `
+Baseball Roster
+1
+Ann Lee
+Infielder 5 6 140 lbs Junior
+2
+Bo Ray
+Outfielder 5 8 150 lbs Senior
+`;
+    expect(parseRoster(page, "softball").players).toMatchObject([{ class_year: "JR" }, { class_year: "SR" }]);
+  });
 });

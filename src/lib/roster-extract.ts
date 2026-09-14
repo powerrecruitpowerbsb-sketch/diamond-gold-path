@@ -110,13 +110,16 @@ export type RosterShape = {
 
 
 const CLASS_MAP: Array<[RegExp, string]> = [
-  [/^(r-?)?fr(\.|eshman)?$/i, "FR"],
-  [/^(r-?)?so(\.|phomore)?$/i, "SO"],
-  [/^(r-?)?jr(\.|unior)?$/i, "JR"],
-  [/^(r-?)?sr(\.|enior)?$/i, "SR"],
-  [/^(gr|grad(uate)?|5th year|gs)\.?$/i, "GR"],
+  // Spelled-out forms are listed in full: "jr" + "unior" never spelled "Junior",
+  // so writing them as one optional suffix silently dropped Junior and Senior.
+  [/^(r-?)?(fr\.?|freshman)$/i, "FR"],
+  [/^(r-?)?(so\.?|soph\.?|sophomore)$/i, "SO"],
+  [/^(r-?)?(jr\.?|junior)$/i, "JR"],
+  [/^(r-?)?(sr\.?|senior)$/i, "SR"],
+  [/^(gr|grad(uate)?|graduate student|5th year|gs)\.?$/i, "GR"],
   [/^redshirt\s+(freshman|sophomore|junior|senior)$/i, ""],
 ];
+
 
 const POSITION_TOKEN =
   /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|mif|cif|of|lf|cf|rf|dh|util|utl|uti|ut|two-?way|pitcher|catcher|infielder|outfielder|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
@@ -439,22 +442,148 @@ function normalizeLines(text: string): string[] {
 }
 
 /**
+ * Two card shapes the pass could not see, both real pages that only the AI
+ * fallback ever read:
+ *
+ *  - one token per line with a lone "|" between each ("44", "|", "Teodoro",
+ *    "Garcia", "|", "Pos.:", "2B/SS", …). Tokens between the pipes are joined
+ *    back into one line, and a name printed twice in a row is halved.
+ *  - the jersey number and the name on the SAME line ("48 Zane Kelly"), which
+ *    the pass needs split in two before it can read the block.
+ */
+export function cardLines(input: string[]): string[] {
+  // The shape to recognise: pipes used as separators around a SINGLE token, not
+  // as table cells. A real table's rows carry two or more cells and are left
+  // exactly as they are.
+  const tokenPipes = input.filter((line) => /\|/.test(line) && splitCells(line).length < 2).length;
+  let stream = input.map((line) => line.trim());
+
+  if (tokenPipes >= 8) {
+    // Every pipe on such a page is a boundary between two values, wherever it
+    // ended up sitting, so the stream is rebuilt as tokens and breaks.
+    const tokens: string[] = [];
+    for (const line of stream) {
+      if (splitCells(line).length >= 2) {
+        tokens.push("", line, "");
+        continue;
+      }
+      if (!line.includes("|")) {
+        tokens.push(line);
+        continue;
+      }
+      const pieces = line.split("|");
+      pieces.forEach((piece, at) => {
+        tokens.push(piece.trim());
+        if (at < pieces.length - 1) tokens.push("");
+      });
+    }
+
+    const grouped: string[] = [];
+    let buffer: string[] = [];
+    const flush = () => {
+      if (buffer.length) grouped.push(buffer.join(" "));
+      buffer = [];
+    };
+    for (const line of tokens) {
+      if (!line) {
+        flush();
+        continue;
+      }
+
+
+      if (splitCells(line).length >= 2) {
+        flush();
+        grouped.push(line);
+        continue;
+      }
+      // A bare jersey number starts the next player's block, so it must not be
+      // glued to the end of the previous one.
+      if (/^#?\d{1,3}$/.test(line.trim())) {
+        flush();
+        grouped.push(line.trim());
+        continue;
+      }
+      buffer.push(line);
+      // Never let a nav block collapse into one enormous line.
+      if (buffer.length >= 6) flush();
+
+    }
+    flush();
+    stream = grouped;
+  }
+
+  // A group that is only a label ("Wt.:") belongs with the value that follows it.
+  const joined: string[] = [];
+  for (const line of stream) {
+    const previous = joined[joined.length - 1];
+    if (previous && /^[A-Za-z./\s]{1,30}:$/.test(previous) && line && !line.endsWith(":")) {
+      joined[joined.length - 1] = `${previous} ${line}`;
+      continue;
+    }
+    joined.push(line);
+  }
+
+  const out: string[] = [];
+  for (const line of joined) {
+
+    // "Teodoro Garcia Teodoro Garcia" — the page prints the name twice.
+    const words = line.trim().split(" ");
+    let text = line;
+    if (words.length >= 4 && words.length % 2 === 0) {
+      const half = words.length / 2;
+      if (words.slice(0, half).join(" ") === words.slice(half).join(" ")) text = words.slice(0, half).join(" ");
+    }
+    const numberThenName = text.match(/^#?(\d{1,3})\s+([A-Za-z].*)$/);
+    if (numberThenName && personName(numberThenName[2]!)) {
+      out.push(numberThenName[1]!, numberThenName[2]!);
+      continue;
+    }
+    out.push(text);
+  }
+  return out;
+}
+
+/**
  * Card-style rosters carry no table at all: a jersey number on its own line,
  * then the name, then the position spelled out, then height/weight/class on one
  * line. Read those blocks when the table pass found little or nothing.
  */
-function parseCards(lines: string[]): PlayerRow[] {
+function parseCards(input: string[]): PlayerRow[] {
+  const lines = cardLines(input);
+
   const rows: PlayerRow[] = [];
+  // A name line belongs to one player only: pages that list the squad twice
+  // otherwise read each player once per reading order.
+  const usedNames = new Set<number>();
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
     // Either a bare number on its own line, or a labelled one ("Jersey Number 12").
     const labelled = line.match(/^(?:jersey(?:\s+number)?|no\.?|number)\s*#?\s*(\d{1,3})$/i);
     const number = labelled ? labelled[1]! : jerseyNumber(line);
     if (number === null) continue;
-    const nameLine = lines[index + 1] ?? "";
-    const name = personName(nameLine);
+    // Most cards print the number then the name; some (UTSA) print the name
+    // first, so the block above the number is read when the block below is not
+    // a name.
+    let nameLine = lines[index + 1] ?? "";
+    let name = personName(nameLine);
+    let start = index + 2;
+    let nameAt = index + 1;
+    if (name && usedNames.has(nameAt)) name = null;
+    if (!name) {
+      const above = lines[index - 1] ?? "";
+      const aboveName = personName(above);
+      if (aboveName && !usedNames.has(index - 1) && !rowIsFurniture(above) && !STAFF_TITLE.test(aboveName)) {
+        nameLine = above;
+        name = aboveName;
+        nameAt = index - 1;
+        start = index + 1;
+      }
+    }
     // Judge the ROW, not the surname.
     if (!name || rowIsFurniture(nameLine) || STAFF_TITLE.test(name)) continue;
+    usedNames.add(nameAt);
+
+
 
     let position: string | null = null;
     let klass: string | null = null;
@@ -471,7 +600,7 @@ function parseCards(lines: string[]): PlayerRow[] {
     let batsRaw: string | null = null;
     let throwsRaw: string | null = null;
 
-    for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
+    for (let ahead = start; ahead < Math.min(start + 8, lines.length); ahead += 1) {
       const next = lines[ahead]!;
       // "Bats/Throws R/L", "B/T: S/R", or a bare "R/R" line on a card.
       const combined = next.match(/(?:bats\s*[/-]\s*throws|b\s*[/-]\s*t)\s*:?\s*([LRSB])\s*[/-]\s*([LR])\b/i);
@@ -505,6 +634,16 @@ function parseCards(lines: string[]): PlayerRow[] {
         positionRaw = positionRaw ?? next.trim();
         continue;
       }
+      // "OF Las Vegas, Nev. Faith Lutheran HS" — the position and the hometown
+      // share one line, so reading the whole line as a position lost both.
+      const positionThenPlace = next.match(/^([A-Za-z]{1,4}(?:\s*\/\s*[A-Za-z]{1,4}){0,3})\s+(.+)$/);
+      if (positionThenPlace && POSITION_WORDS.test(positionThenPlace[1]!)) {
+        position = position ?? positionThenPlace[1]!.toUpperCase();
+        positionRaw = positionRaw ?? positionThenPlace[1]!.trim();
+        const place = positionThenPlace[2]!.match(/^([A-Za-z .'’-]{2,40},\s*[A-Za-z]{2,20}\.?)\b/);
+        if (place) hometown = hometown ?? hometownValue(place[1]!);
+        continue;
+      }
       const sizes = next.match(/^(\d-\d{1,2})\s+(\d{2,3})\s*(?:lbs?\.?)?\s*(.*)$/i);
       if (sizes) {
         height = height ?? sizes[1]!;
@@ -512,23 +651,53 @@ function parseCards(lines: string[]): PlayerRow[] {
         klass = klass ?? classYear(sizes[3]!.trim());
         continue;
       }
+      // Feet and inches printed as separate numbers, with the class and the
+      // position sitting on the same line in either order:
+      //   "Senior 6 2 200 lbs"  ·  "Senior 6 2"  ·  "Outfielder 5 9 180 lbs Freshman"
+      const spaced = next.match(
+        /^([A-Za-z][A-Za-z/\s-]{0,23}?)?\s*(\d)\s+(\d{1,2})(?:\s+(\d{2,3})\s*lbs?\.?)?(?:\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?))?$/i,
+      );
+      if (spaced) {
+        const lead = spaced[1]?.trim() ?? "";
+        const trail = spaced[5]?.trim() ?? "";
+        const leadClass = lead ? classYear(lead) : null;
+        const trailClass = trail ? classYear(trail) : null;
+        const leadPosition = lead && !leadClass && POSITION_WORDS.test(lead) ? lead : null;
+        if (leadClass || trailClass || leadPosition) {
+          klass = klass ?? leadClass ?? trailClass;
+          classRaw = classRaw ?? (leadClass ? lead : trailClass ? trail : null);
+          if (leadPosition) {
+            position = position ?? leadPosition.toUpperCase();
+            positionRaw = positionRaw ?? leadPosition;
+          }
+          height = height ?? `${spaced[2]!}-${spaced[3]!}`;
+          if (spaced[4]) weight = weight ?? weightValue(spaced[4]!);
+          continue;
+        }
+      }
+
       // Labelled attribute lines: "Position INF Academic Year Sr. Height 5' 10'' Weight 175 lbs".
-      const labelPosition = next.match(/\bposition\s+([A-Za-z/-]{1,12})\b/i);
+      const labelPosition = next.match(/\b(?:position|pos)\.?\s*:?\s+([A-Za-z0-9/\s-]{1,14}?)(?:\s{2,}|$|\s+(?:cl|class|academic|ht|height|wt|weight)\b)/i);
       if (labelPosition && POSITION_WORDS.test(labelPosition[1]!)) {
-        position = position ?? labelPosition[1]!.toUpperCase();
+        position = position ?? labelPosition[1]!.trim().toUpperCase();
         positionRaw = positionRaw ?? labelPosition[1]!.trim();
       }
-      const labelClass = next.match(/\b(?:academic year|class(?: year)?|year)\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i);
+      const labelClass = next.match(
+        /\b(?:academic year|class(?: year)?|year|cl)\.?\s*:?\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i,
+      );
       if (labelClass) {
         klass = klass ?? classYear(labelClass[1]!.trim());
         classRaw = classRaw ?? labelClass[1]!.trim();
       }
-      const labelHeight = next.match(/\bheight\s+(\d\s*['’]\s*\d{1,2}\s*(?:["”]|'')?)/i);
+      const labelHeight = next.match(/\b(?:height|ht)\.?\s*:?\s*(\d\s*['’]\s*\d{1,2}\s*(?:["”]|'')?)/i);
       if (labelHeight) height = height ?? labelHeight[1]!.replace(/\s+/g, "");
-      const labelWeight = next.match(/\bweight\s+(\d{2,3})/i);
+      const labelWeight = next.match(/\b(?:weight|wt)\.?\s*:?\s*(\d{2,3})/i);
       if (labelWeight) weight = weight ?? weightValue(labelWeight[1]!);
-      const labelHometown = next.match(/\bhometown\s+(.+?)(?:\s+(?:last school|previous school|high school)\b|$)/i);
-      if (labelHometown) hometown = hometown ?? hometownValue(labelHometown[1]!);
+      const labelHometown = next.match(
+        /\bhometown[^:]*:\s*(.+)$|\bhometown\s+(.+?)(?:\s+(?:last school|previous school|high school)\b|$)/i,
+      );
+      if (labelHometown) hometown = hometown ?? hometownValue(labelHometown[1] ?? labelHometown[2] ?? "");
+
       // "Previous School Chipola College" on a card is the transfer signal.
       const labelPrevious = next.match(
         /\b(?:previous|last|prior|former)\s+(?:school|college|institution)\s*:?\s+(.+?)(?:\s+(?:hometown|high school|position|class)\b|$)/i,
@@ -542,6 +711,13 @@ function parseCards(lines: string[]): PlayerRow[] {
         if (klass) classRaw = classRaw ?? next.trim().slice(0, 60);
       }
       if (!hometown) hometown = hometownValue(next);
+      // "Killeen, Texas Shoemaker HS" — the town, the state and the high school
+      // share one line with no separator.
+      if (!hometown) {
+        const place = next.match(/^([A-Za-z .'’-]{2,40},\s*[A-Za-z]{2,20}\.?)\s+\S/);
+        if (place) hometown = hometownValue(place[1]!);
+      }
+
     }
 
     if (!position && !klass && !number) continue;
@@ -568,7 +744,26 @@ function parseCards(lines: string[]): PlayerRow[] {
     });
   }
 
-  return rows;
+  // Some pages publish the squad twice in two arrangements (a card view and a
+  // list view), which read as two rows per player. Keep one row per name and
+  // fill its blanks from the other copy.
+  const byName = new Map<string, PlayerRow>();
+  for (const row of rows) {
+    const key = row.name.trim().toLowerCase();
+    const kept = byName.get(key);
+    if (!kept) {
+      byName.set(key, row);
+      continue;
+    }
+    for (const [field, value] of Object.entries(row)) {
+      const held = (kept as Record<string, unknown>)[field];
+      if ((held === null || held === undefined || held === "") && value) {
+        (kept as Record<string, unknown>)[field] = value;
+      }
+    }
+  }
+  return [...byName.values()];
+
 }
 
 
