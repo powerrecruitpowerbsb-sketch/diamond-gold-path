@@ -704,6 +704,13 @@ function parseCards(input: string[]): PlayerRow[] {
         if (klass) classRaw = classRaw ?? next.trim().slice(0, 60);
       }
       if (!hometown) hometown = hometownValue(next);
+      // "Killeen, Texas Shoemaker HS" — the town, the state and the high school
+      // share one line with no separator.
+      if (!hometown) {
+        const place = next.match(/^([A-Za-z .'’-]{2,40},\s*[A-Za-z]{2,20}\.?)\s+\S/);
+        if (place) hometown = hometownValue(place[1]!);
+      }
+
     }
 
     if (!position && !klass && !number) continue;
