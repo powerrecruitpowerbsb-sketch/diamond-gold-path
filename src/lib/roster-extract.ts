@@ -448,7 +448,7 @@ function normalizeLines(text: string): string[] {
  *  - the jersey number and the name on the SAME line ("48 Zane Kelly"), which
  *    the pass needs split in two before it can read the block.
  */
-function cardLines(lines: string[]): string[] {
+export function cardLines(lines: string[]): string[] {
   const pipeOnly = lines.filter((line) => /^\|+$/.test(line.trim())).length;
   let stream = lines;
 
