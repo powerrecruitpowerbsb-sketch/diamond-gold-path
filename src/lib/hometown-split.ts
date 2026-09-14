@@ -26,7 +26,7 @@ const US_STATES: Record<string, string> = {
   ak: "AK", alaska: "AK",
   az: "AZ", ariz: "AZ", arizona: "AZ",
   ar: "AR", ark: "AR", arkansas: "AR",
-  ca: "CA", cal: "CA", calif: "CA", california: "CA",
+  ca: "CA", cal: "CA", cali: "CA", calif: "CA", california: "CA",
   co: "CO", colo: "CO", colorado: "CO",
   ct: "CT", conn: "CT", connecticut: "CT",
   de: "DE", del: "DE", delaware: "DE",
