@@ -457,11 +457,13 @@ export function cardLines(input: string[]): string[] {
     if (splitCells(trimmed).length >= 2) return trimmed;
     return trimmed.replace(/^\|+/, "").replace(/\|+$/, "").trim();
   });
-  const pipeOnly = input.filter((line) => /\|/.test(line)).length;
+  // The shape to recognise: pipes used as separators around a SINGLE token, not
+  // as table cells. A real table's rows carry two or more cells and are left
+  // exactly as they are.
+  const tokenPipes = input.filter((line) => /\|/.test(line) && splitCells(line).length < 2).length;
   let stream = lines;
 
-  if (pipeOnly >= 8) {
-
+  if (tokenPipes >= 8) {
     const grouped: string[] = [];
     let buffer: string[] = [];
     const flush = () => {
@@ -469,10 +471,11 @@ export function cardLines(input: string[]): string[] {
       buffer = [];
     };
     for (const line of lines) {
-      if (/^\|+$/.test(line.trim())) {
+      if (!line) {
         flush();
         continue;
       }
+
       if (splitCells(line).length >= 2) {
         flush();
         grouped.push(line);
