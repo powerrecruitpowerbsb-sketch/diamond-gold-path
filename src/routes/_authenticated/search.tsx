@@ -693,8 +693,6 @@ function SearchScreen() {
                 const u = row.university ?? {};
                 const selected = compare.isSelected(row.id);
                 const region = regionOfState(u.state);
-                const unconfirmedConference =
-                  Boolean(row.conference) && row.conference_verification !== "verified";
                 return (
                   <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/50">
                     <td className="h-[38px] max-w-[240px] truncate px-3 py-1.5 align-middle whitespace-nowrap">
@@ -713,19 +711,15 @@ function SearchScreen() {
                       {region ?? NOT_REPORTED}
                     </td>
                     <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {[row.governing_body, row.division].filter(Boolean).join(" ") || "Not confirmed"}
+                      {[row.governing_body, row.division].filter(Boolean).join(" ") || NOT_REPORTED}
                     </td>
                     <td className="h-[38px] max-w-[200px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {row.conference ? (
-                        <>
-                          {row.conference}
-                          {unconfirmedConference ? (
-                            <span className="meta ml-1.5">NOT CONFIRMED</span>
-                          ) : null}
-                        </>
+                        row.conference
                       ) : (
-                        "Not confirmed"
+                        NOT_REPORTED
                       )}
+
                     </td>
                     <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {number(u.undergrad_enrollment)}
