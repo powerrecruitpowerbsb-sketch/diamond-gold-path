@@ -469,9 +469,17 @@ export function cardLines(lines: string[]): string[] {
         grouped.push(line);
         continue;
       }
+      // A bare jersey number starts the next player's block, so it must not be
+      // glued to the end of the previous one.
+      if (/^#?\d{1,3}$/.test(line.trim())) {
+        flush();
+        grouped.push(line.trim());
+        continue;
+      }
       buffer.push(line);
       // Never let a nav block collapse into one enormous line.
       if (buffer.length >= 6) flush();
+
     }
     flush();
     stream = grouped;
