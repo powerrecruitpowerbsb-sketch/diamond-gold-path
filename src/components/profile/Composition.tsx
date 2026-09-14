@@ -234,7 +234,14 @@ export function RosterComposition({
 
       <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <Block title="By position" lines={positionLines(rows)} note={gap(rows, "position")} />
-        <Block title="Handedness" lines={handednessLines(rows)} note={gap(rows, "bats")} />
+        <Block
+          title="Pitcher handedness"
+          lines={pitcherHandLines(rows)}
+          note={gap(rows, "position")}
+        />
+        <Block title="Batting side" lines={hitterLines(rows)} note={gap(rows, "bats")} />
+        <Block title="Throwing arm" lines={throwsLines(rows)} note={gap(rows, "throws")} />
+
         <Block title="By class year" lines={classLines(rows)} note={gap(rows, "class_year")} />
         <Block title="Transfers" lines={transferLines(rows)} />
 
