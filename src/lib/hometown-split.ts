@@ -194,7 +194,7 @@ export function splitHometown(value: unknown): HometownParts {
     // A bare town, or a bare country ("Japan") standing alone.
     const country = lookupCountry(parts[0]!);
     const state = lookupState(parts[0]!);
-    if (state && normalizeTail(parts[0]!).length <= 2) {
+    if (state && compactKey(parts[0]!).length <= 2) {
       return { town: null, state: state.state, country: state.country };
     }
     if (country) return { town: null, state: null, country };
