@@ -794,20 +794,52 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   const cardsWin =
     cards.length > 0 &&
     (cards.length > players.length || (cards.length === players.length && filled(cards) > filled(players)));
+  const losing = cardsWin ? [...players] : cards;
   if (cardsWin) {
     players.length = 0;
     players.push(...cards);
     rowsConsidered = Math.max(rowsConsidered, cards.length);
-
   }
 
-
-
-  const seen = new Map<string, number>();
-  for (const player of players) {
-    const key = player.name.toLowerCase();
-    seen.set(key, (seen.get(key) ?? 0) + 1);
+  // The losing pass is not discarded. Pages like Florida Atlantic's print a
+  // label-style card block that omits bats and throws AND a full table below
+  // that carries them; taking one pass whole meant the batting side on the page
+  // was never stored. Blanks on the winning pass are filled from the other
+  // pass, matched on the player's own name, and a value the winner already read
+  // is never overwritten.
+  if (losing.length) {
+    const byName = new Map<string, PlayerRow>();
+    for (const row of losing) byName.set(row.name.trim().toLowerCase(), row);
+    const FILLABLE = [
+      "number",
+      "position",
+      "class_year",
+      "height",
+      "weight",
+      "hometown",
+      "home_state",
+      "home_country",
+      "previous_school",
+      "bats",
+      "throws",
+      "position_raw",
+      "class_year_raw",
+      "bats_raw",
+      "throws_raw",
+    ] as const;
+    for (const player of players) {
+      const other = byName.get(player.name.trim().toLowerCase());
+      if (!other) continue;
+      for (const key of FILLABLE) {
+        if (player[key] === null || player[key] === undefined || player[key] === "") {
+          (player as Record<string, unknown>)[key] = other[key];
+        }
+      }
+      if (!player.is_transfer && other.is_transfer) player.is_transfer = true;
+      if (!player.is_juco_transfer && other.is_juco_transfer) player.is_juco_transfer = true;
+    }
   }
+
   const duplicates = [...seen.entries()].filter(([, n]) => n > 1).map(([key]) => key);
 
   const withNumber = players.filter((p) => p.number).length;
