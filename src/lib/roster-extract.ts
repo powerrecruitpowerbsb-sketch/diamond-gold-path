@@ -744,7 +744,26 @@ function parseCards(input: string[]): PlayerRow[] {
     });
   }
 
-  return rows;
+  // Some pages publish the squad twice in two arrangements (a card view and a
+  // list view), which read as two rows per player. Keep one row per name and
+  // fill its blanks from the other copy.
+  const byName = new Map<string, PlayerRow>();
+  for (const row of rows) {
+    const key = row.name.trim().toLowerCase();
+    const kept = byName.get(key);
+    if (!kept) {
+      byName.set(key, row);
+      continue;
+    }
+    for (const [field, value] of Object.entries(row)) {
+      const held = (kept as Record<string, unknown>)[field];
+      if ((held === null || held === undefined || held === "") && value) {
+        (kept as Record<string, unknown>)[field] = value;
+      }
+    }
+  }
+  return [...byName.values()];
+
 }
 
 
