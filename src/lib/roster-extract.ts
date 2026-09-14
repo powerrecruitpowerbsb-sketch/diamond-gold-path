@@ -449,32 +449,44 @@ function normalizeLines(text: string): string[] {
  *    the pass needs split in two before it can read the block.
  */
 export function cardLines(input: string[]): string[] {
-  // A one-token-per-line page arrives with the pipes already partly attached to
-  // the token ("44 |"); strip a leading or trailing pipe when the line holds no
-  // real cells, so the token itself can be recognised.
-  const lines = input.map((line) => {
-    const trimmed = line.trim();
-    if (splitCells(trimmed).length >= 2) return trimmed;
-    return trimmed.replace(/^\|+/, "").replace(/\|+$/, "").trim();
-  });
   // The shape to recognise: pipes used as separators around a SINGLE token, not
   // as table cells. A real table's rows carry two or more cells and are left
   // exactly as they are.
   const tokenPipes = input.filter((line) => /\|/.test(line) && splitCells(line).length < 2).length;
-  let stream = lines;
+  let stream = input.map((line) => line.trim());
 
   if (tokenPipes >= 8) {
+    // Every pipe on such a page is a boundary between two values, wherever it
+    // ended up sitting, so the stream is rebuilt as tokens and breaks.
+    const tokens: string[] = [];
+    for (const line of stream) {
+      if (splitCells(line).length >= 2) {
+        tokens.push("", line, "");
+        continue;
+      }
+      if (!line.includes("|")) {
+        tokens.push(line);
+        continue;
+      }
+      const pieces = line.split("|");
+      pieces.forEach((piece, at) => {
+        tokens.push(piece.trim());
+        if (at < pieces.length - 1) tokens.push("");
+      });
+    }
+
     const grouped: string[] = [];
     let buffer: string[] = [];
     const flush = () => {
       if (buffer.length) grouped.push(buffer.join(" "));
       buffer = [];
     };
-    for (const line of lines) {
+    for (const line of tokens) {
       if (!line) {
         flush();
         continue;
       }
+
 
       if (splitCells(line).length >= 2) {
         flush();
