@@ -439,11 +439,71 @@ function normalizeLines(text: string): string[] {
 }
 
 /**
+ * Two card shapes the pass could not see, both real pages that only the AI
+ * fallback ever read:
+ *
+ *  - one token per line with a lone "|" between each ("44", "|", "Teodoro",
+ *    "Garcia", "|", "Pos.:", "2B/SS", …). Tokens between the pipes are joined
+ *    back into one line, and a name printed twice in a row is halved.
+ *  - the jersey number and the name on the SAME line ("48 Zane Kelly"), which
+ *    the pass needs split in two before it can read the block.
+ */
+function cardLines(lines: string[]): string[] {
+  const pipeOnly = lines.filter((line) => /^\|+$/.test(line.trim())).length;
+  let stream = lines;
+
+  if (pipeOnly >= 8) {
+    const grouped: string[] = [];
+    let buffer: string[] = [];
+    const flush = () => {
+      if (buffer.length) grouped.push(buffer.join(" "));
+      buffer = [];
+    };
+    for (const line of lines) {
+      if (/^\|+$/.test(line.trim())) {
+        flush();
+        continue;
+      }
+      if (splitCells(line).length >= 2) {
+        flush();
+        grouped.push(line);
+        continue;
+      }
+      buffer.push(line);
+      // Never let a nav block collapse into one enormous line.
+      if (buffer.length >= 6) flush();
+    }
+    flush();
+    stream = grouped;
+  }
+
+  const out: string[] = [];
+  for (const line of stream) {
+    // "Teodoro Garcia Teodoro Garcia" — the page prints the name twice.
+    const words = line.trim().split(" ");
+    let text = line;
+    if (words.length >= 4 && words.length % 2 === 0) {
+      const half = words.length / 2;
+      if (words.slice(0, half).join(" ") === words.slice(half).join(" ")) text = words.slice(0, half).join(" ");
+    }
+    const numberThenName = text.match(/^#?(\d{1,3})\s+([A-Za-z].*)$/);
+    if (numberThenName && personName(numberThenName[2]!)) {
+      out.push(numberThenName[1]!, numberThenName[2]!);
+      continue;
+    }
+    out.push(text);
+  }
+  return out;
+}
+
+/**
  * Card-style rosters carry no table at all: a jersey number on its own line,
  * then the name, then the position spelled out, then height/weight/class on one
  * line. Read those blocks when the table pass found little or nothing.
  */
-function parseCards(lines: string[]): PlayerRow[] {
+function parseCards(input: string[]): PlayerRow[] {
+  const lines = cardLines(input);
+
   const rows: PlayerRow[] = [];
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
