@@ -558,10 +558,23 @@ function parseCards(input: string[]): PlayerRow[] {
     const labelled = line.match(/^(?:jersey(?:\s+number)?|no\.?|number)\s*#?\s*(\d{1,3})$/i);
     const number = labelled ? labelled[1]! : jerseyNumber(line);
     if (number === null) continue;
-    const nameLine = lines[index + 1] ?? "";
-    const name = personName(nameLine);
+    // Most cards print the number then the name; some (UTSA) print the name
+    // first, so the block above the number is read when the block below is not
+    // a name.
+    let nameLine = lines[index + 1] ?? "";
+    let name = personName(nameLine);
+    let start = index + 2;
+    if (!name) {
+      const above = lines[index - 1] ?? "";
+      const aboveName = personName(above);
+      if (aboveName && !rowIsFurniture(above) && !STAFF_TITLE.test(aboveName)) {
+        nameLine = above;
+        name = aboveName;
+        start = index + 1;
+      }
+    }
     // Judge the ROW, not the surname.
-    if (!name || rowIsFurniture(nameLine) || STAFF_TITLE.test(name)) continue;
+
 
     let position: string | null = null;
     let klass: string | null = null;
