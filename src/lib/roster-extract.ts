@@ -509,8 +509,20 @@ export function cardLines(input: string[]): string[] {
     stream = grouped;
   }
 
-  const out: string[] = [];
+  // A group that is only a label ("Wt.:") belongs with the value that follows it.
+  const joined: string[] = [];
   for (const line of stream) {
+    const previous = joined[joined.length - 1];
+    if (previous && /^[A-Za-z./\s]{1,30}:$/.test(previous) && line && !line.endsWith(":")) {
+      joined[joined.length - 1] = `${previous} ${line}`;
+      continue;
+    }
+    joined.push(line);
+  }
+
+  const out: string[] = [];
+  for (const line of joined) {
+
     // "Teodoro Garcia Teodoro Garcia" — the page prints the name twice.
     const words = line.trim().split(" ");
     let text = line;
