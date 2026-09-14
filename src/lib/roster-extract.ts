@@ -840,7 +840,13 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     }
   }
 
+  const seen = new Map<string, number>();
+  for (const player of players) {
+    const key = player.name.toLowerCase();
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
   const duplicates = [...seen.entries()].filter(([, n]) => n > 1).map(([key]) => key);
+
 
   const withNumber = players.filter((p) => p.number).length;
   const withPosition = players.filter((p) => p.position).length;
