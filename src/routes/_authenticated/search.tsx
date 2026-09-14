@@ -158,10 +158,10 @@ function SearchScreen() {
 
   const divisions = DIVISIONS_BY_BODY[params.governingBody] ?? [];
   const secondaryCount = activeSecondaryCount(params);
+  // Verified vs unverified is an internal data-quality signal, kept in the
+  // console. A family sees the conference we hold, and it filters normally.
   const conferences = facets.data?.conferences ?? [];
-  const unconfirmedPicked = conferences.some(
-    (c) => c.name === params.conference && !c.confirmed,
-  );
+
 
   // Location is one control: a region, or states within it.
   const regionStates = params.region ? statesInRegion(params.region) : [];
