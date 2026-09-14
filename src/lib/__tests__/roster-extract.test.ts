@@ -536,10 +536,16 @@ Boerne, Texas Boerne Champion HS
     });
   });
 
-  it("recognises Junior and Senior spelled out", () => {
-    expect(parseRoster("| Name | Cl.\n| Ann Lee | Junior\n| Bo Ray | Senior\n", "softball").players).toMatchObject([
-      { class_year: "JR" },
-      { class_year: "SR" },
-    ]);
+  it("recognises Junior and Senior spelled out on a card", () => {
+    const page = `
+Baseball Roster
+1
+Ann Lee
+Infielder 5 6 140 lbs Junior
+2
+Bo Ray
+Outfielder 5 8 150 lbs Senior
+`;
+    expect(parseRoster(page, "softball").players).toMatchObject([{ class_year: "JR" }, { class_year: "SR" }]);
   });
 });
