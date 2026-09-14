@@ -37,6 +37,7 @@ import { Route as AuthenticatedAdminReviewRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminSeedImportRouteImport } from './routes/_authenticated/admin.seed-import'
 import { Route as AuthenticatedAdminToolsRouteImport } from './routes/_authenticated/admin.tools'
 import { Route as AuthenticatedAdminWithheldRouteImport } from './routes/_authenticated/admin.withheld'
+import { Route as AuthenticatedAdminWordingsRouteImport } from './routes/_authenticated/admin.wordings'
 import { Route as AuthenticatedProgramsIdRouteImport } from './routes/_authenticated/programs.$id'
 import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenticated/roster.index'
 import { Route as AuthenticatedRosterIdRouteImport } from './routes/_authenticated/roster.$id'
@@ -208,6 +209,12 @@ const AuthenticatedAdminWithheldRoute =
     path: '/withheld',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminWordingsRoute =
+  AuthenticatedAdminWordingsRouteImport.update({
+    id: '/wordings',
+    path: '/wordings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedProgramsIdRoute = AuthenticatedProgramsIdRouteImport.update({
   id: '/programs/$id',
   path: '/programs/$id',
@@ -340,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/admin/withheld': typeof AuthenticatedAdminWithheldRoute
+  '/admin/wordings': typeof AuthenticatedAdminWordingsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
@@ -386,6 +394,7 @@ export interface FileRoutesByTo {
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/admin/withheld': typeof AuthenticatedAdminWithheldRoute
+  '/admin/wordings': typeof AuthenticatedAdminWordingsRoute
   '/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
@@ -435,6 +444,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
   '/_authenticated/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/_authenticated/admin/withheld': typeof AuthenticatedAdminWithheldRoute
+  '/_authenticated/admin/wordings': typeof AuthenticatedAdminWordingsRoute
   '/_authenticated/programs/$id': typeof AuthenticatedProgramsIdRoute
   '/_authenticated/roster/$id': typeof AuthenticatedRosterIdRoute
   '/_authenticated/roster/import': typeof AuthenticatedRosterImportRoute
@@ -484,6 +494,7 @@ export interface FileRouteTypes {
     | '/admin/seed-import'
     | '/admin/tools'
     | '/admin/withheld'
+    | '/admin/wordings'
     | '/programs/$id'
     | '/roster/$id'
     | '/roster/import'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/admin/seed-import'
     | '/admin/tools'
     | '/admin/withheld'
+    | '/admin/wordings'
     | '/programs/$id'
     | '/roster/$id'
     | '/roster/import'
@@ -578,6 +590,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/seed-import'
     | '/_authenticated/admin/tools'
     | '/_authenticated/admin/withheld'
+    | '/_authenticated/admin/wordings'
     | '/_authenticated/programs/$id'
     | '/_authenticated/roster/$id'
     | '/_authenticated/roster/import'
@@ -807,6 +820,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminWithheldRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/wordings': {
+      id: '/_authenticated/admin/wordings'
+      path: '/wordings'
+      fullPath: '/admin/wordings'
+      preLoaderRoute: typeof AuthenticatedAdminWordingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/programs/$id': {
       id: '/_authenticated/programs/$id'
       path: '/programs/$id'
@@ -953,6 +973,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSeedImportRoute: typeof AuthenticatedAdminSeedImportRoute
   AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRoute
   AuthenticatedAdminWithheldRoute: typeof AuthenticatedAdminWithheldRoute
+  AuthenticatedAdminWordingsRoute: typeof AuthenticatedAdminWordingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminProgramsIdRoute: typeof AuthenticatedAdminProgramsIdRoute
   AuthenticatedAdminProgramsNewRoute: typeof AuthenticatedAdminProgramsNewRoute
@@ -982,6 +1003,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSeedImportRoute: AuthenticatedAdminSeedImportRoute,
   AuthenticatedAdminToolsRoute: AuthenticatedAdminToolsRoute,
   AuthenticatedAdminWithheldRoute: AuthenticatedAdminWithheldRoute,
+  AuthenticatedAdminWordingsRoute: AuthenticatedAdminWordingsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminProgramsIdRoute: AuthenticatedAdminProgramsIdRoute,
   AuthenticatedAdminProgramsNewRoute: AuthenticatedAdminProgramsNewRoute,
