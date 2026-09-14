@@ -509,4 +509,37 @@ Raritan HS
       home_state: "NJ",
     });
   });
+  it("reads a card that prints the name above the number and spells the position out", () => {
+    // UTSA: name, then the jersey number, then "Outfielder 5 9 180 lbs Freshman",
+    // then the hometown and high school on one line.
+    const page = `
+Baseball Roster
+Damian Montanez
+1
+Outfielder 5 9 180 lbs Freshman
+Killeen, Texas Shoemaker HS
+Jordan Ballin
+2
+Infielder 5 9 175 lbs Sophomore
+Boerne, Texas Boerne Champion HS
+`;
+    const shape = parseRoster(page, "baseball");
+    expect(shape.players).toHaveLength(2);
+    expect(shape.players[0]).toMatchObject({
+      name: "Damian Montanez",
+      number: "1",
+      position: "OUTFIELDER",
+      class_year: "FR",
+      height: "5-9",
+      weight: "180",
+      home_state: "TX",
+    });
+  });
+
+  it("recognises Junior and Senior spelled out", () => {
+    expect(parseRoster("| Name | Cl.\n| Ann Lee | Junior\n| Bo Ray | Senior\n", "softball").players).toMatchObject([
+      { class_year: "JR" },
+      { class_year: "SR" },
+    ]);
+  });
 });
