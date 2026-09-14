@@ -13,6 +13,8 @@ import { readRoster } from "@/lib/roster-read.server";
 const args = process.argv.slice(2);
 const at = args.indexOf("--n");
 const N = at === -1 ? 20 : Number(args[at + 1]);
+const sk = args.indexOf("--skip");
+const SKIP = sk === -1 ? 0 : Number(args[sk + 1]);
 
 const q = (sql: string) =>
   execFileSync("psql", ["-At", "-F", "\t", "-c", sql], { encoding: "utf8", maxBuffer: 1 << 28 })
@@ -28,7 +30,7 @@ const programs = q(`
             join universities u on u.id = pr.university_id
    where p.n >= 15 and coalesce(pr.roster_url,'') <> ''
    order by md5(pr.id::text || 'audit')
-   limit ${N}`);
+   limit ${N} offset ${SKIP}`);
 
 type Tally = Record<string, number>;
 const totals: Tally = {};
