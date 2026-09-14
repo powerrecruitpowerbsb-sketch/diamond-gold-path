@@ -574,6 +574,8 @@ function parseCards(input: string[]): PlayerRow[] {
       }
     }
     // Judge the ROW, not the surname.
+    if (!name || rowIsFurniture(nameLine) || STAFF_TITLE.test(name)) continue;
+
 
 
     let position: string | null = null;
