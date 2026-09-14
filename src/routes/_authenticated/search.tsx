@@ -627,11 +627,8 @@ function SearchScreen() {
         </div>
       ) : null}
 
-      {unconfirmedPicked ? (
-        <p className="mt-3 rounded border border-border bg-muted/50 p-2.5 text-sm text-steel">
-          This conference is not confirmed for every team on file, so the list may be incomplete.
-        </p>
-      ) : null}
+
+
 
       {results.data?.unpublishedPositions ? (
         <p className="mt-3 rounded border border-border bg-muted/50 p-2.5 text-sm text-steel">
