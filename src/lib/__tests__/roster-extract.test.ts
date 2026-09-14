@@ -393,4 +393,31 @@ Academic Year Jr.
     const shape = parseRoster(page, "baseball");
     expect(shape.players[0]).toMatchObject({ name: "Marcus Hale", bats: "L", throws: "R" });
   });
+  it("fills the batting side from the table when the card block omits it", () => {
+    // Florida Atlantic prints a label-style card block with no bats/throws AND a
+    // full table below that carries them. Taking one pass whole lost the hands.
+    const page = `
+Jersey Number 1
+Danny Baez
+Position OF Academic Year Sr. Height 6' 1'' Weight 200 lbs
+Jersey Number 2
+Brett Patten
+Position OF Academic Year Jr. Height 6' 2'' Weight 200 lbs
+| Pos.
+| Ht.
+| Wt.
+| B/T
+| Academic Year
+| Hometown
+1 | Danny Baez
+| OF | 6' 1'' | 200 | L/R | Sr. | Oviedo, Fla.
+2 | Brett Patten
+| OF | 6' 2'' | 200 | L/L | Jr. | Manasquan, N.J.
+`;
+    const shape = parseRoster(page, "baseball");
+    const baez = shape.players.find((player) => player.name === "Danny Baez")!;
+    expect(baez.bats).toBe("L");
+    expect(baez.throws).toBe("R");
+    expect(baez.bats_raw).toBe("L/R");
+  });
 });
