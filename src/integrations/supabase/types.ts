@@ -1644,11 +1644,13 @@ export type Database = {
           coach_source_url: string | null
           coaching_staff_url: string | null
           conference: string | null
+          conference_raw: string | null
           conference_source: string | null
           conference_verification: Database["public"]["Enums"]["value_verification"]
           conference_verified_at: string | null
           created_at: string
           division: string | null
+          division_raw: string | null
           division_source: string | null
           division_verification: Database["public"]["Enums"]["value_verification"]
           division_verified_at: string | null
@@ -1681,11 +1683,13 @@ export type Database = {
           coach_source_url?: string | null
           coaching_staff_url?: string | null
           conference?: string | null
+          conference_raw?: string | null
           conference_source?: string | null
           conference_verification?: Database["public"]["Enums"]["value_verification"]
           conference_verified_at?: string | null
           created_at?: string
           division?: string | null
+          division_raw?: string | null
           division_source?: string | null
           division_verification?: Database["public"]["Enums"]["value_verification"]
           division_verified_at?: string | null
@@ -1718,11 +1722,13 @@ export type Database = {
           coach_source_url?: string | null
           coaching_staff_url?: string | null
           conference?: string | null
+          conference_raw?: string | null
           conference_source?: string | null
           conference_verification?: Database["public"]["Enums"]["value_verification"]
           conference_verified_at?: string | null
           created_at?: string
           division?: string | null
+          division_raw?: string | null
           division_source?: string | null
           division_verification?: Database["public"]["Enums"]["value_verification"]
           division_verified_at?: string | null
@@ -1924,7 +1930,9 @@ export type Database = {
       roster_players: {
         Row: {
           bats: Database["public"]["Enums"]["bats_hand"] | null
+          bats_raw: string | null
           class_year: Database["public"]["Enums"]["class_year"] | null
+          class_year_raw: string | null
           created_at: string
           extracted_at: string | null
           home_country: string | null
@@ -1936,6 +1944,7 @@ export type Database = {
           is_transfer: boolean
           name: string
           position: Database["public"]["Enums"]["player_position"] | null
+          position_raw: string | null
           program_id: string
           provenance: string
           reader: string | null
@@ -1945,11 +1954,14 @@ export type Database = {
           source_url: string | null
           sport_specific_attributes: Json | null
           throws: Database["public"]["Enums"]["throws_hand"] | null
+          throws_raw: string | null
           two_way: boolean
         }
         Insert: {
           bats?: Database["public"]["Enums"]["bats_hand"] | null
+          bats_raw?: string | null
           class_year?: Database["public"]["Enums"]["class_year"] | null
+          class_year_raw?: string | null
           created_at?: string
           extracted_at?: string | null
           home_country?: string | null
@@ -1961,6 +1973,7 @@ export type Database = {
           is_transfer?: boolean
           name: string
           position?: Database["public"]["Enums"]["player_position"] | null
+          position_raw?: string | null
           program_id: string
           provenance?: string
           reader?: string | null
@@ -1970,11 +1983,14 @@ export type Database = {
           source_url?: string | null
           sport_specific_attributes?: Json | null
           throws?: Database["public"]["Enums"]["throws_hand"] | null
+          throws_raw?: string | null
           two_way?: boolean
         }
         Update: {
           bats?: Database["public"]["Enums"]["bats_hand"] | null
+          bats_raw?: string | null
           class_year?: Database["public"]["Enums"]["class_year"] | null
+          class_year_raw?: string | null
           created_at?: string
           extracted_at?: string | null
           home_country?: string | null
@@ -1986,6 +2002,7 @@ export type Database = {
           is_transfer?: boolean
           name?: string
           position?: Database["public"]["Enums"]["player_position"] | null
+          position_raw?: string | null
           program_id?: string
           provenance?: string
           reader?: string | null
@@ -1995,6 +2012,7 @@ export type Database = {
           source_url?: string | null
           sport_specific_attributes?: Json | null
           throws?: Database["public"]["Enums"]["throws_hand"] | null
+          throws_raw?: string | null
           two_way?: boolean
         }
         Relationships: [
