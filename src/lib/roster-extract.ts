@@ -629,15 +629,31 @@ function parseCards(input: string[]): PlayerRow[] {
         klass = klass ?? classYear(sizes[3]!.trim());
         continue;
       }
-      // "Senior 6 2 200 lbs" — class first, then feet, inches and pounds spaced.
-      const classThenSizes = next.match(/^(redshirt\s+[A-Za-z]+|[A-Za-z]+)\s+(\d)\s+(\d{1,2})\s+(\d{2,3})\s*lbs?\.?$/i);
-      if (classThenSizes && classYear(classThenSizes[1]!)) {
-        klass = klass ?? classYear(classThenSizes[1]!);
-        classRaw = classRaw ?? classThenSizes[1]!.trim();
-        height = height ?? `${classThenSizes[2]!}-${classThenSizes[3]!}`;
-        weight = weight ?? weightValue(classThenSizes[4]!);
-        continue;
+      // Feet and inches printed as separate numbers, with the class and the
+      // position sitting on the same line in either order:
+      //   "Senior 6 2 200 lbs"  ·  "Senior 6 2"  ·  "Outfielder 5 9 180 lbs Freshman"
+      const spaced = next.match(
+        /^([A-Za-z][A-Za-z/\s-]{0,23}?)?\s*(\d)\s+(\d{1,2})(?:\s+(\d{2,3})\s*lbs?\.?)?(?:\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?))?$/i,
+      );
+      if (spaced) {
+        const lead = spaced[1]?.trim() ?? "";
+        const trail = spaced[5]?.trim() ?? "";
+        const leadClass = lead ? classYear(lead) : null;
+        const trailClass = trail ? classYear(trail) : null;
+        const leadPosition = lead && !leadClass && POSITION_WORDS.test(lead) ? lead : null;
+        if (leadClass || trailClass || leadPosition) {
+          klass = klass ?? leadClass ?? trailClass;
+          classRaw = classRaw ?? (leadClass ? lead : trailClass ? trail : null);
+          if (leadPosition) {
+            position = position ?? leadPosition.toUpperCase();
+            positionRaw = positionRaw ?? leadPosition;
+          }
+          height = height ?? `${spaced[2]!}-${spaced[3]!}`;
+          if (spaced[4]) weight = weight ?? weightValue(spaced[4]!);
+          continue;
+        }
       }
+
       // Labelled attribute lines: "Position INF Academic Year Sr. Height 5' 10'' Weight 175 lbs".
       const labelPosition = next.match(/\b(?:position|pos)\.?\s*:?\s+([A-Za-z0-9/\s-]{1,14}?)(?:\s{2,}|$|\s+(?:cl|class|academic|ht|height|wt|weight)\b)/i);
       if (labelPosition && POSITION_WORDS.test(labelPosition[1]!)) {
