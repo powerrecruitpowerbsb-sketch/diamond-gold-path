@@ -36,6 +36,14 @@ export type PlayerRow = {
   bats: string | null;
   /** Throwing arm: R or L. */
   throws: string | null;
+  /**
+   * Exactly what the page printed, before our mapping. Kept so an unrecognised
+   * wording is countable and fixable offline instead of by another crawl.
+   */
+  position_raw: string | null;
+  class_year_raw: string | null;
+  bats_raw: string | null;
+  throws_raw: string | null;
 };
 
 export type RosterAttribute =
@@ -458,6 +466,10 @@ function parseCards(lines: string[]): PlayerRow[] {
     let previousSchool: string | null = null;
     let transfer = false;
     let juco = false;
+    let positionRaw: string | null = null;
+    let classRaw: string | null = null;
+    let batsRaw: string | null = null;
+    let throwsRaw: string | null = null;
 
     for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
       const next = lines[ahead]!;
@@ -467,19 +479,30 @@ function parseCards(lines: string[]): PlayerRow[] {
       if (combined) {
         bats = bats ?? batsSide(combined[1]!);
         throwsHand = throwsHand ?? throwsSide(combined[2]!);
+        batsRaw = batsRaw ?? combined[0]!.trim();
+        throwsRaw = throwsRaw ?? combined[0]!.trim();
         continue;
       }
       if (bare) {
         bats = bats ?? bare.bats;
         throwsHand = throwsHand ?? bare.throws;
+        batsRaw = batsRaw ?? next.trim();
+        throwsRaw = throwsRaw ?? next.trim();
         continue;
       }
       const labelBats = next.match(/\bbats\s*:?\s*([LRSB])\b/i);
-      if (labelBats) bats = bats ?? batsSide(labelBats[1]!);
+      if (labelBats) {
+        bats = bats ?? batsSide(labelBats[1]!);
+        batsRaw = batsRaw ?? labelBats[0]!.trim();
+      }
       const labelThrows = next.match(/\bthrows\s*:?\s*([LR])\b/i);
-      if (labelThrows) throwsHand = throwsHand ?? throwsSide(labelThrows[1]!);
+      if (labelThrows) {
+        throwsHand = throwsHand ?? throwsSide(labelThrows[1]!);
+        throwsRaw = throwsRaw ?? labelThrows[0]!.trim();
+      }
       if (POSITION_WORDS.test(next)) {
         position = position ?? next.toUpperCase();
+        positionRaw = positionRaw ?? next.trim();
         continue;
       }
       const sizes = next.match(/^(\d-\d{1,2})\s+(\d{2,3})\s*(?:lbs?\.?)?\s*(.*)$/i);
@@ -491,9 +514,15 @@ function parseCards(lines: string[]): PlayerRow[] {
       }
       // Labelled attribute lines: "Position INF Academic Year Sr. Height 5' 10'' Weight 175 lbs".
       const labelPosition = next.match(/\bposition\s+([A-Za-z/-]{1,12})\b/i);
-      if (labelPosition && POSITION_WORDS.test(labelPosition[1]!)) position = position ?? labelPosition[1]!.toUpperCase();
+      if (labelPosition && POSITION_WORDS.test(labelPosition[1]!)) {
+        position = position ?? labelPosition[1]!.toUpperCase();
+        positionRaw = positionRaw ?? labelPosition[1]!.trim();
+      }
       const labelClass = next.match(/\b(?:academic year|class(?: year)?|year)\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i);
-      if (labelClass) klass = klass ?? classYear(labelClass[1]!.trim());
+      if (labelClass) {
+        klass = klass ?? classYear(labelClass[1]!.trim());
+        classRaw = classRaw ?? labelClass[1]!.trim();
+      }
       const labelHeight = next.match(/\bheight\s+(\d\s*['’]\s*\d{1,2}\s*(?:["”]|'')?)/i);
       if (labelHeight) height = height ?? labelHeight[1]!.replace(/\s+/g, "");
       const labelWeight = next.match(/\bweight\s+(\d{2,3})/i);
@@ -508,7 +537,10 @@ function parseCards(lines: string[]): PlayerRow[] {
       if (JUCO_TOKEN.test(next.trim())) juco = true;
       if (TRANSFER_TOKEN.test(next.trim())) transfer = true;
 
-      if (!klass) klass = classYear(next);
+      if (!klass) {
+        klass = classYear(next);
+        if (klass) classRaw = classRaw ?? next.trim().slice(0, 60);
+      }
       if (!hometown) hometown = hometownValue(next);
     }
 
@@ -529,6 +561,10 @@ function parseCards(lines: string[]): PlayerRow[] {
       is_juco_transfer: juco,
       bats,
       throws: throwsHand,
+      position_raw: positionRaw,
+      class_year_raw: classRaw,
+      bats_raw: batsRaw,
+      throws_raw: throwsRaw,
     });
   }
 
@@ -594,6 +630,11 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     let previousSchool: string | null = null;
     let transfer = false;
     let juco = false;
+    // The page's own wording, kept verbatim alongside our mapped value.
+    let positionRaw: string | null = null;
+    let classRaw: string | null = null;
+    let batsRaw: string | null = null;
+    let throwsRaw: string | null = null;
 
     for (const [cellIndex, cell] of cells.entries()) {
       if (!cell) continue;
@@ -621,9 +662,12 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       if (hands && (!bats || !throwsHand)) {
         bats = bats ?? hands.bats;
         throwsHand = throwsHand ?? hands.throws;
+        batsRaw = batsRaw ?? cell.trim();
+        throwsRaw = throwsRaw ?? cell.trim();
         continue;
       }
       if (cellIndex === batsColumn && !bats) {
+        batsRaw = batsRaw ?? cell.trim();
         const side = batsSide(cell);
         if (side) {
           bats = side;
@@ -631,6 +675,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
         }
       }
       if (cellIndex === throwsColumn && !throwsHand) {
+        throwsRaw = throwsRaw ?? cell.trim();
         const side = throwsSide(cell);
         if (side) {
           throwsHand = side;
@@ -648,11 +693,13 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
         const year = classYear(cell);
         if (year) {
           klass = year;
+          classRaw = cell.trim();
           continue;
         }
       }
       if (!position && POSITION_WORDS.test(cell.trim())) {
         position = cell.trim().toUpperCase();
+        positionRaw = cell.trim();
         continue;
       }
       if (!height) {
@@ -711,6 +758,10 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       is_juco_transfer: juco,
       bats,
       throws: throwsHand,
+      position_raw: positionRaw,
+      class_year_raw: classRaw,
+      bats_raw: batsRaw,
+      throws_raw: throwsRaw,
     });
   }
 
