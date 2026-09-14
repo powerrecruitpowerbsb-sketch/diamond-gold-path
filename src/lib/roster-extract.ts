@@ -593,7 +593,7 @@ function parseCards(input: string[]): PlayerRow[] {
     let batsRaw: string | null = null;
     let throwsRaw: string | null = null;
 
-    for (let ahead = index + 2; ahead < Math.min(index + 10, lines.length); ahead += 1) {
+    for (let ahead = start; ahead < Math.min(start + 8, lines.length); ahead += 1) {
       const next = lines[ahead]!;
       // "Bats/Throws R/L", "B/T: S/R", or a bare "R/R" line on a card.
       const combined = next.match(/(?:bats\s*[/-]\s*throws|b\s*[/-]\s*t)\s*:?\s*([LRSB])\s*[/-]\s*([LR])\b/i);
