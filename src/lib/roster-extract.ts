@@ -720,8 +720,10 @@ function parseCards(input: string[]): PlayerRow[] {
         position = position ?? labelPosition[1]!.trim().toUpperCase();
         positionRaw = positionRaw ?? labelPosition[1]!.trim();
       }
+      // "Yr.: Fr." is the commonest junior-college wording and was not read at
+      // all, so those pages lost the class year for every player.
       const labelClass = next.match(
-        /\b(?:academic year|class(?: year)?|year|cl)\.?\s*:?\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i,
+        /\b(?:academic year|class(?: year)?|year|yr|cl)\.?\s*:?\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i,
       );
       if (labelClass) {
         klass = klass ?? classYear(labelClass[1]!.trim());
@@ -734,7 +736,17 @@ function parseCards(input: string[]): PlayerRow[] {
       const labelHometown = next.match(
         /\bhometown[^:]*:\s*(.+)$|\bhometown\s+(.+?)(?:\s+(?:last school|previous school|high school)\b|$)/i,
       );
-      if (labelHometown) hometown = hometown ?? hometownValue(labelHometown[1] ?? labelHometown[2] ?? "");
+      // A labelled hometown is a hometown even with no state after it: pages that
+      // print "Hometown: Middletown" for local players lost the town entirely.
+      if (labelHometown) {
+        hometown = hometown ?? hometownValue(labelHometown[1] ?? labelHometown[2] ?? "", { inHometownColumn: true });
+      }
+      // "HS City/State: Fullerton, CA" — the only place some pages print where a
+      // player is from.
+      if (!hometown) {
+        const labelCityState = next.match(/\b(?:hs\s*city\s*\/?\s*state|city\s*\/\s*state)\s*:?\s*(.+)$/i);
+        if (labelCityState) hometown = hometownValue(labelCityState[1]!, { inHometownColumn: true });
+      }
 
       // "Previous School Chipola College" on a card is the transfer signal.
       const labelPrevious = next.match(
