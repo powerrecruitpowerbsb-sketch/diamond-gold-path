@@ -592,4 +592,56 @@ Outfielder 5 8 150 lbs Senior
       { name: "Marian Collins", position: "INF", class_year: "JR", home_state: "GA" },
     ]);
   });
+
+  it("reads a position printed above the jersey number, per player", () => {
+    const page = [
+      "Baseball Roster",
+      "Outfield",
+      "1",
+      "Seth Perkins",
+      "R-Fr.",
+      "Houston Christian High School",
+      "Pitcher",
+      "2",
+      "Ryan Avalos",
+      "Gr.",
+      "San Angelo, TX",
+    ].join("\n");
+    expect(parseRoster(page, "baseball").players).toMatchObject([
+      { name: "Seth Perkins", number: "1", position: "OUTFIELD", class_year: "FR" },
+      { name: "Ryan Avalos", number: "2", position: "PITCHER", class_year: "GR", home_state: "TX" },
+    ]);
+  });
+
+  it("reads labelled cells for the class year and the high-school city and state", () => {
+    const page = [
+      "Softball Roster",
+      "3",
+      "Violet Avila",
+      "Pos.: 3B/2B",
+      "B/T: R/R",
+      "Ht.: 5-2",
+      "Yr.: Fr.",
+      "High School: Troy",
+      "HS City/State: Fullerton, CA",
+    ].join("\n");
+    expect(parseRoster(page, "softball").players).toMatchObject([
+      { name: "Violet Avila", position: "3B/2B", class_year: "FR", bats: "R", throws: "R", home_state: "CA" },
+    ]);
+  });
+
+  it("keeps a labelled hometown that has no state after it", () => {
+    const page = [
+      "Baseball Roster",
+      "Quincy Martin",
+      "#2",
+      "Position: OF",
+      "Class: Sophomore",
+      "Hometown: Middletown",
+      "High School: Middletown",
+    ].join("\n");
+    expect(parseRoster(page, "baseball").players).toMatchObject([
+      { name: "Quincy Martin", position: "OF", class_year: "SO", hometown: "Middletown", home_state: null },
+    ]);
+  });
 });

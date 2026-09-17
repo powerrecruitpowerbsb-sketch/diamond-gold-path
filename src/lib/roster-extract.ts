@@ -122,7 +122,7 @@ const CLASS_MAP: Array<[RegExp, string]> = [
 
 
 const POSITION_TOKEN =
-  /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|mif|cif|of|lf|cf|rf|dh|util|utl|uti|ut|two-?way|pitcher|catcher|infielder|outfielder|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
+  /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|mif|cif|of|lf|cf|rf|dh|util|utl|uti|ut|two-?way|pitcher|catcher|infield(er)?|outfield(er)?|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
 
 /**
  * Positions are often combined: "IF/OF/P", "UTL/P". Accept a cell where every
@@ -276,6 +276,17 @@ function personName(cell: string): string | null {
   if (raw.length < 4 || raw.length > 48) return null;
   if (/[0-9@|]|https?:/i.test(raw)) return null;
   if (COLUMN_LABEL.test(raw)) return null;
+  // A line that OPENS with a column label is that label and its value, never a
+  // person: "Academic Year Fy." was otherwise stored as a player.
+  if (
+    /^(academic\s+year|class(\s+year)?|position|pos|hometown|home\s?town|high\s+school|last\s+school|previous\s+school|jersey(\s+number)?|height|weight|bats|throws|custom\s+field)\b/i.test(
+      raw,
+    )
+  ) {
+    return null;
+  }
+
+
 
 
   // Rosters printed "Smith, John" or "O'Brien, Pat Michael" used to parse as an
@@ -606,8 +617,35 @@ function parseCards(input: string[]): PlayerRow[] {
     let batsRaw: string | null = null;
     let throwsRaw: string | null = null;
 
+    // Some pages print the position ABOVE the jersey number ("Outfield / 1 /
+    // Seth Perkins"). Scanning forward only, the position read was the one
+    // belonging to the NEXT player, so every player carried his neighbour's spot.
+    const aboveNumber = (lines[nameAt === index - 1 ? index - 2 : index - 1] ?? "").trim();
+    if (
+      aboveNumber &&
+      aboveNumber.length <= 24 &&
+      !aboveNumber.includes(",") &&
+      POSITION_WORDS.test(aboveNumber) &&
+      !rowIsFurniture(aboveNumber)
+    ) {
+      position = aboveNumber.toUpperCase();
+      positionRaw = aboveNumber;
+    }
+
     for (let ahead = start; ahead < Math.min(start + 8, lines.length); ahead += 1) {
       const next = lines[ahead]!;
+      // The next player's block may open with his position rather than his
+      // number; stop there so nothing is borrowed across the boundary.
+      const following = (lines[ahead + 1] ?? "").trim();
+      if (
+        ahead > start &&
+        /^#?\d{1,3}$/.test(following) &&
+        POSITION_WORDS.test(next.trim()) &&
+        next.trim().length <= 24 &&
+        !next.includes(",")
+      ) {
+        break;
+      }
       // "Bats/Throws R/L", "B/T: S/R", or a bare "R/R" line on a card.
       const combined = next.match(/(?:bats\s*[/-]\s*throws|b\s*[/-]\s*t)\s*:?\s*([LRSB])\s*[/-]\s*([LR])\b/i);
       const bare = batsThrowsCell(next);
@@ -693,8 +731,10 @@ function parseCards(input: string[]): PlayerRow[] {
         position = position ?? labelPosition[1]!.trim().toUpperCase();
         positionRaw = positionRaw ?? labelPosition[1]!.trim();
       }
+      // "Yr.: Fr." is the commonest junior-college wording and was not read at
+      // all, so those pages lost the class year for every player.
       const labelClass = next.match(
-        /\b(?:academic year|class(?: year)?|year|cl)\.?\s*:?\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i,
+        /\b(?:academic year|class(?: year)?|year|yr|cl)\.?\s*:?\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?)/i,
       );
       if (labelClass) {
         klass = klass ?? classYear(labelClass[1]!.trim());
@@ -707,7 +747,17 @@ function parseCards(input: string[]): PlayerRow[] {
       const labelHometown = next.match(
         /\bhometown[^:]*:\s*(.+)$|\bhometown\s+(.+?)(?:\s+(?:last school|previous school|high school)\b|$)/i,
       );
-      if (labelHometown) hometown = hometown ?? hometownValue(labelHometown[1] ?? labelHometown[2] ?? "");
+      // A labelled hometown is a hometown even with no state after it: pages that
+      // print "Hometown: Middletown" for local players lost the town entirely.
+      if (labelHometown) {
+        hometown = hometown ?? hometownValue(labelHometown[1] ?? labelHometown[2] ?? "", { inHometownColumn: true });
+      }
+      // "HS City/State: Fullerton, CA" — the only place some pages print where a
+      // player is from.
+      if (!hometown) {
+        const labelCityState = next.match(/\b(?:hs\s*city\s*\/?\s*state|city\s*\/\s*state)\s*:?\s*(.+)$/i);
+        if (labelCityState) hometown = hometownValue(labelCityState[1]!, { inHometownColumn: true });
+      }
 
       // "Previous School Chipola College" on a card is the transfer signal.
       const labelPrevious = next.match(
