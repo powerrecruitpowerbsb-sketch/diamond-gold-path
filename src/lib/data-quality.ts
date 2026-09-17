@@ -317,6 +317,7 @@ const POSITION_ALIASES: Record<string, string> = {
   util: "UTIL",
   utl: "UTIL",
   ut: "UTIL",
+  uti: "UTIL",
   utility: "UTIL",
   "utility player": "UTIL",
   dh: "UTIL",

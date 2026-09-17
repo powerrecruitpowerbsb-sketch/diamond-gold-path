@@ -548,4 +548,48 @@ Outfielder 5 8 150 lbs Senior
 `;
     expect(parseRoster(page, "softball").players).toMatchObject([{ class_year: "JR" }, { class_year: "SR" }]);
   });
+
+  it("reads a table row the page broke across three lines with an empty first cell", () => {
+    const page = [
+      "2026 Baseball Roster",
+      "# | Full Name | C | Pos. | B/T | Ht. | Wt. | Academic Year | Hometown | High School | Major",
+      "0 |",
+      "Nick Bartalini",
+      "| | MIF/RHP | R/R | 5-9 | 170 | Jr. | Reading, Mass. | Reading Memorial High School | Finance",
+    ].join("\n");
+    expect(parseRoster(page, "baseball").players).toMatchObject([
+      { name: "Nick Bartalini", number: "0", position: "MIF/RHP", class_year: "JR", bats: "R", throws: "R", home_state: "MA" },
+    ]);
+  });
+
+  it("reads a class year printed at the end of the hometown line", () => {
+    const page = [
+      "Softball Roster",
+      "Kennedy Ariail",
+      "#1",
+      "OF 5 6",
+      "Cumming, Ga. South Forsyth HS Sr.",
+    ].join("\n");
+    expect(parseRoster(page, "softball").players).toMatchObject([
+      { name: "Kennedy Ariail", number: "1", position: "OF", class_year: "SR", home_state: "GA" },
+    ]);
+  });
+
+  it("keeps an abbreviated state, a numbered position, and one player's values inside their own block", () => {
+    const page = [
+      "Softball Roster",
+      "Mcartney Harrington",
+      "#4",
+      "C/3B 5 7",
+      "Taylorsville, S.C. South Caldwell HS Fr.",
+      "Marian Collins",
+      "#5",
+      "INF 5 11",
+      "Marietta, Ga. Mount Paran Christian School Jr.",
+    ].join("\n");
+    expect(parseRoster(page, "softball").players).toMatchObject([
+      { name: "Mcartney Harrington", position: "C/3B", class_year: "FR", hometown: "Taylorsville, S.C.", home_state: "SC" },
+      { name: "Marian Collins", position: "INF", class_year: "JR", home_state: "GA" },
+    ]);
+  });
 });

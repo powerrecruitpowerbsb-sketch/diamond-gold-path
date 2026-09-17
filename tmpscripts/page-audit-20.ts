@@ -9,6 +9,8 @@
 import { execFileSync } from "node:child_process";
 import { scrapePage } from "@/lib/ingest.server";
 import { readRoster } from "@/lib/roster-read.server";
+import { normalizePosition } from "@/lib/data-quality";
+
 
 const args = process.argv.slice(2);
 const at = args.indexOf("--n");
@@ -34,6 +36,7 @@ const programs = q(`
 
 type Tally = Record<string, number>;
 const totals: Tally = {};
+const allDiffs: string[] = [];
 const bump = (key: string, by = 1) => (totals[key] = (totals[key] ?? 0) + by);
 
 for (const [id, school, sport, url, stored] of programs) {
@@ -57,7 +60,9 @@ for (const [id, school, sport, url, stored] of programs) {
             coalesce(bats::text,''), coalesce(throws::text,''), coalesce(home_state,'')
        from roster_players where program_id = '${id}'`,
   );
-  const storedByName = new Map(rows.map((r) => [r[0]!, r]));
+  // A stored name printed across two lines would otherwise arrive short and
+  // read as a lost value on every field; drop those rather than count fiction.
+  const storedByName = new Map(rows.filter((r) => r.length === 6).map((r) => [r[0]!, r]));
   const fresh = new Map(read.players.map((p) => [p.name.trim().toLowerCase(), p]));
 
   const diffs: string[] = [];
@@ -66,13 +71,19 @@ for (const [id, school, sport, url, stored] of programs) {
   for (const [name, p] of fresh) {
     const row = storedByName.get(name);
     if (!row) continue;
+
+    // Compare like with like: the writer maps the page's wording onto our list
+    // before storing, so the audit must map it too.
+    const pos = normalizePosition(p.position);
+    if (p.position && !pos) bump(`position: wording not recognised (${String(p.position).slice(0, 20)})`);
     const pairs: [string, string, string | null][] = [
-      ["position", row[1]!, p.position],
+      ["position", row[1]!, pos],
       ["class year", row[2]!, p.class_year],
       ["bats", row[3]!, p.bats],
       ["throws", row[4]!, p.throws],
       ["home state", row[5]!, p.home_state],
     ];
+
     for (const [field, was, now] of pairs) {
       const nowText = now ?? "";
       if (was === nowText) continue;
@@ -96,9 +107,13 @@ for (const [id, school, sport, url, stored] of programs) {
   );
   for (const line of diffs.slice(0, 8)) console.log(`    ${line}`);
   if (diffs.length > 8) console.log(`    … ${diffs.length - 8} more`);
+  for (const line of diffs) allDiffs.push(`${school}\t${sport}\t${line}`);
+
 }
 
 console.log("\nacross the sample:");
 for (const [key, value] of Object.entries(totals).sort((a, b) => b[1] - a[1])) {
   console.log(`  ${key}: ${value}`);
 }
+
+require("node:fs").writeFileSync("/tmp/audit60-diffs.tsv", allDiffs.join("\n") + "\n");
