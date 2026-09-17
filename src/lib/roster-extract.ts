@@ -297,7 +297,13 @@ function splitCells(line: string): string[] {
   return [];
 }
 
-const SEPARATOR = /^\|?[\s:-]+\|/;
+// A markdown separator row: dashes and colons only. It MUST carry a dash or a
+// colon. The looser form also matched a row whose first cell was simply empty
+// ("| | MIF/RHP | R/R | ..."), so every wrapped table row on pages that print
+// the jersey number on its own line was thrown away as furniture and the whole
+// squad fell back to a card view carrying names and numbers alone.
+const SEPARATOR = /^\|?[\s]*[-:][-:\s]*\|/;
+
 
 /** The hometown column header, so a comma-less town under it is still a town. */
 const HOMETOWN_HEADER = /^(hometown|home\s?town|hometown\s*\/.*|hometown\s*\(.*\)|hometown\/high school|hometown \/ last school)$/i;
@@ -640,7 +646,10 @@ function parseCards(input: string[]): PlayerRow[] {
       if (positionThenPlace && POSITION_WORDS.test(positionThenPlace[1]!)) {
         position = position ?? positionThenPlace[1]!.toUpperCase();
         positionRaw = positionRaw ?? positionThenPlace[1]!.trim();
-        const place = positionThenPlace[2]!.match(/^([A-Za-z .'’-]{2,40},\s*[A-Za-z]{2,20}\.?)\b/);
+        // The state may be a newspaper abbreviation carrying interior periods
+        // ("S.C.", "N.J."), which the old pattern could not match — the town was
+        // then read from the NEXT player's block.
+        const place = positionThenPlace[2]!.match(/^([A-Za-z .'’-]{2,40},\s*[A-Za-z]{1,20}(?:\.[A-Za-z]{1,20})*\.?)(?=\s|$)/);
         if (place) hometown = hometown ?? hometownValue(place[1]!);
         continue;
       }
@@ -655,7 +664,9 @@ function parseCards(input: string[]): PlayerRow[] {
       // position sitting on the same line in either order:
       //   "Senior 6 2 200 lbs"  ·  "Senior 6 2"  ·  "Outfielder 5 9 180 lbs Freshman"
       const spaced = next.match(
-        /^([A-Za-z][A-Za-z/\s-]{0,23}?)?\s*(\d)\s+(\d{1,2})(?:\s+(\d{2,3})\s*lbs?\.?)?(?:\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?))?$/i,
+        // The position may carry a digit ("C/3B", "1B/RHP"), so the leading token
+        // allows numbers; without that the whole line went unread.
+        /^([A-Za-z][A-Za-z0-9/\s-]{0,23}?)?\s*(\d)\s+(\d{1,2})(?:\s+(\d{2,3})\s*lbs?\.?)?(?:\s+(redshirt\s+[A-Za-z]+|[A-Za-z]+\.?))?$/i,
       );
       if (spaced) {
         const lead = spaced[1]?.trim() ?? "";
@@ -714,9 +725,22 @@ function parseCards(input: string[]): PlayerRow[] {
       // "Killeen, Texas Shoemaker HS" — the town, the state and the high school
       // share one line with no separator.
       if (!hometown) {
-        const place = next.match(/^([A-Za-z .'’-]{2,40},\s*[A-Za-z]{2,20}\.?)\s+\S/);
+        const place = next.match(/^([A-Za-z .'’-]{2,40},\s*[A-Za-z]{1,20}(?:\.[A-Za-z]{1,20})*\.?)\s+\S/);
         if (place) hometown = hometownValue(place[1]!);
       }
+      // "Cumming, Ga. South Forsyth HS Sr." — the class year sits at the END of
+      // the hometown line, so reading that line as a hometown alone lost the
+      // year for every player on the page.
+      if (!klass && hometown) {
+        const trailing = next.match(/\s(redshirt\s+[A-Za-z]+|[A-Za-z]{2,9}\.?)$/i);
+        const trailingClass = trailing ? classYear(trailing[1]!) : null;
+        if (trailingClass) {
+          klass = trailingClass;
+          classRaw = classRaw ?? trailing![1]!.trim();
+        }
+      }
+
+
 
     }
 
