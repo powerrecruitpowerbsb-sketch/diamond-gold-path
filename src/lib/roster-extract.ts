@@ -211,7 +211,7 @@ function weightValue(cell: string): string | null {
 
 /** State/province/country tails, so "Smith, John" is never read as a hometown. */
 const PLACE_TAIL =
-  /^(ala|alaska|ariz|ark|calif|cal|colo|conn|del|fla|ga|hawaii|idaho|ill|ind|iowa|kan|kans|ky|la|maine|md|mass|mich|minn|miss|mo|mont|neb|nebr|nev|ohio|okla|ore|pa|penn|tenn|texas|tex|utah|vt|va|wash|wis|wisc|wyo|d\.?c|n\.?[hjmycd]|r\.?i|s\.?[cd]|w\.?va|[A-Z]{2}|canada|japan|mexico|australia|puerto rico|dominican republic|venezuela|cuba|panama|colombia|curacao|curaçao|bahamas|germany|england|netherlands|aruba|nicaragua|brazil|taiwan|korea|ontario|quebec|alberta|british columbia|manitoba|saskatchewan)\.?$/i;
+  /^(ala|alaska|ariz|ark|calif|cal|colo|conn|del|fla|ga|hawaii|idaho|ill|ind|iowa|kan|kans|ky|la|maine|md|mass|mich|minn|miss|mo|mont|neb|nebr|nev|ohio|okla|ore|pa|penn|tenn|texas|tex|utah|vt|va|wash|wis|wisc|wyo|d\.?c|n\.?[hjmycd]|r\.?i|s\.?[cd]|w\.?va|[A-Z]{2}|canada|japan|mexico|australia|puerto rico|dominican republic|venezuela|cuba|panama|colombia|curacao|curaçao|bahamas|germany|england|netherlands|aruba|nicaragua|brazil|taiwan|korea|ontario|ont|quebec|que|alberta|alta|british columbia|b\.?c|manitoba|man|saskatchewan|sask|nfld|n\.?[bs]|p\.?e\.?i)\.?$/i;
 
 function hometownValue(cell: string, options: { inHometownColumn?: boolean } = {}): string | null {
   // Pages often print "Hometown / High School" or "Hometown / Last School" in
