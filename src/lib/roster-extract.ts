@@ -276,6 +276,17 @@ function personName(cell: string): string | null {
   if (raw.length < 4 || raw.length > 48) return null;
   if (/[0-9@|]|https?:/i.test(raw)) return null;
   if (COLUMN_LABEL.test(raw)) return null;
+  // A line that OPENS with a column label is that label and its value, never a
+  // person: "Academic Year Fy." was otherwise stored as a player.
+  if (
+    /^(academic\s+year|class(\s+year)?|position|pos|hometown|home\s?town|high\s+school|last\s+school|previous\s+school|jersey(\s+number)?|height|weight|bats|throws|custom\s+field)\b/i.test(
+      raw,
+    )
+  ) {
+    return null;
+  }
+
+
 
 
   // Rosters printed "Smith, John" or "O'Brien, Pat Michael" used to parse as an
