@@ -122,7 +122,7 @@ const CLASS_MAP: Array<[RegExp, string]> = [
 
 
 const POSITION_TOKEN =
-  /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|mif|cif|of|lf|cf|rf|dh|util|utl|uti|ut|two-?way|pitcher|catcher|infielder|outfielder|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
+  /^(rhp|lhp|p|sp|rp|c|1b|2b|3b|ss|inf|if|mif|cif|of|lf|cf|rf|dh|util|utl|uti|ut|two-?way|pitcher|catcher|infield(er)?|outfield(er)?|utility|right-?handed pitcher|left-?handed pitcher|first base(man)?|second base(man)?|third base(man)?|shortstop|middle infield(er)?|corner infield(er)?|designated hitter)$/i;
 
 /**
  * Positions are often combined: "IF/OF/P", "UTL/P". Accept a cell where every
