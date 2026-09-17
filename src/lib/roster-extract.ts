@@ -606,8 +606,35 @@ function parseCards(input: string[]): PlayerRow[] {
     let batsRaw: string | null = null;
     let throwsRaw: string | null = null;
 
+    // Some pages print the position ABOVE the jersey number ("Outfield / 1 /
+    // Seth Perkins"). Scanning forward only, the position read was the one
+    // belonging to the NEXT player, so every player carried his neighbour's spot.
+    const aboveNumber = (lines[nameAt === index - 1 ? index - 2 : index - 1] ?? "").trim();
+    if (
+      aboveNumber &&
+      aboveNumber.length <= 24 &&
+      !aboveNumber.includes(",") &&
+      POSITION_WORDS.test(aboveNumber) &&
+      !rowIsFurniture(aboveNumber)
+    ) {
+      position = aboveNumber.toUpperCase();
+      positionRaw = aboveNumber;
+    }
+
     for (let ahead = start; ahead < Math.min(start + 8, lines.length); ahead += 1) {
       const next = lines[ahead]!;
+      // The next player's block may open with his position rather than his
+      // number; stop there so nothing is borrowed across the boundary.
+      const following = (lines[ahead + 1] ?? "").trim();
+      if (
+        ahead > start &&
+        /^#?\d{1,3}$/.test(following) &&
+        POSITION_WORDS.test(next.trim()) &&
+        next.trim().length <= 24 &&
+        !next.includes(",")
+      ) {
+        break;
+      }
       // "Bats/Throws R/L", "B/T: S/R", or a bare "R/R" line on a card.
       const combined = next.match(/(?:bats\s*[/-]\s*throws|b\s*[/-]\s*t)\s*:?\s*([LRSB])\s*[/-]\s*([LR])\b/i);
       const bare = batsThrowsCell(next);
