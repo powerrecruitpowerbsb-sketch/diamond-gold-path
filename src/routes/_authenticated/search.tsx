@@ -525,11 +525,14 @@ function SearchScreen() {
             <button
               key={sport}
               type="button"
-              onClick={() => set({ sport })}
+              onClick={() => {
+                setSport(sport);
+                set({ sport });
+              }}
               className={cn(
                 "h-8 rounded-sm px-4 text-sm font-semibold",
                 params.sport === sport
-                  ? "bg-org-primary text-white"
+                  ? "bg-sport-strong text-sport-foreground"
                   : "text-steel hover:text-graphite",
               )}
             >
