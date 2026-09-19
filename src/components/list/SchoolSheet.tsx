@@ -111,8 +111,18 @@ export function SchoolSheet({
                 <dl className="grid gap-4 sm:grid-cols-3">
                   {[
                     ["Location", [university['city'], university['state']].filter(Boolean).join(", ")],
-                    ["Enrollment", university['undergrad_enrollment']],
-                    ["Net price", university['est_net_price']],
+                    [
+                      "Enrollment",
+                      university['undergrad_enrollment']
+                        ? Number(university['undergrad_enrollment']).toLocaleString("en-US")
+                        : null,
+                    ],
+                    [
+                      "Net price",
+                      university['est_net_price']
+                        ? `$${Number(university['est_net_price']).toLocaleString("en-US")}`
+                        : null,
+                    ],
                     ["Acceptance rate", university['acceptance_rate']],
                     ["Head coach", program['head_coach_name']],
                     ["Roster size", roster.length || null],
