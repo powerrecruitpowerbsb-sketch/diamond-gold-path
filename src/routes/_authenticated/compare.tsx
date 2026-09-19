@@ -205,83 +205,117 @@ function ComparePage() {
           None of those programs are available to your account.
         </p>
       ) : (
-        <section className="mt-8 overflow-x-auto rounded-xl border border-border bg-card">
+        <section className="surface-raised mt-8 overflow-x-auto rounded-2xl">
           <table className="tabular w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th
                   scope="col"
-                  className="sticky left-0 z-20 min-w-[148px] border-b-2 border-org-primary bg-card px-4 py-4 text-left align-bottom"
+                  className="sticky left-0 z-20 min-w-[170px] border-b border-border bg-surface-2 px-4 py-4 text-left align-bottom"
                 >
                   <span className="meta">ATTRIBUTE</span>
                 </th>
-                {programs.map((entry) => (
-                  <th
-                    key={entry.program.id}
-                    scope="col"
-                    className="min-w-[190px] border-b-2 border-org-primary bg-card px-4 py-4 text-left align-bottom"
-                  >
-                    <Link
-                      to="/programs/$id"
-                      params={{ id: entry.program.id }}
-                      className="font-display text-base leading-snug font-bold text-org-primary hover:underline"
-                    >
-                      {entry.university?.name}
-                    </Link>
-                    <span className="mt-2 block">
-                      <span className="rounded-md bg-org-primary px-2 py-1 text-[11px] font-bold text-org-primary-foreground">
-                        {[entry.program.governing_body, entry.program.division]
-                          .filter(Boolean)
-                          .join(" ") || "—"}
-                      </span>
-                    </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {ROWS.map((row, index) => {
-                const values = programs.map((entry) => row.value(entry));
-                const differs = new Set(values).size > 1;
-                return (
-                  <tr key={row.label} className={cn(index % 2 === 1 && "bg-muted/40")}>
+                {programs.map((entry) => {
+                  const rest = programs
+                    .filter((other) => other.program.id !== entry.program.id)
+                    .map((other) => other.program.id)
+                    .join(",");
+                  return (
                     <th
-                      scope="row"
-                      className={cn(
-                        "sticky left-0 z-10 px-4 py-3 text-left align-middle font-semibold text-steel",
-                        index % 2 === 1 ? "bg-[color-mix(in_srgb,var(--muted)_40%,var(--card))]" : "bg-card",
-                      )}
+                      key={entry.program.id}
+                      scope="col"
+                      className="min-w-[210px] border-b border-border bg-surface-2 px-4 py-4 text-left align-bottom"
                     >
-                      <span className="flex items-center gap-1.5">
-                        {row.verified ? (
-                          <span
-                            className="grid size-4 shrink-0 place-items-center rounded-full bg-diamond-green"
-                            aria-hidden
-                          >
-                            <Check className="size-2.5 text-white" strokeWidth={3} />
-                          </span>
-                        ) : null}
-                        {row.label}
+                      <span className="mb-2 flex items-start justify-between gap-2">
+                        <span className="rounded-md border border-org-primary/40 bg-org-primary-tint px-2 py-1 text-[11px] font-bold tracking-wide text-org-primary-strong uppercase">
+                          {[entry.program.governing_body, entry.program.division]
+                            .filter(Boolean)
+                            .join(" ") || "—"}
+                        </span>
+                        {/* Dropping a column is just a shorter id list. */}
+                        <Link
+                          to="/compare"
+                          search={{ ids: rest }}
+                          aria-label={`Remove ${entry.university?.name ?? "school"}`}
+                          className="text-steel hover:text-seam-red"
+                        >
+                          <X className="size-4" aria-hidden />
+                        </Link>
+                      </span>
+                      <Link
+                        to="/programs/$id"
+                        params={{ id: entry.program.id }}
+                        className="font-display block text-base leading-snug font-bold text-foreground hover:underline"
+                      >
+                        {entry.university?.name}
+                      </Link>
+                      <span className="meta mt-1 block normal-case">
+                        {[entry.university?.city, entry.university?.state]
+                          .filter(Boolean)
+                          .join(", ") || "Location not reported"}
+                      </span>
+                      <span className="meta mt-0.5 block normal-case">
+                        {entry.program.conference || "Conference not reported"}
                       </span>
                     </th>
-                    {programs.map((entry, column) => (
-                      <td
-                        key={entry.program.id}
+                  );
+                })}
+              </tr>
+            </thead>
+            {GROUPS.map((group) => (
+              <tbody key={group.title}>
+                <tr>
+                  <th
+                    scope="colgroup"
+                    colSpan={programs.length + 1}
+                    className="border-y border-border bg-org-primary-tint/60 px-4 py-2 text-left"
+                  >
+                    <span className="meta text-org-primary-strong">{group.title.toUpperCase()}</span>
+                  </th>
+                </tr>
+                {group.rows.map((row, index) => {
+                  const values = programs.map((entry) => row.value(entry));
+                  const differs = new Set(values).size > 1;
+                  return (
+                    <tr key={row.label} className={cn(index % 2 === 1 && "bg-surface-2/50")}>
+                      <th
+                        scope="row"
                         className={cn(
-                          "px-4 py-3 align-middle",
-                          row.verified
-                            ? "bg-diamond-green-tint/70 font-display font-bold text-graphite"
-                            : "text-graphite",
-                          differs && row.verified && "shadow-[inset_2px_0_0_var(--diamond-green)]",
+                          "sticky left-0 z-10 px-4 py-3 text-left align-middle font-semibold text-steel",
+                          index % 2 === 1 ? "bg-surface-2" : "bg-card",
                         )}
                       >
-                        {values[column]}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
+                        <span className="flex items-center gap-1.5">
+                          {row.verified ? (
+                            <span
+                              className="grid size-4 shrink-0 place-items-center rounded-full bg-diamond-green"
+                              aria-hidden
+                            >
+                              <Check className="size-2.5 text-navy-deep" strokeWidth={3} />
+                            </span>
+                          ) : null}
+                          {row.label}
+                        </span>
+                      </th>
+                      {programs.map((entry, column) => (
+                        <td
+                          key={entry.program.id}
+                          className={cn(
+                            "px-4 py-3 align-middle",
+                            row.verified
+                              ? "font-display font-bold text-diamond-green"
+                              : "text-graphite",
+                            differs && row.verified && "bg-diamond-green-tint/50",
+                          )}
+                        >
+                          {values[column]}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            ))}
           </table>
         </section>
       )}
