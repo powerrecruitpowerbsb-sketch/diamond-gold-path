@@ -394,7 +394,7 @@ function SearchScreen() {
                   </th>
                 ))}
                 <th scope="col" className="px-3 py-2 text-right text-[11px] text-steel uppercase">
-                  Save
+                  Add to list
                 </th>
               </tr>
             </thead>
@@ -403,16 +403,34 @@ function SearchScreen() {
                 const u = row.university ?? {};
                 const selected = compare.isSelected(row.id);
                 const region = regionOfState(u.state);
+                // Same behaviour as College list: the row opens over the results.
+                const openRow = () =>
+                  setOpenEntry({
+                    id:
+                      (picker.data?.saved ?? []).find(
+                        (saved) =>
+                          saved.program_id === row.id &&
+                          saved.org_athlete_id === params.athleteId,
+                      )?.org_athlete_id
+                        ? null
+                        : null,
+                    programId: row.id,
+                    school: String(u.name ?? "Program"),
+                    sport: row.sport ?? null,
+                    notes: null,
+                    threadId: null,
+                    athleteId: params.athleteId || null,
+                  });
                 return (
-                  <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                  <tr
+                    key={row.id}
+                    onClick={openRow}
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/50"
+                  >
                     <td className="h-[38px] max-w-[240px] truncate px-3 py-1.5 align-middle whitespace-nowrap">
-                      <Link
-                        to="/programs/$id"
-                        params={{ id: row.id }}
-                        className="font-semibold text-org-primary underline-offset-2 hover:underline"
-                      >
+                      <span className="font-semibold text-org-primary underline-offset-2 hover:underline">
                         {u.name}
-                      </Link>
+                      </span>
                     </td>
                     <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {u.state ?? NOT_REPORTED}
