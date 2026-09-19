@@ -546,11 +546,12 @@ function EditPanel({
   );
 }
 
-/* Four panels instead of one endless form. */
+/* Three panels instead of one endless form. */
 function WorkPanels({
   programId,
   canApprove,
   canRate,
+  focusField,
   detail,
   recordByField,
   refresh,
@@ -558,6 +559,7 @@ function WorkPanels({
   programId: string;
   canApprove: boolean;
   canRate: boolean;
+  focusField: string | null;
   detail: any;
   recordByField: Map<string, any>;
   refresh: () => void;
@@ -571,9 +573,15 @@ function WorkPanels({
     },
     { key: "notes", text: "Notes", fields: INTEL_FIELDS.filter((f) => f.group === "notes") },
   ];
-  const [panel, setPanel] = useState("relationship");
+  // Arriving from a search tag opens the panel that holds that answer.
+  const focusGroup = focusField ? INTEL_FIELD_MAP[focusField]?.group ?? null : null;
+  const [panel, setPanel] = useState(focusGroup ?? "relationship");
+  useEffect(() => {
+    if (focusGroup) setPanel(focusGroup);
+  }, [focusGroup]);
   const current = panels.find((p) => p.key === panel) ?? panels[0]!;
   const pendingCount = (detail.records ?? []).filter((r: any) => r.status === "pending").length;
+
 
   return (
     <div className="p-4">
