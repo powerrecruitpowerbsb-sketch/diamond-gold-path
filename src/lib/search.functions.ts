@@ -343,6 +343,8 @@ export const getProgramProfile = createServerFn({ method: "GET" })
         `id, university_id, sport, governing_body, division, conference, scholarships_available,
          scholarship_details, athletic_website, roster_url, coaching_staff_url, facility_url,
          head_coach_name, recruiting_coordinator_name, last_verified_at, last_roster_pull_at,
+         division_source, division_verified_at, conference_source, conference_verified_at,
+         coach_source_url, coach_extracted_at,
          universities!inner(${UNIVERSITY_COLS})`,
       )
       .eq("id", data.programId)
