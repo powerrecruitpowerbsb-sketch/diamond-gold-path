@@ -45,6 +45,8 @@ function CollegeList() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [openEntry, setOpenEntry] = useState<SheetEntry | null>(null);
   const [showStages, setShowStages] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("athlete");
+  const [dir, setDir] = useState<"asc" | "desc">("asc");
 
   const list = useQuery({
     queryKey: ["college-list", athleteId],
@@ -56,6 +58,7 @@ function CollegeList() {
   const stages = (data?.stages ?? []) as Record<string, any>[];
   const entries = (data?.entries ?? []) as Record<string, any>[];
   const currentAthlete = athleteId ?? data?.athleteId ?? null;
+  const showingAll = currentAthlete === "all";
 
   const move = useMutation({
     mutationFn: (input: { entryId: string; stageId: string }) => moveFn({ data: input }),
