@@ -23,6 +23,7 @@ import {
   metricSourceLabel,
   metricsForSport,
 } from "@/lib/athlete-metrics";
+import { HelpTip } from "@/components/brand/HelpTip";
 import { normalizeSport } from "@/lib/sport";
 import { cn } from "@/lib/utils";
 
@@ -412,7 +413,10 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
             {filledCount > 0 ? (
               <button
                 type="button"
-                onClick={() => setEditing(false)}
+                onClick={() => {
+                  resetForm();
+                  setEditing(false);
+                }}
                 className="touch-target inline-flex items-center rounded-xl border border-border px-4 text-sm font-semibold text-steel hover:text-graphite"
               >
                 Cancel
