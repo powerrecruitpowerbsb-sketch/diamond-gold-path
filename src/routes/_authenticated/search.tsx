@@ -295,16 +295,16 @@ function SearchScreen() {
   return (
     <AppShell right={<AuthButton />}>
       <header className="border-b border-border pb-4">
-        <h1 className="font-display text-2xl font-bold text-graphite">Find a program</h1>
-        <p className="meta mt-1">
+        <h1 className="font-display text-3xl font-bold text-org-primary">Find a program</h1>
+        <p className="mt-1.5 text-[15px] text-steel">
           {!searching
-            ? "PICK A LEVEL, A LOCATION, OR TYPE A SCHOOL NAME"
+            ? "Search 3,238 programs by name, location, or level."
             : results.isPending
-              ? "SEARCHING…"
+              ? "Searching…"
               : `${(results.data?.matches ?? rows.length).toLocaleString("en-US")} ${titleCase(
                   params.sport,
-                ).toUpperCase()} TEAMS MATCH${
-                  results.data?.capped ? ` · SHOWING THE FIRST ${rows.length}` : ""
+                ).toLowerCase()} teams match${
+                  results.data?.capped ? ` · showing the first ${rows.length}` : ""
                 }`}
         </p>
 
