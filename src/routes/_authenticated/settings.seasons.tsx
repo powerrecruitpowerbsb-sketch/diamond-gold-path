@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { TeamSchedulePanel } from "@/components/athlete/TeamSchedulePanel";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
