@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,6 +9,7 @@ import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useCompare } from "@/components/compare/compare-selection";
 import { ShortlistSaveButton } from "@/components/brand/ShortlistSaveButton";
+import { SchoolSheet, type SheetEntry } from "@/components/list/SchoolSheet";
 import { listAthletePicker } from "@/lib/shortlist.functions";
 import { getSearchFacets, searchPrograms } from "@/lib/search.functions";
 import {
@@ -125,11 +126,27 @@ function sortValue(key: SortKey, row: any): string | number | null {
   }
 }
 
+/** Keys that describe *what* you're looking for; sport/sorting/athlete don't count. */
+const CRITERIA_KEYS = Object.keys(SEARCH_DEFAULTS).filter(
+  (key) => !["sport", "sort", "dir", "more", "athleteId"].includes(key),
+) as (keyof SearchParams)[];
+
+function hasCriteria(params: SearchParams) {
+  return CRITERIA_KEYS.some((key) => {
+    const value = params[key];
+    const fallback = (SEARCH_DEFAULTS as Record<string, unknown>)[key as string];
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== fallback && value !== "" && value !== 0;
+  });
+}
+
 function SearchScreen() {
   const params = Route.useSearch();
   const navigate = useNavigate({ from: "/search" });
   const [moreOpen, setMoreOpen] = useState(params.more);
+  const [openEntry, setOpenEntry] = useState<SheetEntry | null>(null);
   const compare = useCompare();
+  const searching = hasCriteria(params);
 
   const facetsFn = useServerFn(getSearchFacets);
   const searchFn = useServerFn(searchPrograms);
@@ -141,17 +158,18 @@ function SearchScreen() {
     staleTime: 30_000,
     retry: false,
   });
+  const pickerAthletes = (picker.data?.athletes ?? []) as Record<string, any>[];
   const contextAthlete = params.athleteId
-    ? ((picker.data?.athletes ?? []) as Record<string, any>[]).find(
-        (row) => row["id"] === params.athleteId,
-      ) ?? null
+    ? pickerAthletes.find((row) => row["id"] === params.athleteId) ?? null
     : null;
 
   const facets = useQuery({ queryKey: ["search-facets"], queryFn: () => facetsFn() });
   const results = useQuery({
     queryKey: ["program-search", params],
     queryFn: () => searchFn({ data: params }),
+    enabled: searching,
   });
+
 
   const set = (patch: Partial<SearchParams>) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }) });
@@ -279,15 +297,42 @@ function SearchScreen() {
       <header className="border-b border-border pb-4">
         <h1 className="font-display text-2xl font-bold text-graphite">Find a program</h1>
         <p className="meta mt-1">
-          {results.isPending
-            ? "SEARCHING…"
-            : `${(results.data?.matches ?? rows.length).toLocaleString("en-US")} ${titleCase(
-                params.sport,
-              ).toUpperCase()} TEAMS MATCH${
-                results.data?.capped ? ` · SHOWING THE FIRST ${rows.length}` : ""
-              }`}
+          {!searching
+            ? "PICK A LEVEL, A LOCATION, OR TYPE A SCHOOL NAME"
+            : results.isPending
+              ? "SEARCHING…"
+              : `${(results.data?.matches ?? rows.length).toLocaleString("en-US")} ${titleCase(
+                  params.sport,
+                ).toUpperCase()} TEAMS MATCH${
+                  results.data?.capped ? ` · SHOWING THE FIRST ${rows.length}` : ""
+                }`}
         </p>
+
+        {pickerAthletes.length > 0 ? (
+          <label className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <span className="meta text-steel">Adding to</span>
+            <select
+              value={params.athleteId ?? ""}
+              onChange={(event) => set({ athleteId: event.target.value })}
+              className="h-8 rounded border border-input bg-card px-2 text-sm"
+            >
+              <option value="">Choose a player…</option>
+              {pickerAthletes.map((athlete) => (
+                <option key={String(athlete["id"])} value={String(athlete["id"])}>
+                  {String(athlete["name"])}
+                  {athlete["grad_year"] ? ` · ${athlete["grad_year"]}` : ""}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-steel">
+              {params.athleteId
+                ? "Every row adds to this player's list."
+                : "Pick a player once and every row adds to their list."}
+            </span>
+          </label>
+        ) : null}
       </header>
+
 
       {/* Results render in place, above the filter panel that produced them. */}
       {results.data?.unpublishedPositions ? (
@@ -304,7 +349,12 @@ function SearchScreen() {
         </p>
       ) : null}
 
-      {results.isPending ? (
+      {!searching ? (
+        <p className="mt-4 rounded border border-border bg-card p-6 text-sm text-steel">
+          Set a filter below to start — a level, a state or region, a cost ceiling, or a school
+          name. Nothing is listed until you do.
+        </p>
+      ) : results.isPending ? (
         <div className="mt-4 h-64 animate-pulse rounded border border-border bg-card" />
       ) : rows.length === 0 ? (
         <p className="mt-4 rounded border border-border bg-card p-6 text-sm text-steel">
@@ -344,7 +394,7 @@ function SearchScreen() {
                   </th>
                 ))}
                 <th scope="col" className="px-3 py-2 text-right text-[11px] text-steel uppercase">
-                  Save
+                  Add to list
                 </th>
               </tr>
             </thead>
@@ -353,16 +403,28 @@ function SearchScreen() {
                 const u = row.university ?? {};
                 const selected = compare.isSelected(row.id);
                 const region = regionOfState(u.state);
+                // Same behaviour as College list: the row opens over the results.
+                const openRow = () =>
+                  setOpenEntry({
+                    // Notes live on the saved-list row; from Search there isn't one yet.
+                    id: null,
+                    programId: row.id,
+                    school: String(u.name ?? "Program"),
+                    sport: row.sport ?? null,
+                    notes: null,
+                    threadId: null,
+                    athleteId: params.athleteId || null,
+                  });
                 return (
-                  <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                  <tr
+                    key={row.id}
+                    onClick={openRow}
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/50"
+                  >
                     <td className="h-[38px] max-w-[240px] truncate px-3 py-1.5 align-middle whitespace-nowrap">
-                      <Link
-                        to="/programs/$id"
-                        params={{ id: row.id }}
-                        className="font-semibold text-org-primary underline-offset-2 hover:underline"
-                      >
+                      <span className="font-semibold text-org-primary underline-offset-2 hover:underline">
                         {u.name}
-                      </Link>
+                      </span>
                     </td>
                     <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {u.state ?? NOT_REPORTED}
@@ -396,16 +458,20 @@ function SearchScreen() {
                     <td className="h-[38px] max-w-[170px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {row.head_coach_name ?? "Not published by the school"}
                     </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle">
+                    <td
+                      className="h-[38px] px-3 py-1.5 align-middle"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-2">
                         <ShortlistSaveButton
-                          iconOnly
                           programId={row.id}
                           athleteId={params.athleteId || undefined}
                           athleteName={
                             (contextAthlete?.["name"] as string | undefined) ?? undefined
                           }
+                          className="h-8 rounded border border-border bg-card px-2 text-xs font-semibold text-org-primary hover:bg-muted"
                         />
+
 
 
                         <button
@@ -782,6 +848,11 @@ function SearchScreen() {
 
 
 
+      <SchoolSheet
+        entry={openEntry}
+        athleteId={params.athleteId || null}
+        onClose={() => setOpenEntry(null)}
+      />
     </AppShell>
   );
 }

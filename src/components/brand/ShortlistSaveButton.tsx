@@ -99,10 +99,10 @@ export function ShortlistSaveButton({
 
   const firstName = (athleteName ?? "").split(" ")[0];
   const label = savedStatus
-    ? `Saved · ${SHORTLIST_STATUS_LABEL[savedStatus]}`
+    ? `Added · ${SHORTLIST_STATUS_LABEL[savedStatus]}`
     : athleteId
-      ? `Save to ${firstName || "athlete"}`
-      : "Save to shortlist";
+      ? `Add to ${firstName ? `${firstName}'s list` : "list"}`
+      : "Add to a list";
 
   return (
     <>

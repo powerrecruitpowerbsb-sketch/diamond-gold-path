@@ -23,12 +23,15 @@ import {
 import { setEntryNotes } from "@/lib/continuum.functions";
 
 export type SheetEntry = {
-  id: string;
+  /** Null when the school is not on any list yet (opened straight from Search). */
+  id: string | null;
   programId: string;
   school: string;
   sport: string | null;
   notes: string | null;
   threadId: string | null;
+  /** Set when one screen shows several athletes' schools at once. */
+  athleteId?: string | null;
 };
 
 /**
@@ -238,23 +241,29 @@ function NotesAndMessages({
     <div className="grid gap-6 lg:grid-cols-2">
       <section>
         <h3 className="meta text-steel">Notes on this school</h3>
-        <Textarea
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          onBlur={() => {
-            if ((entry.notes ?? "") !== notes) {
-              notesFn({ data: { entryId: entry.id, notes: notes || null } })
-                .then(() => {
-                  toast.success("Note saved");
-                  onSaved();
-                })
-                .catch((error: Error) => toast.error(error.message));
-            }
-          }}
-          rows={6}
-          className="mt-2"
-          placeholder="What you know about this school, and where things stand."
-        />
+        {entry.id ? (
+          <Textarea
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            onBlur={() => {
+              if ((entry.notes ?? "") !== notes) {
+                notesFn({ data: { entryId: entry.id as string, notes: notes || null } })
+                  .then(() => {
+                    toast.success("Note saved");
+                    onSaved();
+                  })
+                  .catch((error: Error) => toast.error(error.message));
+              }
+            }}
+            rows={6}
+            className="mt-2"
+            placeholder="What you know about this school, and where things stand."
+          />
+        ) : (
+          <p className="mt-2 rounded border border-border p-4 text-sm text-steel">
+            Add this school to a player's list to keep notes on it.
+          </p>
+        )}
       </section>
 
       <section className="flex flex-col">

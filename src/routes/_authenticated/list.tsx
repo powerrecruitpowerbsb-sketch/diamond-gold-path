@@ -34,6 +34,54 @@ export const Route = createFileRoute("/_authenticated/list")({
   component: CollegeList,
 });
 
+type SortKey =
+  | "athlete"
+  | "school"
+  | "sport"
+  | "level"
+  | "conference"
+  | "state"
+  | "stage"
+  | "activity";
+
+/** Sortable columns; the Athlete column only appears when every athlete is on screen. */
+const COLUMNS: { key: SortKey; header: string; athleteOnly?: boolean }[] = [
+  { key: "athlete", header: "Athlete", athleteOnly: true },
+  { key: "school", header: "School" },
+  { key: "sport", header: "Sport" },
+  { key: "level", header: "Level" },
+  { key: "conference", header: "Conference" },
+  { key: "state", header: "State" },
+  { key: "stage", header: "Stage" },
+  { key: "activity", header: "Last activity" },
+];
+
+function sortValue(
+  key: SortKey,
+  entry: Record<string, any>,
+  stageOrder: Map<string, number>,
+): string | number {
+  switch (key) {
+    case "athlete":
+      return String(entry['athleteName'] ?? "");
+    case "school":
+      return String(entry['school'] ?? "");
+    case "sport":
+      return String(entry['sport'] ?? "");
+    case "level":
+      return [entry['governingBody'], entry['division']].filter(Boolean).join(" ");
+    case "conference":
+      return String(entry['conference'] ?? "");
+    case "state":
+      return String(entry['state'] ?? "");
+    case "stage":
+      return stageOrder.get(String(entry['stageId'] ?? "")) ?? 999;
+    case "activity":
+      return String(entry['lastMessageAt'] ?? entry['updatedAt'] ?? "");
+  }
+}
+
+
 function CollegeList() {
   const listFn = useServerFn(getCollegeList);
   const moveFn = useServerFn(moveToStage);
@@ -45,6 +93,8 @@ function CollegeList() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [openEntry, setOpenEntry] = useState<SheetEntry | null>(null);
   const [showStages, setShowStages] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("athlete");
+  const [dir, setDir] = useState<"asc" | "desc">("asc");
 
   const list = useQuery({
     queryKey: ["college-list", athleteId],
@@ -56,6 +106,7 @@ function CollegeList() {
   const stages = (data?.stages ?? []) as Record<string, any>[];
   const entries = (data?.entries ?? []) as Record<string, any>[];
   const currentAthlete = athleteId ?? data?.athleteId ?? null;
+  const showingAll = currentAthlete === "all";
 
   const move = useMutation({
     mutationFn: (input: { entryId: string; stageId: string }) => moveFn({ data: input }),
@@ -78,15 +129,39 @@ function CollegeList() {
     [entries],
   );
 
-  const filtered = entries.filter((entry) => {
-    if (stageFilter !== "all" && entry['stageId'] !== stageFilter) return false;
-    if (sportFilter !== "all" && entry['sport'] !== sportFilter) return false;
-    const level = [entry['governingBody'], entry['division']].filter(Boolean).join(" ");
-    if (levelFilter !== "all" && level !== levelFilter) return false;
-    return true;
-  });
+  const stageOrder = useMemo(
+    () => new Map(stages.map((stage, index) => [String(stage['id']), index])),
+    [stages],
+  );
+
+  const filtered = entries
+    .filter((entry) => {
+      if (stageFilter !== "all" && entry['stageId'] !== stageFilter) return false;
+      if (sportFilter !== "all" && entry['sport'] !== sportFilter) return false;
+      const level = [entry['governingBody'], entry['division']].filter(Boolean).join(" ");
+      if (levelFilter !== "all" && level !== levelFilter) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const left = sortValue(sortKey, a, stageOrder);
+      const right = sortValue(sortKey, b, stageOrder);
+      const cmp =
+        typeof left === "number" && typeof right === "number"
+          ? left - right
+          : String(left).localeCompare(String(right));
+      return dir === "asc" ? cmp : -cmp;
+    });
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) setDir(dir === "asc" ? "desc" : "asc");
+    else {
+      setSortKey(key);
+      setDir("asc");
+    }
+  };
 
   const countFor = (stageId: string) => entries.filter((e) => e['stageId'] === stageId).length;
+  const columns = COLUMNS.filter((column) => showingAll || !column.athleteOnly);
 
   return (
     <AppShell right={<AuthButton />}>
@@ -112,7 +187,7 @@ function CollegeList() {
       {showStages ? <StageSettings /> : null}
 
       <div className="mt-5 flex flex-wrap gap-3">
-        {(data?.athletes ?? []).length > 1 ? (
+        {data?.viewer.isStaff || (data?.athletes ?? []).length > 1 ? (
           <label className="text-sm">
             <span className="meta block text-steel">Athlete</span>
             <select
@@ -120,6 +195,9 @@ function CollegeList() {
               onChange={(event) => setAthleteId(event.target.value)}
               className="mt-1 h-9 rounded border border-input bg-card px-2 text-sm"
             >
+              {data?.viewer.isStaff ? (
+                <option value="all">All athletes ({(data?.athletes ?? []).length})</option>
+              ) : null}
               {(data?.athletes ?? []).map((athlete) => (
                 <option key={String(athlete.id)} value={String(athlete.id)}>
                   {String(athlete.name)}
@@ -192,11 +270,19 @@ function CollegeList() {
             <caption className="sr-only">Saved schools</caption>
             <thead className="sticky top-0 bg-muted">
               <tr className="border-b border-border text-left">
-                {["School", "Sport", "Level", "Conference", "State", "Stage", ""].map((header) => (
-                  <th key={header} className="meta px-3 py-2 text-steel">
-                    {header}
+                {columns.map((column) => (
+                  <th key={column.key} className="meta px-3 py-2 text-steel">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(column.key)}
+                      className="meta text-steel hover:text-graphite"
+                    >
+                      {column.header}
+                      {sortKey === column.key ? (dir === "asc" ? " ▲" : " ▼") : ""}
+                    </button>
                   </th>
                 ))}
+                <th className="meta px-3 py-2 text-steel" />
               </tr>
             </thead>
             <tbody>
@@ -212,9 +298,13 @@ function CollegeList() {
                       sport: (entry['sport'] ?? null) as string | null,
                       notes: (entry['notes'] ?? null) as string | null,
                       threadId: (entry['threadId'] ?? null) as string | null,
+                      athleteId: (entry['athleteId'] ?? null) as string | null,
                     })
                   }
                 >
+                  {showingAll ? (
+                    <td className="px-3 text-graphite">{String(entry['athleteName'] ?? "—")}</td>
+                  ) : null}
                   <td className="px-3 font-semibold text-graphite">{String(entry['school'])}</td>
                   <td className="px-3 text-steel">{String(entry['sport'] ?? "—")}</td>
                   <td className="px-3 text-steel">
@@ -242,6 +332,13 @@ function CollegeList() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-3 text-steel tabular-nums">
+                    {entry['lastMessageAt'] || entry['updatedAt']
+                      ? new Date(
+                          String(entry['lastMessageAt'] ?? entry['updatedAt']),
+                        ).toLocaleDateString()
+                      : "—"}
+                  </td>
                   <td className="px-3">
                     {entry['threadId'] ? (
                       <span
@@ -261,7 +358,7 @@ function CollegeList() {
 
       <SchoolSheet
         entry={openEntry}
-        athleteId={currentAthlete}
+        athleteId={openEntry?.athleteId ?? (showingAll ? null : currentAthlete)}
         onClose={() => setOpenEntry(null)}
       />
     </AppShell>
