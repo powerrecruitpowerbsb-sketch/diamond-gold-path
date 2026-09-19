@@ -80,8 +80,8 @@ export function OrgTheme({
 
   // The two brand colors as uploaded, with the platform defaults as a stand-in
   // so the sport swap still reads when nothing has been uploaded yet.
-  const brandPrimary = primaryColor || "#1f3a5f";
-  const brandAccent = accentColor || "#d3a94e";
+  const brandPrimary = primaryColor || "#d3a94e";
+  const brandAccent = accentColor || "#4f86c6";
 
   /*
    * Softball flips the club's own two colors: the accent becomes the dominant
