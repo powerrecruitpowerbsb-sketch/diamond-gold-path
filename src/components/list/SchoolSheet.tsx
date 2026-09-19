@@ -9,6 +9,7 @@ import { ActivityChips } from "@/components/list/ActivityChips";
 import { OutreachComposer } from "@/components/list/OutreachComposer";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
+import { TrueFitPanel } from "@/components/profile/TrueFitPanel";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
