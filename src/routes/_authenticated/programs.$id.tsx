@@ -507,6 +507,13 @@ function ProgramProfile() {
         <VerifiedFieldTable fields={levelFields} />
       </Section>
 
+      <Section
+        title="True fit"
+        meta={athleteId ? "For the selected athlete" : "Pick an athlete"}
+      >
+        <TrueFitPanel programId={id} athleteId={athleteId ?? null} />
+      </Section>
+
       <Section title="Coaches" meta={<LayerTag layer="verified" />}>
         {coachBlocked ? (
           <p className="mb-2 inline-flex items-center gap-1.5 rounded bg-muted px-2 py-1 text-xs text-steel">
