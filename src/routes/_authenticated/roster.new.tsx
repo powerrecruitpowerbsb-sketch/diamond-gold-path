@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
+import { useSportMode } from "@/hooks/use-sport-mode";
 import { saveOrgAthlete } from "@/lib/athletes.functions";
+import { SPORTS, SPORT_LABEL } from "@/lib/sport";
 
 
 export const Route = createFileRoute("/_authenticated/roster/new")({
@@ -39,12 +41,15 @@ function NewAthlete() {
   const ctx = useSeasonContext();
   const [saving, setSaving] = useState(false);
   const [teamId, setTeamId] = useState("");
+  // New athletes default to whichever sport the app is currently showing.
+  const { sport } = useSportMode();
   const [form, setForm] = useState({
     name: "",
     gradYear: "",
     primaryPosition: "",
     bats: "",
     throws: "",
+    sport: "",
   });
 
   const set = (key: keyof typeof form) => (value: string) =>
@@ -61,6 +66,7 @@ function NewAthlete() {
           primaryPosition: form.primaryPosition || null,
           bats: form.bats || null,
           throws: form.throws || null,
+          sport: form.sport || sport,
           source: "manual",
           seasonId: ctx.seasonId || null,
           teamId: teamId || null,
@@ -100,6 +106,20 @@ function NewAthlete() {
               onChange={(event) => set("name")(event.target.value)}
               className={`mt-1 ${FIELD}`}
             />
+          </label>
+          <label>
+            <span className={LABEL}>Sport *</span>
+            <select
+              value={form.sport || sport}
+              onChange={(event) => set("sport")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            >
+              {SPORTS.map((option) => (
+                <option key={option} value={option}>
+                  {SPORT_LABEL[option]}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             <span className={LABEL}>Graduation year</span>

@@ -8,8 +8,10 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
+import { useSportMode } from "@/hooks/use-sport-mode";
 import { importAthletes, matchAthletes } from "@/lib/athletes.functions";
 import { parseCsv } from "@/lib/csv";
+import { normalizeSport, SPORTS, SPORT_LABEL, type Sport } from "@/lib/sport";
 
 export const Route = createFileRoute("/_authenticated/roster/import")({
   head: () => ({
@@ -33,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/roster/import")({
 
 type Field =
   | "name"
+  | "sport"
   | "gradYear"
   | "primaryPosition"
   | "bats"
@@ -42,6 +45,7 @@ type Field =
 
 const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[] = [
   { key: "name", label: "Name", required: true, hints: ["name", "athlete", "player", "full name"] },
+  { key: "sport", label: "Sport", required: false, hints: ["sport", "program"] },
   { key: "gradYear", label: "Graduation year", required: false, hints: ["grad", "class", "year"] },
   { key: "primaryPosition", label: "Primary position", required: false, hints: ["position", "pos"] },
   { key: "bats", label: "Bats", required: false, hints: ["bats", "b"] },
@@ -59,6 +63,7 @@ const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[
 type PreviewRow = {
   index: number;
   name: string;
+  sport: Sport;
   gradYear: number | null;
   primaryPosition: string | null;
   bats: string | null;
@@ -85,6 +90,7 @@ function ImportAthletes() {
   const [rawRows, setRawRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<Record<Field, string>>({
     name: "",
+    sport: "",
     gradYear: "",
     primaryPosition: "",
     bats: "",
@@ -95,6 +101,10 @@ function ImportAthletes() {
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [importing, setImporting] = useState(false);
   const [sendFamilyInvites, setSendFamilyInvites] = useState(true);
+  // Whole-file sport, used for every row whose file has no sport column.
+  const { sport } = useSportMode();
+  const [fileSport, setFileSport] = useState<Sport | "">("");
+  const defaultSport: Sport = fileSport || sport;
 
   async function onFile(file: File | null) {
     setPreview(null);
@@ -166,6 +176,7 @@ function ImportAthletes() {
       return {
         index: i + 2,
         name,
+        sport: normalizeSport(cell("sport"), defaultSport),
         gradYear,
         primaryPosition: cell("primaryPosition") || null,
         bats: bats || null,
@@ -217,6 +228,7 @@ function ImportAthletes() {
             .filter((row) => row.action !== "skip")
             .map((row) => ({
               name: row.name,
+              sport: row.sport,
               gradYear: row.gradYear,
               primaryPosition: row.primaryPosition,
               bats: row.bats,
@@ -327,6 +339,21 @@ function ImportAthletes() {
                 </label>
               ))}
             </div>
+            <label className="mt-4 flex w-fit items-center gap-2 rounded-lg border border-org-accent/50 bg-org-accent-tint px-3 py-2 text-sm text-graphite">
+              <span className="font-semibold">If the file has no sport column, these are</span>
+              <select
+                value={defaultSport}
+                onChange={(event) => setFileSport(normalizeSport(event.target.value))}
+                className={FIELD_CLASS}
+              >
+                {SPORTS.map((option) => (
+                  <option key={option} value={option}>
+                    {SPORT_LABEL[option]} players
+                  </option>
+                ))}
+              </select>
+            </label>
+
             {!canPreview ? (
               <p className="mt-3 text-sm text-seam-red">
                 Name is required — pick which CSV column holds the athlete's name.

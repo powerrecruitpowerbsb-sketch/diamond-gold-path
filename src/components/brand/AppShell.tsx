@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Database,
   Home,
@@ -19,6 +21,9 @@ import {
 
 import { OrgTheme } from "@/components/brand/OrgTheme";
 import { OrgMark } from "@/components/brand/OrgMark";
+import { SportSwitch } from "@/components/brand/SportSwitch";
+import { useSportMode } from "@/hooks/use-sport-mode";
+import { getAthleteSportMix } from "@/lib/athletes.functions";
 import { ActingOrgBar } from "@/components/brand/ActingOrgBar";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { useMyAccount } from "@/hooks/use-my-account";
@@ -50,6 +55,20 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   const themed = !isStaff && !consoleView;
   const orgLogo = themed ? branding?.logoUrl : null;
   const orgName = themed ? branding?.name : null;
+
+  // One sport at a time, for everyone working inside an organization. The
+  // switch only appears once the club actually has players in both sports.
+  const { sport, setSport } = useSportMode();
+  const orgSide = themed && (isOrgManager || Boolean(actingOrg));
+  const fetchSportMix = useServerFn(getAthleteSportMix);
+  const { data: sportMix } = useQuery({
+    queryKey: ["athlete-sport-mix", actingOrg?.id ?? "self"],
+    queryFn: () => fetchSportMix(),
+    enabled: orgSide,
+    staleTime: 60_000,
+  });
+  const showSportSwitch =
+    orgSide && Boolean(sportMix && sportMix.baseball > 0 && sportMix.softball > 0);
 
 
   const primaryNav: NavItem[] = [
@@ -102,6 +121,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
     <OrgTheme
       primaryColor={themed ? (branding?.primary ?? null) : null}
       accentColor={themed ? (branding?.accent ?? null) : null}
+      sport={themed ? sport : null}
     >
     <div className="min-h-screen bg-chalk pb-[76px] min-[680px]:pb-0">
       {actingOrg ? <ActingOrgBar name={actingOrg.name} /> : null}
@@ -118,6 +138,11 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
             />
             <span className="font-display text-lg font-bold text-white">Power Recruit</span>
           </Link>
+
+          {showSportSwitch ? (
+            <SportSwitch sport={sport} onChange={setSport} className="hidden sm:inline-flex" />
+          ) : null}
+
 
           <nav className="ml-6 hidden items-center gap-1 min-[680px]:flex">
             {primaryNav.map((item) => (

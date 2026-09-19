@@ -11,6 +11,7 @@ import { OrgMark } from "@/components/brand/OrgMark";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
+import { useSportMode } from "@/hooks/use-sport-mode";
 import {
   DIVISION_BUCKETS,
   SHORTLIST_STATUSES,
@@ -52,9 +53,10 @@ const STATUS_DOT: Record<ShortlistStatus, string> = {
 function Dashboard() {
   const dashboardFn = useServerFn(getOrgDashboard);
   const ctx = useSeasonContext();
+  const { sport } = useSportMode();
   const { data, isPending, error } = useQuery({
-    queryKey: ["org-dashboard", ctx.seasonId, ctx.teamId],
-    queryFn: () => dashboardFn({ data: { seasonId: ctx.seasonId, teamId: ctx.teamId } }),
+    queryKey: ["org-dashboard", ctx.seasonId, ctx.teamId, sport],
+    queryFn: () => dashboardFn({ data: { seasonId: ctx.seasonId, teamId: ctx.teamId, sport } }),
     retry: false,
   });
 

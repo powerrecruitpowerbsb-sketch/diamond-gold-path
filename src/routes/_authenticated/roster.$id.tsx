@@ -22,6 +22,7 @@ import {
   type ShortlistStatus,
 } from "@/lib/shortlist.functions";
 import { ATHLETE_STATUS_LABEL, type AthleteStatus } from "@/lib/season-constants";
+import { normalizeSport, SPORT_LABEL } from "@/lib/sport";
 import {
   assignAthleteToTeam,
   getAthleteSeasonHistory,
@@ -170,6 +171,7 @@ function AthleteDetail() {
             <h1 className="font-display text-3xl font-bold text-graphite">{athlete['name']}</h1>
             <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-4">
               {[
+                ["Sport", SPORT_LABEL[normalizeSport(athlete['sport'])]],
                 ["Grad year", athlete['grad_year'] ?? "—"],
                 ["Position", athlete['primary_position'] ?? "—"],
                 ["Bats", athlete['bats'] ?? "—"],

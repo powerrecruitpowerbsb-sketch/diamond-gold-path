@@ -1265,6 +1265,7 @@ export type Database = {
           name: string
           organization_id: string
           primary_position: string | null
+          sport: Database["public"]["Enums"]["sport"]
           status: Database["public"]["Enums"]["athlete_status"]
           throws: Database["public"]["Enums"]["throws_hand"] | null
           updated_at: string
@@ -1280,6 +1281,7 @@ export type Database = {
           name: string
           organization_id: string
           primary_position?: string | null
+          sport?: Database["public"]["Enums"]["sport"]
           status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
           updated_at?: string
@@ -1295,6 +1297,7 @@ export type Database = {
           name?: string
           organization_id?: string
           primary_position?: string | null
+          sport?: Database["public"]["Enums"]["sport"]
           status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
           updated_at?: string

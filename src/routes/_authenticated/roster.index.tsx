@@ -10,8 +10,10 @@ import { EmptyState } from "@/components/brand/EmptyState";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
+import { useSportMode } from "@/hooks/use-sport-mode";
 import { listOrgAthletes } from "@/lib/athletes.functions";
 import { ATHLETE_STATUS_LABEL } from "@/lib/season-constants";
+import { normalizeSport, SPORT_LABEL } from "@/lib/sport";
 
 
 export const Route = createFileRoute("/_authenticated/roster/")({
@@ -48,11 +50,13 @@ function RosterScreen() {
   const [gradYear, setGradYear] = useState("");
   const [status, setStatus] = useState("active");
 
+  // The header switch decides which sport's players this roster shows.
+  const { sport } = useSportMode();
   const { data, isPending, error } = useQuery({
-    queryKey: ["org-athletes", q, gradYear, status, ctx.seasonId, ctx.teamId],
+    queryKey: ["org-athletes", q, gradYear, status, ctx.seasonId, ctx.teamId, sport],
     queryFn: () =>
       listFn({
-        data: { q, gradYear, status, seasonId: ctx.seasonId, teamId: ctx.teamId },
+        data: { q, gradYear, status, seasonId: ctx.seasonId, teamId: ctx.teamId, sport },
       }),
     retry: false,
   });
@@ -145,6 +149,7 @@ function RosterScreen() {
           <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>
               <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Sport</th>
               <th className="px-4 py-3">Team</th>
               <th className="px-4 py-3">Grad year</th>
               <th className="px-4 py-3">Position</th>
@@ -156,13 +161,13 @@ function RosterScreen() {
           <tbody>
             {isPending ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-steel">
+                <td colSpan={8} className="px-4 py-6 text-steel">
                   Loading roster…
                 </td>
               </tr>
             ) : (data?.athletes ?? []).length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-0">
+                <td colSpan={8} className="p-0">
                   <EmptyState
                     icon={Users}
                     headline={q || gradYear ? "Nobody matches yet" : "Start your roster"}
@@ -195,6 +200,11 @@ function RosterScreen() {
                     >
                       {athlete['name']}
                     </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-sm bg-sport-tint px-1.5 py-0.5 font-mono text-[11px] uppercase text-graphite">
+                      {SPORT_LABEL[normalizeSport(athlete['sport'])]}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-graphite">
                     {athlete['team_name'] ?? (

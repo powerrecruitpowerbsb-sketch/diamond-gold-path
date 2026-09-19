@@ -24,6 +24,8 @@ import {
 } from "@/lib/admin-schemas";
 import { POSITION_GROUP_LABELS, type PositionGroup } from "@/lib/position-group";
 import { REGIONS, regionOfState, statesInRegion } from "@/lib/regions";
+import { useSportMode } from "@/hooks/use-sport-mode";
+import { normalizeSport } from "@/lib/sport";
 import {
   DIVISIONS_BY_BODY,
   SEARCH_DEFAULTS,
@@ -160,7 +162,19 @@ function SearchScreen() {
     staleTime: 30_000,
     retry: false,
   });
-  const pickerAthletes = (picker.data?.athletes ?? []) as Record<string, any>[];
+  // The header switch decides the sport; the URL follows it, so a shared link
+  // still carries the sport it was searched in.
+  const { sport: sportMode, setSport } = useSportMode();
+  useEffect(() => {
+    if (params.sport !== sportMode) {
+      void navigate({ search: (prev: any) => ({ ...prev, sport: sportMode }), replace: true });
+    }
+  }, [sportMode, params.sport, navigate]);
+
+  // Only athletes of this sport can take one of these programs.
+  const pickerAthletes = ((picker.data?.athletes ?? []) as Record<string, any>[]).filter(
+    (row) => normalizeSport(row["sport"]) === params.sport,
+  );
   const contextAthlete = params.athleteId
     ? pickerAthletes.find((row) => row["id"] === params.athleteId) ?? null
     : null;
@@ -513,11 +527,14 @@ function SearchScreen() {
             <button
               key={sport}
               type="button"
-              onClick={() => set({ sport })}
+              onClick={() => {
+                setSport(sport);
+                set({ sport });
+              }}
               className={cn(
                 "h-8 rounded-sm px-4 text-sm font-semibold",
                 params.sport === sport
-                  ? "bg-org-primary text-white"
+                  ? "bg-sport-strong text-sport-foreground"
                   : "text-steel hover:text-graphite",
               )}
             >
