@@ -21,8 +21,13 @@ import {
   metricDef,
   metricLabel,
   metricSourceLabel,
+  metricStep,
+  metricUnit,
   metricsForSport,
+  parseHeightInput,
+  splitHeight,
 } from "@/lib/athlete-metrics";
+
 import { HelpTip } from "@/components/brand/HelpTip";
 import { normalizeSport } from "@/lib/sport";
 import { cn } from "@/lib/utils";
@@ -176,6 +181,46 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
       />
     </label>
   );
+
+  /** Height is typed the way people say it: feet and inches, stored as inches. */
+  const heightParts = splitHeight(form['heightInches']);
+  const setHeight = (feet: string, inches: string) => {
+    const f = feet === "" ? null : Number(feet);
+    const i = inches === "" ? 0 : Number(inches);
+    setForm((prev) => ({ ...prev, heightInches: f === null ? "" : String(f * 12 + i) }));
+  };
+  const heightField = () => (
+    <div className="block">
+      <span className={labelClass}>Height (ft / in)</span>
+      <div className="mt-1 flex gap-2">
+        <select
+          value={String(heightParts.feet)}
+          disabled={!canEdit}
+          onChange={(e) => setHeight(e.target.value, String(heightParts.inches))}
+          className={cn(inputClass, "mt-0", !canEdit && "opacity-70")}
+          aria-label="Height in feet"
+        >
+          <option value="">ft</option>
+          {[4, 5, 6, 7].map((f) => (
+            <option key={f} value={f}>{f}&apos;</option>
+          ))}
+        </select>
+        <select
+          value={String(heightParts.inches)}
+          disabled={!canEdit}
+          onChange={(e) => setHeight(String(heightParts.feet), e.target.value)}
+          className={cn(inputClass, "mt-0", !canEdit && "opacity-70")}
+          aria-label="Height in inches"
+        >
+          <option value="">in</option>
+          {Array.from({ length: 12 }, (_, i) => i).map((i) => (
+            <option key={i} value={i}>{i}&quot;</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+
 
   // What the card can show, grouped the way a college coach reads it. Blank
   // rows are left out entirely — the card shows what is on file, nothing else.
@@ -350,8 +395,9 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
           {field("homeCity", "Home town")}
           {field("homeState", "State", "text", { maxLength: 2 })}
           {field("secondaryPosition", "Secondary position")}
-          {field("heightInches", "Height (inches)", "number")}
+          {heightField()}
           {field("weightLbs", "Weight (lb)", "number")}
+
           {field("gpa", "GPA", "number", { step: "0.01" })}
           {field("satScore", "SAT", "number")}
           {field("actScore", "ACT", "number")}
@@ -549,12 +595,24 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
             className="mt-4 flex flex-wrap items-end gap-3"
             onSubmit={async (e) => {
               e.preventDefault();
+              // Height is entered as 6'2"; everything else is a plain number in
+              // its own unit (mph, sec, in, lb) and is stored with that unit.
+              const value =
+                metricKey === "height" ? parseHeightInput(metricValue) : Number(metricValue);
+              if (value === null || !Number.isFinite(Number(value))) {
+                toast.error(
+                  metricKey === "height"
+                    ? "Enter the height as 6'2\"."
+                    : `Enter the number in ${metricUnit(metricKey) || "its unit"}.`,
+                );
+                return;
+              }
               try {
                 await saveMetricFn({
                   data: {
                     athleteId,
                     metricKey,
-                    value: metricValue,
+                    value: String(value),
                     recordedOn: metricDate || null,
                     source: metricSource,
                     unit: metricDef(metricKey)?.unit ?? null,
@@ -574,7 +632,10 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
               <select
                 required
                 value={metricKey}
-                onChange={(e) => setMetricKey(e.target.value)}
+                onChange={(e) => {
+                  setMetricKey(e.target.value);
+                  setMetricValue("");
+                }}
                 className={inputClass}
               >
                 <option value="">Choose…</option>
@@ -586,16 +647,26 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
               </select>
             </label>
             <label className="block">
-              <span className={labelClass}>Value</span>
-              <input
-                required
-                type="number"
-                step="0.01"
-                value={metricValue}
-                onChange={(e) => setMetricValue(e.target.value)}
-                className={cn(inputClass, "w-28")}
-              />
+              <span className={labelClass}>
+                Value {metricKey ? `(${metricKey === "height" ? "ft'in\"" : metricUnit(metricKey)})` : ""}
+              </span>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  required
+                  type={metricKey === "height" ? "text" : "number"}
+                  inputMode="decimal"
+                  step={metricKey === "height" ? undefined : String(metricStep(metricKey))}
+                  placeholder={metricKey === "height" ? `6'2"` : ""}
+                  value={metricValue}
+                  onChange={(e) => setMetricValue(e.target.value)}
+                  className={cn(inputClass, "mt-0 w-28")}
+                />
+                <span className="font-mono text-[11px] uppercase text-steel">
+                  {metricKey === "height" ? "ft / in" : metricUnit(metricKey)}
+                </span>
+              </div>
             </label>
+
             <label className="block">
               <span className={labelClass}>Date</span>
               <input

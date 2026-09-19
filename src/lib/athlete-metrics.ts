@@ -91,12 +91,49 @@ export function formatMetric(value: unknown, key: string): string {
   return `${n.toFixed(decimals)} ${def?.unit ?? ""}`.trim();
 }
 
+/** The unit a number is recorded in: mph, sec, in, lb. */
+export function metricUnit(key: string): string {
+  return metricDef(key)?.unit ?? "";
+}
+
+/** How finely the number is typed: hundredths for times, tenths for speeds. */
+export function metricStep(key: string): number {
+  const def = metricDef(key);
+  if (def?.step) return def.step;
+  if (def?.unit === "sec") return 0.01;
+  if (def?.unit === "mph") return 0.1;
+  return 1;
+}
+
+/** 74 -> { feet: 6, inches: 2 } */
+export function splitHeight(totalInches: unknown): { feet: number | ""; inches: number | "" } {
+  const n = Number(totalInches);
+  if (!Number.isFinite(n) || n <= 0) return { feet: "", inches: "" };
+  return { feet: Math.floor(n / 12), inches: Math.round(n % 12) };
+}
+
+/** Accepts 6'2", 6-2, 6 2 or plain inches and returns total inches. */
+export function parseHeightInput(text: unknown): number | null {
+  const raw = String(text ?? "").trim();
+  if (!raw) return null;
+  const pair = raw.match(/^(\d{1,2})\s*(?:'|ft|-|\s)\s*(\d{1,2})?\s*(?:"|in)?$/i);
+  if (pair) {
+    const feet = Number(pair[1]);
+    const inches = Number(pair[2] ?? 0);
+    if (!Number.isFinite(feet) || !Number.isFinite(inches)) return null;
+    return feet * 12 + inches;
+  }
+  const plain = Number(raw.replace(/["in\s]/gi, ""));
+  return Number.isFinite(plain) && plain > 0 ? Math.round(plain) : null;
+}
+
 /** 74 -> 6'2" */
 export function formatHeight(inches: unknown): string {
   const n = Number(inches);
   if (!Number.isFinite(n) || n <= 0) return "—";
   return `${Math.floor(n / 12)}'${Math.round(n % 12)}"`;
 }
+
 
 /** Keeps the newest row per metric key. */
 export function latestByMetric<T extends { metric_key: string; recorded_on?: string | null; created_at?: string }>(
