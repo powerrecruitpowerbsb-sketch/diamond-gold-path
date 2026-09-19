@@ -99,6 +99,10 @@ function ImportAthletes() {
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [importing, setImporting] = useState(false);
   const [sendFamilyInvites, setSendFamilyInvites] = useState(true);
+  // Whole-file sport, used for every row whose file has no sport column.
+  const { sport } = useSportMode();
+  const [fileSport, setFileSport] = useState<Sport | "">("");
+  const defaultSport: Sport = fileSport || sport;
 
   async function onFile(file: File | null) {
     setPreview(null);
@@ -170,6 +174,7 @@ function ImportAthletes() {
       return {
         index: i + 2,
         name,
+        sport: normalizeSport(cell("sport"), defaultSport),
         gradYear,
         primaryPosition: cell("primaryPosition") || null,
         bats: bats || null,
@@ -221,6 +226,7 @@ function ImportAthletes() {
             .filter((row) => row.action !== "skip")
             .map((row) => ({
               name: row.name,
+              sport: row.sport,
               gradYear: row.gradYear,
               primaryPosition: row.primaryPosition,
               bats: row.bats,
