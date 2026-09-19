@@ -297,15 +297,42 @@ function SearchScreen() {
       <header className="border-b border-border pb-4">
         <h1 className="font-display text-2xl font-bold text-graphite">Find a program</h1>
         <p className="meta mt-1">
-          {results.isPending
-            ? "SEARCHING…"
-            : `${(results.data?.matches ?? rows.length).toLocaleString("en-US")} ${titleCase(
-                params.sport,
-              ).toUpperCase()} TEAMS MATCH${
-                results.data?.capped ? ` · SHOWING THE FIRST ${rows.length}` : ""
-              }`}
+          {!searching
+            ? "PICK A LEVEL, A LOCATION, OR TYPE A SCHOOL NAME"
+            : results.isPending
+              ? "SEARCHING…"
+              : `${(results.data?.matches ?? rows.length).toLocaleString("en-US")} ${titleCase(
+                  params.sport,
+                ).toUpperCase()} TEAMS MATCH${
+                  results.data?.capped ? ` · SHOWING THE FIRST ${rows.length}` : ""
+                }`}
         </p>
+
+        {pickerAthletes.length > 0 ? (
+          <label className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <span className="meta text-steel">Adding to</span>
+            <select
+              value={params.athleteId ?? ""}
+              onChange={(event) => set({ athleteId: event.target.value })}
+              className="h-8 rounded border border-input bg-card px-2 text-sm"
+            >
+              <option value="">Choose a player…</option>
+              {pickerAthletes.map((athlete) => (
+                <option key={String(athlete["id"])} value={String(athlete["id"])}>
+                  {String(athlete["name"])}
+                  {athlete["grad_year"] ? ` · ${athlete["grad_year"]}` : ""}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-steel">
+              {params.athleteId
+                ? "Every row adds to this player's list."
+                : "Pick a player once and every row adds to their list."}
+            </span>
+          </label>
+        ) : null}
       </header>
+
 
       {/* Results render in place, above the filter panel that produced them. */}
       {results.data?.unpublishedPositions ? (
