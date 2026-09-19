@@ -34,7 +34,7 @@ export const PROFILE_COLUMNS =
   "id, organization_id, name, sport, grad_year, primary_position, secondary_position, bats, throws, " +
   "athlete_email, athlete_phone, parent_name, parent_email, parent_phone, home_city, home_state, " +
   "high_school, club_team, height_inches, weight_lbs, gpa, sat_score, act_score, eligibility_id, " +
-  "twitter_handle, instagram_handle, video_links";
+  "twitter_handle, instagram_handle, video_links, share_slug, share_enabled, share_contact";
 
 export type AthleteProfileInput = {
   athleteId: string;
@@ -320,4 +320,94 @@ export const saveTeamEvent = createServerFn({ method: "POST" })
         organizationId: (team as any).organization_id ?? null,
       },
     });
+  });
+
+/* ------------------------------------------------------------------ */
+/* Shareable scout card                                                */
+/* ------------------------------------------------------------------ */
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+/**
+ * Turns the public card on or off and mints the link. The slug is derived from
+ * the athlete's name plus grad year, with a short suffix if it is taken.
+ */
+export const setAthleteSharing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: { athleteId: string; enabled: boolean; shareContact?: boolean }) => ({
+      athleteId: str(input?.athleteId),
+      enabled: Boolean(input?.enabled),
+      shareContact: input?.shareContact === undefined ? true : Boolean(input.shareContact),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    if (!data.athleteId) throw new Error("Missing athlete");
+    const { data: athlete, error: readError } = await context.supabase
+      .from("org_athletes")
+      .select("id, name, grad_year, share_slug")
+      .eq("id", data.athleteId)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!athlete) throw new Error("Athlete not found");
+
+    const row = athlete as { name: string; grad_year: number | null; share_slug: string | null };
+    let slug = row.share_slug;
+    if (!slug) {
+      const base = slugify(`${row.name}-${row.grad_year ?? ""}`) || "player";
+      slug = base;
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const { data: taken } = await context.supabase
+          .from("org_athletes")
+          .select("id")
+          .eq("share_slug", slug)
+          .maybeSingle();
+        if (!taken) break;
+        slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+      }
+    }
+
+    const { error } = await context.supabase
+      .from("org_athletes")
+      .update({
+        share_enabled: data.enabled,
+        share_contact: data.shareContact,
+        share_slug: slug,
+      } as never)
+      .eq("id", data.athleteId);
+    if (error) throw new Error(error.message);
+    return { slug, enabled: data.enabled, shareContact: data.shareContact };
+  });
+
+/** Public read for the scout card. No session: the card is the shared link. */
+export const getScoutCard = createServerFn({ method: "GET" })
+  .inputValidator((input: { slug: string }) => ({ slug: str(input?.slug) }))
+  .handler(async ({ data }) => {
+    if (!data.slug) return null;
+    const { createClient } = await import("@supabase/supabase-js");
+    const key = process.env['SUPABASE_PUBLISHABLE_KEY']!;
+    const url = process.env['SUPABASE_URL']!;
+    const client = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: (input: any, init?: any) => {
+          const headers = new Headers(init?.headers);
+          if (key.startsWith("sb_") && headers.get("Authorization") === `Bearer ${key}`) {
+            headers.delete("Authorization");
+          }
+          headers.set("apikey", key);
+          return fetch(input, { ...init, headers });
+        },
+      },
+    });
+    const { data: card, error } = await client.rpc("athlete_scout_card", { _slug: data.slug });
+    if (error) throw new Error(error.message);
+    return (card ?? null) as Record<string, any> | null;
   });

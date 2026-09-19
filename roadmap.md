@@ -39,5 +39,5 @@
 - [x] Athlete contact + parent contact, home town, high school, club team, GPA/SAT/ACT, eligibility ID, socials, highlight links
 - [x] Measurables kept as dated rows with a source (hand-entered, Curve Testing, HandledReports, Perfect Game, PBR) so outside services can feed in later
 - [x] Team schedules posted by staff auto-appear on assigned athletes; families can add their own guest-play events
-- [ ] Shareable scout card (public link) — next
+- [x] Shareable scout card: public link per athlete, on/off plus a contact-details switch
 - [ ] Coach email addresses + outreach composer — next
