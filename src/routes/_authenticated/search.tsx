@@ -826,6 +826,18 @@ function SearchScreen() {
         </p>
       ) : null}
 
+      {fitActive && results.data?.intel ? (
+        <p className="mt-3 rounded border border-seam-red/40 bg-seam-red-tint p-2.5 text-sm text-graphite">
+          {results.data.intel.withIntel === 0
+            ? "None of these programs has a write-up from your staff yet, so nothing can be matched. Add intelligence on a program and it will rise to the top here."
+            : `${results.data.intel.fittingAll} of these programs meet every one of your ${results.data.intel.criteria} intelligence condition${
+                results.data.intel.criteria === 1 ? "" : "s"
+              } · ${results.data.intel.withIntel} written up so far${
+                params.intelOnly ? "" : " · the rest stay listed below"
+              }.`}
+        </p>
+      ) : null}
+
       {results.isError ? (
         <p className="mt-3 rounded border border-seam-red bg-seam-red-tint p-3 text-sm text-seam-red">
           Could not load results. {(results.error as Error).message}
