@@ -350,17 +350,15 @@ function SearchScreen() {
       ) : null}
 
       {!searching ? (
-        <p className="mt-4 rounded border border-border bg-card p-6 text-sm text-steel">
-          Set a filter below to start — a level, a state or region, a cost ceiling, or a school
-          name. Nothing is listed until you do.
-        </p>
+        <EmptyState className="mt-4" icon={SearchIcon} headline="Start with one filter">
+          Pick a level, a state, or type a school name.
+        </EmptyState>
       ) : results.isPending ? (
         <div className="mt-4 h-64 animate-pulse rounded border border-border bg-card" />
       ) : rows.length === 0 ? (
-        <p className="mt-4 rounded border border-border bg-card p-6 text-sm text-steel">
-          No teams match yet. Widen a filter — division, location, or net price are the usual
-          culprits.
-        </p>
+        <EmptyState className="mt-4" icon={SearchIcon} headline="Nothing matches yet">
+          Widen a filter. Division, location and net price narrow things fastest.
+        </EmptyState>
       ) : (
         <div className="mt-4 overflow-x-auto rounded border border-border bg-card">
           <table className="w-full border-collapse text-sm">
@@ -603,24 +601,17 @@ function SearchScreen() {
           </Field>
 
           <div className="flex items-end">
-            <button
-              type="button"
+            <DisclosureButton
+              open={moreOpen}
+              count={secondaryCount}
               onClick={() => {
                 setMoreOpen((open) => !open);
                 set({ more: !moreOpen });
               }}
-              aria-expanded={moreOpen}
-              className="flex h-9 items-center gap-2 rounded border border-border px-3 text-sm font-semibold text-org-primary hover:bg-muted"
             >
               <SlidersHorizontal className="size-4" aria-hidden />
               More filters
-              {secondaryCount > 0 ? (
-                <span className="tabular rounded-sm bg-org-primary px-1.5 text-[11px] text-white">
-                  {secondaryCount}
-                </span>
-              ) : null}
-              <ChevronDown className={cn("size-4 transition-transform", moreOpen && "rotate-180")} />
-            </button>
+            </DisclosureButton>
           </div>
         </div>
 
@@ -811,10 +802,10 @@ function SearchScreen() {
               key={chip.label}
               type="button"
               onClick={() => set(chip.clear)}
-              className="flex h-7 items-center gap-1.5 rounded border border-border bg-card px-2 text-[12px] text-graphite hover:bg-muted"
+              className="flex h-8 items-center gap-1.5 rounded-full border border-org-accent bg-org-accent-tint px-3 text-[12px] font-semibold text-org-accent-strong transition-colors hover:bg-org-accent/25"
             >
               {chip.label}
-              <X className="size-3 text-steel" aria-hidden />
+              <X className="size-3" aria-hidden />
             </button>
           ))}
         </div>
