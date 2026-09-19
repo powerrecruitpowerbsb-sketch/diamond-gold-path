@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -12,10 +13,15 @@ import {
   IntelligencePanel,
   InternalIntelPanel,
   LayerTag,
-  Section,
-  VerifiedFieldTable,
   type VerifiedField,
 } from "@/components/profile/DataLayers";
+import {
+  FactList,
+  LinkRow,
+  Panel,
+  ProfileTabs,
+  StatCard,
+} from "@/components/profile/ProfileUI";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
 import { TrueFitPanel } from "@/components/profile/TrueFitPanel";
