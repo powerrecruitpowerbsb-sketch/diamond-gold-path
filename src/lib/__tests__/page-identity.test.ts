@@ -112,7 +112,7 @@ describe("verifyPageIdentity", () => {
     expect(result.verdict).toBe("confirmed");
   });
 
-  it("trusts a page on a domain already on the record without reading any name", () => {
+  it("trusts a page on the school's athletics domain without reading any name", () => {
     const result = verifyPageIdentity({
       text: page("Rotators Playing Louisiana Tech University Athletics Skip To"),
       url: "https://latechsports.com/sports/baseball/roster/2026",
@@ -120,7 +120,18 @@ describe("verifyPageIdentity", () => {
       athleticsSite: "https://latechsports.com",
     });
     expect(result.verdict).toBe("confirmed");
-    expect(result.reason).toContain("already on this school's record");
+    expect(result.reason).toContain("athletics domain");
+  });
+
+  it("does not let a stored roster address vouch for the page being tested", () => {
+    const result = verifyPageIdentity({
+      text: page("Georgetown College Tigers Baseball Roster Skip To Main Content"),
+      url: "https://gohoyas.com/sports/baseball/roster",
+      schoolName: "Georgetown University",
+      // The very value under test used to be handed in as proof of itself.
+      ownDomains: ["https://gohoyas.com/sports/baseball/roster"],
+    });
+    expect(result.verdict).toBe("wrong_school");
   });
 
   it("still refuses a genuine look-alike on an unrelated domain", () => {
