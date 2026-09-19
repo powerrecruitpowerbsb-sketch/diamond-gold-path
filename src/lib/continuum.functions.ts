@@ -212,13 +212,22 @@ export const getCollegeList = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     const viewer = await resolveViewer(context as any);
     const athletes = await visibleAthletes(context as any, viewer);
-    const athleteId =
-      (data.athleteId && athletes.find((a) => a['id'] === data.athleteId)?.['id']) ??
-      (athletes[0]?.['id'] as string | undefined) ??
-      null;
+
+    // Staff default to every athlete at once; a family only ever has their own.
+    const wantsAll = data.athleteId === "all" || (!data.athleteId && viewer.isStaff);
+    const athleteId = wantsAll
+      ? "all"
+      : ((data.athleteId && athletes.find((a) => a['id'] === data.athleteId)?.['id']) ??
+        (athletes[0]?.['id'] as string | undefined) ??
+        null);
+
+    const targetIds = (
+      athleteId === "all" ? athletes.map((a) => a['id'] as string) : athleteId ? [athleteId] : []
+    ).filter(Boolean);
 
     const orgId =
       (athletes.find((a) => a['id'] === athleteId)?.['organization_id'] as string | undefined) ??
+      (athletes[0]?.['organization_id'] as string | undefined) ??
       viewer.organizationId;
 
     let stages: Record<string, any>[] = [];
@@ -232,12 +241,11 @@ export const getCollegeList = createServerFn({ method: "GET" })
     }
 
     let entries: Record<string, any>[] = [];
-    let threadsByProgram = new Map<string, Record<string, any>>();
-    if (athleteId) {
+    if (targetIds.length) {
       const { data: rows, error } = await context.supabase
         .from("athlete_saved_schools")
-        .select("id, status, notes, org_stage_id, program_id, created_at, updated_at")
-        .eq("org_athlete_id", athleteId)
+        .select("id, status, notes, org_stage_id, program_id, org_athlete_id, created_at, updated_at")
+        .in("org_athlete_id", targetIds)
         .order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
       const saved = (rows ?? []) as Record<string, any>[];
@@ -258,19 +266,28 @@ export const getCollegeList = createServerFn({ method: "GET" })
 
       const { data: threads } = await context.supabase
         .from("message_threads")
-        .select("id, program_id, last_message_at")
-        .eq("org_athlete_id", athleteId);
-      threadsByProgram = new Map(
-        ((threads ?? []) as Record<string, any>[]).map((t) => [t['program_id'] as string, t]),
+        .select("id, program_id, org_athlete_id, last_message_at")
+        .in("org_athlete_id", targetIds);
+      const threadKey = (athlete: unknown, program: unknown) => `${athlete}:${program}`;
+      const threadsByPair = new Map(
+        ((threads ?? []) as Record<string, any>[]).map((t) => [
+          threadKey(t['org_athlete_id'], t['program_id']),
+          t,
+        ]),
       );
 
       entries = saved.map((row) => {
         const program = programs.find((p) => p['id'] === row['program_id']) ?? {};
         const university = (program as any)?.universities ?? {};
-        const thread = threadsByProgram.get(row['program_id'] as string) ?? null;
+        const athlete = athletes.find((a) => a['id'] === row['org_athlete_id']) ?? {};
+        const thread =
+          threadsByPair.get(threadKey(row['org_athlete_id'], row['program_id'])) ?? null;
         return {
           id: row['id'],
           programId: row['program_id'],
+          athleteId: row['org_athlete_id'],
+          athleteName: athlete['name'] ?? "Athlete",
+          athleteGradYear: athlete['grad_year'] ?? null,
           stageId: row['org_stage_id'],
           status: row['status'],
           notes: row['notes'],
@@ -286,9 +303,11 @@ export const getCollegeList = createServerFn({ method: "GET" })
           region: regionOfState(university?.state) ?? null,
           threadId: thread?.['id'] ?? null,
           lastMessageAt: thread?.['last_message_at'] ?? null,
+          updatedAt: row['updated_at'] ?? row['created_at'] ?? null,
         };
       });
     }
+
 
     return {
       viewer: {
