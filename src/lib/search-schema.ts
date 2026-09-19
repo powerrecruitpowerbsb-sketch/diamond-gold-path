@@ -5,7 +5,7 @@ import { isRegion, stateCode, statesInRegion } from "@/lib/regions";
 
 
 export const UNIVERSITY_COLS =
-  "id, name, city, state, region, campus_setting, school_size_bucket, public_private, religious_affiliation, religious_tradition, undergrad_enrollment, avg_gpa, avg_sat, avg_act, acceptance_rate, graduation_rate, student_faculty_ratio, test_optional, tuition_in_state, tuition_out_state, room_board, est_cost_of_attendance, est_net_price, tuition_source_url, admissions_url, website_url, financial_aid_url, updated_at";
+  "id, name, city, state, region, campus_setting, school_size_bucket, public_private, religious_affiliation, religious_tradition, undergrad_enrollment, avg_gpa, avg_sat, avg_act, sat_total_25, sat_total_75, act_25, act_75, acceptance_rate, graduation_rate, student_faculty_ratio, test_optional, tuition_in_state, tuition_out_state, room_board, est_cost_of_attendance, est_net_price, tuition_source_url, admissions_url, website_url, financial_aid_url, updated_at";
 
 export const INTEL_FIELD_LABELS: Record<string, string> = {
   style_of_play: "Style of play",
