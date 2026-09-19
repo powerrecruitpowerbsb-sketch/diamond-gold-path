@@ -595,12 +595,24 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
             className="mt-4 flex flex-wrap items-end gap-3"
             onSubmit={async (e) => {
               e.preventDefault();
+              // Height is entered as 6'2"; everything else is a plain number in
+              // its own unit (mph, sec, in, lb) and is stored with that unit.
+              const value =
+                metricKey === "height" ? parseHeightInput(metricValue) : Number(metricValue);
+              if (value === null || !Number.isFinite(Number(value))) {
+                toast.error(
+                  metricKey === "height"
+                    ? "Enter the height as 6'2\"."
+                    : `Enter the number in ${metricUnit(metricKey) || "its unit"}.`,
+                );
+                return;
+              }
               try {
                 await saveMetricFn({
                   data: {
                     athleteId,
                     metricKey,
-                    value: metricValue,
+                    value: String(value),
                     recordedOn: metricDate || null,
                     source: metricSource,
                     unit: metricDef(metricKey)?.unit ?? null,
@@ -620,7 +632,10 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
               <select
                 required
                 value={metricKey}
-                onChange={(e) => setMetricKey(e.target.value)}
+                onChange={(e) => {
+                  setMetricKey(e.target.value);
+                  setMetricValue("");
+                }}
                 className={inputClass}
               >
                 <option value="">Choose…</option>
@@ -632,16 +647,26 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
               </select>
             </label>
             <label className="block">
-              <span className={labelClass}>Value</span>
-              <input
-                required
-                type="number"
-                step="0.01"
-                value={metricValue}
-                onChange={(e) => setMetricValue(e.target.value)}
-                className={cn(inputClass, "w-28")}
-              />
+              <span className={labelClass}>
+                Value {metricKey ? `(${metricKey === "height" ? "ft'in\"" : metricUnit(metricKey)})` : ""}
+              </span>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  required
+                  type={metricKey === "height" ? "text" : "number"}
+                  inputMode="decimal"
+                  step={metricKey === "height" ? undefined : String(metricStep(metricKey))}
+                  placeholder={metricKey === "height" ? `6'2"` : ""}
+                  value={metricValue}
+                  onChange={(e) => setMetricValue(e.target.value)}
+                  className={cn(inputClass, "mt-0 w-28")}
+                />
+                <span className="font-mono text-[11px] uppercase text-steel">
+                  {metricKey === "height" ? "ft / in" : metricUnit(metricKey)}
+                </span>
+              </div>
             </label>
+
             <label className="block">
               <span className={labelClass}>Date</span>
               <input
