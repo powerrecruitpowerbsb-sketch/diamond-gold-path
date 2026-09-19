@@ -652,10 +652,6 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
             </button>
           ) : null}
         </div>
-        <p className="mt-1 text-sm text-steel">
-          Team events your club posts show up here automatically. Add your own for guest play,
-          showcases or camps the club has not listed.
-        </p>
 
         {eventOpen && canEdit ? (
           <form
