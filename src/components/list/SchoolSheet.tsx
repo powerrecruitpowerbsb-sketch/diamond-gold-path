@@ -5,7 +5,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { Flag, Send } from "lucide-react";
 import { toast } from "sonner";
 
-import { Composition as _unusedComposition } from "@/components/list/noop";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
@@ -22,8 +21,6 @@ import {
   sendMessage,
 } from "@/lib/messaging.functions";
 import { setEntryNotes } from "@/lib/continuum.functions";
-
-void _unusedComposition;
 
 export type SheetEntry = {
   id: string;
