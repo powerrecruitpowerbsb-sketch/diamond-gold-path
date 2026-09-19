@@ -645,6 +645,76 @@ function SearchScreen() {
               </Field>
             </FilterGroup>
 
+            <FilterGroup title="Our intelligence & fit">
+              {INTEL_CHOICE_FIELDS.map((field) => (
+                <Field key={field.key} label={field.label}>
+                  <Select
+                    value=""
+                    onChange={(value) => {
+                      const token = `${field.key}:${value}`;
+                      if (!value || params.intel.includes(token)) return;
+                      set({ intel: [...params.intel, token] });
+                    }}
+                    placeholder={
+                      params.intel.some((t) => t.startsWith(`${field.key}:`))
+                        ? "Add another…"
+                        : "Any"
+                    }
+                    options={(field.choices ?? []).map((choice) => ({
+                      value: choice.value,
+                      label: choice.label,
+                    }))}
+                  />
+                </Field>
+              ))}
+              <Field label="Staff relationship">
+                <Select
+                  value={params.relationship}
+                  onChange={(value) => set({ relationship: value })}
+                  placeholder="Any"
+                  options={STRENGTH_CHOICES}
+                />
+              </Field>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <span className="meta mb-1.5 block">PRIORITIZING A POSITION</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {INTEL_POSITIONS.map((position) => {
+                    const on = params.intelPositions.includes(position);
+                    return (
+                      <button
+                        key={position}
+                        type="button"
+                        onClick={() =>
+                          set({
+                            intelPositions: on
+                              ? params.intelPositions.filter((p) => p !== position)
+                              : [...params.intelPositions, position],
+                          })
+                        }
+                        className={cn(
+                          "h-8 rounded-full border px-3 text-[12px] font-semibold transition-colors",
+                          on
+                            ? "border-org-accent bg-org-accent-tint text-org-accent-strong"
+                            : "border-border text-steel hover:bg-muted",
+                        )}
+                      >
+                        {POSITION_LABELS[position] ?? position}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="mt-2.5 flex items-center gap-2 text-sm text-graphite">
+                  <input
+                    type="checkbox"
+                    checked={params.intelOnly}
+                    onChange={(event) => set({ intelOnly: event.target.checked })}
+                  />
+                  Only show programs that fit — otherwise fits rise to the top and the rest stay
+                  below.
+                </label>
+              </div>
+            </FilterGroup>
+
             <Link
               to="/search"
               search={{ sport: params.sport, more: true } as any}
