@@ -11,6 +11,7 @@ import { SchoolSheet, type SheetEntry } from "@/components/list/SchoolSheet";
 import { StageSettings } from "@/components/list/StageSettings";
 import { Button } from "@/components/ui/button";
 import { getCollegeList, moveToStage } from "@/lib/continuum.functions";
+import { activityChipLabel, chipTone, highlightChips } from "@/lib/athlete-activity";
 import { useSportMode } from "@/hooks/use-sport-mode";
 import { cn } from "@/lib/utils";
 
@@ -93,6 +94,7 @@ function CollegeList() {
   const [sportFilter, setSportFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [openEntry, setOpenEntry] = useState<SheetEntry | null>(null);
+  const [sheetTab, setSheetTab] = useState<string>("overview");
   const [showStages, setShowStages] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("athlete");
   const [dir, setDir] = useState<"asc" | "desc">("asc");
