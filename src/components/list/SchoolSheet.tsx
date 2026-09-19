@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Flag, Send } from "lucide-react";
+import { ExternalLink, Flag, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityChips } from "@/components/list/ActivityChips";
@@ -11,6 +11,8 @@ import { RosterComposition, type RosterRow } from "@/components/profile/Composit
 import { RosterTable } from "@/components/profile/RosterTable";
 import { TrueFitPanel } from "@/components/profile/TrueFitPanel";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
+import { Panel, StatCard } from "@/components/profile/ProfileUI";
+import { count, money, pct } from "@/lib/profile-fields";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
