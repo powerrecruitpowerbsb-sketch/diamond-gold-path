@@ -1337,6 +1337,9 @@ export type Database = {
           primary_position: string | null
           sat_score: number | null
           secondary_position: string | null
+          share_contact: boolean
+          share_enabled: boolean
+          share_slug: string | null
           sport: Database["public"]["Enums"]["sport"]
           status: Database["public"]["Enums"]["athlete_status"]
           throws: Database["public"]["Enums"]["throws_hand"] | null
@@ -1372,6 +1375,9 @@ export type Database = {
           primary_position?: string | null
           sat_score?: number | null
           secondary_position?: string | null
+          share_contact?: boolean
+          share_enabled?: boolean
+          share_slug?: string | null
           sport?: Database["public"]["Enums"]["sport"]
           status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
@@ -1407,6 +1413,9 @@ export type Database = {
           primary_position?: string | null
           sat_score?: number | null
           secondary_position?: string | null
+          share_contact?: boolean
+          share_enabled?: boolean
+          share_slug?: string | null
           sport?: Database["public"]["Enums"]["sport"]
           status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
@@ -3619,6 +3628,7 @@ export type Database = {
     }
     Functions: {
       active_season_id: { Args: never; Returns: string }
+      athlete_scout_card: { Args: { _slug: string }; Returns: Json }
       can_access_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       can_see_thread: { Args: { _thread_id: string }; Returns: boolean }
       coaches_team: { Args: { _team_id: string }; Returns: boolean }
