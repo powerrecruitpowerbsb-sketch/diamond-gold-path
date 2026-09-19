@@ -62,9 +62,23 @@ function FamilyPortal() {
     <AppShell right={<AuthButton />}>
       <h1 className="font-display text-3xl font-bold text-graphite">Family portal</h1>
       <p className="mt-1 max-w-2xl text-sm text-steel">
-        Your athlete's college list, updated by the coaching staff. You'll also see any notes they
-        choose to share with you.
+        Your athlete's college list, with the recruiting activity on each school. You and your
+        coaches keep the same picture up to date.
       </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          to="/search"
+          className="touch-target inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
+        >
+          Find and add a school
+        </Link>
+        <Link
+          to="/list"
+          className="touch-target inline-flex items-center rounded-xl border border-border px-4 text-sm font-semibold text-graphite hover:border-org-primary"
+        >
+          Update recruiting activity
+        </Link>
+      </div>
 
       {isPending ? (
         <p className="mt-6 text-sm text-steel">Loading…</p>
