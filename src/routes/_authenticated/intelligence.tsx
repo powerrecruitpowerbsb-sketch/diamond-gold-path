@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
+import { actionClass } from "@/components/brand/ActionButton";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { PageHeader } from "@/components/console/PageHeader";
 import { useMyAccount } from "@/hooks/use-my-account";
