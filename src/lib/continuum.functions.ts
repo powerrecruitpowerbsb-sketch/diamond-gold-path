@@ -74,7 +74,7 @@ async function visibleAthletes(context: Ctx, viewer: Viewer) {
   if (viewer.isStaff) {
     let query = context.supabase
       .from("org_athletes")
-      .select("id, name, grad_year, primary_position, organization_id")
+      .select("id, name, grad_year, primary_position, sport, organization_id")
       .order("name", { ascending: true });
     if (viewer.organizationId) query = query.eq("organization_id", viewer.organizationId);
     const { data, error } = await query;
@@ -93,7 +93,7 @@ async function visibleAthletes(context: Ctx, viewer: Viewer) {
 
   const { data, error } = await context.supabase
     .from("org_athletes")
-    .select("id, name, grad_year, primary_position, organization_id")
+    .select("id, name, grad_year, primary_position, sport, organization_id")
     .in("id", Array.from(ids))
     .order("name", { ascending: true });
   if (error) throw new Error(error.message);
