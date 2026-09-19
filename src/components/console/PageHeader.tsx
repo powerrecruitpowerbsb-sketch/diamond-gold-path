@@ -24,9 +24,9 @@ export function PageHeader({
   return (
     <header className="mb-5 border-b border-border pb-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-1.5">
           <h1 className="font-display text-2xl font-bold text-graphite">{title}</h1>
-          {description ? <p className="mt-1 max-w-2xl text-sm text-steel">{description}</p> : null}
+          {description ? <HelpTip label={`About ${title}`}>{description}</HelpTip> : null}
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
