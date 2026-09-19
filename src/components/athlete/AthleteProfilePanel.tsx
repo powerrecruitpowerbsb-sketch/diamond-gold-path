@@ -39,6 +39,12 @@ const labelClass = "font-mono text-[11px] tracking-wide text-steel uppercase";
 const inputClass =
   "touch-target mt-1 w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite";
 
+/** Full link, so copy-paste into an email works. */
+function shareUrl(slug: string): string {
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  return `${origin}/p/${slug}`;
+}
+
 type Props = { athleteId: string; canEdit?: boolean };
 
 export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
@@ -48,6 +54,7 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
   const deleteMetricFn = useServerFn(deleteAthleteMetric);
   const saveEventFn = useServerFn(saveScheduleEvent);
   const deleteEventFn = useServerFn(deleteScheduleEvent);
+  const setSharingFn = useServerFn(setAthleteSharing);
   const queryClient = useQueryClient();
 
   const { data, isPending, error } = useQuery({
