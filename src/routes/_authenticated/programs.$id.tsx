@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -12,10 +13,15 @@ import {
   IntelligencePanel,
   InternalIntelPanel,
   LayerTag,
-  Section,
-  VerifiedFieldTable,
   type VerifiedField,
 } from "@/components/profile/DataLayers";
+import {
+  FactList,
+  LinkRow,
+  Panel,
+  ProfileTabs,
+  StatCard,
+} from "@/components/profile/ProfileUI";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
 import { TrueFitPanel } from "@/components/profile/TrueFitPanel";
@@ -85,6 +91,7 @@ const CLASSIFICATION_LABELS: Record<string, string> = {
 function ProgramProfile() {
   const { id } = Route.useParams();
   const { athleteId } = Route.useSearch();
+  const [tab, setTab] = useState("overview");
   const { account } = useMyAccount();
   const viewerRole = account?.primaryRole ?? null;
   const isOrgStaff =
@@ -370,6 +377,19 @@ function ProgramProfile() {
     { label: "Financial aid", url: university?.financial_aid_url },
   ].filter((row) => Boolean(row.url));
 
+  const levelLine =
+    [program.governing_body, program.division].filter(Boolean).join(" ") || "Level not published";
+
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "academics", label: "Academics" },
+    { id: "cost", label: "Cost" },
+    { id: "roster", label: "Roster", count: rosterRows.length || null },
+    { id: "fit", label: "True fit" },
+    { id: "intel", label: "Intelligence", count: intelRows.length || null },
+    { id: "links", label: "Links & sources", count: officialLinks.length || null },
+  ];
+
   return (
     <AppShell right={<AuthButton />}>
       <Link
@@ -380,30 +400,28 @@ function ProgramProfile() {
         Back to search
       </Link>
 
-      {/* School identity + sport toggle */}
-      <header className="border-b border-border pb-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* ---------------- HERO ---------------- */}
+      <header className="stadium-gradient relative overflow-hidden rounded-2xl px-5 py-7 sm:px-8 sm:py-9">
+        <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
-            <h1 className="font-display text-2xl font-bold text-graphite">{university?.name}</h1>
-            <p className="meta tabular mt-1 flex flex-wrap items-center gap-x-3">
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="size-3" aria-hidden />
-                {[university?.city, university?.state].filter(Boolean).join(", ") || "Location not published"}
-              </span>
-              <span>
-                {[program.governing_body, program.division].filter(Boolean).join(" ") || "Level not published"}
+            <p className="meta text-org-accent">{levelLine.toUpperCase()}</p>
+            <h1 className="mt-1.5 font-display text-[1.75rem] leading-[1.08] font-bold text-white sm:text-[2.5rem]">
+              {university?.name}
+            </h1>
+            <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/70">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="size-3.5" aria-hidden />
+                {[university?.city, university?.state].filter(Boolean).join(", ") ||
+                  "Location not published"}
               </span>
               <span>{program.conference ?? "Conference not published"}</span>
+              {program.head_coach_name ? <span>{program.head_coach_name}</span> : null}
             </p>
           </div>
-          <div className="flex flex-col items-start gap-2 sm:items-end">
-            <div className="flex items-center rounded border border-border">
-              <span
-                className={cn(
-                  "px-3 py-1.5 text-sm font-semibold",
-                  "bg-org-primary text-org-primary-foreground",
-                )}
-              >
+
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <div className="flex items-center overflow-hidden rounded-full border border-white/25 bg-white/10">
+              <span className="bg-white px-3.5 py-1.5 text-sm font-semibold text-graphite">
                 {titleCase(program.sport)}
               </span>
               {sibling ? (
@@ -411,13 +429,13 @@ function ProgramProfile() {
                   to="/programs/$id"
                   params={{ id: String(sibling.id) }}
                   search={athleteId ? { athleteId } : {}}
-                  className="px-3 py-1.5 text-sm font-semibold text-steel hover:text-org-primary"
+                  className="px-3.5 py-1.5 text-sm font-semibold text-white/80 hover:text-white"
                 >
                   {titleCase(String(sibling.sport))}
                 </Link>
               ) : (
-                <span className="px-3 py-1.5 text-sm text-steel/70 italic">
-                  {titleCase(otherSport)} not fielded
+                <span className="px-3.5 py-1.5 text-sm text-white/50 italic">
+                  No {otherSport}
                 </span>
               )}
             </div>
@@ -428,227 +446,314 @@ function ProgramProfile() {
             />
           </div>
         </div>
+
+        <dl className="relative mt-7 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/15 pt-5 sm:grid-cols-4">
+          {[
+            [
+              "Undergrads",
+              university?.undergrad_enrollment
+                ? count(university.undergrad_enrollment)
+                : "Not reported",
+            ],
+            [
+              "Net price",
+              university?.est_net_price ? money(university.est_net_price) : "Not reported",
+            ],
+            ["Acceptance", stateText(admissionState(university?.acceptance_rate))],
+            [
+              "Roster",
+              rosterRows.length ? `${rosterRows.length} players` : "Not on file",
+            ],
+          ].map(([label, value]) => (
+            <div key={String(label)}>
+              <dt className="meta text-white/55">{String(label).toUpperCase()}</dt>
+              <dd className="tabular mt-1 font-display text-xl font-bold text-white sm:text-2xl">
+                {String(value)}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </header>
 
-      {/* ---------------- UNIVERSITY ---------------- */}
-      <p className="meta mt-6">University</p>
+      <div className="mt-6">
+        <ProfileTabs tabs={tabs} active={tab} onSelect={setTab} />
+      </div>
 
-      <Section title="Overview" meta={<LayerTag layer="verified" />}>
-        <VerifiedFieldTable fields={overviewFields} />
-      </Section>
+      {/* ---------------- OVERVIEW ---------------- */}
+      {tab === "overview" ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel title="The school" meta={<LayerTag layer="verified" />}>
+            <FactList fields={overviewFields} columns={1} />
+          </Panel>
 
-      <Section title="Academics & admissions" meta={<LayerTag layer="verified" />}>
-        <VerifiedFieldTable fields={academicFields} />
-      </Section>
+          <div className="grid gap-4">
+            <Panel title="The program" meta={<LayerTag layer="verified" />}>
+              <FactList fields={levelFields} columns={1} />
+            </Panel>
 
-      <Section title="Tuition & cost" meta={<LayerTag layer="verified" />}>
-        <VerifiedFieldTable fields={costFields} />
-      </Section>
-
-      <Section title="Majors" meta={`${majorRows.length} on file`}>
-        {majorRows.length === 0 ? (
-          <p className="py-4 text-sm text-steel">
-            No majors are on file for this school yet.
-          </p>
-        ) : (
-          <div className="max-h-72 overflow-y-auto rounded border border-border bg-card">
-            <table className="w-full border-collapse text-sm">
-              <tbody>
-                {majorRows.map((major) => (
-                  <tr key={major.id} className="border-b border-border last:border-0">
-                    <td className="h-[30px] px-3 py-1 align-middle text-graphite">{major.name}</td>
-                    <td className="h-[30px] px-3 py-1 align-middle text-xs text-steel">
-                      {major.category ?? ""}
-                    </td>
-                    <td className="tabular h-[30px] px-3 py-1 text-right align-middle text-steel">
-                      {major.completions === null ? "" : `${major.completions} graduates`}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Panel title="Coaches" meta={<LayerTag layer="verified" />}>
+              {coachBlocked ? (
+                <p className="mb-3 inline-flex items-center gap-1.5 rounded bg-muted px-2 py-1 text-xs text-steel">
+                  <ShieldAlert className="size-3.5" aria-hidden />
+                  This school’s site blocks automated reading, so coach details can’t be collected.
+                </p>
+              ) : null}
+              <FactList fields={coachFields} columns={1} />
+            </Panel>
           </div>
-        )}
-      </Section>
 
-      <Section title="Campus & culture" meta={<LayerTag layer="classification" />}>
-        <ClassificationTable rows={classificationRows} />
-      </Section>
+          <Panel title="Campus & culture" meta={<LayerTag layer="classification" />}>
+            <ClassificationTable rows={classificationRows} />
+          </Panel>
 
-      <Section title="Official links">
-        {officialLinks.length === 0 ? (
-          <p className="py-4 text-sm text-steel">No addresses are on file for this school.</p>
-        ) : (
-          <ul className="rounded border border-border bg-card">
-            {officialLinks.map((row) => (
-              <li
-                key={row.label}
-                className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 last:border-0"
-              >
-                <span className="text-sm text-steel">{row.label}</span>
-                <a
-                  href={String(row.url)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-sm font-semibold text-org-primary hover:underline"
-                >
-                  {hostOf(row.url)}
-                  <ExternalLink className="size-3" aria-hidden />
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      {/* ---------------- SPORT ---------------- */}
-      <p className="meta mt-10">{titleCase(program.sport)}</p>
-
-      <Section title="Level & conference" meta={<LayerTag layer="verified" />}>
-        <VerifiedFieldTable fields={levelFields} />
-      </Section>
-
-      <Section
-        title="True fit"
-        meta={athleteId ? "For the selected athlete" : "Pick an athlete"}
-      >
-        <TrueFitPanel programId={id} athleteId={athleteId ?? null} />
-      </Section>
-
-      <Section title="Coaches" meta={<LayerTag layer="verified" />}>
-        {coachBlocked ? (
-          <p className="mb-2 inline-flex items-center gap-1.5 rounded bg-muted px-2 py-1 text-xs text-steel">
-            <ShieldAlert className="size-3.5" aria-hidden />
-            This school’s site blocks automated reading, so coach details can’t be collected.
-          </p>
-        ) : null}
-        <VerifiedFieldTable fields={coachFields} />
-      </Section>
-
-      <Section
-        title="Roster composition"
-        meta={latestSeason ? `${latestSeason} season` : "No roster on file"}
-      >
-        {rosterRows.length === 0 ? (
-          <div className="rounded border border-border bg-card p-4">
-            <p className="text-sm font-semibold text-graphite">
-              {rosterBlocked
-                ? "This school’s site blocks automated reading, so no roster has been collected."
-                : "No roster is on file for this program yet."}
-            </p>
-            <p className="mt-1 text-sm text-steel">
-              {program.roster_url || program.athletic_website
-                ? "The addresses we hold are below — you can read the roster directly on the school’s site."
-                : "We don’t hold a roster or athletics address for this program yet."}
-            </p>
-            <ul className="mt-3 space-y-1">
-              {[
-                { label: "Roster page", url: program.roster_url },
-                { label: "Athletics site", url: program.athletic_website },
-              ]
-                .filter((row) => Boolean(row.url))
-                .map((row) => (
-                  <li key={row.label} className="text-sm">
-                    <span className="text-steel">{row.label}: </span>
-                    <a
-                      href={String(row.url)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-org-primary hover:underline"
-                    >
-                      {hostOf(row.url)}
-                    </a>
-                  </li>
-                ))}
-            </ul>
-            {program.last_roster_pull_at ? (
-              <p className="meta mt-3">Last attempted: {dateLabel(program.last_roster_pull_at)}</p>
-            ) : null}
-          </div>
-        ) : (
-          <RosterComposition rows={rosterRows} season={latestSeason} />
-        )}
-      </Section>
-
-      {rosterRows.length > 0 ? (
-        <Section title="Roster" meta={`${rosterRows.length} players · sortable`}>
-          <RosterTable rows={rosterRows} />
-          <p className="meta mt-2">
-            Collected from{" "}
-            {program.roster_url ? (
-              <a
-                href={String(program.roster_url)}
-                target="_blank"
-                rel="noreferrer"
-                className="underline decoration-dotted underline-offset-2 hover:text-org-primary"
-              >
-                {hostOf(program.roster_url)}
-              </a>
+          <Panel title="Facilities">
+            {program.facility_url ? (
+              <LinkRow label="Facilities page" url={String(program.facility_url)} />
             ) : (
-              "the school’s athletics site"
+              <p className="text-sm text-steel">No facilities page is published for this program.</p>
             )}
-            {program.last_roster_pull_at ? <> · {dateLabel(program.last_roster_pull_at)}</> : null}
-          </p>
-        </Section>
+          </Panel>
+        </div>
       ) : null}
 
-      <Section title="Facilities">
-        {program.facility_url ? (
-          <a
-            href={String(program.facility_url)}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-org-primary hover:underline"
-          >
-            {hostOf(program.facility_url)}
+      {/* ---------------- ACADEMICS ---------------- */}
+      {tab === "academics" ? (
+        <div className="grid gap-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              label="Acceptance rate"
+              value={stateText(admissionState(university?.acceptance_rate))}
+              verified
+            />
+            <StatCard
+              label="SAT middle 50%"
+              value={
+                university?.sat_total_25 && university?.sat_total_75
+                  ? `${university.sat_total_25}–${university.sat_total_75}`
+                  : "Not reported"
+              }
+              verified
+            />
+            <StatCard
+              label="ACT middle 50%"
+              value={
+                university?.act_25 && university?.act_75
+                  ? `${university.act_25}–${university.act_75}`
+                  : "Not reported"
+              }
+              verified
+            />
+            <StatCard
+              label="Graduation rate"
+              value={university?.graduation_rate ? pct(university.graduation_rate) : "Not reported"}
+              verified
+            />
+          </div>
+
+          <Panel title="Academics & admissions" meta={<LayerTag layer="verified" />}>
+            <FactList fields={academicFields} />
+          </Panel>
+
+          <Panel title="Majors" meta={`${majorRows.length} on file`}>
+            {majorRows.length === 0 ? (
+              <p className="text-sm text-steel">No majors are on file for this school yet.</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto">
+                {majorRows.map((major) => (
+                  <div
+                    key={major.id}
+                    className="flex items-center justify-between gap-3 border-b border-border/70 py-2 last:border-0"
+                  >
+                    <span className="text-sm text-graphite">{major.name}</span>
+                    <span className="meta shrink-0">
+                      {major.category ?? ""}
+                      {major.completions === null ? "" : ` · ${major.completions} graduates`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
+        </div>
+      ) : null}
+
+      {/* ---------------- COST ---------------- */}
+      {tab === "cost" ? (
+        <div className="grid gap-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              label="In-state tuition"
+              value={university?.tuition_in_state ? money(university.tuition_in_state) : "Not reported"}
+              verified
+            />
+            <StatCard
+              label="Out-of-state"
+              value={
+                university?.tuition_out_state ? money(university.tuition_out_state) : "Not reported"
+              }
+              verified
+            />
+            <StatCard
+              label="Cost of attendance"
+              value={
+                university?.est_cost_of_attendance
+                  ? money(university.est_cost_of_attendance)
+                  : "Not reported"
+              }
+              verified
+            />
+            <StatCard
+              label="Estimated net price"
+              value={university?.est_net_price ? money(university.est_net_price) : "Not reported"}
+              hint="What families typically pay after aid"
+              verified
+            />
+          </div>
+
+          <Panel title="Tuition & cost" meta={<LayerTag layer="verified" />}>
+            <FactList fields={costFields} />
+          </Panel>
+        </div>
+      ) : null}
+
+      {/* ---------------- ROSTER ---------------- */}
+      {tab === "roster" ? (
+        <div className="grid gap-4">
+          {rosterRows.length === 0 ? (
+            <Panel title="Roster" meta={latestSeason ? `${latestSeason} season` : "None on file"}>
+              <p className="text-sm font-semibold text-graphite">
+                {rosterBlocked
+                  ? "This school’s site blocks automated reading, so no roster has been collected."
+                  : "No roster is on file for this program yet."}
+              </p>
+              <p className="mt-1 text-sm text-steel">
+                {program.roster_url || program.athletic_website
+                  ? "The addresses we hold are below — you can read the roster directly on the school’s site."
+                  : "We don’t hold a roster or athletics address for this program yet."}
+              </p>
+              <div className="mt-3">
+                {[
+                  { label: "Roster page", url: program.roster_url },
+                  { label: "Athletics site", url: program.athletic_website },
+                ]
+                  .filter((row) => Boolean(row.url))
+                  .map((row) => (
+                    <LinkRow key={row.label} label={row.label} url={String(row.url)} />
+                  ))}
+              </div>
+              {program.last_roster_pull_at ? (
+                <p className="meta mt-3">
+                  Last attempted: {dateLabel(program.last_roster_pull_at)}
+                </p>
+              ) : null}
+            </Panel>
+          ) : (
+            <>
+              <Panel
+                title="Roster composition"
+                meta={latestSeason ? `${latestSeason} season` : "No season recorded"}
+              >
+                <RosterComposition rows={rosterRows} season={latestSeason} />
+              </Panel>
+
+              <Panel title="Roster" meta={`${rosterRows.length} players · sortable`}>
+                <RosterTable rows={rosterRows} />
+                <p className="meta mt-3">
+                  Collected from{" "}
+                  {program.roster_url ? (
+                    <a
+                      href={String(program.roster_url)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline decoration-dotted underline-offset-2 hover:text-org-primary"
+                    >
+                      {hostOf(program.roster_url)}
+                    </a>
+                  ) : (
+                    "the school’s athletics site"
+                  )}
+                  {program.last_roster_pull_at ? (
+                    <> · {dateLabel(program.last_roster_pull_at)}</>
+                  ) : null}
+                </p>
+              </Panel>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {/* ---------------- TRUE FIT ---------------- */}
+      {tab === "fit" ? (
+        <Panel
+          title="True fit"
+          meta={athleteId ? "For the selected athlete" : "Pick an athlete"}
+        >
+          <TrueFitPanel programId={id} athleteId={athleteId ?? null} />
+        </Panel>
+      ) : null}
+
+      {/* ---------------- INTELLIGENCE ---------------- */}
+      {tab === "intel" ? (
+        <Panel title="Recruiting intelligence" meta={<LayerTag layer="intelligence" />}>
+          {strength || placed !== null ? (
+            <dl className="mb-4 flex flex-wrap gap-8 border-b border-border pb-4 text-sm">
+              <div>
+                <dt className="meta">RELATIONSHIP</dt>
+                <dd className="mt-1 font-semibold text-graphite">
+                  {STRENGTH_CHOICES.find((c) => c.value === strength)?.label ?? "Not rated"}
+                </dd>
+              </div>
+              <div>
+                <dt className="meta">PLACED PLAYERS HERE BEFORE</dt>
+                <dd className="mt-1 font-semibold text-graphite">
+                  {placed === null ? "Not recorded" : placed ? "Yes" : "No"}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
+          <IntelligencePanel rows={intelRows} showVisibility={isOrgStaff} />
+          {isOrgStaff ? <InternalIntelPanel rows={internalRows} /> : null}
+          {isOrgStaff ? (
+            <p className="meta mt-3">
+              <Link
+                to="/intelligence"
+                search={{ programId: id }}
+                className="underline decoration-dotted underline-offset-2 hover:text-org-primary"
+              >
+                Write or update intelligence for this program
+              </Link>
+            </p>
+          ) : null}
+        </Panel>
+      ) : null}
+
+      {/* ---------------- LINKS ---------------- */}
+      {tab === "links" ? (
+        <Panel title="Official links">
+          {officialLinks.length === 0 ? (
+            <p className="text-sm text-steel">No addresses are on file for this school.</p>
+          ) : (
+            officialLinks.map((row) => (
+              <LinkRow key={row.label} label={row.label} url={String(row.url)} />
+            ))
+          )}
+          <p className="meta mt-3 inline-flex items-center gap-1">
             <ExternalLink className="size-3" aria-hidden />
-          </a>
-        ) : (
-          <p className="py-4 text-sm text-steel">
-            No facilities page is published for this program.
+            Every figure on this page links back to the source it came from.
           </p>
-        )}
-      </Section>
-
-      <Section
-        title="Recruiting intelligence"
-        meta={<LayerTag layer="intelligence" />}
-      >
-        {strength || placed !== null ? (
-          <dl className="mb-3 flex flex-wrap gap-6 rounded border border-border bg-card p-3 text-sm">
-            <div>
-              <dt className="meta">Relationship</dt>
-              <dd className="font-semibold text-graphite">
-                {STRENGTH_CHOICES.find((c) => c.value === strength)?.label ?? "Not rated"}
-              </dd>
-            </div>
-            <div>
-              <dt className="meta">Placed players here before</dt>
-              <dd className="font-semibold text-graphite">
-                {placed === null ? "Not recorded" : placed ? "Yes" : "No"}
-              </dd>
-            </div>
-          </dl>
-        ) : null}
-        <IntelligencePanel rows={intelRows} showVisibility={isOrgStaff} />
-        {isOrgStaff ? <InternalIntelPanel rows={internalRows} /> : null}
-        {isOrgStaff ? (
-          <p className="meta mt-2">
-            <Link
-              to="/intelligence"
-              search={{ programId: id }}
-              className="underline decoration-dotted underline-offset-2 hover:text-org-primary"
-            >
-              Write or update intelligence for this program
-            </Link>
-          </p>
-        ) : null}
-      </Section>
-
+        </Panel>
+      ) : null}
 
       <div className="mt-8 border-t border-border pt-4">
         <ReportMistake programId={id} />
       </div>
     </AppShell>
   );
+}
+
+/** Field state rendered as plain text for a headline figure. */
+function stateText(state: ReturnType<typeof admissionState>): string {
+  return state.kind === "value" ? state.text : state.kind === "open-admission"
+    ? "Open admission"
+    : "Not reported";
 }
