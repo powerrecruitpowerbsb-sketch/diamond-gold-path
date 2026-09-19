@@ -69,7 +69,7 @@ export const listAthletePicker = createServerFn({ method: "GET" })
     const actor = await requireOrgActor(context as any);
     let query = context.supabase
       .from("org_athletes")
-      .select("id, name, grad_year, primary_position")
+      .select("id, name, grad_year, primary_position, sport")
       .order("name", { ascending: true });
     if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
 
@@ -109,6 +109,19 @@ export const saveSchoolToShortlist = createServerFn({ method: "POST" })
     await requireOrgActor(context as any);
     if (!data.athleteId) throw new Error("Select an athlete first");
     if (!data.programId) throw new Error("Missing program");
+
+    // A softball player's list only holds softball programs, and the other way
+    // round. Say so plainly rather than saving a mismatch.
+    const [{ data: athleteRow }, { data: programRow }] = await Promise.all([
+      context.supabase.from("org_athletes").select("name, sport").eq("id", data.athleteId).maybeSingle(),
+      context.supabase.from("programs").select("sport").eq("id", data.programId).maybeSingle(),
+    ]);
+    const athleteSport = (athleteRow as { sport?: string } | null)?.sport ?? null;
+    const programSport = (programRow as { sport?: string } | null)?.sport ?? null;
+    if (athleteSport && programSport && athleteSport !== programSport) {
+      const who = (athleteRow as { name?: string } | null)?.name ?? "That athlete";
+      throw new Error(`${who} is a ${athleteSport} player — that's a ${programSport} program.`);
+    }
 
     const { data: existing, error: readError } = await context.supabase
       .from("athlete_saved_schools")
