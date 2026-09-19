@@ -241,7 +241,17 @@ function SearchScreen() {
   const toggleSort = (key: SortKey) =>
     set({ sort: key, dir: sortKey === key && dir === "asc" ? "desc" : "asc" });
 
-  const rows = [...((results.data?.results ?? []) as any[])].sort((a, b) => {
+  // With fit criteria on, the server already puts the fits first. Only a
+  // deliberate sort choice overrides that order.
+  const fitActive =
+    params.intel.length > 0 || params.intelPositions.length > 0 || Boolean(params.relationship);
+  const served = (results.data?.results ?? []) as any[];
+  const rows = (fitActive && params.sort === "name" ? [...served] : [...served]).sort((a, b) => {
+    if (fitActive && params.sort === "name") {
+      const fitDiff = (b.fit?.matched ?? 0) - (a.fit?.matched ?? 0);
+      if (fitDiff !== 0) return fitDiff;
+      return String(a.university?.name ?? "").localeCompare(String(b.university?.name ?? ""));
+    }
     const left = sortValue(sortKey, a);
     const right = sortValue(sortKey, b);
     if (left === null && right === null) return 0;
