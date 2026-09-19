@@ -22,6 +22,7 @@ import {
   type ShortlistStatus,
 } from "@/lib/shortlist.functions";
 import { ATHLETE_STATUS_LABEL, type AthleteStatus } from "@/lib/season-constants";
+import { normalizeSport, SPORT_LABEL } from "@/lib/sport";
 import {
   assignAthleteToTeam,
   getAthleteSeasonHistory,
