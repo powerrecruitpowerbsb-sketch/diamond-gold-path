@@ -126,11 +126,27 @@ function sortValue(key: SortKey, row: any): string | number | null {
   }
 }
 
+/** Keys that describe *what* you're looking for; sport/sorting/athlete don't count. */
+const CRITERIA_KEYS = Object.keys(SEARCH_DEFAULTS).filter(
+  (key) => !["sport", "sort", "dir", "more", "athleteId"].includes(key),
+) as (keyof SearchParams)[];
+
+function hasCriteria(params: SearchParams) {
+  return CRITERIA_KEYS.some((key) => {
+    const value = params[key];
+    const fallback = (SEARCH_DEFAULTS as Record<string, unknown>)[key as string];
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== fallback && value !== "" && value !== 0;
+  });
+}
+
 function SearchScreen() {
   const params = Route.useSearch();
   const navigate = useNavigate({ from: "/search" });
   const [moreOpen, setMoreOpen] = useState(params.more);
+  const [openEntry, setOpenEntry] = useState<SheetEntry | null>(null);
   const compare = useCompare();
+  const searching = hasCriteria(params);
 
   const facetsFn = useServerFn(getSearchFacets);
   const searchFn = useServerFn(searchPrograms);
@@ -142,17 +158,18 @@ function SearchScreen() {
     staleTime: 30_000,
     retry: false,
   });
+  const pickerAthletes = (picker.data?.athletes ?? []) as Record<string, any>[];
   const contextAthlete = params.athleteId
-    ? ((picker.data?.athletes ?? []) as Record<string, any>[]).find(
-        (row) => row["id"] === params.athleteId,
-      ) ?? null
+    ? pickerAthletes.find((row) => row["id"] === params.athleteId) ?? null
     : null;
 
   const facets = useQuery({ queryKey: ["search-facets"], queryFn: () => facetsFn() });
   const results = useQuery({
     queryKey: ["program-search", params],
     queryFn: () => searchFn({ data: params }),
+    enabled: searching,
   });
+
 
   const set = (patch: Partial<SearchParams>) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }) });
