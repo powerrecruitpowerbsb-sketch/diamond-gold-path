@@ -107,9 +107,18 @@ export function SchoolSheet({
               <TabsTrigger value="activity">Activity</TabsTrigger>
               <TabsTrigger value="email">Email coach</TabsTrigger>
               <TabsTrigger value="roster">Roster</TabsTrigger>
+              <TabsTrigger value="fit">True fit</TabsTrigger>
               <TabsTrigger value="intel">Intelligence</TabsTrigger>
               <TabsTrigger value="notes">Notes &amp; Messages</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="fit" className="pt-4">
+              <TrueFitPanel
+                programId={entry.programId}
+                athleteId={entry.athleteId ?? athleteId}
+              />
+            </TabsContent>
+
 
             <TabsContent value="activity" className="pt-4">
               <ActivityChips entryId={entry.id} />
