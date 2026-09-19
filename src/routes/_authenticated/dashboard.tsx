@@ -86,12 +86,15 @@ function Dashboard() {
   return (
     <AppShell right={<AuthButton />}>
       <section className="stadium-gradient overflow-hidden rounded-2xl px-5 py-8 sm:px-8 sm:py-10">
-        <p className="meta mb-2 text-org-accent">RECRUITING ENGINE</p>
-        <h1 className="font-display text-[1.9rem] leading-[1.08] font-bold text-white sm:text-4xl">
+        <div className="flex items-center gap-3">
+          <OrgMark size={40} className="bg-white/10" />
+          <p className="meta text-org-accent">RECRUITING ENGINE</p>
+        </div>
+        <h1 className="mt-4 font-display text-[1.9rem] leading-[1.08] font-bold text-white sm:text-4xl">
           {data?.orgName ?? "Your organization"}
         </h1>
-        <p className="mt-3 max-w-2xl text-sm text-white/75">
-          Where the class stands right now — every athlete, every school on their board.
+        <p className="mt-3 max-w-2xl text-[15px] text-white/80">
+          Here's where your class stands today.
         </p>
 
         <dl className="mt-7 grid grid-cols-2 gap-3 border-t border-white/12 pt-6 sm:grid-cols-4">
