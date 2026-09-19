@@ -75,35 +75,41 @@ export function SchoolSheet({
         side="right"
         className="w-full overflow-y-auto border-l border-border p-0 sm:max-w-none sm:w-3/4"
       >
-        <SheetHeader className="border-b border-border px-5 py-4">
-          <SheetTitle className="font-display text-xl text-graphite">
+        <SheetHeader className="stadium-gradient gap-0 px-5 py-6 sm:px-7 sm:py-7">
+          <p className="mb-2 font-mono text-[11px] font-medium tracking-[0.18em] text-org-accent uppercase">
+            {[entry?.sport, program['governing_body'], program['division']]
+              .filter(Boolean)
+              .join(" · ") || "School"}
+          </p>
+          <SheetTitle className="font-display text-[1.75rem] leading-[1.1] font-bold text-white sm:text-4xl">
             {entry?.school ?? ""}
           </SheetTitle>
-          <p className="meta text-steel">
+          <p className="mt-2 text-sm text-white/70">
             {[
-              entry?.sport,
-              program['governing_body'],
-              program['division'],
+              [university['city'], university['state']].filter(Boolean).join(", "),
               program['conference'],
-              university['state'],
+              program['head_coach_name'],
             ]
               .filter(Boolean)
               .join(" · ") || "Loading…"}
           </p>
           {entry ? (
-            <Link
-              to="/programs/$id"
-              params={{ id: entry.programId }}
-              className="text-sm font-semibold text-org-primary underline"
-            >
-              Go to full profile
-            </Link>
+            <div className="mt-5">
+              <Link
+                to="/programs/$id"
+                params={{ id: entry.programId }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              >
+                Go to full profile
+                <ExternalLink className="size-3.5" aria-hidden />
+              </Link>
+            </div>
           ) : null}
         </SheetHeader>
 
         {entry ? (
-          <Tabs defaultValue={defaultTab ?? "overview"} className="px-5 py-4">
-            <TabsList>
+          <Tabs defaultValue={defaultTab ?? "overview"} className="px-5 py-5 sm:px-7">
+            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
               <TabsTrigger value="email">Email coach</TabsTrigger>
@@ -113,7 +119,7 @@ export function SchoolSheet({
               <TabsTrigger value="notes">Notes &amp; Messages</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="fit" className="pt-4">
+            <TabsContent value="fit" className="pt-5">
               <TrueFitPanel
                 programId={entry.programId}
                 athleteId={entry.athleteId ?? athleteId}
@@ -121,11 +127,11 @@ export function SchoolSheet({
             </TabsContent>
 
 
-            <TabsContent value="activity" className="pt-4">
+            <TabsContent value="activity" className="pt-5">
               <ActivityChips entryId={entry.id} />
             </TabsContent>
 
-            <TabsContent value="email" className="pt-4">
+            <TabsContent value="email" className="pt-5">
               <OutreachComposer
                 programId={entry.programId}
                 school={entry.school}
@@ -135,41 +141,48 @@ export function SchoolSheet({
               />
             </TabsContent>
 
-            <TabsContent value="overview" className="pt-4">
+            <TabsContent value="overview" className="pt-5">
               {profile.isPending ? (
                 <p className="text-sm text-steel">Loading…</p>
               ) : (
-                <dl className="grid gap-4 sm:grid-cols-3">
-                  {[
-                    ["Location", [university['city'], university['state']].filter(Boolean).join(", ")],
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {(
                     [
-                      "Enrollment",
-                      university['undergrad_enrollment']
-                        ? Number(university['undergrad_enrollment']).toLocaleString("en-US")
-                        : null,
-                    ],
-                    [
-                      "Net price",
-                      university['est_net_price']
-                        ? `$${Number(university['est_net_price']).toLocaleString("en-US")}`
-                        : null,
-                    ],
-                    ["Acceptance rate", university['acceptance_rate']],
-                    ["Head coach", program['head_coach_name']],
-                    ["Roster size", roster.length || null],
-                  ].map(([label, value]) => (
-                    <div key={String(label)}>
-                      <dt className="meta text-steel">{String(label)}</dt>
-                      <dd className="mt-1 font-semibold text-graphite tabular-nums">
-                        {value === null || value === undefined || value === ""
+                      [
+                        "Undergrads",
+                        university['undergrad_enrollment']
+                          ? Number(university['undergrad_enrollment']).toLocaleString("en-US")
+                          : null,
+                      ],
+                      [
+                        "Net price",
+                        university['est_net_price']
+                          ? `$${Number(university['est_net_price']).toLocaleString("en-US")}`
+                          : null,
+                      ],
+                      ["Acceptance rate", university['acceptance_rate']],
+                      [
+                        "Location",
+                        [university['city'], university['state']].filter(Boolean).join(", "),
+                      ],
+                      ["Head coach", program['head_coach_name']],
+                      ["Roster size", roster.length || null],
+                    ] as [string, unknown][]
+                  ).map(([label, value]) => (
+                    <StatCard
+                      key={label}
+                      label={label}
+                      value={
+                        value === null || value === undefined || value === ""
                           ? "Not reported"
-                          : String(value)}
-                      </dd>
-                    </div>
+                          : String(value)
+                      }
+                    />
                   ))}
-                </dl>
+                </div>
               )}
             </TabsContent>
+
 
             <TabsContent value="roster" className="pt-4">
               {roster.length === 0 ? (
