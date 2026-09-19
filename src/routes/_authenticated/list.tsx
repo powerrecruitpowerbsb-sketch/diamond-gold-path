@@ -11,6 +11,7 @@ import { SchoolSheet, type SheetEntry } from "@/components/list/SchoolSheet";
 import { StageSettings } from "@/components/list/StageSettings";
 import { Button } from "@/components/ui/button";
 import { getCollegeList, moveToStage } from "@/lib/continuum.functions";
+import { activityChipLabel, chipTone, highlightChips } from "@/lib/athlete-activity";
 import { useSportMode } from "@/hooks/use-sport-mode";
 import { cn } from "@/lib/utils";
 
@@ -93,6 +94,7 @@ function CollegeList() {
   const [sportFilter, setSportFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [openEntry, setOpenEntry] = useState<SheetEntry | null>(null);
+  const [sheetTab, setSheetTab] = useState<string>("overview");
   const [showStages, setShowStages] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("athlete");
   const [dir, setDir] = useState<"asc" | "desc">("asc");
@@ -293,8 +295,9 @@ function CollegeList() {
               {filtered.map((entry) => (
                 <tr
                   key={String(entry['id'])}
-                  className="h-[38px] cursor-pointer border-b border-border last:border-0 hover:bg-muted/60"
-                  onClick={() =>
+                  className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/60"
+                  onClick={() => {
+                    setSheetTab("overview");
                     setOpenEntry({
                       id: String(entry['id']),
                       programId: String(entry['programId']),
@@ -303,13 +306,30 @@ function CollegeList() {
                       notes: (entry['notes'] ?? null) as string | null,
                       threadId: (entry['threadId'] ?? null) as string | null,
                       athleteId: (entry['athleteId'] ?? null) as string | null,
-                    })
-                  }
+                    });
+                  }}
                 >
                   {showingAll ? (
                     <td className="px-3 text-graphite">{String(entry['athleteName'] ?? "—")}</td>
                   ) : null}
-                  <td className="px-3 font-semibold text-graphite">{String(entry['school'])}</td>
+                  <td className="px-3 py-1.5 font-semibold text-graphite">
+                    {String(entry['school'])}
+                    {highlightChips((entry['activityChips'] ?? []) as string[]).length ? (
+                      <span className="mt-1 flex flex-wrap gap-1">
+                        {highlightChips((entry['activityChips'] ?? []) as string[]).map((chip) => (
+                          <span
+                            key={chip}
+                            className={cn(
+                              "rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                              chipTone(chip),
+                            )}
+                          >
+                            {activityChipLabel(chip)}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="px-3 text-steel">{String(entry['sport'] ?? "—")}</td>
                   <td className="px-3 text-steel">
                     {[entry['governingBody'], entry['division']].filter(Boolean).join(" ") ||
@@ -343,15 +363,35 @@ function CollegeList() {
                         ).toLocaleDateString()
                       : "—"}
                   </td>
-                  <td className="px-3">
-                    {entry['threadId'] ? (
-                      <span
-                        className={cn("flex items-center gap-1 text-xs text-org-primary")}
-                        title="Conversation started"
+                  <td className="px-3" onClick={(event) => event.stopPropagation()}>
+                    <div className="flex items-center gap-2">
+                      {entry['threadId'] ? (
+                        <span
+                          className={cn("flex items-center gap-1 text-xs text-org-primary")}
+                          title="Conversation started"
+                        >
+                          <MessageSquare className="size-3" />
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] font-semibold text-steel hover:border-org-primary hover:text-graphite"
+                        onClick={() => {
+                          setSheetTab("activity");
+                          setOpenEntry({
+                            id: String(entry['id']),
+                            programId: String(entry['programId']),
+                            school: String(entry['school']),
+                            sport: (entry['sport'] ?? null) as string | null,
+                            notes: (entry['notes'] ?? null) as string | null,
+                            threadId: (entry['threadId'] ?? null) as string | null,
+                            athleteId: (entry['athleteId'] ?? null) as string | null,
+                          });
+                        }}
                       >
-                        <MessageSquare className="size-3" />
-                      </span>
-                    ) : null}
+                        Activity
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -363,6 +403,7 @@ function CollegeList() {
       <SchoolSheet
         entry={openEntry}
         athleteId={openEntry?.athleteId ?? (showingAll ? null : currentAthlete)}
+        defaultTab={sheetTab}
         onClose={() => setOpenEntry(null)}
       />
     </AppShell>

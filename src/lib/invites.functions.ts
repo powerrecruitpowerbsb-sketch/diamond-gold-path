@@ -308,7 +308,7 @@ export const getFamilyPortal = createServerFn({ method: "GET" })
         .in("id", athleteIds),
       context.supabase
         .from("athlete_saved_schools")
-        .select("id, org_athlete_id, status, notes, program_id")
+        .select("id, org_athlete_id, status, notes, program_id, activity_chips")
         .in("org_athlete_id", athleteIds),
       context.supabase
         .from("org_player_notes")

@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Flag, Send } from "lucide-react";
 import { toast } from "sonner";
 
+import { ActivityChips } from "@/components/list/ActivityChips";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
@@ -42,10 +43,13 @@ export function SchoolSheet({
   entry,
   athleteId,
   onClose,
+  defaultTab,
 }: {
   entry: SheetEntry | null;
   athleteId: string | null;
   onClose: () => void;
+  /** "activity" when the family tapped straight into recruiting activity. */
+  defaultTab?: string;
 }) {
   const profileFn = useServerFn(getProgramProfile);
   const queryClient = useQueryClient();
@@ -96,13 +100,18 @@ export function SchoolSheet({
         </SheetHeader>
 
         {entry ? (
-          <Tabs defaultValue="overview" className="px-5 py-4">
+          <Tabs defaultValue={defaultTab ?? "overview"} className="px-5 py-4">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
               <TabsTrigger value="roster">Roster</TabsTrigger>
               <TabsTrigger value="intel">Intelligence</TabsTrigger>
               <TabsTrigger value="notes">Notes &amp; Messages</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="activity" className="pt-4">
+              <ActivityChips entryId={entry.id} />
+            </TabsContent>
 
             <TabsContent value="overview" className="pt-4">
               {profile.isPending ? (

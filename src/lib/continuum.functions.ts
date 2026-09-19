@@ -251,7 +251,9 @@ export const getCollegeList = createServerFn({ method: "GET" })
     if (targetIds.length) {
       const { data: rows, error } = await context.supabase
         .from("athlete_saved_schools")
-        .select("id, status, notes, org_stage_id, program_id, org_athlete_id, created_at, updated_at")
+        .select(
+          "id, status, notes, org_stage_id, program_id, org_athlete_id, created_at, updated_at, activity_chips, activity_notes",
+        )
         .in("org_athlete_id", targetIds)
         .order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
@@ -298,6 +300,7 @@ export const getCollegeList = createServerFn({ method: "GET" })
           stageId: row['org_stage_id'],
           status: row['status'],
           notes: row['notes'],
+          activityChips: (row['activity_chips'] ?? []) as string[],
           sport: program['sport'] ?? null,
           governingBody: program['governing_body'] ?? null,
           division: program['division'] ?? null,

@@ -27,7 +27,11 @@ type Ctx = { supabase: any; userId: string };
 
 async function requireOrgActor(context: Ctx) {
   const [{ data: profile }, { data: roles }] = await Promise.all([
-    context.supabase.from("users").select("id, organization_id").eq("id", context.userId).maybeSingle(),
+    context.supabase
+      .from("users")
+      .select("id, organization_id, linked_org_athlete_id")
+      .eq("id", context.userId)
+      .maybeSingle(),
     context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
   ]);
   const roleList = ((roles ?? []) as { role: string }[]).map((r) => r.role);
@@ -36,14 +40,41 @@ async function requireOrgActor(context: Ctx) {
   // Power Recruit staff inside an organization act on that organization.
   const acting = await actingOrgId(context, isSuperadmin);
   const isManager = (roleList.includes("org_admin") || roleList.includes("org_owner")) || roleList.includes("org_staff");
+  const isFamily = roleList.includes("parent") || roleList.includes("player");
   const organizationId =
     acting ?? ((profile as { organization_id?: string | null } | null)?.organization_id ?? null);
 
-  if (!isSuperadmin && !isManager) throw new Error("Forbidden: organization staff only");
+  // A parent or player works their own athlete's list, so they reach the same
+  // picker and save action; the database rules keep them to their own athlete.
+  let familyAthleteIds: string[] = [];
+  if (!isSuperadmin && !isManager) {
+    if (!isFamily) throw new Error("Forbidden: organization staff only");
+    const ids = new Set<string>();
+    const linked = (profile as { linked_org_athlete_id?: string | null } | null)
+      ?.linked_org_athlete_id;
+    if (linked) ids.add(linked);
+    const { data: links } = await context.supabase
+      .from("athlete_family_links")
+      .select("org_athlete_id")
+      .eq("user_id", context.userId);
+    for (const row of (links ?? []) as { org_athlete_id: string }[]) ids.add(row.org_athlete_id);
+    familyAthleteIds = Array.from(ids);
+    if (!familyAthleteIds.length) {
+      throw new Error("No athlete is linked to this account yet — ask your club staff for an invite");
+    }
+    return { organizationId: null, isSuperadmin: false, isOrgAdmin: false, isFamily: true, familyAthleteIds };
+  }
+
   if (!isSuperadmin && !organizationId) {
     throw new Error("Forbidden: no organization on this account");
   }
-  return { organizationId, isSuperadmin, isOrgAdmin: (roleList.includes("org_admin") || roleList.includes("org_owner")) };
+  return {
+    organizationId,
+    isSuperadmin,
+    isOrgAdmin: roleList.includes("org_admin") || roleList.includes("org_owner"),
+    isFamily: false,
+    familyAthleteIds,
+  };
 }
 
 function divisionBucket(row: { governing_body?: string | null; division?: string | null }) {
@@ -71,7 +102,8 @@ export const listAthletePicker = createServerFn({ method: "GET" })
       .from("org_athletes")
       .select("id, name, grad_year, primary_position, sport")
       .order("name", { ascending: true });
-    if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
+    if (actor.isFamily) query = query.in("id", actor.familyAthleteIds);
+    else if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
 
     const { data: athletes, error } = await query;
     if (error) throw new Error(error.message);
@@ -206,7 +238,9 @@ export const getOrgDashboard = createServerFn({ method: "GET" })
       .select("id, name, grad_year, primary_position, sport, status, organization_id")
       .order("grad_year", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true });
-    if (actor.organizationId) athleteQuery = athleteQuery.eq("organization_id", actor.organizationId);
+    if (actor.isFamily) athleteQuery = athleteQuery.in("id", actor.familyAthleteIds);
+    else if (actor.organizationId)
+      athleteQuery = athleteQuery.eq("organization_id", actor.organizationId);
     if (data.sport) athleteQuery = athleteQuery.eq("sport", data.sport as never);
 
     const { data: athleteRows, error } = await athleteQuery;
