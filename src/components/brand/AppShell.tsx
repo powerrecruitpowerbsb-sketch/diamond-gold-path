@@ -56,6 +56,20 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   const orgLogo = themed ? branding?.logoUrl : null;
   const orgName = themed ? branding?.name : null;
 
+  // One sport at a time, for everyone working inside an organization. The
+  // switch only appears once the club actually has players in both sports.
+  const { sport, setSport } = useSportMode();
+  const orgSide = themed && (isOrgManager || Boolean(actingOrg));
+  const fetchSportMix = useServerFn(getAthleteSportMix);
+  const { data: sportMix } = useQuery({
+    queryKey: ["athlete-sport-mix", actingOrg?.id ?? "self"],
+    queryFn: () => fetchSportMix(),
+    enabled: orgSide,
+    staleTime: 60_000,
+  });
+  const showSportSwitch =
+    orgSide && Boolean(sportMix && sportMix.baseball > 0 && sportMix.softball > 0);
+
 
   const primaryNav: NavItem[] = [
     { to: "/", label: "Home", icon: Home },
