@@ -93,30 +93,46 @@ export function OrgTheme({
   let effPrimary = brandPrimary;
   let effAccent = brandAccent;
   if (swap) {
-    const lum = luminance(brandAccent);
-    const deepened =
-      lum !== null && lum > 0.3 ? (blend(brandAccent, "#12233a", 0.58) ?? brandAccent) : brandAccent;
-    effPrimary = deepened;
+    effPrimary = brandAccent;
     effAccent = brandPrimary;
   }
 
+  /*
+   * On the midnight canvas a very dark brand color would disappear, so anything
+   * below a readable luminance is lifted toward chalk until it carries. The hue
+   * the club uploaded is preserved — only its brightness moves.
+   */
+  const lift = (hex: string) => {
+    const l = luminance(hex);
+    if (l === null) return hex;
+    if (l >= 0.22) return hex;
+    const weight = l < 0.08 ? 0.5 : 0.68;
+    return blend(hex, "#f1f5f9", weight) ?? hex;
+  };
+  effPrimary = lift(effPrimary);
+  effAccent = lift(effAccent);
+
+  // Tints are mixed into the card surface, not white: on midnight a white-based
+  // tint would blow a hole in the page.
+  const SURFACE = "#121c2c";
+
   style["--org-primary"] = effPrimary;
-  style["--org-primary-tint"] = `color-mix(in oklab, ${effPrimary} 10%, white)`;
-  style["--org-primary-foreground"] = readableOn(effPrimary) ?? "#ffffff";
-  style["--navy-deep"] = blend(effPrimary, "#0c1421", 0.55) ?? "#12233a";
+  style["--org-primary-tint"] = `color-mix(in oklab, ${effPrimary} 16%, ${SURFACE})`;
+  style["--org-primary-foreground"] = readableOn(effPrimary) ?? "#0a0f18";
+  style["--navy-deep"] = blend(effPrimary, "#080d15", 0.18) ?? "#0b1422";
 
   style["--org-accent"] = effAccent;
-  style["--org-accent-strong"] = `color-mix(in oklab, ${effAccent} 88%, black)`;
-  style["--org-accent-pressed"] = `color-mix(in oklab, ${effAccent} 76%, black)`;
-  style["--org-accent-tint"] = `color-mix(in oklab, ${effAccent} 14%, white)`;
+  style["--org-accent-strong"] = `color-mix(in oklab, ${effAccent} 88%, white)`;
+  style["--org-accent-pressed"] = `color-mix(in oklab, ${effAccent} 76%, white)`;
+  style["--org-accent-tint"] = `color-mix(in oklab, ${effAccent} 18%, ${SURFACE})`;
   const accentFg = readableOn(effAccent);
   if (accentFg) style["--org-accent-foreground"] = accentFg;
 
   // The active-sport marks follow the dominant color of that sport.
   style["--sport-strong"] = effPrimary;
-  style["--sport-tint"] = `color-mix(in oklab, ${effPrimary} 12%, white)`;
-  style["--sport-line"] = `color-mix(in oklab, ${effPrimary} 55%, white)`;
-  style["--sport-foreground"] = readableOn(effPrimary) ?? "#ffffff";
+  style["--sport-tint"] = `color-mix(in oklab, ${effPrimary} 18%, ${SURFACE})`;
+  style["--sport-line"] = `color-mix(in oklab, ${effPrimary} 55%, ${SURFACE})`;
+  style["--sport-foreground"] = readableOn(effPrimary) ?? "#0a0f18";
 
 
 
