@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, stripSearchParams, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
