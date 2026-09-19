@@ -352,8 +352,350 @@ function SearchScreen() {
         ) : null}
       </header>
 
+      {/* ---------------- Primary bar: the search most people need ------------- */}
+      <div className="mt-4 rounded-lg border border-border bg-card p-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="inline-flex rounded-md border border-border p-0.5">
+            {(["baseball", "softball"] as const).map((sport) => (
+              <button
+                key={sport}
+                type="button"
+                onClick={() => {
+                  setSport(sport);
+                  set({ sport });
+                }}
+                className={cn(
+                  "h-9 rounded-sm px-4 text-sm font-semibold",
+                  params.sport === sport
+                    ? "bg-sport-strong text-sport-foreground"
+                    : "text-steel hover:text-graphite",
+                )}
+              >
+                {titleCase(sport)}
+              </button>
+            ))}
+          </div>
 
-      {/* Results render in place, above the filter panel that produced them. */}
+          <label className="min-w-[220px] flex-1">
+            <span className="sr-only">School name</span>
+            <div className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 focus-within:border-org-primary">
+              <SearchIcon className="size-4 shrink-0 text-steel" aria-hidden />
+              <input
+                value={params.q}
+                onChange={(event) => set({ q: event.target.value })}
+                placeholder="Search a school by name"
+                className="h-full w-full bg-transparent text-sm outline-none"
+              />
+            </div>
+          </label>
+
+          <label className="w-[190px]">
+            <span className="sr-only">Location</span>
+            <select
+              value=""
+              aria-label="Add a region or state"
+              onChange={(event) => addLocation(event.target.value)}
+              className="h-10 w-full rounded-md border border-input bg-card px-2 text-sm outline-none focus:border-org-primary"
+            >
+              <option value="">
+                {params.region || params.states.length ? "Add a state…" : "Anywhere"}
+              </option>
+              {params.region ? null : (
+                <optgroup label="Regions">
+                  {REGIONS.map((region) => (
+                    <option key={region} value={region}>
+                      {region}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label="States">
+                {stateOptions.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </label>
+
+          <label className="w-[150px]">
+            <span className="sr-only">Governing body</span>
+            <select
+              value={params.governingBody}
+              onChange={(event) => set({ governingBody: event.target.value, division: "" })}
+              className="h-10 w-full rounded-md border border-input bg-card px-2 text-sm outline-none focus:border-org-primary"
+            >
+              <option value="">All bodies</option>
+              {GOVERNING_BODIES.map((body) => (
+                <option key={body} value={body}>
+                  {body}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="w-[140px]">
+            <span className="sr-only">Division</span>
+            <select
+              value={params.division}
+              onChange={(event) => set({ division: event.target.value })}
+              className="h-10 w-full rounded-md border border-input bg-card px-2 text-sm outline-none focus:border-org-primary"
+            >
+              <option value="">{divisions.length ? "All divisions" : "All levels"}</option>
+              {(divisions.length ? divisions : (facets.data?.divisions ?? [])).map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <DisclosureButton
+            open={moreOpen}
+            count={secondaryCount}
+            onClick={() => {
+              setMoreOpen((open) => !open);
+              set({ more: !moreOpen });
+            }}
+          >
+            <SlidersHorizontal className="size-4" aria-hidden />
+            More filters
+          </DisclosureButton>
+        </div>
+
+        {/* --------------- Everything else, in three plain groups --------------- */}
+        {moreOpen ? (
+          <div className="mt-3 space-y-4 border-t border-border pt-3">
+            <FilterGroup title="Cost & academics">
+              <Range
+                label="Net price ($ a family pays)"
+                min={params.netPriceMin}
+                max={params.netPriceMax}
+                onChange={(netPriceMin, netPriceMax) => set({ netPriceMin, netPriceMax })}
+              />
+              <Range
+                label="Tuition, out of state ($)"
+                min={params.tuitionMin}
+                max={params.tuitionMax}
+                onChange={(tuitionMin, tuitionMax) => set({ tuitionMin, tuitionMax })}
+              />
+              <Range
+                label="Total cost of attendance ($)"
+                min={params.coaMin}
+                max={params.coaMax}
+                onChange={(coaMin, coaMax) => set({ coaMin, coaMax })}
+              />
+              <Field label="Major offered">
+                <Select
+                  value={params.majorId}
+                  onChange={(value) => set({ majorId: value })}
+                  placeholder="Any major"
+                  options={(facets.data?.majors ?? []).map((m) => ({ value: m.id, label: m.name }))}
+                />
+              </Field>
+              <Range
+                label="SAT"
+                min={params.satMin}
+                max={params.satMax}
+                onChange={(satMin, satMax) => set({ satMin, satMax })}
+              />
+              <Range
+                label="ACT"
+                min={params.actMin}
+                max={params.actMax}
+                onChange={(actMin, actMax) => set({ actMin, actMax })}
+              />
+              <Range
+                label="Acceptance rate (%)"
+                min={params.acceptanceMin}
+                max={params.acceptanceMax}
+                onChange={(acceptanceMin, acceptanceMax) => set({ acceptanceMin, acceptanceMax })}
+              />
+              <Field label="Academic classification">
+                <Select
+                  value={params.academicBucket}
+                  onChange={(value) => set({ academicBucket: value })}
+                  placeholder="Any"
+                  options={ACADEMIC_BUCKETS.map((b) => ({ value: b, label: b }))}
+                />
+              </Field>
+            </FilterGroup>
+
+            <FilterGroup title="Roster & recruiting">
+              <Range
+                label="Roster size"
+                min={params.rosterMin}
+                max={params.rosterMax}
+                onChange={(rosterMin, rosterMax) => set({ rosterMin, rosterMax })}
+              />
+              <div>
+                <span className="meta mb-1.5 block">COUNT AT A POSITION</span>
+                <div className="flex gap-2">
+                  <Select
+                    value={params.positionGroup}
+                    onChange={(value) => set({ positionGroup: value })}
+                    placeholder="Any position"
+                    options={POSITION_GROUPS.map((group) => ({
+                      value: group,
+                      label: POSITION_GROUP_LABELS[group],
+                    }))}
+                  />
+                  <input
+                    type="number"
+                    value={params.positionMin || ""}
+                    placeholder="Min"
+                    onChange={(event) => set({ positionMin: Number(event.target.value) || 0 })}
+                    className="tabular h-9 w-20 rounded border border-input bg-card px-2 text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={params.positionMax || ""}
+                    placeholder="Max"
+                    onChange={(event) => set({ positionMax: Number(event.target.value) || 0 })}
+                    className="tabular h-9 w-20 rounded border border-input bg-card px-2 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <span className="meta mb-1.5 block">SENIORS GRADUATING AT A POSITION</span>
+                <div className="flex gap-2">
+                  <Select
+                    value={params.seniorGroup}
+                    onChange={(value) => set({ seniorGroup: value })}
+                    placeholder="Any position"
+                    options={POSITION_GROUPS.map((group) => ({
+                      value: group,
+                      label: POSITION_GROUP_LABELS[group],
+                    }))}
+                  />
+                  <input
+                    type="number"
+                    value={params.seniorMin || ""}
+                    placeholder="At least"
+                    onChange={(event) => set({ seniorMin: Number(event.target.value) || 0 })}
+                    className="tabular h-9 w-24 rounded border border-input bg-card px-2 text-sm"
+                  />
+                </div>
+              </div>
+              <Range
+                label="Transfer share of roster (%)"
+                min={params.transferPctMin}
+                max={params.transferPctMax}
+                onChange={(transferPctMin, transferPctMax) =>
+                  set({ transferPctMin, transferPctMax })
+                }
+              />
+              <Field label="Conference">
+                <Select
+                  value={params.conference}
+                  onChange={(value) => set({ conference: value })}
+                  placeholder="All conferences"
+                  options={conferences.map((c) => ({ value: c.name, label: c.name }))}
+                />
+              </Field>
+              <Field label="Athletic scholarships">
+                <Select
+                  value={params.scholarships}
+                  onChange={(value) => set({ scholarships: value })}
+                  placeholder="Either"
+                  options={[
+                    { value: "yes", label: "Available" },
+                    { value: "no", label: "Not available" },
+                  ]}
+                />
+              </Field>
+            </FilterGroup>
+
+            <FilterGroup title="Campus & school fit">
+              <Field label="Public / private">
+                <Select
+                  value={params.publicPrivate}
+                  onChange={(value) => set({ publicPrivate: value })}
+                  placeholder="Either"
+                  options={PUBLIC_PRIVATE.map((p) => ({ value: p, label: titleCase(p) }))}
+                />
+              </Field>
+              <Field label="School size">
+                <Select
+                  value={params.schoolSize}
+                  onChange={(value) => set({ schoolSize: value })}
+                  placeholder="Any size"
+                  options={SCHOOL_SIZE_BUCKETS.map((s) => ({ value: s, label: titleCase(s) }))}
+                />
+              </Field>
+              <Field label="Campus setting">
+                <Select
+                  value={params.campusSetting}
+                  onChange={(value) => set({ campusSetting: value })}
+                  placeholder="Any setting"
+                  options={CAMPUS_SETTINGS.map((s) => ({ value: s, label: titleCase(s) }))}
+                />
+              </Field>
+              <Field label="Religious affiliation">
+                <Select
+                  value={params.religious}
+                  onChange={(value) => set({ religious: value })}
+                  placeholder="Either"
+                  options={[
+                    { value: "yes", label: "Yes" },
+                    { value: "no", label: "No" },
+                  ]}
+                />
+              </Field>
+            </FilterGroup>
+
+            <Link
+              to="/search"
+              search={{ sport: params.sport, more: true } as any}
+              className="inline-block text-sm font-semibold text-seam-red underline decoration-dotted underline-offset-4"
+            >
+              Clear all filters
+            </Link>
+          </div>
+        ) : null}
+      </div>
+
+      {chips.length > 0 ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {chips.map((chip) => (
+            <button
+              key={chip.label}
+              type="button"
+              onClick={() => set(chip.clear)}
+              className="flex h-8 items-center gap-1.5 rounded-full border border-org-accent bg-org-accent-tint px-3 text-[12px] font-semibold text-org-accent-strong transition-colors hover:bg-org-accent/25"
+            >
+              {chip.label}
+              <X className="size-3" aria-hidden />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {params.athleteId ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded border border-org-accent/40 bg-org-accent/10 p-3">
+          <p className="text-sm text-graphite">
+            Building the shortlist for{" "}
+            <span className="font-semibold">{contextAthlete?.["name"] ?? "this athlete"}</span>.
+            Saves go straight to their board.
+          </p>
+          <Link
+            to="/roster/$id"
+            params={{ id: params.athleteId }}
+            className="text-sm font-semibold text-org-primary underline decoration-dotted underline-offset-4"
+          >
+            Back to athlete
+          </Link>
+          <Link
+            to="/search"
+            search={(prev: any) => ({ ...prev, athleteId: "" })}
+            className="ml-auto text-sm font-semibold text-seam-red underline decoration-dotted underline-offset-4"
+          >
+            Exit athlete context
+          </Link>
+        </div>
+      ) : null}
+
       {results.data?.unpublishedPositions ? (
         <p className="mt-3 rounded border border-border bg-muted/50 p-2.5 text-sm text-steel">
           {results.data.unpublishedPositions} team
@@ -420,10 +762,8 @@ function SearchScreen() {
                 const u = row.university ?? {};
                 const selected = compare.isSelected(row.id);
                 const region = regionOfState(u.state);
-                // Same behaviour as College list: the row opens over the results.
                 const openRow = () =>
                   setOpenEntry({
-                    // Notes live on the saved-list row; from Search there isn't one yet.
                     id: null,
                     programId: row.id,
                     school: String(u.name ?? "Program"),
@@ -453,12 +793,7 @@ function SearchScreen() {
                       {[row.governing_body, row.division].filter(Boolean).join(" ") || NOT_REPORTED}
                     </td>
                     <td className="h-[38px] max-w-[200px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {row.conference ? (
-                        row.conference
-                      ) : (
-                        NOT_REPORTED
-                      )}
-
+                      {row.conference ? row.conference : NOT_REPORTED}
                     </td>
                     <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
                       {number(u.undergrad_enrollment)}
@@ -488,9 +823,6 @@ function SearchScreen() {
                           }
                           className="h-8 rounded border border-border bg-card px-2 text-xs font-semibold text-org-primary hover:bg-muted"
                         />
-
-
-
                         <button
                           type="button"
                           aria-pressed={selected}
@@ -523,339 +855,6 @@ function SearchScreen() {
         </div>
       )}
 
-      {/* Six primary filters */}
-      <div className="mt-4 rounded border border-border bg-card p-3">
-        <div className="mb-3 inline-flex rounded border border-border p-0.5">
-          {(["baseball", "softball"] as const).map((sport) => (
-            <button
-              key={sport}
-              type="button"
-              onClick={() => {
-                setSport(sport);
-                set({ sport });
-              }}
-              className={cn(
-                "h-8 rounded-sm px-4 text-sm font-semibold",
-                params.sport === sport
-                  ? "bg-sport-strong text-sport-foreground"
-                  : "text-steel hover:text-graphite",
-              )}
-            >
-              {titleCase(sport)}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="School name">
-            <input
-              value={params.q}
-              onChange={(event) => set({ q: event.target.value })}
-              placeholder="Search schools"
-              className="h-9 w-full rounded border border-input bg-card px-2.5 text-sm outline-none focus:border-org-primary"
-            />
-          </Field>
-
-          <Field label="Location">
-            <select
-              value=""
-              aria-label="Add a region or state"
-              onChange={(event) => addLocation(event.target.value)}
-              className="h-9 w-full rounded border border-input bg-card px-2 text-sm outline-none focus:border-org-primary"
-            >
-              <option value="">
-                {params.region || params.states.length
-                  ? "Add a state…"
-                  : "Anywhere — region or state"}
-              </option>
-              {params.region ? null : (
-                <optgroup label="Regions">
-                  {REGIONS.map((region) => (
-                    <option key={region} value={region}>
-                      {region}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              <optgroup label="States">
-                {stateOptions.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-          </Field>
-
-          <Field label="Governing body & division">
-            <div className="flex gap-2">
-              <Select
-                value={params.governingBody}
-                onChange={(value) => set({ governingBody: value, division: "" })}
-                placeholder="All bodies"
-                options={GOVERNING_BODIES.map((g) => ({ value: g, label: g }))}
-              />
-              <Select
-                value={params.division}
-                onChange={(value) => set({ division: value })}
-                placeholder={divisions.length ? "All divisions" : "All"}
-                options={(divisions.length ? divisions : (facets.data?.divisions ?? [])).map(
-                  (d) => ({ value: d, label: d }),
-                )}
-              />
-            </div>
-          </Field>
-
-          <Range
-            label="Net price ($ a family pays)"
-            min={params.netPriceMin}
-            max={params.netPriceMax}
-            onChange={(netPriceMin, netPriceMax) => set({ netPriceMin, netPriceMax })}
-          />
-
-          <Field label="Major offered">
-            <Select
-              value={params.majorId}
-              onChange={(value) => set({ majorId: value })}
-              placeholder="Any major"
-              options={(facets.data?.majors ?? []).map((m) => ({ value: m.id, label: m.name }))}
-            />
-          </Field>
-
-          <div className="flex items-end">
-            <DisclosureButton
-              open={moreOpen}
-              count={secondaryCount}
-              onClick={() => {
-                setMoreOpen((open) => !open);
-                set({ more: !moreOpen });
-              }}
-            >
-              <SlidersHorizontal className="size-4" aria-hidden />
-              More filters
-            </DisclosureButton>
-          </div>
-        </div>
-
-        {moreOpen ? (
-          <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Conference">
-              <Select
-                value={params.conference}
-                onChange={(value) => set({ conference: value })}
-                placeholder="All conferences"
-                options={conferences.map((c) => ({
-                  value: c.name,
-                  label: c.name,
-                }))}
-              />
-            </Field>
-            <Field label="Academic classification (not classified yet)">
-              <Select
-                value={params.academicBucket}
-                onChange={(value) => set({ academicBucket: value })}
-                placeholder="Any"
-                options={ACADEMIC_BUCKETS.map((b) => ({ value: b, label: b }))}
-              />
-            </Field>
-            <Field label="Public / private">
-              <Select
-                value={params.publicPrivate}
-                onChange={(value) => set({ publicPrivate: value })}
-                placeholder="Either"
-                options={PUBLIC_PRIVATE.map((p) => ({ value: p, label: titleCase(p) }))}
-              />
-            </Field>
-            <Field label="School size">
-              <Select
-                value={params.schoolSize}
-                onChange={(value) => set({ schoolSize: value })}
-                placeholder="Any size"
-                options={SCHOOL_SIZE_BUCKETS.map((s) => ({ value: s, label: titleCase(s) }))}
-              />
-            </Field>
-            <Field label="Campus setting">
-              <Select
-                value={params.campusSetting}
-                onChange={(value) => set({ campusSetting: value })}
-                placeholder="Any setting"
-                options={CAMPUS_SETTINGS.map((s) => ({ value: s, label: titleCase(s) }))}
-              />
-            </Field>
-            <Field label="Religious affiliation">
-              <Select
-                value={params.religious}
-                onChange={(value) => set({ religious: value })}
-                placeholder="Either"
-                options={[
-                  { value: "yes", label: "Yes" },
-                  { value: "no", label: "No" },
-                ]}
-              />
-            </Field>
-            <Field label="Athletic scholarships">
-              <Select
-                value={params.scholarships}
-                onChange={(value) => set({ scholarships: value })}
-                placeholder="Either"
-                options={[
-                  { value: "yes", label: "Available" },
-                  { value: "no", label: "Not available" },
-                ]}
-              />
-            </Field>
-            <Range
-              label="Tuition, out of state ($)"
-              min={params.tuitionMin}
-              max={params.tuitionMax}
-              onChange={(tuitionMin, tuitionMax) => set({ tuitionMin, tuitionMax })}
-            />
-            <Range
-              label="Total cost of attendance ($)"
-              min={params.coaMin}
-              max={params.coaMax}
-              onChange={(coaMin, coaMax) => set({ coaMin, coaMax })}
-            />
-            <Range
-              label="SAT"
-              min={params.satMin}
-              max={params.satMax}
-              onChange={(satMin, satMax) => set({ satMin, satMax })}
-            />
-            <Range
-              label="ACT"
-              min={params.actMin}
-              max={params.actMax}
-              onChange={(actMin, actMax) => set({ actMin, actMax })}
-            />
-            <Range
-              label="Acceptance rate (%)"
-              min={params.acceptanceMin}
-              max={params.acceptanceMax}
-              onChange={(acceptanceMin, acceptanceMax) => set({ acceptanceMin, acceptanceMax })}
-            />
-
-            <div className="sm:col-span-2 lg:col-span-3">
-              <p className="meta mt-1 mb-2">ROSTER COMPOSITION</p>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <Range
-                  label="Roster size"
-                  min={params.rosterMin}
-                  max={params.rosterMax}
-                  onChange={(rosterMin, rosterMax) => set({ rosterMin, rosterMax })}
-                />
-                <div>
-                  <span className="meta mb-1.5 block">COUNT AT A POSITION</span>
-                  <div className="flex gap-2">
-                    <Select
-                      value={params.positionGroup}
-                      onChange={(value) => set({ positionGroup: value })}
-                      placeholder="Any position"
-                      options={POSITION_GROUPS.map((group) => ({
-                        value: group,
-                        label: POSITION_GROUP_LABELS[group],
-                      }))}
-                    />
-                    <input
-                      type="number"
-                      value={params.positionMin || ""}
-                      placeholder="Min"
-                      onChange={(event) => set({ positionMin: Number(event.target.value) || 0 })}
-                      className="tabular h-9 w-20 rounded border border-input bg-card px-2 text-sm"
-                    />
-                    <input
-                      type="number"
-                      value={params.positionMax || ""}
-                      placeholder="Max"
-                      onChange={(event) => set({ positionMax: Number(event.target.value) || 0 })}
-                      className="tabular h-9 w-20 rounded border border-input bg-card px-2 text-sm"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <span className="meta mb-1.5 block">SENIORS GRADUATING AT A POSITION</span>
-                  <div className="flex gap-2">
-                    <Select
-                      value={params.seniorGroup}
-                      onChange={(value) => set({ seniorGroup: value })}
-                      placeholder="Any position"
-                      options={POSITION_GROUPS.map((group) => ({
-                        value: group,
-                        label: POSITION_GROUP_LABELS[group],
-                      }))}
-                    />
-                    <input
-                      type="number"
-                      value={params.seniorMin || ""}
-                      placeholder="At least"
-                      onChange={(event) => set({ seniorMin: Number(event.target.value) || 0 })}
-                      className="tabular h-9 w-24 rounded border border-input bg-card px-2 text-sm"
-                    />
-                  </div>
-                </div>
-                <Range
-                  label="Transfer share of roster (%)"
-                  min={params.transferPctMin}
-                  max={params.transferPctMax}
-                  onChange={(transferPctMin, transferPctMax) =>
-                    set({ transferPctMin, transferPctMax })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="sm:col-span-2 lg:col-span-3">
-              <Link
-                to="/search"
-                search={{ sport: params.sport, more: true } as any}
-                className="text-sm font-semibold text-seam-red underline decoration-dotted underline-offset-4"
-              >
-                Clear all filters
-              </Link>
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      {chips.length > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {chips.map((chip) => (
-            <button
-              key={chip.label}
-              type="button"
-              onClick={() => set(chip.clear)}
-              className="flex h-8 items-center gap-1.5 rounded-full border border-org-accent bg-org-accent-tint px-3 text-[12px] font-semibold text-org-accent-strong transition-colors hover:bg-org-accent/25"
-            >
-              {chip.label}
-              <X className="size-3" aria-hidden />
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {params.athleteId ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded border border-org-accent/40 bg-org-accent/10 p-3">
-          <p className="text-sm text-graphite">
-            Building the shortlist for{" "}
-            <span className="font-semibold">{contextAthlete?.["name"] ?? "this athlete"}</span>.
-            Saves go straight to their board.
-          </p>
-          <Link
-            to="/roster/$id"
-            params={{ id: params.athleteId }}
-            className="text-sm font-semibold text-org-primary underline decoration-dotted underline-offset-4"
-          >
-            Back to athlete
-          </Link>
-          <Link
-            to="/search"
-            search={(prev: any) => ({ ...prev, athleteId: "" })}
-            className="ml-auto text-sm font-semibold text-seam-red underline decoration-dotted underline-offset-4"
-          >
-            Exit athlete context
-          </Link>
-        </div>
-      ) : null}
 
 
 
@@ -870,7 +869,19 @@ function SearchScreen() {
   );
 }
 
+function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="relative mb-2 border-b border-border pb-1 font-display text-sm font-bold text-org-primary after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-8 after:bg-org-accent">
+        {title}
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    </section>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+
   return (
     <label className="block">
       <span className="meta mb-1.5 block">{label.toUpperCase()}</span>
