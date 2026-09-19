@@ -118,6 +118,8 @@ export function OrgTheme({
 
   style["--org-primary"] = effPrimary;
   style["--org-primary-tint"] = `color-mix(in oklab, ${effPrimary} 16%, ${SURFACE})`;
+  // Brand primary as readable text on midnight.
+  style["--org-primary-strong"] = `color-mix(in oklab, ${effPrimary} 82%, white)`;
   style["--org-primary-foreground"] = readableOn(effPrimary) ?? "#0a0f18";
   style["--navy-deep"] = blend(effPrimary, "#080d15", 0.18) ?? "#0b1422";
 
