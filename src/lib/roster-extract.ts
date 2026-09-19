@@ -804,6 +804,8 @@ function parseCards(input: string[]): PlayerRow[] {
 
     }
 
+    consumedThrough = Math.max(consumedThrough, scannedTo);
+
     if (!position && !klass && !number) continue;
     const place = splitHometown(hometown);
     rows.push({
