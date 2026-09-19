@@ -317,8 +317,15 @@ export const saveIntelField = createServerFn({ method: "POST" })
     const def = INTEL_FIELD_MAP[data.fieldKey];
     if (!def) throw new Error("Unknown field");
     if (def.kind === "choice" && data.structuredValue) {
-      const allowed = (def.choices ?? []).some((c) => c.value === data.structuredValue);
-      if (!allowed) throw new Error("Pick one of the listed answers");
+      // Several answers can be true at once; they arrive comma-joined.
+      const picked = data.structuredValue
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      const allowed = picked.every((value) => (def.choices ?? []).some((c) => c.value === value));
+      if (!allowed) throw new Error("Pick from the listed answers");
+      if (!def.multi && picked.length > 1) throw new Error("Pick a single answer");
+      data.structuredValue = picked.join(",") || null;
     }
     const positions = data.positions.filter((p) => (INTEL_POSITIONS as readonly string[]).includes(p));
     const hasSomething =
