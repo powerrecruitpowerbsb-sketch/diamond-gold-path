@@ -116,7 +116,7 @@
    */
   --surface-0: #0a0f18; /* canvas */
   --surface-1: #121c2c; /* card */
-  --surface-2: #17２33_placeholder; /* replaced below */
+  --surface-2: #17233a; /* raised surface: popovers, hovered rows */
   --surface-line: #1f2d44; /* hairline */
 
   /* Themeable brand defaults — used only when an organization has uploaded nothing */
@@ -156,13 +156,13 @@
   --foreground: var(--graphite);
   --card: var(--surface-1);
   --card-foreground: var(--graphite);
-  --popover: #16223４_placeholder;
+  --popover: var(--surface-2);
   --popover-foreground: var(--graphite);
   --primary: var(--org-primary);
   --primary-foreground: var(--org-primary-foreground);
   --secondary: #1a2740;
   --secondary-foreground: var(--graphite);
-  --muted: #17223６_placeholder;
+  --muted: #182339;
   --muted-foreground: var(--steel);
   --accent: var(--org-accent);
   --accent-foreground: #0a0f18;
