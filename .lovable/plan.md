@@ -1,15 +1,25 @@
 # Answers, then a consolidation proposal
 
-## 1. Why Search still shows a long list of schools
+## 1. Search: starts empty, works like the College list
 
-That is the current design, not a leftover: Search opens by browsing every baseball team in the
-database (1,556 matched, first 400 shown) and narrows as you add filters. Nothing about step 5
-changed that.
+Today Search opens by browsing every team (1,556 matched, first 400 shown). Changing to:
 
-If you'd rather it started empty, I'd change the opening state to a short prompt ("Pick a level,
-a location or a school name to begin") with the six filters visible and no rows until the first
-filter is set. Counts still show, so you can see how many teams a filter reaches. Say which you
-want.
+- Opens empty with a one-line prompt ("Pick a level, a location, or type a school name") and the
+  six filters visible. No rows until a filter or a name is entered.
+- Rows behave exactly like College list rows: clicking one opens the same pop-up sheet over the
+  results (Overview, Roster, Intelligence, Notes & Messages, "Go to full profile"), so you can
+  flip through several schools without leaving the search.
+- **Add to list** on every row. Staff and admins pick which athlete's list it goes to — a small
+  athlete picker that remembers the last athlete chosen, so adding ten schools for one player is
+  ten clicks, not twenty. Parents and players add to their own athlete with no picker. A school
+  already on that athlete's list shows "Added" with its current stage instead of a second button.
+- Match count stays above the results, so you can see how many teams a filter reaches.
+
+**Are Search and College list the same thing?** No — and I'd keep them separate. Search is
+discovery across all 3,238 teams, the funnel in. College list is the small set you're following
+for a player, with stages, notes and conversations. They should look and behave the same (same row
+style, same pop-up sheet), which is what makes them feel like one tool, but a family shouldn't
+wade through the whole country to see their eight schools.
 
 ## 2. Where to look for what was built
 
@@ -55,8 +65,10 @@ What I'd consolidate to:
    The current standalone Roster and per-athlete board merge here.
 3. **College list** — the same records read the other way: every athlete's schools in one
    sortable list, filterable by stage. This is the day-to-day working screen.
-4. **Search** — discovery, with Compare folded in as a compare tray rather than its own page, and
-   "Add to list" on each row.
+4. **Search** — discovery, whose whole purpose for a coach is finding schools to add to a specific
+   player's list: pick the athlete once at the top, then every row adds to that athlete, shows
+   "Added" if it's already there, and opens in the same pop-up sheet. Compare folds in as a tray
+   rather than its own page.
 
 Intelligence stays a separate item for Admin and Owner only (it's a different job and a different
 audience), and settings (stages, branding, invites, seasons) collapse into one **Settings** item
@@ -81,12 +93,17 @@ The player sees the same two; nothing is hidden from the parent that the player 
 
 ## Order I'd build it
 
-1. College list: all-athletes view, Athlete column, sorting. (Small, you asked for it.)
-2. Search opening state, if you want it changed.
+1. Search: empty start, athlete picker, Add to list / Added, and the pop-up sheet on rows.
+2. College list: all-athletes view, Athlete column, sorting.
 3. The menu consolidation and merged Home, which is the bigger piece and touches several screens.
 
 ## Technical notes
 
+- Search: `searchPrograms` only runs once at least one filter is set (the route keeps its URL
+  schema; an empty filter set skips the query). `search.tsx` reuses `SchoolSheet` for row clicks
+  and `ShortlistSaveButton`'s upsert path for Add to list, with the chosen athlete held in the URL
+  so a reload or shared link keeps the context. "Added" state comes from one extra read of that
+  athlete's saved programs.
 - Sorting and the all-athletes view: `getCollegeList` gains an "all athletes for this
   organization" mode (same org scoping and RLS as now, one query rather than per athlete);
   `list.tsx` gains sort state and an Athlete column. No schema change.
