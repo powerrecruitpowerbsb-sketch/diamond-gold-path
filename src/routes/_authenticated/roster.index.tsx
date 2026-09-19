@@ -69,11 +69,17 @@ function RosterScreen() {
 
   return (
     <AppShell right={<AuthButton />}>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      {/* Same header language as the school pages: a lit plate, then the work. */}
+      <div className="stadium-gradient flex flex-wrap items-end justify-between gap-4 rounded-2xl px-5 py-7 sm:px-8 sm:py-9">
         <div>
-          <h1 className="font-display text-3xl font-bold text-org-primary">Your roster</h1>
+          <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">
+            {SPORT_LABEL[sport]} · your organization
+          </p>
+          <h1 className="font-display mt-2 text-[2rem] leading-[1.06] font-bold text-white sm:text-4xl">
+            Your roster
+          </h1>
           <p
-            className="mt-1 text-sm text-steel"
+            className="mt-2 text-sm text-white/75"
             title="These are your organization's players. College rosters are separate, verified data."
           >
             {(data?.athletes ?? []).length} player
