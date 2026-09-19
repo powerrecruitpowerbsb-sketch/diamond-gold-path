@@ -164,22 +164,169 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
     </label>
   );
 
+  // What the card can show, grouped the way a college coach reads it. Blank
+  // rows are left out entirely — the card shows what is on file, nothing else.
+  const groups: { title: string; rows: [string, string | null][] }[] = [
+    {
+      title: "Reach the player",
+      rows: [
+        ["Player email", athlete['athlete_email'] ?? null],
+        ["Player phone", athlete['athlete_phone'] ?? null],
+        ["Parent / guardian", athlete['parent_name'] ?? null],
+        ["Parent email", athlete['parent_email'] ?? null],
+        ["Parent phone", athlete['parent_phone'] ?? null],
+      ],
+    },
+    {
+      title: "Where they play",
+      rows: [
+        ["High school", athlete['high_school'] ?? null],
+        ["Club / travel team", athlete['club_team'] ?? null],
+        [
+          "Home town",
+          [athlete['home_city'], athlete['home_state']].filter(Boolean).join(", ") || null,
+        ],
+        ["Secondary position", athlete['secondary_position'] ?? null],
+      ],
+    },
+    {
+      title: "Academics",
+      rows: [
+        ["GPA", athlete['gpa'] ? String(athlete['gpa']) : null],
+        ["SAT", athlete['sat_score'] ? String(athlete['sat_score']) : null],
+        ["ACT", athlete['act_score'] ? String(athlete['act_score']) : null],
+        ["NCAA / NAIA ID", athlete['eligibility_id'] ?? null],
+      ],
+    },
+    {
+      title: "Follow along",
+      rows: [
+        ["X", athlete['twitter_handle'] ?? null],
+        ["Instagram", athlete['instagram_handle'] ?? null],
+      ],
+    },
+  ].map((group) => ({ ...group, rows: group.rows.filter(([, value]) => Boolean(value)) as [string, string][] }));
+
+  const storedVideos = ((athlete['video_links'] ?? []) as string[]).filter(Boolean);
+  const filledCount =
+    groups.reduce((sum, group) => sum + group.rows.length, 0) +
+    storedVideos.length +
+    (athlete['height_inches'] ? 1 : 0) +
+    (athlete['weight_lbs'] ? 1 : 0);
+
   return (
     <div className="space-y-6">
-      {/* Contact + academics */}
+      {/* Player card — a finished showcase, with the form kept behind Edit. */}
       <section className={cardClass}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-xl font-bold text-graphite">Player card</h2>
-          <p className="text-sm text-steel">
-            {formatHeight(athlete['height_inches'])}
-            {athlete['weight_lbs'] ? ` · ${athlete['weight_lbs']} lb` : ""}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-display text-xl font-bold text-graphite">Player card</h2>
+            <HelpTip label="About the player card">
+              Contact details, school and grades. College coaches ask for all of this first, and
+              everything saved here shows on the shareable card you send them.
+            </HelpTip>
+          </div>
+          {canEdit && filledCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              className="touch-target inline-flex items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold text-graphite hover:border-org-primary hover:text-org-primary"
+            >
+              <Pencil className="size-3.5" aria-hidden />
+              {editing ? "Done editing" : "Edit card"}
+            </button>
+          ) : null}
         </div>
-        <p className="mt-1 text-sm text-steel">
-          Contact details, school and grades. College coaches ask for all of this first.
-        </p>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {!editing ? (
+          filledCount === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-border bg-surface-2/60 p-6 text-center">
+              <p className="font-display text-base font-bold text-graphite">
+                This card is empty
+              </p>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-steel">
+                Add the details every college coach asks for first — how to reach the player, where
+                they play, grades and video. They appear here as soon as they are saved.
+              </p>
+              {canEdit ? (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="touch-target mt-4 inline-flex items-center gap-1.5 rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground"
+                >
+                  <Plus className="size-4" aria-hidden /> Fill in the player card
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              {athlete['height_inches'] || athlete['weight_lbs'] ? (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {athlete['height_inches'] ? (
+                    <div className="rounded-xl border border-border bg-surface-2 px-5 py-3">
+                      <p className={labelClass}>Height</p>
+                      <p className="font-display mt-0.5 text-2xl font-bold tabular-nums text-graphite">
+                        {formatHeight(athlete['height_inches'])}
+                      </p>
+                    </div>
+                  ) : null}
+                  {athlete['weight_lbs'] ? (
+                    <div className="rounded-xl border border-border bg-surface-2 px-5 py-3">
+                      <p className={labelClass}>Weight</p>
+                      <p className="font-display mt-0.5 text-2xl font-bold tabular-nums text-graphite">
+                        {String(athlete['weight_lbs'])} lb
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="mt-5 grid gap-6 sm:grid-cols-2">
+                {groups
+                  .filter((group) => group.rows.length > 0)
+                  .map((group) => (
+                    <div key={group.title}>
+                      <p className={labelClass}>{group.title}</p>
+                      <dl className="mt-2">
+                        {group.rows.map(([label, value]) => (
+                          <div
+                            key={label}
+                            className="flex items-baseline justify-between gap-4 border-b border-border/70 py-2 last:border-0"
+                          >
+                            <dt className="text-sm text-steel">{label}</dt>
+                            <dd className="text-right text-sm font-semibold text-graphite">
+                              {value}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  ))}
+              </div>
+
+              {storedVideos.length ? (
+                <div className="mt-5">
+                  <p className={labelClass}>Highlight videos</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {storedVideos.map((url, index) => (
+                      <a
+                        key={url + index}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="touch-target inline-flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 text-sm font-semibold text-org-primary hover:border-org-primary"
+                      >
+                        <Play className="size-3.5" aria-hidden /> Video {index + 1}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )
+        ) : null}
+
+        <div className={cn("mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3", !editing && "hidden")}>
           {field("athleteEmail", "Player email", "email")}
           {field("athletePhone", "Player phone", "tel")}
           {field("parentName", "Parent / guardian")}
