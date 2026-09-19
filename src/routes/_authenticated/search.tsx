@@ -915,7 +915,20 @@ function SearchScreen() {
                     className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-org-primary">{u.name}</p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate font-semibold text-org-primary">{u.name}</p>
+                        {fitActive ? (
+                          row.fit?.matched > 0 ? (
+                            <span className="shrink-0 rounded-full border border-seam-red/50 bg-seam-red-tint px-2 py-0.5 text-[11px] font-semibold text-seam-red">
+                              Fits {row.fit.matched} of {row.fit.total}
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-steel">
+                              {row.fit?.evaluated ? "No match on file" : "Not written up yet"}
+                            </span>
+                          )
+                        ) : null}
+                      </div>
                       <p className="mt-0.5 truncate text-[12px] text-steel">
                         {meta.join(" · ") || NOT_REPORTED}
                       </p>
