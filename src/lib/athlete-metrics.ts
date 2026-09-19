@@ -1,0 +1,113 @@
+/**
+ * Measurables for an athlete.
+ *
+ * Every number lives as its own row (metric key + value + unit + date + where it
+ * came from) rather than as a column on the athlete. That is deliberate: outside
+ * testing services (Curve Testing, HandledReports, Perfect Game, Prep Baseball
+ * Report) can feed numbers in later without a schema change, and a family can
+ * keep a history instead of overwriting last spring's figure.
+ */
+
+import { type Sport } from "@/lib/sport";
+
+export type MetricDef = {
+  key: string;
+  label: string;
+  unit: string;
+  sports: Sport[];
+  /** Lower is better (times) vs higher is better (velocities, jumps). */
+  lowerIsBetter?: boolean;
+  step?: number;
+};
+
+export const METRIC_DEFS: MetricDef[] = [
+  { key: "height", label: "Height", unit: "in", sports: ["baseball", "softball"] },
+  { key: "weight", label: "Weight", unit: "lb", sports: ["baseball", "softball"] },
+  { key: "exit_velo", label: "Exit velocity", unit: "mph", sports: ["baseball", "softball"] },
+  { key: "max_exit_velo", label: "Max exit velocity", unit: "mph", sports: ["baseball", "softball"] },
+  { key: "bat_speed", label: "Bat speed", unit: "mph", sports: ["baseball", "softball"] },
+  { key: "fastball_velo", label: "Fastball", unit: "mph", sports: ["baseball"] },
+  { key: "curveball_velo", label: "Curveball", unit: "mph", sports: ["baseball"] },
+  { key: "changeup_velo", label: "Changeup", unit: "mph", sports: ["baseball"] },
+  { key: "sliders_velo", label: "Slider", unit: "mph", sports: ["baseball"] },
+  { key: "pitch_velo", label: "Pitching speed", unit: "mph", sports: ["softball"] },
+  { key: "of_velo", label: "Outfield velocity", unit: "mph", sports: ["baseball", "softball"] },
+  { key: "if_velo", label: "Infield velocity", unit: "mph", sports: ["baseball", "softball"] },
+  { key: "catcher_velo", label: "Catcher velocity", unit: "mph", sports: ["baseball", "softball"] },
+  { key: "pop_time", label: "Pop time", unit: "sec", sports: ["baseball", "softball"], lowerIsBetter: true, step: 0.01 },
+  { key: "sixty_yard", label: "60-yard dash", unit: "sec", sports: ["baseball"], lowerIsBetter: true, step: 0.01 },
+  { key: "home_to_first", label: "Home to first", unit: "sec", sports: ["baseball", "softball"], lowerIsBetter: true, step: 0.01 },
+  { key: "ten_yard", label: "10-yard split", unit: "sec", sports: ["baseball", "softball"], lowerIsBetter: true, step: 0.01 },
+  { key: "vertical_jump", label: "Vertical jump", unit: "in", sports: ["baseball", "softball"], step: 0.1 },
+  { key: "broad_jump", label: "Broad jump", unit: "in", sports: ["baseball", "softball"], step: 0.1 },
+];
+
+export const METRIC_KEYS = METRIC_DEFS.map((m) => m.key);
+
+export function metricsForSport(sport: Sport): MetricDef[] {
+  return METRIC_DEFS.filter((m) => m.sports.includes(sport));
+}
+
+export function metricDef(key: string): MetricDef | null {
+  return METRIC_DEFS.find((m) => m.key === key) ?? null;
+}
+
+export function metricLabel(key: string): string {
+  return metricDef(key)?.label ?? key.replace(/_/g, " ");
+}
+
+/** Where a number came from. Only "manual" is typed in by a person today. */
+export const METRIC_SOURCES = [
+  "manual",
+  "curve_testing",
+  "handled_reports",
+  "perfect_game",
+  "prep_baseball_report",
+  "other",
+] as const;
+
+export type MetricSource = (typeof METRIC_SOURCES)[number];
+
+export const METRIC_SOURCE_LABEL: Record<MetricSource, string> = {
+  manual: "Entered by hand",
+  curve_testing: "Curve Testing",
+  handled_reports: "HandledReports",
+  perfect_game: "Perfect Game",
+  prep_baseball_report: "Prep Baseball Report",
+  other: "Another service",
+};
+
+export function metricSourceLabel(source: unknown): string {
+  const key = String(source ?? "manual") as MetricSource;
+  return METRIC_SOURCE_LABEL[key] ?? String(source);
+}
+
+export function formatMetric(value: unknown, key: string): string {
+  const def = metricDef(key);
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  if (key === "height") return formatHeight(n);
+  const decimals = def?.step && def.step < 1 ? 2 : n % 1 === 0 ? 0 : 1;
+  return `${n.toFixed(decimals)} ${def?.unit ?? ""}`.trim();
+}
+
+/** 74 -> 6'2" */
+export function formatHeight(inches: unknown): string {
+  const n = Number(inches);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return `${Math.floor(n / 12)}'${Math.round(n % 12)}"`;
+}
+
+/** Keeps the newest row per metric key. */
+export function latestByMetric<T extends { metric_key: string; recorded_on?: string | null; created_at?: string }>(
+  rows: T[],
+): T[] {
+  const best = new Map<string, T>();
+  for (const row of rows) {
+    const current = best.get(row.metric_key);
+    const when = (row.recorded_on ?? row.created_at ?? "") as string;
+    const currentWhen = (current?.recorded_on ?? current?.created_at ?? "") as string;
+    if (!current || when > currentWhen) best.set(row.metric_key, row);
+  }
+  return METRIC_KEYS.map((key) => best.get(key)).filter(Boolean) as T[];
+}
