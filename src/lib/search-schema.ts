@@ -164,6 +164,12 @@ export type SearchFilters = {
   seniorMin: number | null;
   transferPctMin: number | null;
   transferPctMax: number | null;
+  /** Our own intelligence: which answers a program must carry to count as a fit. */
+  intel: { field: string; value: string }[];
+  intelPositions: string[];
+  relationship: string;
+  /** True hides programs that don't fit; false ranks fits first. */
+  intelOnly: boolean;
 };
 
 const str = (value: unknown) => String(value ?? "").trim();
