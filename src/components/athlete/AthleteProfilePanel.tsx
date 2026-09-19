@@ -492,11 +492,13 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
 
       {/* Measurables */}
       <section className={cardClass}>
-        <h2 className="font-display text-xl font-bold text-graphite">Measurables</h2>
-        <p className="mt-1 text-sm text-steel">
-          Each number keeps its date and where it came from, so a new test result never erases the
-          old one. Results from testing services land here too.
-        </p>
+        <div className="flex items-center gap-1.5">
+          <h2 className="font-display text-xl font-bold text-graphite">Measurables</h2>
+          <HelpTip label="About measurables">
+            Each number keeps its date and where it came from, so a new test result never erases the
+            old one. Results from testing services land here too.
+          </HelpTip>
+        </div>
 
         {latest.length === 0 ? (
           <p className="mt-4 text-sm text-steel">No numbers recorded yet.</p>
@@ -630,8 +632,16 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
 
       {/* Schedule */}
       <section className={cardClass}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-xl font-bold text-graphite">Where to see this player</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-display text-xl font-bold text-graphite">
+              Where to see this player
+            </h2>
+            <HelpTip label="About the schedule">
+              Team events your club posts show up here automatically. Add your own for guest play,
+              showcases or camps the club has not listed.
+            </HelpTip>
+          </div>
           {canEdit ? (
             <button
               type="button"
