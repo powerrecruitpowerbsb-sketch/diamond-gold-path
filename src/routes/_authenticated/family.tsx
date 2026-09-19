@@ -7,6 +7,7 @@ import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { getFamilyPortal } from "@/lib/invites.functions";
 import { SHORTLIST_STATUSES, SHORTLIST_STATUS_LABEL } from "@/lib/shortlist.functions";
+import { activityChipLabel, chipTone } from "@/lib/athlete-activity";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/family")({
@@ -167,6 +168,21 @@ function FamilyPortal() {
                                       .filter(Boolean)
                                       .join(" · ") || "—"}
                                   </p>
+                                  {((row['activity_chips'] ?? []) as string[]).length ? (
+                                    <span className="mt-2 flex flex-wrap gap-1">
+                                      {((row['activity_chips'] ?? []) as string[]).map((chip) => (
+                                        <span
+                                          key={chip}
+                                          className={cn(
+                                            "rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                                            chipTone(chip),
+                                          )}
+                                        >
+                                          {activityChipLabel(chip)}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  ) : null}
                                 </li>
                               );
                             })}
