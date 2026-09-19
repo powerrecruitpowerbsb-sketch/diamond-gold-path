@@ -347,7 +347,7 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
           {field("instagramHandle", "Instagram handle")}
         </div>
 
-        <div className="mt-4">
+        <div className={cn("mt-4", !editing && "hidden")}>
           <span className={labelClass}>Highlight videos</span>
           <div className="mt-1 space-y-2">
             {videos.map((url, index) => (
@@ -385,15 +385,28 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
           </div>
         </div>
 
-        {canEdit ? (
-          <button
-            type="button"
-            onClick={() => saveProfile.mutate()}
-            disabled={saveProfile.isPending}
-            className="touch-target mt-5 inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
-          >
-            {saveProfile.isPending ? "Saving…" : "Save player card"}
-          </button>
+        {canEdit && editing ? (
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                saveProfile.mutate(undefined, { onSuccess: () => setEditing(false) })
+              }
+              disabled={saveProfile.isPending}
+              className="touch-target inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
+            >
+              {saveProfile.isPending ? "Saving…" : "Save player card"}
+            </button>
+            {filledCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="touch-target inline-flex items-center rounded-xl border border-border px-4 text-sm font-semibold text-steel hover:text-graphite"
+              >
+                Cancel
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         {/* Shareable card link — what a college coach opens from an email. */}
