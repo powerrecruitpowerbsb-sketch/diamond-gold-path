@@ -654,12 +654,14 @@ function FieldRow({
   field,
   record,
   canApprove,
+  focused = false,
   onSaved,
 }: {
   programId: string;
   field: IntelFieldDef;
   record: any | null;
   canApprove: boolean;
+  focused?: boolean;
   onSaved: () => void;
 }) {
   const [content, setContent] = useState<string>(record?.content ?? "");
@@ -670,8 +672,17 @@ function FieldRow({
   );
   const [gradYear, setGradYear] = useState<string>(record?.structured_detail?.year ?? "");
   const [noteOpen, setNoteOpen] = useState<boolean>(
-    field.kind === "text" || Boolean(record?.content),
+    field.kind === "text" || Boolean(record?.content) || focused,
   );
+  const rowRef = useRef<HTMLDivElement | null>(null);
+
+  // Opened from a search tag: bring the row into view with its note ready.
+  useEffect(() => {
+    if (!focused) return;
+    setNoteOpen(true);
+    rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focused]);
+
 
   const saveFn = useServerFn(saveIntelField);
   const shareFn = useServerFn(setIntelVisibility);
