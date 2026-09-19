@@ -93,8 +93,8 @@ The player sees the same two; nothing is hidden from the parent that the player 
 
 ## Order I'd build it
 
-1. College list: all-athletes view, Athlete column, sorting. (Small, you asked for it.)
-2. Search opening state, if you want it changed.
+1. Search: empty start, athlete picker, Add to list / Added, and the pop-up sheet on rows.
+2. College list: all-athletes view, Athlete column, sorting.
 3. The menu consolidation and merged Home, which is the bigger piece and touches several screens.
 
 ## Technical notes
