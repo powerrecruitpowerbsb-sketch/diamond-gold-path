@@ -145,6 +145,8 @@ export type Database = {
       }
       athlete_saved_schools: {
         Row: {
+          activity_chips: string[]
+          activity_notes: Json
           added_by_user_id: string | null
           created_at: string
           id: string
@@ -156,6 +158,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          activity_chips?: string[]
+          activity_notes?: Json
           added_by_user_id?: string | null
           created_at?: string
           id?: string
@@ -167,6 +171,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          activity_chips?: string[]
+          activity_notes?: Json
           added_by_user_id?: string | null
           created_at?: string
           id?: string
