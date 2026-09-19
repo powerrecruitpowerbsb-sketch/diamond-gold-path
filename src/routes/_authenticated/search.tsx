@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -9,6 +9,7 @@ import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useCompare } from "@/components/compare/compare-selection";
 import { ShortlistSaveButton } from "@/components/brand/ShortlistSaveButton";
+import { SchoolSheet, type SheetEntry } from "@/components/list/SchoolSheet";
 import { listAthletePicker } from "@/lib/shortlist.functions";
 import { getSearchFacets, searchPrograms } from "@/lib/search.functions";
 import {
