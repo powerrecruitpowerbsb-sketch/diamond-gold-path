@@ -264,3 +264,60 @@ export const deleteScheduleEvent = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/* ------------------------------------------------------------------ */
+/* Team schedules (staff)                                              */
+/* ------------------------------------------------------------------ */
+
+export const getTeamSchedule = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { teamId: string }) => ({ teamId: str(input?.teamId) }))
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase
+      .from("schedule_events")
+      .select("id, name, event_type, start_date, end_date, venue, city, state, notes, link_url")
+      .eq("team_id", data.teamId)
+      .order("start_date", { ascending: true });
+    if (error) throw new Error(error.message);
+    return { events: (rows ?? []) as Record<string, any>[] };
+  });
+
+/**
+ * A team event, added by staff. Every athlete assigned to the team sees it on
+ * their own player card without anyone copying it across.
+ */
+export const saveTeamEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: {
+      teamId: string;
+      name: string;
+      eventType?: string | null;
+      startDate: string;
+      endDate?: string | null;
+      venue?: string | null;
+      city?: string | null;
+      state?: string | null;
+      linkUrl?: string | null;
+    }) => input,
+  )
+  .handler(async ({ context, data }) => {
+    const teamId = str(data?.teamId);
+    if (!teamId) throw new Error("Missing team");
+    const { data: team, error: teamError } = await context.supabase
+      .from("teams")
+      .select("id, season_id, organization_id")
+      .eq("id", teamId)
+      .maybeSingle();
+    if (teamError) throw new Error(teamError.message);
+    if (!team) throw new Error("Team not found");
+
+    return saveScheduleEvent({
+      data: {
+        ...data,
+        teamId,
+        seasonId: (team as any).season_id ?? null,
+        organizationId: (team as any).organization_id ?? null,
+      },
+    });
+  });
