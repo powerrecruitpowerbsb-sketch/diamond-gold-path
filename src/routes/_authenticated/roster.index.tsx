@@ -11,9 +11,9 @@ import { AuthButton } from "@/components/brand/AuthButton";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
 import { useSportMode } from "@/hooks/use-sport-mode";
-import { listOrgAthletes } from "@/lib/athletes.functions";
+import { getAthleteSportMix, listOrgAthletes } from "@/lib/athletes.functions";
 import { ATHLETE_STATUS_LABEL } from "@/lib/season-constants";
-import { normalizeSport, SPORT_LABEL } from "@/lib/sport";
+import { normalizeSport, SPORT_LABEL, SPORTS } from "@/lib/sport";
 
 
 export const Route = createFileRoute("/_authenticated/roster/")({
@@ -89,9 +89,33 @@ function RosterScreen() {
         </div>
       </div>
 
+      {/* Sport tabs: jump straight into either roster, with live counts. */}
+      <div className="mt-6 inline-flex rounded-lg border border-border bg-white p-1">
+        {SPORTS.map((option) => {
+          const active = option === sport;
+          return (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setSport(option)}
+              className={
+                active
+                  ? "touch-target rounded-md bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
+                  : "touch-target rounded-md px-4 text-sm font-semibold text-steel hover:text-graphite"
+              }
+            >
+              {SPORT_LABEL[option]}
+              <span className="ml-2 text-xs font-bold opacity-75">{mix?.[option] ?? 0}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mt-6">
         <SeasonTeamPicker ctx={ctx} />
       </div>
+
 
 
 
