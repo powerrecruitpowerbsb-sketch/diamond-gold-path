@@ -332,6 +332,13 @@ function CollegeList() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-3 text-steel tabular-nums">
+                    {entry['lastMessageAt'] || entry['updatedAt']
+                      ? new Date(
+                          String(entry['lastMessageAt'] ?? entry['updatedAt']),
+                        ).toLocaleDateString()
+                      : "—"}
+                  </td>
                   <td className="px-3">
                     {entry['threadId'] ? (
                       <span
@@ -351,7 +358,7 @@ function CollegeList() {
 
       <SchoolSheet
         entry={openEntry}
-        athleteId={currentAthlete}
+        athleteId={openEntry?.athleteId ?? (showingAll ? null : currentAthlete)}
         onClose={() => setOpenEntry(null)}
       />
     </AppShell>
