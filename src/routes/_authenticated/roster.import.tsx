@@ -61,6 +61,7 @@ const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[
 type PreviewRow = {
   index: number;
   name: string;
+  sport: Sport;
   gradYear: number | null;
   primaryPosition: string | null;
   bats: string | null;
@@ -87,6 +88,7 @@ function ImportAthletes() {
   const [rawRows, setRawRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<Record<Field, string>>({
     name: "",
+    sport: "",
     gradYear: "",
     primaryPosition: "",
     bats: "",
