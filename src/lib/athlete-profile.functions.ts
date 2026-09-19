@@ -173,7 +173,10 @@ export const saveAthleteMetric = createServerFn({ method: "POST" })
       org_athlete_id: athleteId,
       metric_key: metricKey,
       value,
-      unit: nullable(data?.unit),
+      // The unit belongs to the measurable itself (mph, sec, in, lb), so it is
+      // set here rather than trusted from the form.
+      unit: metricUnit(metricKey) || nullable(data?.unit),
+
       recorded_on: nullable(data?.recordedOn),
       source,
       source_ref: nullable(data?.sourceRef),
