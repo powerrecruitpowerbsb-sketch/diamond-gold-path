@@ -295,8 +295,9 @@ function CollegeList() {
               {filtered.map((entry) => (
                 <tr
                   key={String(entry['id'])}
-                  className="h-[38px] cursor-pointer border-b border-border last:border-0 hover:bg-muted/60"
-                  onClick={() =>
+                  className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/60"
+                  onClick={() => {
+                    setSheetTab("overview");
                     setOpenEntry({
                       id: String(entry['id']),
                       programId: String(entry['programId']),
@@ -305,13 +306,30 @@ function CollegeList() {
                       notes: (entry['notes'] ?? null) as string | null,
                       threadId: (entry['threadId'] ?? null) as string | null,
                       athleteId: (entry['athleteId'] ?? null) as string | null,
-                    })
-                  }
+                    });
+                  }}
                 >
                   {showingAll ? (
                     <td className="px-3 text-graphite">{String(entry['athleteName'] ?? "—")}</td>
                   ) : null}
-                  <td className="px-3 font-semibold text-graphite">{String(entry['school'])}</td>
+                  <td className="px-3 py-1.5 font-semibold text-graphite">
+                    {String(entry['school'])}
+                    {highlightChips((entry['activityChips'] ?? []) as string[]).length ? (
+                      <span className="mt-1 flex flex-wrap gap-1">
+                        {highlightChips((entry['activityChips'] ?? []) as string[]).map((chip) => (
+                          <span
+                            key={chip}
+                            className={cn(
+                              "rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                              chipTone(chip),
+                            )}
+                          >
+                            {activityChipLabel(chip)}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="px-3 text-steel">{String(entry['sport'] ?? "—")}</td>
                   <td className="px-3 text-steel">
                     {[entry['governingBody'], entry['division']].filter(Boolean).join(" ") ||
