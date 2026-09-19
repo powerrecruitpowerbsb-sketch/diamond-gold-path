@@ -245,6 +245,9 @@ function SearchScreen() {
   // deliberate sort choice overrides that order.
   const fitActive =
     params.intel.length > 0 || params.intelPositions.length > 0 || Boolean(params.relationship);
+  // The first intelligence condition decides which row the workstation opens on.
+  const focusFieldKey = params.intel[0]?.split(":")[0] ?? null;
+
   const served = (results.data?.results ?? []) as any[];
   const rows = (fitActive && params.sort === "name" ? [...served] : [...served]).sort((a, b) => {
     if (fitActive && params.sort === "name") {
