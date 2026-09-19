@@ -41,4 +41,4 @@
 - [x] Team schedules posted by staff auto-appear on assigned athletes; families can add their own guest-play events
 - [x] Shareable scout card: public link per athlete, on/off plus a contact-details switch
 - [x] Coach email addresses + outreach composer (Email coach tab on the school sheet)
-- [ ] True-fit meter: positional depth/turnover, academic Safety/Target/Reach, recruiting footprint — next
+- [x] True-fit meter: academic Safety/Target/Reach from published bands, depth + senior turnover at the athlete's own position group, recruiting footprint by state — a school with no roster on file is labelled pending, never marked down or hidden
