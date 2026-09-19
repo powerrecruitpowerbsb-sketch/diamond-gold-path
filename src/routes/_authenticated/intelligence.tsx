@@ -641,12 +641,15 @@ function FieldRow({
   onSaved: () => void;
 }) {
   const [content, setContent] = useState<string>(record?.content ?? "");
-  const [choice, setChoice] = useState<string>(record?.structured_value ?? "");
+  const [choices, setChoices] = useState<string[]>(structuredValues(record?.structured_value));
   const [positions, setPositions] = useState<string[]>(record?.positions ?? []);
   const [gradPositions, setGradPositions] = useState<string[]>(
     record?.structured_detail?.positions ?? [],
   );
   const [gradYear, setGradYear] = useState<string>(record?.structured_detail?.year ?? "");
+  const [noteOpen, setNoteOpen] = useState<boolean>(
+    field.kind === "text" || Boolean(record?.content),
+  );
 
   const saveFn = useServerFn(saveIntelField);
   const shareFn = useServerFn(setIntelVisibility);
@@ -658,7 +661,7 @@ function FieldRow({
           programId,
           fieldKey: field.key,
           content,
-          structuredValue: field.kind === "choice" ? choice || null : null,
+          structuredValue: field.kind === "choice" ? choices.join(",") || null : null,
           positions: field.kind === "positions" ? positions : [],
           structuredDetail:
             field.kind === "grad_needs" && (gradPositions.length || gradYear)
@@ -688,10 +691,34 @@ function FieldRow({
     setter: (next: string[]) => void,
   ) => setter(current.includes(value) ? current.filter((p) => p !== value) : [...current, value]);
 
+  const toggleChoice = (value: string) =>
+    setChoices((current) =>
+      field.multi
+        ? current.includes(value)
+          ? current.filter((v) => v !== value)
+          : [...current, value]
+        : current.includes(value)
+          ? []
+          : [value],
+    );
+
+  const chip = (on: boolean) =>
+    cn(
+      "rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-colors",
+      on
+        ? "border-org-accent bg-org-accent text-org-accent-foreground"
+        : "border-border bg-card text-steel hover:border-org-primary hover:text-graphite",
+    );
+
   return (
     <div className="py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-graphite">{field.label}</span>
+        <span className="text-sm font-semibold text-graphite">
+          {field.label}
+          {field.multi ? (
+            <span className="ml-1.5 text-[11px] font-medium text-steel">pick any that apply</span>
+          ) : null}
+        </span>
         <span className="flex items-center gap-2">
           {record ? (
             <span className="meta">{STATUS_LABELS[record.status] ?? record.status}</span>
@@ -721,37 +748,58 @@ function FieldRow({
       ) : null}
 
       {field.kind === "choice" ? (
-        <select className={cn(input, "mt-2")} value={choice} onChange={(e) => setChoice(e.target.value)}>
-          <option value="">Not recorded</option>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {(field.choices ?? []).map((option) => (
-            <option key={option.value} value={option.value}>
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={choices.includes(option.value)}
+              onClick={() => toggleChoice(option.value)}
+              className={chip(choices.includes(option.value))}
+            >
               {option.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       ) : null}
 
       {field.kind === "positions" || field.kind === "grad_needs" ? (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {INTEL_POSITIONS.map((value) => {
-            const current = field.kind === "positions" ? positions : gradPositions;
-            const setter = field.kind === "positions" ? setPositions : setGradPositions;
-            const on = current.includes(value);
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => togglePosition(value, current, setter)}
-                className={cn(
-                  "rounded border border-border px-2 py-0.5 text-[11px] font-semibold",
-                  on ? "border-org-primary bg-org-primary text-org-primary-foreground" : "bg-card text-steel",
-                )}
-              >
-                {POSITION_LABELS[value] ?? value}
-              </button>
-            );
-          })}
-        </div>
+        <>
+          {field.kind === "positions" ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {POSITION_GROUP_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setPositions(preset.positions)}
+                  className="rounded-full border border-dashed border-org-primary/50 px-2.5 py-1 text-[11px] font-semibold text-org-primary hover:bg-org-primary-tint"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <div className="mt-2 flex flex-wrap gap-1">
+            {INTEL_POSITIONS.map((value) => {
+              const current = field.kind === "positions" ? positions : gradPositions;
+              const setter = field.kind === "positions" ? setPositions : setGradPositions;
+              const on = current.includes(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => togglePosition(value, current, setter)}
+                  className={cn(
+                    "rounded border border-border px-2 py-0.5 text-[11px] font-semibold",
+                    on ? "border-org-primary bg-org-primary text-org-primary-foreground" : "bg-card text-steel",
+                  )}
+                >
+                  {POSITION_LABELS[value] ?? value}
+                </button>
+              );
+            })}
+          </div>
+        </>
       ) : null}
 
       {field.kind === "grad_needs" ? (
@@ -763,12 +811,38 @@ function FieldRow({
         />
       ) : null}
 
-      <textarea
-        className="mt-2 min-h-[64px] w-full rounded border border-border bg-card p-2 text-sm text-graphite focus:outline-none focus:ring-1 focus:ring-org-primary"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder={field.help ?? "What did you see?"}
-      />
+      {/* Notes stay tucked away so the list reads as a short pick-list. */}
+      {field.kind === "text" ? null : noteOpen ? (
+        <button
+          type="button"
+          onClick={() => setNoteOpen(false)}
+          className="mt-2 text-[11px] font-semibold text-org-primary underline decoration-dotted underline-offset-2"
+        >
+          Hide note
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setNoteOpen(true)}
+          className={cn(
+            "mt-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+            content.trim()
+              ? "border-org-primary bg-org-primary-tint text-org-primary"
+              : "border-dashed border-border text-steel hover:border-org-primary hover:text-org-primary",
+          )}
+        >
+          {content.trim() ? `Note: ${content.trim().slice(0, 60)}${content.trim().length > 60 ? "…" : ""}` : "+ Add note"}
+        </button>
+      )}
+
+      {noteOpen ? (
+        <textarea
+          className="mt-2 min-h-[64px] w-full rounded border border-border bg-card p-2 text-sm text-graphite focus:outline-none focus:ring-1 focus:ring-org-primary"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder={field.help ?? "What did you see?"}
+        />
+      ) : null}
 
       <div className="mt-2 flex items-center gap-3">
         <button
