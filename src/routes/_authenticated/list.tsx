@@ -129,15 +129,39 @@ function CollegeList() {
     [entries],
   );
 
-  const filtered = entries.filter((entry) => {
-    if (stageFilter !== "all" && entry['stageId'] !== stageFilter) return false;
-    if (sportFilter !== "all" && entry['sport'] !== sportFilter) return false;
-    const level = [entry['governingBody'], entry['division']].filter(Boolean).join(" ");
-    if (levelFilter !== "all" && level !== levelFilter) return false;
-    return true;
-  });
+  const stageOrder = useMemo(
+    () => new Map(stages.map((stage, index) => [String(stage['id']), index])),
+    [stages],
+  );
+
+  const filtered = entries
+    .filter((entry) => {
+      if (stageFilter !== "all" && entry['stageId'] !== stageFilter) return false;
+      if (sportFilter !== "all" && entry['sport'] !== sportFilter) return false;
+      const level = [entry['governingBody'], entry['division']].filter(Boolean).join(" ");
+      if (levelFilter !== "all" && level !== levelFilter) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const left = sortValue(sortKey, a, stageOrder);
+      const right = sortValue(sortKey, b, stageOrder);
+      const cmp =
+        typeof left === "number" && typeof right === "number"
+          ? left - right
+          : String(left).localeCompare(String(right));
+      return dir === "asc" ? cmp : -cmp;
+    });
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) setDir(dir === "asc" ? "desc" : "asc");
+    else {
+      setSortKey(key);
+      setDir("asc");
+    }
+  };
 
   const countFor = (stageId: string) => entries.filter((e) => e['stageId'] === stageId).length;
+  const columns = COLUMNS.filter((column) => showingAll || !column.athleteOnly);
 
   return (
     <AppShell right={<AuthButton />}>
