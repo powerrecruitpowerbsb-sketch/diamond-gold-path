@@ -199,6 +199,11 @@ function RosterScreen() {
                       {athlete['name']}
                     </Link>
                   </td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-sm bg-sport-tint px-1.5 py-0.5 font-mono text-[11px] uppercase text-graphite">
+                      {SPORT_LABEL[normalizeSport(athlete['sport'])]}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-graphite">
                     {athlete['team_name'] ?? (
                       <span className="font-mono text-xs text-steel">Unassigned</span>
