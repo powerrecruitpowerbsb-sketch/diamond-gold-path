@@ -150,6 +150,7 @@ export type Database = {
           id: string
           notes: string | null
           org_athlete_id: string
+          org_stage_id: string | null
           program_id: string
           status: Database["public"]["Enums"]["saved_school_status"]
           updated_at: string
@@ -160,6 +161,7 @@ export type Database = {
           id?: string
           notes?: string | null
           org_athlete_id: string
+          org_stage_id?: string | null
           program_id: string
           status?: Database["public"]["Enums"]["saved_school_status"]
           updated_at?: string
@@ -170,6 +172,7 @@ export type Database = {
           id?: string
           notes?: string | null
           org_athlete_id?: string
+          org_stage_id?: string | null
           program_id?: string
           status?: Database["public"]["Enums"]["saved_school_status"]
           updated_at?: string
@@ -187,6 +190,13 @@ export type Database = {
             columns: ["org_athlete_id"]
             isOneToOne: false
             referencedRelation: "org_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_saved_schools_org_stage_id_fkey"
+            columns: ["org_stage_id"]
+            isOneToOne: false
+            referencedRelation: "continuum_stages"
             referencedColumns: ["id"]
           },
           {
@@ -426,6 +436,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      continuum_stages: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          maps_to: Database["public"]["Enums"]["saved_school_status"]
+          name: string
+          organization_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          maps_to?: Database["public"]["Enums"]["saved_school_status"]
+          name: string
+          organization_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          maps_to?: Database["public"]["Enums"]["saved_school_status"]
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuum_stages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       data_field_sources: {
         Row: {
@@ -1030,6 +1084,174 @@ export type Database = {
           source?: string
         }
         Relationships: []
+      }
+      message_reports: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string | null
+          reason: string | null
+          reported_by: string | null
+          status: string
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          reason?: string | null
+          reported_by?: string | null
+          status?: string
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          reason?: string | null
+          reported_by?: string | null
+          status?: string
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reports_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reports_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_threads: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_closed: boolean
+          last_message_at: string | null
+          org_athlete_id: string
+          organization_id: string
+          program_id: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_closed?: boolean
+          last_message_at?: string | null
+          org_athlete_id: string
+          organization_id: string
+          program_id: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_closed?: boolean
+          last_message_at?: string | null
+          org_athlete_id?: string
+          organization_id?: string
+          program_id?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_threads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_threads_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_threads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_threads_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          author_user_id: string | null
+          body: string
+          body_original: string | null
+          created_at: string
+          edited_at: string | null
+          id: string
+          thread_id: string
+        }
+        Insert: {
+          author_user_id?: string | null
+          body: string
+          body_original?: string | null
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          thread_id: string
+        }
+        Update: {
+          author_user_id?: string | null
+          body?: string
+          body_original?: string | null
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       org_athletes: {
         Row: {
@@ -2473,6 +2695,51 @@ export type Database = {
           },
         ]
       }
+      thread_participants: {
+        Row: {
+          created_at: string
+          id: string
+          last_read_at: string | null
+          participant_role: Database["public"]["Enums"]["user_type"]
+          removable: boolean
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_read_at?: string | null
+          participant_role: Database["public"]["Enums"]["user_type"]
+          removable?: boolean
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_read_at?: string | null
+          participant_role?: Database["public"]["Enums"]["user_type"]
+          removable?: boolean
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_participants_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       universities: {
         Row: {
           acceptance_rate: number | null
@@ -3141,6 +3408,7 @@ export type Database = {
     Functions: {
       active_season_id: { Args: never; Returns: string }
       can_access_athlete: { Args: { _athlete_id: string }; Returns: boolean }
+      can_see_thread: { Args: { _thread_id: string }; Returns: boolean }
       coaches_team: { Args: { _team_id: string }; Returns: boolean }
       collection_cron_start: { Args: never; Returns: undefined }
       collection_cron_stop: { Args: never; Returns: undefined }
@@ -3163,6 +3431,7 @@ export type Database = {
         Returns: boolean
       }
       hash_invite_code: { Args: { _code: string }; Returns: string }
+      in_thread: { Args: { _thread_id: string }; Returns: boolean }
       intel_field_family_visible: {
         Args: { _field_type: string }
         Returns: boolean
@@ -3172,6 +3441,7 @@ export type Database = {
       is_org_admin_level: { Args: never; Returns: boolean }
       is_org_manager: { Args: never; Returns: boolean }
       is_org_owner: { Args: never; Returns: boolean }
+      is_own_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       is_platform_host: { Args: { _host: string }; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
       link_host: { Args: { _url: string }; Returns: string }
