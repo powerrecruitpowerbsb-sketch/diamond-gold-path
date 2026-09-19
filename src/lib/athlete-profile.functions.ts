@@ -132,12 +132,16 @@ export const saveAthleteProfile = createServerFn({ method: "POST" })
     const gpa = fields['gpa'] as number | null;
     if (gpa !== null && (gpa < 0 || gpa > 5)) throw new Error("GPA must be between 0 and 5");
 
-    const { error } = await context.supabase
+    // Count the rows back: if permission rules block the write, Postgres
+    // changes nothing and reports no error, so silence would look like a save.
+    const { error, count } = await context.supabase
       .from("org_athletes")
-      .update(fields as never)
+      .update(fields as never, { count: "exact" })
       .eq("id", athleteId);
     if (error) throw new Error(error.message);
+    if (!count) throw new Error("You do not have permission to edit this player card");
     return { ok: true };
+
   });
 
 export const saveAthleteMetric = createServerFn({ method: "POST" })
