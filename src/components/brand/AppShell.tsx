@@ -127,7 +127,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       {actingOrg ? <ActingOrgBar name={actingOrg.name} /> : null}
 
       {/* Chrome: top nav on desktop, condensed bar + hamburger on mobile */}
-      <header className="sticky top-0 z-40 bg-org-primary text-white shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+      <header className="sticky top-0 z-40 bg-org-primary text-org-primary-foreground shadow-[0_1px_0_rgba(255,255,255,0.08)]">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
           <Link to="/" className="touch-target flex items-center gap-2.5">
             <OrgMark

@@ -363,7 +363,7 @@ function ImportAthletes() {
               type="button"
               disabled={!canPreview}
               onClick={() => void buildPreview()}
-              className="touch-target mt-4 inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-white disabled:opacity-60"
+              className="touch-target mt-4 inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
             >
               Preview rows
             </button>

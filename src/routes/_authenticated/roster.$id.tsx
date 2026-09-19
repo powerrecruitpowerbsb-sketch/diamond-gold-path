@@ -395,7 +395,7 @@ function AthleteDetail() {
                 </label>
                 <button
                   type="submit"
-                  className="touch-target ml-auto inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-white"
+                  className="touch-target ml-auto inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
                 >
                   Add note
                 </button>
@@ -513,7 +513,7 @@ function ShortlistCard({
       </div>
 
       <p className="mt-1 flex flex-wrap items-center gap-1.5">
-        <span className="rounded-md bg-org-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+        <span className="rounded-md bg-org-primary px-1.5 py-0.5 text-[10px] font-bold text-org-primary-foreground">
           {[program?.governing_body, program?.division].filter(Boolean).join(" ") || "—"}
         </span>
         <span className="font-mono text-[10px] text-steel">

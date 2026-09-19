@@ -87,7 +87,7 @@ function NewSchool() {
               className={cn(
                 "touch-target flex items-center gap-2 rounded-lg border px-3.5 text-sm font-semibold",
                 index === step
-                  ? "border-org-primary bg-org-primary text-white"
+                  ? "border-org-primary bg-org-primary text-org-primary-foreground"
                   : index < step
                     ? "border-diamond-green bg-diamond-green-tint text-diamond-green"
                     : "border-border bg-card text-steel",
@@ -205,7 +205,7 @@ function NewSchool() {
 
         {step < STEPS.length - 1 ? (
           <Button
-            className="touch-target bg-org-primary text-white hover:bg-org-primary/90"
+            className="touch-target bg-org-primary text-org-primary-foreground hover:bg-org-primary/90"
             disabled={!canAdvance}
             onClick={() => setStep(step + 1)}
           >

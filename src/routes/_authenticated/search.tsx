@@ -506,7 +506,7 @@ function SearchScreen() {
                           className={cn(
                             "flex size-8 items-center justify-center rounded border",
                             selected
-                              ? "border-org-primary bg-org-primary text-white"
+                              ? "border-org-primary bg-org-primary text-org-primary-foreground"
                               : "border-border text-org-primary hover:bg-muted",
                             !selected && compare.isFull && "cursor-not-allowed opacity-50",
                           )}

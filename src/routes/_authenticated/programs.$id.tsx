@@ -400,7 +400,7 @@ function ProgramProfile() {
               <span
                 className={cn(
                   "px-3 py-1.5 text-sm font-semibold",
-                  "bg-org-primary text-white",
+                  "bg-org-primary text-org-primary-foreground",
                 )}
               >
                 {titleCase(program.sport)}

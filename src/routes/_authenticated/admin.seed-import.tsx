@@ -244,7 +244,7 @@ function SeedImport() {
                 type="button"
                 onClick={onPreview}
                 disabled={busy}
-                className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+                className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
               >
                 <Upload className="size-4" aria-hidden />
                 {busy ? "Working…" : `Preview ${rawRows.length} row${rawRows.length === 1 ? "" : "s"}`}
@@ -325,7 +325,7 @@ function SeedImport() {
                 type="button"
                 onClick={onDiscover}
                 disabled={discovering}
-                className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+                className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
               >
                 <Radar className="size-4" aria-hidden />
                 {discovering

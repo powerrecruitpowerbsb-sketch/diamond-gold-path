@@ -640,7 +640,7 @@ function FieldRow({
                 onClick={() => togglePosition(value, current, setter)}
                 className={cn(
                   "rounded border border-border px-2 py-0.5 text-[11px] font-semibold",
-                  on ? "border-org-primary bg-org-primary text-white" : "bg-card text-steel",
+                  on ? "border-org-primary bg-org-primary text-org-primary-foreground" : "bg-card text-steel",
                 )}
               >
                 {POSITION_LABELS[value] ?? value}

@@ -269,7 +269,7 @@ function SeasonList({
         <button
           type="submit"
           disabled={busy}
-          className="touch-target mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+          className="touch-target mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
         >
           <Plus className="size-4" aria-hidden /> Add season
         </button>
@@ -343,7 +343,7 @@ function TeamManager({
           </label>
           <button
             type="submit"
-            className="touch-target inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-white"
+            className="touch-target inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
           >
             <Plus className="size-4" aria-hidden /> Add team
           </button>
@@ -636,7 +636,7 @@ function RolloverWizard({
             type="button"
             disabled={!name.trim()}
             onClick={() => setStep(2)}
-            className="touch-target mt-4 inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+            className="touch-target mt-4 inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
           >
             Teams <ArrowRight className="size-4" aria-hidden />
           </button>
@@ -714,7 +714,7 @@ function RolloverWizard({
               type="button"
               disabled={!keptTeams.length}
               onClick={() => setStep(3)}
-              className="touch-target inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+              className="touch-target inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
             >
               Players <ArrowRight className="size-4" aria-hidden />
             </button>

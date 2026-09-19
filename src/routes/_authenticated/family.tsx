@@ -77,7 +77,7 @@ function FamilyPortal() {
           </p>
           <Link
             to="/search"
-            className="touch-target mt-4 inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-white"
+            className="touch-target mt-4 inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
           >
             Browse the college database
           </Link>

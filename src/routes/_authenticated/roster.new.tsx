@@ -189,7 +189,7 @@ function NewAthlete() {
         <button
           type="submit"
           disabled={saving}
-          className="touch-target mt-6 inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-white disabled:opacity-60"
+          className="touch-target mt-6 inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save athlete"}
         </button>
