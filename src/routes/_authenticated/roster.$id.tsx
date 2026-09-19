@@ -6,6 +6,7 @@ import { ArrowLeft, Eye, EyeOff, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { InvitePanel } from "@/components/admin/InvitePanel";
+import { AthleteProfilePanel } from "@/components/athlete/AthleteProfilePanel";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import {
@@ -187,6 +188,10 @@ function AthleteDetail() {
 
           {/* Season assignment + program status. Assignments are per season;
               status is athlete-level and outlives every season. */}
+          <div className="mt-6">
+            <AthleteProfilePanel athleteId={id} />
+          </div>
+
           <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
             <h2 className="font-display text-xl font-bold text-graphite">Seasons &amp; teams</h2>
             <div className="mt-4 grid gap-5 md:grid-cols-2">

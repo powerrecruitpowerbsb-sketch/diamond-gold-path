@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Eye } from "lucide-react";
 
+import { AthleteProfilePanel } from "@/components/athlete/AthleteProfilePanel";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { getFamilyPortal } from "@/lib/invites.functions";
@@ -125,6 +126,10 @@ function FamilyPortal() {
                     </div>
                   ))}
                 </dl>
+
+                <div className="mt-6">
+                  <AthleteProfilePanel athleteId={String(athlete['id'])} />
+                </div>
 
                 <h3 className="mt-6 font-mono text-[11px] tracking-wide text-steel uppercase">
                   College list · {saved.length}
