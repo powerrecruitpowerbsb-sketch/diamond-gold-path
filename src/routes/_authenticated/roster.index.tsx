@@ -59,33 +59,27 @@ function RosterScreen() {
     <AppShell right={<AuthButton />}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-xs tracking-wide text-steel uppercase">Our athletes</p>
-          <h1 className="font-display text-3xl font-bold text-graphite">Athlete roster</h1>
-          <p className="mt-1 text-sm text-steel">
-            Your organization's players — separate from the verified college roster data.
+          <h1 className="font-display text-3xl font-bold text-org-primary">Your roster</h1>
+          <p
+            className="mt-1 text-sm text-steel"
+            title="These are your organization's players. College rosters are separate, verified data."
+          >
+            {(data?.athletes ?? []).length} player
+            {(data?.athletes ?? []).length === 1 ? "" : "s"} in this season.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {ctx.canManage ? (
-            <Link
-              to="/settings/seasons"
-              className="touch-target inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-graphite hover:bg-chalk"
-            >
+            <ActionLink to="/settings/seasons" tone="secondary">
               <CalendarRange className="size-4" aria-hidden /> Seasons &amp; teams
-            </Link>
+            </ActionLink>
           ) : null}
-          <Link
-            to="/roster/import"
-            className="touch-target inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-graphite hover:bg-chalk"
-          >
+          <ActionLink to="/roster/import" tone="secondary">
             <Upload className="size-4" aria-hidden /> Import CSV
-          </Link>
-          <Link
-            to="/roster/new"
-            className="touch-target inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-white hover:opacity-95"
-          >
+          </ActionLink>
+          <ActionLink to="/roster/new">
             <Plus className="size-4" aria-hidden /> Add athlete
-          </Link>
+          </ActionLink>
         </div>
       </div>
 
