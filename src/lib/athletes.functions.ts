@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { normalizeSport, type Sport } from "@/lib/sport";
 
 /** Where an invited user lands to set their password. */
 function inviteRedirect(): string | undefined {
@@ -40,6 +41,8 @@ export type AthleteInput = {
   primaryPosition?: string | null;
   bats?: string | null;
   throws?: string | null;
+  /** Baseball or softball. Anything else reads as baseball. */
+  sport?: string | null;
   source?: (typeof ATHLETE_SOURCES)[number];
 };
 
