@@ -33,6 +33,7 @@ export const Route = createFileRoute("/_authenticated/roster/import")({
 
 type Field =
   | "name"
+  | "sport"
   | "gradYear"
   | "primaryPosition"
   | "bats"
@@ -42,6 +43,7 @@ type Field =
 
 const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[] = [
   { key: "name", label: "Name", required: true, hints: ["name", "athlete", "player", "full name"] },
+  { key: "sport", label: "Sport", required: false, hints: ["sport", "program"] },
   { key: "gradYear", label: "Graduation year", required: false, hints: ["grad", "class", "year"] },
   { key: "primaryPosition", label: "Primary position", required: false, hints: ["position", "pos"] },
   { key: "bats", label: "Bats", required: false, hints: ["bats", "b"] },
