@@ -11,6 +11,7 @@ import { SchoolSheet, type SheetEntry } from "@/components/list/SchoolSheet";
 import { StageSettings } from "@/components/list/StageSettings";
 import { Button } from "@/components/ui/button";
 import { getCollegeList, moveToStage } from "@/lib/continuum.functions";
+import { useSportMode } from "@/hooks/use-sport-mode";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/list")({
@@ -96,9 +97,12 @@ function CollegeList() {
   const [sortKey, setSortKey] = useState<SortKey>("athlete");
   const [dir, setDir] = useState<"asc" | "desc">("asc");
 
+  // Staff see one sport at a time, set by the header switch; a family always
+  // sees their own athlete whichever way the switch is set.
+  const { sport } = useSportMode();
   const list = useQuery({
-    queryKey: ["college-list", athleteId],
-    queryFn: () => listFn({ data: { athleteId: athleteId ?? "" } }),
+    queryKey: ["college-list", athleteId, sport],
+    queryFn: () => listFn({ data: { athleteId: athleteId ?? "", sport } }),
     retry: false,
   });
 
