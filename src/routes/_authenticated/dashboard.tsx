@@ -57,6 +57,7 @@ function Dashboard() {
 
   const [term, setTerm] = useState("");
   const [gradYear, setGradYear] = useState("");
+  const [stageFilter, setStageFilter] = useState<ShortlistStatus | null>(null);
 
   const athletes = useMemo(() => {
     const rows = data?.athletes ?? [];
@@ -64,9 +65,10 @@ function Dashboard() {
     return rows.filter((row) => {
       if (needle && !String(row.name ?? "").toLowerCase().includes(needle)) return false;
       if (gradYear && String(row.gradYear ?? "") !== gradYear) return false;
+      if (stageFilter && (row.counts?.[stageFilter] ?? 0) === 0) return false;
       return true;
     });
-  }, [data, term, gradYear]);
+  }, [data, term, gradYear, stageFilter]);
 
   if (error) {
     return (
@@ -198,18 +200,31 @@ function Dashboard() {
             ))}
           </div>
         ) : athletes.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-border bg-card p-8 text-center">
-            <p className="font-display text-lg font-bold text-graphite">No athletes yet</p>
-            <p className="mt-1 text-sm text-steel">
-              Add athletes from the roster, then start saving schools to their shortlists.
-            </p>
-            <Link
-              to="/roster"
-              className="touch-target mt-4 inline-flex items-center rounded-xl bg-seam-red px-4 text-sm font-semibold text-white"
-            >
-              Go to roster
-            </Link>
-          </div>
+          <EmptyState
+            className="mt-4"
+            icon={Users}
+            headline={stageFilter || term || gradYear ? "Nobody here yet" : "Start your roster"}
+            action={
+              stageFilter || term || gradYear ? (
+                <ActionButton
+                  tone="secondary"
+                  onClick={() => {
+                    setStageFilter(null);
+                    setTerm("");
+                    setGradYear("");
+                  }}
+                >
+                  Clear filters
+                </ActionButton>
+              ) : (
+                <ActionLink to="/roster/new">Add your first athlete</ActionLink>
+              )
+            }
+          >
+            {stageFilter || term || gradYear
+              ? "No athlete matches what you picked."
+              : "Add a player and their college board starts here."}
+          </EmptyState>
         ) : (
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {athletes.map((athlete) => (
