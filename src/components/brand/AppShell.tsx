@@ -139,6 +139,11 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
             <span className="font-display text-lg font-bold text-white">Power Recruit</span>
           </Link>
 
+          {showSportSwitch ? (
+            <SportSwitch sport={sport} onChange={setSport} className="hidden sm:inline-flex" />
+          ) : null}
+
+
           <nav className="ml-6 hidden items-center gap-1 min-[680px]:flex">
             {primaryNav.map((item) => (
               <Link
