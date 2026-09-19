@@ -104,6 +104,7 @@ export function SchoolSheet({
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="email">Email coach</TabsTrigger>
               <TabsTrigger value="roster">Roster</TabsTrigger>
               <TabsTrigger value="intel">Intelligence</TabsTrigger>
               <TabsTrigger value="notes">Notes &amp; Messages</TabsTrigger>
@@ -111,6 +112,16 @@ export function SchoolSheet({
 
             <TabsContent value="activity" className="pt-4">
               <ActivityChips entryId={entry.id} />
+            </TabsContent>
+
+            <TabsContent value="email" className="pt-4">
+              <OutreachComposer
+                programId={entry.programId}
+                school={entry.school}
+                athleteId={entry.athleteId ?? athleteId}
+                entryId={entry.id}
+                headCoachName={program['head_coach_name'] ?? null}
+              />
             </TabsContent>
 
             <TabsContent value="overview" className="pt-4">
