@@ -107,7 +107,12 @@ export const openThread = createServerFn({ method: "POST" })
     wanted.push({ user_id: me.userId, participant_role: me.role, removable: true });
 
     // One row per person: a player may also appear as their own family link.
-    const deduped = Array.from(new Map(wanted.map((w) => [w.user_id, w])).values());
+    const seen = new Set<string>();
+    const deduped = wanted.filter((w) => {
+      if (seen.has(w.user_id)) return false;
+      seen.add(w.user_id);
+      return true;
+    });
 
     const { data: already } = await context.supabase
       .from("thread_participants")
