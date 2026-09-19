@@ -159,13 +159,13 @@ function RosterScreen() {
           <tbody>
             {isPending ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-steel">
+                <td colSpan={8} className="px-4 py-6 text-steel">
                   Loading roster…
                 </td>
               </tr>
             ) : (data?.athletes ?? []).length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-0">
+                <td colSpan={8} className="p-0">
                   <EmptyState
                     icon={Users}
                     headline={q || gradYear ? "Nobody matches yet" : "Start your roster"}
