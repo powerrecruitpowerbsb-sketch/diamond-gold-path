@@ -2,9 +2,11 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarRange, Plus, Search as SearchIcon, Upload } from "lucide-react";
+import { CalendarRange, Plus, Search as SearchIcon, Upload, Users } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
+import { ActionLink } from "@/components/brand/ActionButton";
+import { EmptyState } from "@/components/brand/EmptyState";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
@@ -59,33 +61,27 @@ function RosterScreen() {
     <AppShell right={<AuthButton />}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-xs tracking-wide text-steel uppercase">Our athletes</p>
-          <h1 className="font-display text-3xl font-bold text-graphite">Athlete roster</h1>
-          <p className="mt-1 text-sm text-steel">
-            Your organization's players — separate from the verified college roster data.
+          <h1 className="font-display text-3xl font-bold text-org-primary">Your roster</h1>
+          <p
+            className="mt-1 text-sm text-steel"
+            title="These are your organization's players. College rosters are separate, verified data."
+          >
+            {(data?.athletes ?? []).length} player
+            {(data?.athletes ?? []).length === 1 ? "" : "s"} in this season.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {ctx.canManage ? (
-            <Link
-              to="/settings/seasons"
-              className="touch-target inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-graphite hover:bg-chalk"
-            >
+            <ActionLink to="/settings/seasons" tone="secondary">
               <CalendarRange className="size-4" aria-hidden /> Seasons &amp; teams
-            </Link>
+            </ActionLink>
           ) : null}
-          <Link
-            to="/roster/import"
-            className="touch-target inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-graphite hover:bg-chalk"
-          >
+          <ActionLink to="/roster/import" tone="secondary">
             <Upload className="size-4" aria-hidden /> Import CSV
-          </Link>
-          <Link
-            to="/roster/new"
-            className="touch-target inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-white hover:opacity-95"
-          >
+          </ActionLink>
+          <ActionLink to="/roster/new">
             <Plus className="size-4" aria-hidden /> Add athlete
-          </Link>
+          </ActionLink>
         </div>
       </div>
 
@@ -166,8 +162,26 @@ function RosterScreen() {
               </tr>
             ) : (data?.athletes ?? []).length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-steel">
-                  No athletes match this season and filter. Add one manually or import a CSV.
+                <td colSpan={7} className="p-0">
+                  <EmptyState
+                    icon={Users}
+                    headline={q || gradYear ? "Nobody matches yet" : "Start your roster"}
+                    className="border-0"
+                    action={
+                      <>
+                        <ActionLink to="/roster/new">
+                          <Plus className="size-4" aria-hidden /> Add athlete
+                        </ActionLink>
+                        <ActionLink to="/roster/import" tone="secondary">
+                          <Upload className="size-4" aria-hidden /> Import CSV
+                        </ActionLink>
+                      </>
+                    }
+                  >
+                    {q || gradYear
+                      ? "Try a different name or grad year."
+                      : "Add your players and their college boards start here."}
+                  </EmptyState>
                 </td>
               </tr>
             ) : (

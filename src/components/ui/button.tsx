@@ -16,12 +16,19 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        /* Brand action treatments — colors come from the organization's own upload. */
+        brand:
+          "bg-org-accent text-org-accent-foreground font-semibold shadow-[0_1px_0_rgba(18,35,58,0.18)] hover:bg-org-accent-strong active:translate-y-px active:bg-org-accent-pressed",
+        brandOutline:
+          "border border-org-accent bg-card font-semibold text-org-accent-strong hover:bg-org-accent-tint",
+        brandText: "font-semibold text-org-accent-strong hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
         icon: "h-9 w-9",
+        action: "h-11 px-5 text-sm",
       },
     },
     defaultVariants: {

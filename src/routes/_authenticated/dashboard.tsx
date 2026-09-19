@@ -2,9 +2,12 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowUpRight, Search } from "lucide-react";
+import { ArrowUpRight, Search, Users } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
+import { ActionButton, ActionLink } from "@/components/brand/ActionButton";
+import { EmptyState } from "@/components/brand/EmptyState";
+import { OrgMark } from "@/components/brand/OrgMark";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
@@ -57,6 +60,7 @@ function Dashboard() {
 
   const [term, setTerm] = useState("");
   const [gradYear, setGradYear] = useState("");
+  const [stageFilter, setStageFilter] = useState<ShortlistStatus | null>(null);
 
   const athletes = useMemo(() => {
     const rows = data?.athletes ?? [];
@@ -64,9 +68,10 @@ function Dashboard() {
     return rows.filter((row) => {
       if (needle && !String(row.name ?? "").toLowerCase().includes(needle)) return false;
       if (gradYear && String(row.gradYear ?? "") !== gradYear) return false;
+      if (stageFilter && (row.counts?.[stageFilter] ?? 0) === 0) return false;
       return true;
     });
-  }, [data, term, gradYear]);
+  }, [data, term, gradYear, stageFilter]);
 
   if (error) {
     return (
@@ -86,12 +91,15 @@ function Dashboard() {
   return (
     <AppShell right={<AuthButton />}>
       <section className="stadium-gradient overflow-hidden rounded-2xl px-5 py-8 sm:px-8 sm:py-10">
-        <p className="meta mb-2 text-org-accent">RECRUITING ENGINE</p>
-        <h1 className="font-display text-[1.9rem] leading-[1.08] font-bold text-white sm:text-4xl">
+        <div className="flex items-center gap-3">
+          <OrgMark size={40} className="bg-white/10" />
+          <p className="meta text-org-accent">RECRUITING ENGINE</p>
+        </div>
+        <h1 className="mt-4 font-display text-[1.9rem] leading-[1.08] font-bold text-white sm:text-4xl">
           {data?.orgName ?? "Your organization"}
         </h1>
-        <p className="mt-3 max-w-2xl text-sm text-white/75">
-          Where the class stands right now — every athlete, every school on their board.
+        <p className="mt-3 max-w-2xl text-[15px] text-white/80">
+          Here's where your class stands today.
         </p>
 
         <dl className="mt-7 grid grid-cols-2 gap-3 border-t border-white/12 pt-6 sm:grid-cols-4">
@@ -120,7 +128,7 @@ function Dashboard() {
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <BarCard
           title="Targets by division"
-          hint="Schools across every athlete's shortlist"
+          hint="Every school your athletes are tracking."
           rows={DIVISION_BUCKETS.map((bucket) => ({
             label: bucket,
             count: data?.byDivision?.[bucket] ?? 0,
@@ -131,16 +139,17 @@ function Dashboard() {
         />
         <BarCard
           title="Targets by region"
-          hint="Where the class is looking"
+          hint="Where your class is looking."
           rows={data?.byRegion ?? []}
           max={regionMax}
           barClass="bg-org-accent"
           loading={isPending}
         />
         <BarCard
-          title="Pipeline by status"
-          hint="Every saved school by stage"
+          title="Pipeline by stage"
+          hint="Tap a stage to see just those athletes."
           rows={SHORTLIST_STATUSES.map((status) => ({
+            key: status,
             label: SHORTLIST_STATUS_LABEL[status],
             count: data?.byStatus?.[status] ?? 0,
             barClass: STATUS_DOT[status],
@@ -148,15 +157,18 @@ function Dashboard() {
           max={statusMax}
           barClass="bg-org-primary"
           loading={isPending}
+          onSelect={(key) => setStageFilter(key as ShortlistStatus | null)}
+          activeKey={stageFilter}
         />
       </div>
 
       <section className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-bold text-graphite">Roster pipeline</h2>
+            <h2 className="font-display text-xl font-bold text-org-primary">Your athletes</h2>
             <p className="text-sm text-steel">
               {athletes.length} athlete{athletes.length === 1 ? "" : "s"} shown
+              {stageFilter ? ` at ${SHORTLIST_STATUS_LABEL[stageFilter].toLowerCase()}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -191,18 +203,31 @@ function Dashboard() {
             ))}
           </div>
         ) : athletes.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-border bg-card p-8 text-center">
-            <p className="font-display text-lg font-bold text-graphite">No athletes yet</p>
-            <p className="mt-1 text-sm text-steel">
-              Add athletes from the roster, then start saving schools to their shortlists.
-            </p>
-            <Link
-              to="/roster"
-              className="touch-target mt-4 inline-flex items-center rounded-xl bg-seam-red px-4 text-sm font-semibold text-white"
-            >
-              Go to roster
-            </Link>
-          </div>
+          <EmptyState
+            className="mt-4"
+            icon={Users}
+            headline={stageFilter || term || gradYear ? "Nobody here yet" : "Start your roster"}
+            action={
+              stageFilter || term || gradYear ? (
+                <ActionButton
+                  tone="secondary"
+                  onClick={() => {
+                    setStageFilter(null);
+                    setTerm("");
+                    setGradYear("");
+                  }}
+                >
+                  Clear filters
+                </ActionButton>
+              ) : (
+                <ActionLink to="/roster/new">Add your first athlete</ActionLink>
+              )
+            }
+          >
+            {stageFilter || term || gradYear
+              ? "No athlete matches what you picked."
+              : "Add a player and their college board starts here."}
+          </EmptyState>
         ) : (
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {athletes.map((athlete) => (
@@ -272,40 +297,85 @@ function BarCard({
   max,
   barClass,
   loading,
+  onSelect,
+  activeKey,
 }: {
   title: string;
   hint: string;
-  rows: { label: string; count: number; barClass?: string }[];
+  rows: { label: string; count: number; barClass?: string; key?: string }[];
   max: number;
   barClass: string;
   loading: boolean;
+  /** When set, each bar filters the roster below to that segment. */
+  onSelect?: (key: string | null) => void;
+  activeKey?: string | null;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h3 className="font-display text-lg font-bold text-graphite">{title}</h3>
-      <p className="meta mt-0.5">{hint.toUpperCase()}</p>
+    <section className="rounded-lg border border-border bg-card p-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="font-display text-lg font-bold text-org-primary">{title}</h3>
+        {activeKey && onSelect ? (
+          <button
+            type="button"
+            onClick={() => onSelect(null)}
+            className="text-xs font-semibold text-org-accent-strong hover:underline"
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+      <p className="mt-1 text-sm text-steel">{hint}</p>
       {loading ? (
-        <div className="mt-4 h-28 animate-pulse rounded-lg bg-muted" />
+        <div className="mt-5 h-28 animate-pulse rounded-lg bg-muted" />
       ) : rows.length === 0 ? (
-        <p className="mt-4 text-sm text-steel">Nothing saved yet.</p>
+        <p className="mt-5 text-sm text-steel">Nothing saved yet.</p>
       ) : (
-        <ul className="mt-4 space-y-2.5">
-          {rows.map((row) => (
-            <li key={row.label} className="flex items-center gap-3">
-              <span className="w-16 shrink-0 font-mono text-[11px] text-steel uppercase">
-                {row.label}
-              </span>
-              <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
-                <span
-                  className={cn("block h-full rounded-full", row.barClass ?? barClass)}
-                  style={{ width: `${Math.round((row.count / max) * 100)}%` }}
-                />
-              </span>
-              <span className="w-7 shrink-0 text-right font-display text-sm font-bold text-graphite tabular-nums">
-                {row.count}
-              </span>
-            </li>
-          ))}
+        <ul className="mt-5 space-y-3">
+          {rows.map((row) => {
+            const key = row.key ?? row.label;
+            const active = activeKey === key;
+            const width = `${Math.max(row.count > 0 ? 4 : 0, Math.round((row.count / max) * 100))}%`;
+            const body = (
+              <>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold text-graphite">{row.label}</span>
+                  <span className="font-display text-lg leading-none font-bold text-org-primary tabular-nums">
+                    {row.count}
+                  </span>
+                </span>
+                <span className="mt-1.5 block h-2.5 overflow-hidden rounded-full bg-track">
+                  <span
+                    className={cn(
+                      "block h-full rounded-full transition-[width,opacity] duration-300",
+                      row.barClass ?? barClass,
+                      active && "opacity-100",
+                    )}
+                    style={{ width }}
+                  />
+                </span>
+              </>
+            );
+
+            return (
+              <li key={key}>
+                {onSelect ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelect(active ? null : key)}
+                    aria-pressed={active}
+                    className={cn(
+                      "block w-full cursor-pointer rounded-md px-2 py-1.5 text-left transition-colors",
+                      active ? "bg-org-accent-tint" : "hover:bg-org-accent-tint/60",
+                    )}
+                  >
+                    {body}
+                  </button>
+                ) : (
+                  <div className="px-2 py-1.5">{body}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

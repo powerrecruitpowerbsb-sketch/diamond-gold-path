@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
+import { actionClass } from "@/components/brand/ActionButton";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { PageHeader } from "@/components/console/PageHeader";
 import { useMyAccount } from "@/hooks/use-my-account";
@@ -60,11 +61,11 @@ export const Route = createFileRoute("/_authenticated/intelligence")({
 
 const input =
   "h-8 w-full rounded border border-border bg-card px-2 text-sm text-graphite focus:outline-none focus:ring-1 focus:ring-org-primary";
-const label = "meta mb-1 block";
-const button =
-  "inline-flex h-8 items-center rounded bg-org-primary px-3 text-xs font-semibold text-white disabled:opacity-50";
-const ghost =
-  "inline-flex h-8 items-center rounded border border-border bg-card px-3 text-xs font-semibold text-graphite";
+const label = "mb-1 block text-[13px] font-medium text-steel";
+const button = actionClass("primary", "sm");
+const ghost = actionClass("secondary", "sm");
+const sectionHeading =
+  "relative border-b border-border pb-1.5 font-display text-base font-bold text-org-primary after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-10 after:bg-org-accent";
 
 type Tab = "programs" | "mine" | "queue";
 
@@ -501,7 +502,7 @@ function EditPanel({
 
       {groups.map((group) => (
         <section key={group.key} className="mt-6">
-          <h3 className="border-b border-border pb-1 font-display text-base font-bold text-graphite">
+          <h3 className={sectionHeading}>
             {group.title}
           </h3>
           <div className="mt-2 divide-y divide-border">
@@ -742,7 +743,7 @@ function RelationshipBlock({
 
   return (
     <section className="mt-4">
-      <h3 className="border-b border-border pb-1 font-display text-base font-bold text-graphite">
+      <h3 className={sectionHeading}>
         Relationship
       </h3>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
@@ -826,7 +827,7 @@ function RelationshipBlock({
             ))}
           </ul>
         ) : (
-          <p className="meta mt-2">No interactions logged yet.</p>
+          <p className="mt-2 text-sm text-steel">Nothing logged yet. The first note goes here.</p>
         )}
       </div>
     </section>
