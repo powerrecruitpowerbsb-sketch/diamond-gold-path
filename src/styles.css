@@ -136,6 +136,8 @@
   --org-accent-tint: color-mix(in oklab, var(--org-accent) 18%, var(--surface-1));
   --org-accent-foreground: #0a0f18;
   --org-primary-tint: color-mix(in oklab, var(--org-primary) 16%, var(--surface-1));
+  /* Brand primary lifted for text on the midnight canvas. */
+  --org-primary-strong: color-mix(in oklab, var(--org-primary) 82%, white);
   /* Text/icons sitting on a filled --org-primary surface. Recomputed at runtime
      when the active sport inverts the brand colors. */
   --org-primary-foreground: #0a0f18;
