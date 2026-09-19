@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { OrgTheme } from "@/components/brand/OrgTheme";
+import { OrgMark } from "@/components/brand/OrgMark";
 import { ActingOrgBar } from "@/components/brand/ActingOrgBar";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { useMyAccount } from "@/hooks/use-my-account";
@@ -183,7 +184,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
             className={cn(
               "touch-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-semibold text-steel",
             )}
-            activeProps={{ className: "text-org-primary" }}
+            activeProps={{ className: "text-org-accent-strong" }}
             activeOptions={{ exact: item.exact }}
           >
             <item.icon className="size-5" aria-hidden />
