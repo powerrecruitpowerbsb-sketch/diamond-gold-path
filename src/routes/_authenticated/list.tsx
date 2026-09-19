@@ -270,11 +270,19 @@ function CollegeList() {
             <caption className="sr-only">Saved schools</caption>
             <thead className="sticky top-0 bg-muted">
               <tr className="border-b border-border text-left">
-                {["School", "Sport", "Level", "Conference", "State", "Stage", ""].map((header) => (
-                  <th key={header} className="meta px-3 py-2 text-steel">
-                    {header}
+                {columns.map((column) => (
+                  <th key={column.key} className="meta px-3 py-2 text-steel">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(column.key)}
+                      className="meta text-steel hover:text-graphite"
+                    >
+                      {column.header}
+                      {sortKey === column.key ? (dir === "asc" ? " ▲" : " ▼") : ""}
+                    </button>
                   </th>
                 ))}
+                <th className="meta px-3 py-2 text-steel" />
               </tr>
             </thead>
             <tbody>
@@ -290,9 +298,13 @@ function CollegeList() {
                       sport: (entry['sport'] ?? null) as string | null,
                       notes: (entry['notes'] ?? null) as string | null,
                       threadId: (entry['threadId'] ?? null) as string | null,
+                      athleteId: (entry['athleteId'] ?? null) as string | null,
                     })
                   }
                 >
+                  {showingAll ? (
+                    <td className="px-3 text-graphite">{String(entry['athleteName'] ?? "—")}</td>
+                  ) : null}
                   <td className="px-3 font-semibold text-graphite">{String(entry['school'])}</td>
                   <td className="px-3 text-steel">{String(entry['sport'] ?? "—")}</td>
                   <td className="px-3 text-steel">
