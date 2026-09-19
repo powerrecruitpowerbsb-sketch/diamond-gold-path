@@ -67,12 +67,13 @@ export function ActionLink({
   className,
   children,
   ...rest
-}: BaseProps & ComponentPropsWithoutRef<typeof Link>) {
-  return (
-    <Link className={actionClass(tone, size, className)} {...(rest as never)}>
-      {children}
-    </Link>
-  );
+}: BaseProps & Record<string, unknown>) {
+  const LinkAny = Link as unknown as (props: Record<string, unknown>) => JSX.Element;
+  return LinkAny({
+    ...rest,
+    className: actionClass(tone, size, className),
+    children,
+  });
 }
 
 /**

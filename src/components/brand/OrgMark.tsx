@@ -13,7 +13,7 @@ export function OrgMark({
   name,
   logoUrl,
 }: {
-  className?: string;
+  className?: string | undefined;
   size?: number;
   fallbackLetter?: string;
   /** Override when the caller already has branding (e.g. a themed shell). */
