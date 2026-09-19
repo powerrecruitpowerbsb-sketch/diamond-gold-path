@@ -65,8 +65,10 @@ What I'd consolidate to:
    The current standalone Roster and per-athlete board merge here.
 3. **College list** — the same records read the other way: every athlete's schools in one
    sortable list, filterable by stage. This is the day-to-day working screen.
-4. **Search** — discovery, with Compare folded in as a compare tray rather than its own page, and
-   "Add to list" on each row.
+4. **Search** — discovery, whose whole purpose for a coach is finding schools to add to a specific
+   player's list: pick the athlete once at the top, then every row adds to that athlete, shows
+   "Added" if it's already there, and opens in the same pop-up sheet. Compare folds in as a tray
+   rather than its own page.
 
 Intelligence stays a separate item for Admin and Owner only (it's a different job and a different
 audience), and settings (stages, branding, invites, seasons) collapse into one **Settings** item
