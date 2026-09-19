@@ -238,7 +238,9 @@ export const getOrgDashboard = createServerFn({ method: "GET" })
       .select("id, name, grad_year, primary_position, sport, status, organization_id")
       .order("grad_year", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true });
-    if (actor.organizationId) athleteQuery = athleteQuery.eq("organization_id", actor.organizationId);
+    if (actor.isFamily) athleteQuery = athleteQuery.in("id", actor.familyAthleteIds);
+    else if (actor.organizationId)
+      athleteQuery = athleteQuery.eq("organization_id", actor.organizationId);
     if (data.sport) athleteQuery = athleteQuery.eq("sport", data.sport as never);
 
     const { data: athleteRows, error } = await athleteQuery;
