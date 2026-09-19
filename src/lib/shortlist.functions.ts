@@ -102,7 +102,8 @@ export const listAthletePicker = createServerFn({ method: "GET" })
       .from("org_athletes")
       .select("id, name, grad_year, primary_position, sport")
       .order("name", { ascending: true });
-    if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
+    if (actor.isFamily) query = query.in("id", actor.familyAthleteIds);
+    else if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
 
     const { data: athletes, error } = await query;
     if (error) throw new Error(error.message);
