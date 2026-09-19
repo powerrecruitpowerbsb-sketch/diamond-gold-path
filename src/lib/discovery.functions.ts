@@ -203,7 +203,11 @@ export const setLinkManually = createServerFn({ method: "POST" })
     if ((row as any).status !== "pending_review") throw new Error("Already reviewed");
 
     const { applyDiscoveredUrl } = await import("@/lib/discovery.server");
-    await applyDiscoveredUrl(context.supabase, { ...(row as any), discovered_url: data.url });
+    await applyDiscoveredUrl(
+      context.supabase,
+      { ...(row as any), discovered_url: data.url },
+      { humanDecision: true },
+    );
 
     const { error: updateError } = await context.supabase
       .from("url_discovery_queue")
@@ -242,7 +246,7 @@ export const reviewDiscoveredUrl = createServerFn({ method: "POST" })
 
     if (data.decision === "confirm") {
       const { applyDiscoveredUrl } = await import("@/lib/discovery.server");
-      await applyDiscoveredUrl(context.supabase, row as any);
+      await applyDiscoveredUrl(context.supabase, row as any, { humanDecision: true });
     }
 
     const { error: updateError } = await context.supabase
@@ -299,7 +303,8 @@ export const reviewDiscoveredUrls = createServerFn({ method: "POST" })
 
     for (const row of (rows ?? []) as any[]) {
       try {
-        if (data.decision === "confirm") await applyDiscoveredUrl(context.supabase, row);
+        if (data.decision === "confirm")
+          await applyDiscoveredUrl(context.supabase, row, { humanDecision: true });
         const { error: updateError } = await context.supabase
           .from("url_discovery_queue")
           .update({

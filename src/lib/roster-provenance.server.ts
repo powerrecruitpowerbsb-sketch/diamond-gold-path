@@ -41,9 +41,12 @@ export async function checkRosterSource(
   if (error) throw new Error(error.message);
 
   const school = (program as any).universities;
-  const own = [
-    school?.website_url, program.athletic_website, program.roster_url, program.coaching_staff_url,
-  ].map(sourceDomain).filter(Boolean);
+  // Only the school's own site and its athletics domain count as proof. The stored
+  // roster and staff addresses sit on the page under test's own domain, so letting
+  // them vouch meant a page belonging to another college always passed.
+  const own = [school?.website_url, program.athletic_website]
+    .map(sourceDomain)
+    .filter(Boolean);
   if (own.includes(domain)) {
     return { ok: true, domain, reason: "a domain already attached to this school" };
   }

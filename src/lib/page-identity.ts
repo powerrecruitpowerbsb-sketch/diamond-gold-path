@@ -258,23 +258,25 @@ export function verifyPageIdentity(input: {
     };
   }
 
-  // ADDRESS FIRST. If the page sits on a domain this school already holds, it is
-  // this school's page — full stop, no name comparison. Page text carries
-  // navigation and carousel furniture, and reading a school name out of it refused
-  // hundreds of correct pages on their own websites.
+  // ADDRESS FIRST — but only against addresses established independently of the
+  // page being tested. The school's own site and its athletics site are proof; a
+  // stored roster or staff address on the same domain as the page under test is
+  // not, because that is the very value we are checking. Vouching for a page with
+  // itself meant a page belonging to another college could never be caught.
   const ownDomain = registrableDomain(hostOf(input.url));
-  const held = new Set(
-    [input.schoolWebsite, input.athleticsSite, ...(input.ownDomains ?? [])]
+  const independent = new Set(
+    [input.schoolWebsite, input.athleticsSite]
       .map((u) => registrableDomain(hostOf(u)))
       .filter(Boolean),
   );
-  if (ownDomain && held.has(ownDomain)) {
+  if (ownDomain && independent.has(ownDomain)) {
     return {
       verdict: "confirmed",
-      reason: "the page sits on a domain already on this school's record",
+      reason: "the page sits on this school's own website or athletics domain",
       pageSchool: null,
     };
   }
+
 
   // The header is where a page names its own school, and it decides the
   // look-alike cases no address test can see. Player bios further down list former

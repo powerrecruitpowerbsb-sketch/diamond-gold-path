@@ -821,7 +821,16 @@ export async function applyDiscoveredUrl(
     discovery_type: DiscoveryType;
     discovered_url: string | null;
   },
+  /**
+   * A person pressed Confirm or typed the address in. The automatic gates that
+   * exist to stop a machine from overwriting a stored address, or from saving a
+   * page nobody could read, are exactly the cases a reviewer is there to settle,
+   * so they become a recorded override instead of a refusal.
+   */
+  opts?: { humanDecision?: boolean },
 ) {
+  const human = opts?.humanDecision === true;
+  const overrides: string[] = [];
   if (!row.discovered_url) throw new Error("There's no URL on this item to confirm");
 
   const inst = await loadInstitution(supabase, row.university_id);
@@ -890,7 +899,10 @@ export async function applyDiscoveredUrl(
       .eq("id", row.id);
     throw new Error(reason);
   };
-  if (page.refused) await refuse(page.verdict.reason);
+  if (page.refused) {
+    if (!human) await refuse(page.verdict.reason);
+    overrides.push(`Saved by a reviewer even though ${page.verdict.reason}`);
+  }
 
   if (storedValue && normalizeUrl(storedValue) !== normalizeUrl(row.discovered_url)) {
     const old = await checkPage({
@@ -906,9 +918,14 @@ export async function applyDiscoveredUrl(
       storedFails: old.read && !old.verdict.ok,
     });
     if (decision.action !== "replace" && decision.action !== "fill_empty") {
-      await refuse(`${decision.reason} Stored: ${storedValue}`);
+      if (!human) await refuse(`${decision.reason} Stored: ${storedValue}`);
+      overrides.push(`A reviewer replaced the stored address ${storedValue}. ${decision.reason}`);
     }
   }
+
+  const written = overrides.length
+    ? { ...(evidence as Record<string, unknown>), human_override: overrides }
+    : evidence;
 
   if (isAthleticsSite) {
     // universities.website_url is the school's INSTITUTIONAL site — it sits
@@ -917,11 +934,14 @@ export async function applyDiscoveredUrl(
     // athletics domain must never be written there. There is no
     // universities-level athletics column, so the athletics address lives on
     // the program rows only.
-    const { error: programError } = await supabase
+    // Automatic writes only fill an empty value; a reviewer who chose this address
+    // is allowed to replace what is there.
+    let athleticsUpdate = supabase
       .from("programs")
-      .update({ athletic_website: row.discovered_url, link_evidence: evidence })
-      .eq("university_id", row.university_id)
-      .is("athletic_website", null);
+      .update({ athletic_website: row.discovered_url, link_evidence: written })
+      .eq("university_id", row.university_id);
+    if (!human) athleticsUpdate = athleticsUpdate.is("athletic_website", null);
+    const { error: programError } = await athleticsUpdate;
     if (programError) throw new Error(programError.message);
     return;
   }
@@ -931,7 +951,7 @@ export async function applyDiscoveredUrl(
   const field = row.discovery_type === "roster_page" ? "roster_url" : "coaching_staff_url";
   const { error } = await supabase
     .from("programs")
-    .update({ [field]: row.discovered_url, link_evidence: evidence })
+    .update({ [field]: row.discovered_url, link_evidence: written })
     .eq("id", row.program_id);
   if (error) throw new Error(error.message);
 }
