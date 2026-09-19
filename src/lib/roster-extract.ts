@@ -572,6 +572,10 @@ function parseCards(input: string[]): PlayerRow[] {
   // A name line belongs to one player only: pages that list the squad twice
   // otherwise read each player once per reading order.
   const usedNames = new Set<number>();
+  // The last line already read as part of an earlier player's block. Without
+  // this, "number / name / position" pages seeded each player with the position
+  // line belonging to the player listed before him.
+  let consumedThrough = -1;
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
     // Either a bare number on its own line, or a labelled one ("Jersey Number 12").
