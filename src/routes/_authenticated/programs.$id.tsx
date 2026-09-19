@@ -91,6 +91,7 @@ const CLASSIFICATION_LABELS: Record<string, string> = {
 function ProgramProfile() {
   const { id } = Route.useParams();
   const { athleteId } = Route.useSearch();
+  const [tab, setTab] = useState("overview");
   const { account } = useMyAccount();
   const viewerRole = account?.primaryRole ?? null;
   const isOrgStaff =
