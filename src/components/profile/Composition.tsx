@@ -222,7 +222,7 @@ function classBars(rows: RosterRow[]) {
     GR: "Graduate",
   };
   return (["FR", "SO", "JR", "SR", "GR"] as const).map((year) => ({
-    label: LABELS[year],
+    label: LABELS[year] ?? year,
     value: has ? rows.filter((row) => row.class_year === year).length : null,
     hint: year,
   }));
@@ -268,7 +268,7 @@ export function RosterComposition({
   const classes = classBars(rows);
   const classMax = Math.max(1, ...classes.map((line) => line.value ?? 0));
   const states = feederStates(rows);
-  const stateMax = states?.length ? states[0][1] : 1;
+  const stateMax = states?.[0]?.[1] ?? 1;
   const international = internationalCount(rows);
   const transfers = rows.filter((row) => row.is_transfer === true).length;
   const juco = rows.filter((row) => row.is_juco_transfer === true).length;
