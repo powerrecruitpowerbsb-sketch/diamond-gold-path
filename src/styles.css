@@ -41,8 +41,14 @@
   --color-org-accent-tint: var(--org-accent-tint);
   --color-org-accent-foreground: var(--org-accent-foreground);
   --color-org-primary-tint: var(--org-primary-tint);
+  --color-org-primary-strong: var(--org-primary-strong);
   --color-org-primary-foreground: var(--org-primary-foreground);
   --color-track: var(--track);
+
+  /* Raw midnight surfaces, for panels that must sit above a card. */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
 
   /*
    * Active-sport marks. Derived from the organization's own two colors — a
