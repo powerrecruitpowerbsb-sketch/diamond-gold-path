@@ -204,7 +204,9 @@ function NotesAndMessages({
   // athlete after the thread started still joins the conversation.
   useEffect(() => {
     if (threadId && athleteId) {
-      openFn({ data: { athleteId, programId: entry.programId } }).catch(() => undefined);
+      openFn({ data: { athleteId, programId: entry.programId } }).catch((error: Error) =>
+        console.error("thread sync failed", error.message),
+      );
     }
   }, [threadId, athleteId, entry.programId, openFn]);
 
