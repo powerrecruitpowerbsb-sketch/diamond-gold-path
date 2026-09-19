@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { METRIC_KEYS, METRIC_SOURCES } from "@/lib/athlete-metrics";
+import { METRIC_KEYS, METRIC_SOURCES, metricUnit } from "@/lib/athlete-metrics";
 
 /**
  * Athlete profile, measurables and schedule.
