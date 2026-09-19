@@ -899,6 +899,85 @@ function FieldRow({
   );
 }
 
+/** A tap-to-pick row: chips, then an optional note tucked behind a chip. */
+function ChipPickRow({
+  title,
+  hint,
+  choices,
+  values,
+  onToggle,
+  single = false,
+  noteLabel,
+  note,
+  onNote,
+  disabled = false,
+}: {
+  title: string;
+  hint?: string;
+  choices: { value: string; label: string }[];
+  values: string[];
+  onToggle: (value: string) => void;
+  single?: boolean;
+  noteLabel?: string;
+  note?: string;
+  onNote?: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState<boolean>(Boolean(note));
+  const chip = (on: boolean) =>
+    cn(
+      "rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-colors",
+      on
+        ? "border-org-accent bg-org-accent text-org-accent-foreground"
+        : "border-border bg-card text-steel hover:border-org-primary hover:text-graphite",
+      disabled ? "cursor-not-allowed opacity-60" : "",
+    );
+
+  return (
+    <div className="py-3">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="text-sm font-semibold text-graphite">{title}</span>
+        <span className="text-[11px] font-medium text-steel">
+          {hint ?? (single ? "pick one" : "pick any that apply")}
+        </span>
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {choices.map((choice) => (
+          <button
+            key={choice.value}
+            type="button"
+            disabled={disabled}
+            aria-pressed={values.includes(choice.value)}
+            className={chip(values.includes(choice.value))}
+            onClick={() => onToggle(choice.value)}
+          >
+            {choice.label}
+          </button>
+        ))}
+        {noteLabel && onNote ? (
+          open ? null : (
+            <button
+              type="button"
+              className="rounded-full border border-dashed border-border px-2.5 py-1 text-[12px] font-semibold text-steel hover:border-org-primary hover:text-graphite"
+              onClick={() => setOpen(true)}
+            >
+              {note ? noteLabel : `+ ${noteLabel}`}
+            </button>
+          )
+        ) : null}
+      </div>
+      {noteLabel && onNote && open ? (
+        <textarea
+          className="mt-2 min-h-[52px] w-full rounded border border-border bg-card p-2 text-sm text-graphite"
+          value={note ?? ""}
+          onChange={(e) => onNote(e.target.value)}
+          placeholder={noteLabel}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 function RelationshipBlock({
   programId,
   canRate,
@@ -914,6 +993,9 @@ function RelationshipBlock({
   people: Record<string, string>;
   onSaved: () => void;
 }) {
+  const storedContact = parseTagged(relationship?.primary_college_contact, CONTACT_ROLE_CHOICES);
+  const storedStability = parseTagged(relationship?.program_stability_note, STABILITY_CHOICES);
+
   const [strength, setStrength] = useState<string>(relationship?.strength_label ?? "");
   const [placed, setPlaced] = useState<string>(
     relationship?.placed_players_before === null || relationship?.placed_players_before === undefined
@@ -922,13 +1004,29 @@ function RelationshipBlock({
         ? "yes"
         : "no",
   );
-  const [contact, setContact] = useState<string>(relationship?.primary_college_contact ?? "");
-  const [stability, setStability] = useState<string>(relationship?.program_stability_note ?? "");
+  const [contactRoles, setContactRoles] = useState<string[]>(storedContact.values);
+  const [contactNote, setContactNote] = useState<string>(storedContact.note);
+  const [stabilityTags, setStabilityTags] = useState<string[]>(storedStability.values);
+  const [stabilityNote, setStabilityNote] = useState<string>(storedStability.note);
   const [note, setNote] = useState("");
-  const [event, setEvent] = useState("");
+  const [eventTags, setEventTags] = useState<string[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
 
   const saveFn = useServerFn(saveRelationship);
   const logFn = useServerFn(logInteraction);
+
+  const toggle = (
+    values: string[],
+    set: (next: string[]) => void,
+    value: string,
+    single = false,
+  ) => {
+    if (single) {
+      set(values[0] === value ? [] : [value]);
+      return;
+    }
+    set(values.includes(value) ? values.filter((v) => v !== value) : [...values, value]);
+  };
 
   const save = useMutation({
     mutationFn: () =>
@@ -937,8 +1035,8 @@ function RelationshipBlock({
           programId,
           strengthLabel: canRate ? strength || null : null,
           placedPlayersBefore: placed === "" ? null : placed === "yes",
-          primaryCollegeContact: contact || null,
-          programStabilityNote: stability || null,
+          primaryCollegeContact: composeTagged(contactRoles, contactNote),
+          programStabilityNote: composeTagged(stabilityTags, stabilityNote),
         },
       }),
     onSuccess: () => {
@@ -949,88 +1047,128 @@ function RelationshipBlock({
   });
 
   const log = useMutation({
-    mutationFn: () => logFn({ data: { programId, notes: note, eventContext: event || null } }),
+    mutationFn: () =>
+      logFn({
+        data: { programId, notes: note, eventContext: eventTags.join(", ") || null },
+      }),
     onSuccess: () => {
       toast.success("Interaction logged");
       setNote("");
-      setEvent("");
+      setEventTags([]);
+      setLogOpen(false);
       onSaved();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <section className="mt-4">
-      <h3 className={sectionHeading}>
-        Relationship
-      </h3>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <div>
-          <span className={label}>Strength {canRate ? "" : "(admins set this)"}</span>
-          <select
-            className={input}
-            value={strength}
-            disabled={!canRate}
-            onChange={(e) => setStrength(e.target.value)}
-          >
-            <option value="">Not rated</option>
-            {STRENGTH_CHOICES.map((choice) => (
-              <option key={choice.value} value={choice.value}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <span className={label}>Placed players here before</span>
-          <select className={input} value={placed} onChange={(e) => setPlaced(e.target.value)}>
-            <option value="">Not recorded</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </div>
-        <div>
-          <span className={label}>Primary college contact (staff only)</span>
-          <input className={input} value={contact} onChange={(e) => setContact(e.target.value)} />
-        </div>
-        <div>
-          <span className={label}>Program stability note (staff only)</span>
-          <input className={input} value={stability} onChange={(e) => setStability(e.target.value)} />
-        </div>
+    <section className="mt-2">
+      <div className="divide-y divide-border">
+        <ChipPickRow
+          title="Relationship strength"
+          hint={canRate ? "pick one" : "admins set this"}
+          single
+          disabled={!canRate}
+          choices={STRENGTH_CHOICES.map((c) => ({ value: c.value, label: c.label }))}
+          values={strength ? [strength] : []}
+          onToggle={(value) => setStrength(strength === value ? "" : value)}
+        />
+        <ChipPickRow
+          title="Placed players here before"
+          single
+          choices={[
+            { value: "yes", label: "Yes" },
+            { value: "no", label: "Not yet" },
+          ]}
+          values={placed ? [placed] : []}
+          onToggle={(value) => setPlaced(placed === value ? "" : value)}
+        />
+        <ChipPickRow
+          title="Our contact on their staff"
+          choices={CONTACT_ROLE_CHOICES}
+          values={contactRoles}
+          onToggle={(value) => toggle(contactRoles, setContactRoles, value)}
+          noteLabel="Add contact details"
+          note={contactNote}
+          onNote={setContactNote}
+        />
+        <ChipPickRow
+          title="Program stability"
+          choices={STABILITY_CHOICES}
+          values={stabilityTags}
+          onToggle={(value) => toggle(stabilityTags, setStabilityTags, value)}
+          noteLabel="Add a note"
+          note={stabilityNote}
+          onNote={setStabilityNote}
+        />
       </div>
       <button
         type="button"
-        className={cn(button, "mt-2")}
+        className={cn(button, "mt-3")}
         disabled={save.isPending}
         onClick={() => save.mutate()}
       >
         Save relationship
       </button>
 
-      <div className="mt-4">
-        <span className={label}>Log an interaction (staff only)</span>
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
-          <textarea
-            className="min-h-[52px] w-full rounded border border-border bg-card p-2 text-sm text-graphite"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="What was said, and by whom"
-          />
-          <input
-            className={input}
-            value={event}
-            onChange={(e) => setEvent(e.target.value)}
-            placeholder="Where, e.g. PG showcase"
-          />
+      <div className="mt-5 border-t border-border pt-3">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="text-sm font-semibold text-graphite">Interactions</span>
+          <span className="text-[11px] font-medium text-steel">staff only</span>
         </div>
-        <button
-          type="button"
-          className={cn(button, "mt-2")}
-          disabled={log.isPending || !note.trim()}
-          onClick={() => log.mutate()}
-        >
-          Log interaction
-        </button>
+        {logOpen ? (
+          <div className="mt-2">
+            <div className="flex flex-wrap gap-1.5">
+              {INTERACTION_CONTEXT_CHOICES.map((choice) => (
+                <button
+                  key={choice.value}
+                  type="button"
+                  aria-pressed={eventTags.includes(choice.value)}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-colors",
+                    eventTags.includes(choice.value)
+                      ? "border-org-accent bg-org-accent text-org-accent-foreground"
+                      : "border-border bg-card text-steel hover:border-org-primary hover:text-graphite",
+                  )}
+                  onClick={() => toggle(eventTags, setEventTags, choice.value)}
+                >
+                  {choice.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              className="mt-2 min-h-[52px] w-full rounded border border-border bg-card p-2 text-sm text-graphite"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="What was said, and by whom"
+            />
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                className={button}
+                disabled={log.isPending || !note.trim()}
+                onClick={() => log.mutate()}
+              >
+                Log interaction
+              </button>
+              <button
+                type="button"
+                className="text-[12px] font-semibold text-steel hover:text-graphite"
+                onClick={() => setLogOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="mt-2 rounded-full border border-dashed border-border px-2.5 py-1 text-[12px] font-semibold text-steel hover:border-org-primary hover:text-graphite"
+            onClick={() => setLogOpen(true)}
+          >
+            + Log an interaction
+          </button>
+        )}
         {interactions.length ? (
           <ul className="mt-3 divide-y divide-border border-t border-border">
             {interactions.map((row) => (
@@ -1051,6 +1189,7 @@ function RelationshipBlock({
     </section>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /* My submissions and the approval queue                                */
