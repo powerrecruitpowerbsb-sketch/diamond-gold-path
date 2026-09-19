@@ -406,14 +406,8 @@ function SearchScreen() {
                 // Same behaviour as College list: the row opens over the results.
                 const openRow = () =>
                   setOpenEntry({
-                    id:
-                      (picker.data?.saved ?? []).find(
-                        (saved) =>
-                          saved.program_id === row.id &&
-                          saved.org_athlete_id === params.athleteId,
-                      )?.org_athlete_id
-                        ? null
-                        : null,
+                    // Notes live on the saved-list row; from Search there isn't one yet.
+                    id: null,
                     programId: row.id,
                     school: String(u.name ?? "Program"),
                     sport: row.sport ?? null,
