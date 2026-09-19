@@ -1,3 +1,4 @@
+import type React from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
@@ -68,12 +69,12 @@ export function ActionLink({
   children,
   ...rest
 }: BaseProps & Record<string, unknown>) {
-  const LinkAny = Link as unknown as (props: Record<string, unknown>) => JSX.Element;
-  return LinkAny({
-    ...rest,
-    className: actionClass(tone, size, className),
-    children,
-  });
+  const LinkAny = Link as unknown as React.ComponentType<Record<string, unknown>>;
+  return (
+    <LinkAny {...rest} className={actionClass(tone, size, className)}>
+      {children}
+    </LinkAny>
+  );
 }
 
 /**
