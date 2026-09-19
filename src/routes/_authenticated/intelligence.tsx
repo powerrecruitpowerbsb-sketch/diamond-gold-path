@@ -75,7 +75,7 @@ const sectionHeading =
 type Tab = "programs" | "mine" | "queue";
 
 function Workstation() {
-  const { programId } = Route.useSearch();
+  const { programId, field: focusField } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { account, isPending: accountPending } = useMyAccount();
   const role = account?.primaryRole ?? null;
