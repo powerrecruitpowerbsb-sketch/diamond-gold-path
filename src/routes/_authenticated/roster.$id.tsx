@@ -165,22 +165,32 @@ function AthleteDetail() {
         <p className="mt-6 text-sm text-steel">Loading athlete…</p>
       ) : (
         <>
-          <div className="mt-4 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
-            <p className="font-mono text-[11px] tracking-wide text-steel uppercase">
+          {/* Recruit command header, same lit plate as the school pages. */}
+          <div className="stadium-gradient mt-4 overflow-hidden rounded-2xl px-5 py-7 sm:px-8 sm:py-9">
+            <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">
+              {SPORT_LABEL[normalizeSport(athlete['sport'])]}
+              {athlete['grad_year'] ? ` · Class of ${athlete['grad_year']}` : ""}
+            </p>
+            <h1 className="font-display mt-2 text-[2rem] leading-[1.06] font-bold text-white sm:text-4xl">
+              {athlete['name']}
+            </h1>
+            <p className="meta mt-2 normal-case text-white/55">
               {String(athlete['athlete_data_source']).replace("_", " ")} entry
             </p>
-            <h1 className="font-display text-3xl font-bold text-graphite">{athlete['name']}</h1>
-            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-4">
+            <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-white/12 pt-6 text-sm sm:grid-cols-4">
               {[
-                ["Sport", SPORT_LABEL[normalizeSport(athlete['sport'])]],
                 ["Grad year", athlete['grad_year'] ?? "—"],
                 ["Position", athlete['primary_position'] ?? "—"],
                 ["Bats", athlete['bats'] ?? "—"],
                 ["Throws", athlete['throws'] ?? "—"],
               ].map(([label, value]) => (
                 <div key={String(label)}>
-                  <dt className="font-mono text-[11px] tracking-wide text-steel uppercase">{label}</dt>
-                  <dd className="mt-1 font-semibold tabular-nums text-graphite">{String(value)}</dd>
+                  <dt className="font-mono text-[11px] tracking-[0.14em] text-white/55 uppercase">
+                    {label}
+                  </dt>
+                  <dd className="font-display mt-1 text-2xl font-bold tabular-nums text-white">
+                    {String(value)}
+                  </dd>
                 </div>
               ))}
             </dl>
