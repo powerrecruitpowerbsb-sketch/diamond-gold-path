@@ -23,12 +23,15 @@ import {
 import { setEntryNotes } from "@/lib/continuum.functions";
 
 export type SheetEntry = {
-  id: string;
+  /** Null when the school is not on any list yet (opened straight from Search). */
+  id: string | null;
   programId: string;
   school: string;
   sport: string | null;
   notes: string | null;
   threadId: string | null;
+  /** Set when one screen shows several athletes' schools at once. */
+  athleteId?: string | null;
 };
 
 /**
