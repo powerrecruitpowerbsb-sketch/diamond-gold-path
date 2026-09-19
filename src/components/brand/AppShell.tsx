@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   Mail,
+  ListChecks,
   Menu,
 
   Palette,
@@ -58,10 +59,14 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
           { to: "/intelligence", label: "Intelligence", icon: Lightbulb },
           { to: "/roster", label: "Roster", icon: Users },
+          { to: "/list", label: "College list", icon: ListChecks },
         ]
       : []),
     ...(role === "parent" || role === "player"
-      ? [{ to: "/family", label: "Family portal", icon: Database }]
+      ? [
+          { to: "/list", label: "College list", icon: ListChecks },
+          { to: "/family", label: "Family portal", icon: Database },
+        ]
       : []),
 
     ...(isStaff ? [{ to: "/admin", label: "Console", icon: Table2 }] : []),
@@ -88,7 +93,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       ? [{ to: "/admin", label: "Console", icon: Table2, exact: true }]
       : isOrgManager
         ? [{ to: "/roster", label: "Roster", icon: Users, exact: false }]
-        : [{ to: "/family", label: "My list", icon: Database, exact: false }]),
+        : [{ to: "/list", label: "My list", icon: ListChecks, exact: false }]),
     { to: "/auth", label: "Account", icon: UserRound, exact: false },
   ];
 

@@ -19,6 +19,7 @@ import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authenticated/intelligence'
+import { Route as AuthenticatedListRouteImport } from './routes/_authenticated/list'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminArchiveRouteImport } from './routes/_authenticated/admin.archive'
@@ -32,6 +33,7 @@ import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminNotOfferedRouteImport } from './routes/_authenticated/admin.not-offered'
 import { Route as AuthenticatedAdminOrganizationsRouteImport } from './routes/_authenticated/admin.organizations'
 import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated/admin.pipeline'
+import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
 import { Route as AuthenticatedAdminRetiredRouteImport } from './routes/_authenticated/admin.retired'
 import { Route as AuthenticatedAdminReviewRouteImport } from './routes/_authenticated/admin.review'
 import { Route as AuthenticatedAdminSeedImportRouteImport } from './routes/_authenticated/admin.seed-import'
@@ -107,6 +109,11 @@ const AuthenticatedIntelligenceRoute =
     path: '/intelligence',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedListRoute = AuthenticatedListRouteImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -178,6 +185,12 @@ const AuthenticatedAdminPipelineRoute =
   AuthenticatedAdminPipelineRouteImport.update({
     id: '/pipeline',
     path: '/pipeline',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminReportsRoute =
+  AuthenticatedAdminReportsRouteImport.update({
+    id: '/reports',
+    path: '/reports',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminRetiredRoute =
@@ -330,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
+  '/list': typeof AuthenticatedListRoute
   '/search': typeof AuthenticatedSearchRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -342,6 +356,7 @@ export interface FileRoutesByFullPath {
   '/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/admin/retired': typeof AuthenticatedAdminRetiredRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
@@ -377,6 +392,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
+  '/list': typeof AuthenticatedListRoute
   '/search': typeof AuthenticatedSearchRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -389,6 +405,7 @@ export interface FileRoutesByTo {
   '/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/admin/retired': typeof AuthenticatedAdminRetiredRoute
   '/admin/review': typeof AuthenticatedAdminReviewRoute
   '/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
@@ -427,6 +444,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/intelligence': typeof AuthenticatedIntelligenceRoute
+  '/_authenticated/list': typeof AuthenticatedListRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -439,6 +457,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
   '/_authenticated/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
+  '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/_authenticated/admin/retired': typeof AuthenticatedAdminRetiredRoute
   '/_authenticated/admin/review': typeof AuthenticatedAdminReviewRoute
   '/_authenticated/admin/seed-import': typeof AuthenticatedAdminSeedImportRoute
@@ -477,6 +496,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/family'
     | '/intelligence'
+    | '/list'
     | '/search'
     | '/admin/archive'
     | '/admin/audit'
@@ -489,6 +509,7 @@ export interface FileRouteTypes {
     | '/admin/not-offered'
     | '/admin/organizations'
     | '/admin/pipeline'
+    | '/admin/reports'
     | '/admin/retired'
     | '/admin/review'
     | '/admin/seed-import'
@@ -524,6 +545,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/family'
     | '/intelligence'
+    | '/list'
     | '/search'
     | '/admin/archive'
     | '/admin/audit'
@@ -536,6 +558,7 @@ export interface FileRouteTypes {
     | '/admin/not-offered'
     | '/admin/organizations'
     | '/admin/pipeline'
+    | '/admin/reports'
     | '/admin/retired'
     | '/admin/review'
     | '/admin/seed-import'
@@ -573,6 +596,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/family'
     | '/_authenticated/intelligence'
+    | '/_authenticated/list'
     | '/_authenticated/search'
     | '/_authenticated/admin/archive'
     | '/_authenticated/admin/audit'
@@ -585,6 +609,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/not-offered'
     | '/_authenticated/admin/organizations'
     | '/_authenticated/admin/pipeline'
+    | '/_authenticated/admin/reports'
     | '/_authenticated/admin/retired'
     | '/_authenticated/admin/review'
     | '/_authenticated/admin/seed-import'
@@ -694,6 +719,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIntelligenceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/list': {
+      id: '/_authenticated/list'
+      path: '/list'
+      fullPath: '/list'
+      preLoaderRoute: typeof AuthenticatedListRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/search': {
       id: '/_authenticated/search'
       path: '/search'
@@ -783,6 +815,13 @@ declare module '@tanstack/react-router' {
       path: '/pipeline'
       fullPath: '/admin/pipeline'
       preLoaderRoute: typeof AuthenticatedAdminPipelineRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/reports': {
+      id: '/_authenticated/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AuthenticatedAdminReportsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/retired': {
@@ -968,6 +1007,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminNotOfferedRoute: typeof AuthenticatedAdminNotOfferedRoute
   AuthenticatedAdminOrganizationsRoute: typeof AuthenticatedAdminOrganizationsRoute
   AuthenticatedAdminPipelineRoute: typeof AuthenticatedAdminPipelineRoute
+  AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
   AuthenticatedAdminRetiredRoute: typeof AuthenticatedAdminRetiredRoute
   AuthenticatedAdminReviewRoute: typeof AuthenticatedAdminReviewRoute
   AuthenticatedAdminSeedImportRoute: typeof AuthenticatedAdminSeedImportRoute
@@ -998,6 +1038,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminNotOfferedRoute: AuthenticatedAdminNotOfferedRoute,
   AuthenticatedAdminOrganizationsRoute: AuthenticatedAdminOrganizationsRoute,
   AuthenticatedAdminPipelineRoute: AuthenticatedAdminPipelineRoute,
+  AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
   AuthenticatedAdminRetiredRoute: AuthenticatedAdminRetiredRoute,
   AuthenticatedAdminReviewRoute: AuthenticatedAdminReviewRoute,
   AuthenticatedAdminSeedImportRoute: AuthenticatedAdminSeedImportRoute,
@@ -1026,6 +1067,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedIntelligenceRoute: typeof AuthenticatedIntelligenceRoute
+  AuthenticatedListRoute: typeof AuthenticatedListRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedProgramsIdRoute: typeof AuthenticatedProgramsIdRoute
   AuthenticatedRosterIdRoute: typeof AuthenticatedRosterIdRoute
@@ -1043,6 +1085,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedIntelligenceRoute: AuthenticatedIntelligenceRoute,
+  AuthenticatedListRoute: AuthenticatedListRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedProgramsIdRoute: AuthenticatedProgramsIdRoute,
   AuthenticatedRosterIdRoute: AuthenticatedRosterIdRoute,

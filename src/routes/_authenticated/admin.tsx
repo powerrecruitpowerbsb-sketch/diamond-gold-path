@@ -82,6 +82,7 @@ function AdminLayout() {
         { to: "/admin/build", label: "Stages" },
         { to: "/admin/tools", label: "Tools" },
         { to: "/admin/hosts", label: "Blocked sites" },
+        { to: "/admin/reports", label: "Flagged conversations" },
         { to: "/admin/wordings", label: "Unrecognised wordings" },
 
         { to: "/admin/seed-import", label: "Bulk import" },

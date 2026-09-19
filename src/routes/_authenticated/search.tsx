@@ -289,6 +289,157 @@ function SearchScreen() {
         </p>
       </header>
 
+      {/* Results render in place, above the filter panel that produced them. */}
+      {results.data?.unpublishedPositions ? (
+        <p className="mt-3 rounded border border-border bg-muted/50 p-2.5 text-sm text-steel">
+          {results.data.unpublishedPositions} team
+          {results.data.unpublishedPositions === 1 ? "" : "s"} left out of the position filter
+          because the school publishes no positions — not counted as zero.
+        </p>
+      ) : null}
+
+      {results.isError ? (
+        <p className="mt-3 rounded border border-seam-red bg-seam-red-tint p-3 text-sm text-seam-red">
+          Could not load results. {(results.error as Error).message}
+        </p>
+      ) : null}
+
+      {results.isPending ? (
+        <div className="mt-4 h-64 animate-pulse rounded border border-border bg-card" />
+      ) : rows.length === 0 ? (
+        <p className="mt-4 rounded border border-border bg-card p-6 text-sm text-steel">
+          No teams match yet. Widen a filter — division, location, or net price are the usual
+          culprits.
+        </p>
+      ) : (
+        <div className="mt-4 overflow-x-auto rounded border border-border bg-card">
+          <table className="w-full border-collapse text-sm">
+            <caption className="sr-only">Matching college teams</caption>
+            <thead>
+              <tr className="border-b border-border">
+                {SORTABLE.map((column) => (
+                  <th
+                    key={column.key}
+                    scope="col"
+                    aria-sort={
+                      sortKey === column.key
+                        ? dir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                    className={cn(
+                      "px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-steel uppercase",
+                      column.numeric && "text-right",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(column.key)}
+                      className="uppercase hover:text-graphite"
+                    >
+                      {column.header}
+                      {sortKey === column.key ? (dir === "asc" ? " ↑" : " ↓") : ""}
+                    </button>
+                  </th>
+                ))}
+                <th scope="col" className="px-3 py-2 text-right text-[11px] text-steel uppercase">
+                  Save
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row: any) => {
+                const u = row.university ?? {};
+                const selected = compare.isSelected(row.id);
+                const region = regionOfState(u.state);
+                return (
+                  <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                    <td className="h-[38px] max-w-[240px] truncate px-3 py-1.5 align-middle whitespace-nowrap">
+                      <Link
+                        to="/programs/$id"
+                        params={{ id: row.id }}
+                        className="font-semibold text-org-primary underline-offset-2 hover:underline"
+                      >
+                        {u.name}
+                      </Link>
+                    </td>
+                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
+                      {u.state ?? NOT_REPORTED}
+                    </td>
+                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
+                      {region ?? NOT_REPORTED}
+                    </td>
+                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
+                      {[row.governing_body, row.division].filter(Boolean).join(" ") || NOT_REPORTED}
+                    </td>
+                    <td className="h-[38px] max-w-[200px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
+                      {row.conference ? (
+                        row.conference
+                      ) : (
+                        NOT_REPORTED
+                      )}
+
+                    </td>
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
+                      {number(u.undergrad_enrollment)}
+                    </td>
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
+                      {money(u.est_net_price)}
+                    </td>
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
+                      {plain(u.avg_sat)}
+                    </td>
+                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
+                      {row.roster?.size ? row.roster.size : "No roster on file"}
+                    </td>
+                    <td className="h-[38px] max-w-[170px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
+                      {row.head_coach_name ?? "Not published by the school"}
+                    </td>
+                    <td className="h-[38px] px-3 py-1.5 align-middle">
+                      <div className="flex items-center justify-end gap-2">
+                        <ShortlistSaveButton
+                          iconOnly
+                          programId={row.id}
+                          athleteId={params.athleteId || undefined}
+                          athleteName={
+                            (contextAthlete?.["name"] as string | undefined) ?? undefined
+                          }
+                        />
+
+
+                        <button
+                          type="button"
+                          aria-pressed={selected}
+                          aria-label={selected ? "Selected for compare" : "Add to compare"}
+                          disabled={!selected && compare.isFull}
+                          onClick={() =>
+                            compare.toggle({
+                              id: row.id,
+                              name: u.name ?? "Program",
+                              badge: [row.governing_body, row.division].filter(Boolean).join(" "),
+                            })
+                          }
+                          className={cn(
+                            "flex size-8 items-center justify-center rounded border",
+                            selected
+                              ? "border-org-primary bg-org-primary text-white"
+                              : "border-border text-org-primary hover:bg-muted",
+                            !selected && compare.isFull && "cursor-not-allowed opacity-50",
+                          )}
+                        >
+                          <Columns3 className="size-4" aria-hidden />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Six primary filters */}
       <div className="mt-4 rounded border border-border bg-card p-3">
         <div className="mb-3 inline-flex rounded border border-border p-0.5">
@@ -630,155 +781,6 @@ function SearchScreen() {
 
 
 
-      {results.data?.unpublishedPositions ? (
-        <p className="mt-3 rounded border border-border bg-muted/50 p-2.5 text-sm text-steel">
-          {results.data.unpublishedPositions} team
-          {results.data.unpublishedPositions === 1 ? "" : "s"} left out of the position filter
-          because the school publishes no positions — not counted as zero.
-        </p>
-      ) : null}
-
-      {results.isError ? (
-        <p className="mt-3 rounded border border-seam-red bg-seam-red-tint p-3 text-sm text-seam-red">
-          Could not load results. {(results.error as Error).message}
-        </p>
-      ) : null}
-
-      {results.isPending ? (
-        <div className="mt-4 h-64 animate-pulse rounded border border-border bg-card" />
-      ) : rows.length === 0 ? (
-        <p className="mt-4 rounded border border-border bg-card p-6 text-sm text-steel">
-          No teams match yet. Widen a filter — division, location, or net price are the usual
-          culprits.
-        </p>
-      ) : (
-        <div className="mt-4 overflow-x-auto rounded border border-border bg-card">
-          <table className="w-full border-collapse text-sm">
-            <caption className="sr-only">Matching college teams</caption>
-            <thead>
-              <tr className="border-b border-border">
-                {SORTABLE.map((column) => (
-                  <th
-                    key={column.key}
-                    scope="col"
-                    aria-sort={
-                      sortKey === column.key
-                        ? dir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
-                    className={cn(
-                      "px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-steel uppercase",
-                      column.numeric && "text-right",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleSort(column.key)}
-                      className="uppercase hover:text-graphite"
-                    >
-                      {column.header}
-                      {sortKey === column.key ? (dir === "asc" ? " ↑" : " ↓") : ""}
-                    </button>
-                  </th>
-                ))}
-                <th scope="col" className="px-3 py-2 text-right text-[11px] text-steel uppercase">
-                  Save
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row: any) => {
-                const u = row.university ?? {};
-                const selected = compare.isSelected(row.id);
-                const region = regionOfState(u.state);
-                return (
-                  <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/50">
-                    <td className="h-[38px] max-w-[240px] truncate px-3 py-1.5 align-middle whitespace-nowrap">
-                      <Link
-                        to="/programs/$id"
-                        params={{ id: row.id }}
-                        className="font-semibold text-org-primary underline-offset-2 hover:underline"
-                      >
-                        {u.name}
-                      </Link>
-                    </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {u.state ?? NOT_REPORTED}
-                    </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {region ?? NOT_REPORTED}
-                    </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {[row.governing_body, row.division].filter(Boolean).join(" ") || NOT_REPORTED}
-                    </td>
-                    <td className="h-[38px] max-w-[200px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {row.conference ? (
-                        row.conference
-                      ) : (
-                        NOT_REPORTED
-                      )}
-
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {number(u.undergrad_enrollment)}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {money(u.est_net_price)}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {plain(u.avg_sat)}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {row.roster?.size ? row.roster.size : "No roster on file"}
-                    </td>
-                    <td className="h-[38px] max-w-[170px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {row.head_coach_name ?? "Not published by the school"}
-                    </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle">
-                      <div className="flex items-center justify-end gap-2">
-                        <ShortlistSaveButton
-                          iconOnly
-                          programId={row.id}
-                          athleteId={params.athleteId || undefined}
-                          athleteName={
-                            (contextAthlete?.["name"] as string | undefined) ?? undefined
-                          }
-                        />
-
-
-                        <button
-                          type="button"
-                          aria-pressed={selected}
-                          aria-label={selected ? "Selected for compare" : "Add to compare"}
-                          disabled={!selected && compare.isFull}
-                          onClick={() =>
-                            compare.toggle({
-                              id: row.id,
-                              name: u.name ?? "Program",
-                              badge: [row.governing_body, row.division].filter(Boolean).join(" "),
-                            })
-                          }
-                          className={cn(
-                            "flex size-8 items-center justify-center rounded border",
-                            selected
-                              ? "border-org-primary bg-org-primary text-white"
-                              : "border-border text-org-primary hover:bg-muted",
-                            !selected && compare.isFull && "cursor-not-allowed opacity-50",
-                          )}
-                        >
-                          <Columns3 className="size-4" aria-hidden />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
 
     </AppShell>
   );
