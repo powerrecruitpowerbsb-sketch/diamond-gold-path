@@ -153,7 +153,7 @@ function BrandingSettings() {
         {isPending ? <p className="mt-6 text-sm text-steel">Loading branding…</p> : null}
 
         {!isPending && !branding?.organizationId ? (
-          <p className="mt-6 rounded-xl border border-border bg-white p-4 text-sm text-steel">
+          <p className="mt-6 rounded-xl border border-border bg-card p-4 text-sm text-steel">
             This account isn't attached to an organization, so there's no branding to set.
           </p>
         ) : null}
@@ -205,7 +205,7 @@ function BrandingSettings() {
               ) : null}
             </section>
 
-            <section className="mt-6 grid gap-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)] sm:grid-cols-2">
+            <section className="mt-6 grid gap-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)] sm:grid-cols-2">
               <div>
                 <h2 className="font-mono text-[11px] tracking-wide text-steel uppercase">
                   Primary brand color
@@ -216,7 +216,7 @@ function BrandingSettings() {
                     value={/^#[0-9a-fA-F]{6}$/.test(primary) ? primary : DEFAULT_PRIMARY}
                     onChange={(event) => setPrimary(event.target.value)}
                     aria-label="Primary brand color"
-                    className="size-11 cursor-pointer rounded-lg border border-border bg-white"
+                    className="size-11 cursor-pointer rounded-lg border border-border bg-card"
                   />
                   <input
                     value={primary}
@@ -236,7 +236,7 @@ function BrandingSettings() {
                     value={/^#[0-9a-fA-F]{6}$/.test(accent) ? accent : DEFAULT_ACCENT}
                     onChange={(event) => setAccent(event.target.value)}
                     aria-label="Accent brand color"
-                    className="size-11 cursor-pointer rounded-lg border border-border bg-white"
+                    className="size-11 cursor-pointer rounded-lg border border-border bg-card"
                   />
                   <input
                     value={accent}
@@ -250,7 +250,7 @@ function BrandingSettings() {
                 <h2 className="font-mono text-[11px] tracking-wide text-steel uppercase">Logo</h2>
                 <p className="mt-1 text-sm text-steel">PNG or SVG, up to 2MB.</p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
-                  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-chalk px-4 py-3 text-sm font-semibold text-graphite hover:bg-white">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-chalk px-4 py-3 text-sm font-semibold text-graphite hover:bg-card">
                     <Upload className="size-4" aria-hidden />
                     {uploading ? "Uploading…" : "Upload logo"}
                     <input
@@ -299,7 +299,7 @@ function BrandingSettings() {
                   setPrimary(DEFAULT_PRIMARY);
                   setAccent(DEFAULT_ACCENT);
                 }}
-                className="touch-target inline-flex items-center rounded-xl border border-border bg-white px-5 text-sm font-semibold text-graphite"
+                className="touch-target inline-flex items-center rounded-xl border border-border bg-card px-5 text-sm font-semibold text-graphite"
               >
                 Reset to Power Recruit colors
               </button>

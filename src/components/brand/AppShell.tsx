@@ -202,7 +202,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       {/* Fixed bottom tab bar below ~680px */}
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-white shadow-[0_-4px_20px_-8px_rgba(18,35,58,0.25)] min-[680px]:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card shadow-[0_-4px_20px_-8px_rgba(18,35,58,0.25)] min-[680px]:hidden"
       >
         {tabs.map((item, index) => (
           <Link

@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/roster/new")({
 });
 
 const FIELD =
-  "touch-target w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite outline-none focus:border-org-primary";
+  "touch-target w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary";
 const LABEL = "font-mono text-[11px] tracking-wide text-steel uppercase";
 
 function NewAthlete() {
@@ -92,7 +92,7 @@ function NewAthlete() {
 
       <form
         onSubmit={submit}
-        className="mt-4 max-w-2xl rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
+        className="mt-4 max-w-2xl rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
       >
         <h1 className="font-display text-2xl font-bold text-graphite">Add an athlete</h1>
         <p className="mt-1 text-sm text-steel">Recorded as a manual entry.</p>

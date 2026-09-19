@@ -34,10 +34,10 @@ import { cn } from "@/lib/utils";
  */
 
 const cardClass =
-  "rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]";
+  "rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]";
 const labelClass = "font-mono text-[11px] tracking-wide text-steel uppercase";
 const inputClass =
-  "touch-target mt-1 w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite";
+  "touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite";
 
 /** Full link, so copy-paste into an email works. */
 function shareUrl(slug: string): string {

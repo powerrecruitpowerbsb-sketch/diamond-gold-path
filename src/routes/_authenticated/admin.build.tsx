@@ -124,7 +124,7 @@ function BuildProgress() {
           const running = stage.state === "running";
 
           return (
-            <li key={stage.key} className="rounded border border-border bg-white p-5">
+            <li key={stage.key} className="rounded border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2">
@@ -189,7 +189,7 @@ function BuildProgress() {
         })}
       </ol>
 
-      <section className="rounded border border-border bg-white p-5">
+      <section className="rounded border border-border bg-card p-5">
         <h2 className="font-display text-lg font-bold text-graphite">When something needs you</h2>
         <p className="mt-1 text-sm text-steel">
           These are the only two places a decision is ever asked for. Everything else is handled

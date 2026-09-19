@@ -208,7 +208,7 @@ export function MatchResolver({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-white p-3">
+    <div className="rounded-lg border border-border bg-card p-3">
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <p className="text-sm font-semibold text-graphite">{school.name}</p>

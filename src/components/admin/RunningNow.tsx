@@ -140,7 +140,7 @@ export function RunningNow() {
   }
 
   return (
-    <section className="rounded border border-border bg-white p-5">
+    <section className="rounded border border-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="flex items-center gap-2">

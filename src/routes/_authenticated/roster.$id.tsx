@@ -165,7 +165,7 @@ function AthleteDetail() {
         <p className="mt-6 text-sm text-steel">Loading athlete…</p>
       ) : (
         <>
-          <div className="mt-4 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+          <div className="mt-4 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
             <p className="font-mono text-[11px] tracking-wide text-steel uppercase">
               {String(athlete['athlete_data_source']).replace("_", " ")} entry
             </p>
@@ -192,7 +192,7 @@ function AthleteDetail() {
             <AthleteProfilePanel athleteId={id} />
           </div>
 
-          <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+          <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
             <h2 className="font-display text-xl font-bold text-graphite">Seasons &amp; teams</h2>
             <div className="mt-4 grid gap-5 md:grid-cols-2">
               <div>
@@ -220,7 +220,7 @@ function AthleteDetail() {
                         toast.error((err as Error).message);
                       }
                     }}
-                    className="touch-target mt-1 w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite disabled:opacity-60"
+                    className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite disabled:opacity-60"
                   >
                     <option value="">Unassigned</option>
                     {ctx.teams.map((team) => (
@@ -250,7 +250,7 @@ function AthleteDetail() {
                       toast.error((err as Error).message);
                     }
                   }}
-                  className="touch-target mt-1 w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite"
+                  className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite"
                 >
                   {Object.entries(ATHLETE_STATUS_LABEL).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -362,7 +362,7 @@ function AthleteDetail() {
           </section>
 
           {/* Staff notes */}
-          <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+          <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
             <h2 className="font-display text-xl font-bold text-graphite">Staff notes</h2>
             <p className="text-sm text-steel">
               Notes are internal by default. Anything marked visible to the parent will appear in
@@ -374,7 +374,7 @@ function AthleteDetail() {
                 onChange={(event) => setNote(event.target.value)}
                 rows={3}
                 placeholder="Development focus, showcase observations…"
-                className="w-full rounded-lg border border-border bg-white p-3 text-sm text-graphite outline-none focus:border-org-primary"
+                className="w-full rounded-lg border border-border bg-card p-3 text-sm text-graphite outline-none focus:border-org-primary"
               />
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <label
@@ -497,7 +497,7 @@ function ShortlistCard({
   const [notes, setNotes] = useState<string>(String(row['notes'] ?? ""));
 
   return (
-    <li className="rounded-xl border border-border bg-white p-3 shadow-[0_2px_10px_-8px_rgba(18,35,58,0.4)]">
+    <li className="rounded-xl border border-border bg-card p-3 shadow-[0_2px_10px_-8px_rgba(18,35,58,0.4)]">
       <div className="flex items-start justify-between gap-2">
         <Link
           to="/programs/$id"
@@ -534,7 +534,7 @@ function ShortlistCard({
         onBlur={() => {
           if (notes !== String(row['notes'] ?? "")) onSaveNotes(notes);
         }}
-        className="mt-2 w-full rounded-lg border border-border bg-chalk/50 p-2 text-xs text-graphite outline-none focus:border-org-primary focus:bg-white"
+        className="mt-2 w-full rounded-lg border border-border bg-chalk/50 p-2 text-xs text-graphite outline-none focus:border-org-primary focus:bg-card"
       />
 
       <label className="mt-2 block">
@@ -542,7 +542,7 @@ function ShortlistCard({
         <select
           value={String(row['status'])}
           onChange={(event) => onMove(event.target.value as ShortlistStatus)}
-          className="h-9 w-full rounded-lg border border-input bg-white px-2 text-xs font-semibold text-graphite outline-none focus:border-org-primary"
+          className="h-9 w-full rounded-lg border border-input bg-card px-2 text-xs font-semibold text-graphite outline-none focus:border-org-primary"
         >
           {SHORTLIST_STATUSES.map((status) => (
             <option key={status} value={status}>

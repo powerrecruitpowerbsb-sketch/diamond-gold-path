@@ -47,7 +47,7 @@ export function TeamSchedulePanel({ teamId, teamName }: { teamId: string; teamNa
     ]);
 
   const input =
-    "mt-1 w-full rounded-md border border-border bg-white px-2 py-1.5 text-sm text-graphite";
+    "mt-1 w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-graphite";
   const label = "font-mono text-[11px] tracking-wide text-steel uppercase";
 
   return (

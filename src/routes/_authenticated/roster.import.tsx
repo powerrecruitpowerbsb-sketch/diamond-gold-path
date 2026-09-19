@@ -76,7 +76,7 @@ type PreviewRow = {
 };
 
 const FIELD_CLASS =
-  "touch-target rounded-lg border border-border bg-white px-3 text-sm text-graphite outline-none focus:border-org-primary";
+  "touch-target rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary";
 
 function ImportAthletes() {
   const matchFn = useServerFn(matchAthletes);
@@ -287,9 +287,9 @@ function ImportAthletes() {
           </p>
         ) : null}
 
-        <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+        <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
           <h2 className="font-display text-lg font-bold text-graphite">1 · Upload</h2>
-          <label className="mt-3 flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-border bg-chalk px-4 py-3 text-sm font-semibold text-graphite hover:bg-white">
+          <label className="mt-3 flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-border bg-chalk px-4 py-3 text-sm font-semibold text-graphite hover:bg-card">
             <Upload className="size-4" aria-hidden />
             Choose CSV file
             <input
@@ -313,7 +313,7 @@ function ImportAthletes() {
         </section>
 
         {headers.length ? (
-          <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+          <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
             <h2 className="font-display text-lg font-bold text-graphite">2 · Map columns</h2>
             <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {FIELDS.map((field) => (
@@ -371,7 +371,7 @@ function ImportAthletes() {
         ) : null}
 
         {preview ? (
-          <section className="mt-6 rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+          <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
             <h2 className="font-display text-lg font-bold text-graphite">3 · Review and import</h2>
             <p className="mt-1 font-mono text-xs text-steel">
               {counts.create} to create · {counts.update} to update · {counts.skip} skipped ·{" "}

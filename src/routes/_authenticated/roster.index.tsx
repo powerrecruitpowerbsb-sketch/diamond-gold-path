@@ -96,7 +96,7 @@ function RosterScreen() {
       </div>
 
       {/* Sport tabs: jump straight into either roster, with live counts. */}
-      <div className="mt-6 inline-flex rounded-lg border border-border bg-white p-1">
+      <div className="mt-6 inline-flex rounded-lg border border-border bg-card p-1">
         {SPORTS.map((option) => {
           const active = option === sport;
           return (
@@ -125,7 +125,7 @@ function RosterScreen() {
 
 
 
-      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white p-3 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
         <label className="relative flex min-w-56 flex-1 items-center">
           <SearchIcon className="pointer-events-none absolute left-3 size-4 text-steel" aria-hidden />
           <span className="sr-only">Search athletes by name</span>
@@ -141,7 +141,7 @@ function RosterScreen() {
           <select
             value={gradYear}
             onChange={(event) => setGradYear(event.target.value)}
-            className="touch-target rounded-lg border border-border bg-white px-3 text-sm text-graphite"
+            className="touch-target rounded-lg border border-border bg-card px-3 text-sm text-graphite"
           >
             <option value="">All</option>
             {(data?.gradYears ?? []).map((year) => (
@@ -156,7 +156,7 @@ function RosterScreen() {
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value)}
-            className="touch-target rounded-lg border border-border bg-white px-3 text-sm text-graphite"
+            className="touch-target rounded-lg border border-border bg-card px-3 text-sm text-graphite"
           >
             <option value="">All</option>
             {Object.entries(ATHLETE_STATUS_LABEL).map(([value, label]) => (
@@ -174,7 +174,7 @@ function RosterScreen() {
         </p>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
         <table className="w-full text-left text-sm tabular-nums">
           <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>

@@ -52,7 +52,7 @@ function Missing() {
   );
 }
 
-const CARD = "rounded-lg border border-border bg-white p-5 shadow-sm";
+const CARD = "rounded-lg border border-border bg-card p-5 shadow-sm";
 const LABEL = "font-mono text-[11px] tracking-wide text-steel uppercase";
 
 function Fact({ label, value }: { label: string; value: string | null }) {
@@ -80,7 +80,7 @@ function ScoutCard() {
 
   return (
     <main className="min-h-screen bg-chalk pb-16">
-      <header className="border-b border-border bg-white">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-3xl flex-wrap items-end justify-between gap-3 px-6 py-8">
           <div>
             <p className={LABEL}>

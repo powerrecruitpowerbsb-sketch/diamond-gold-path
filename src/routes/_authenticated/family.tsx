@@ -85,7 +85,7 @@ function FamilyPortal() {
       {isPending ? (
         <p className="mt-6 text-sm text-steel">Loading…</p>
       ) : athletes.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-border bg-white p-8 text-center shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+        <div className="mt-6 rounded-xl border border-border bg-card p-8 text-center shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
           <p className="font-display text-lg font-bold text-graphite">No athlete linked yet</p>
           <p className="mt-1 text-sm text-steel">
             Ask your organization's staff to send you a family invite — that's what connects this
@@ -106,7 +106,7 @@ function FamilyPortal() {
             return (
               <section
                 key={athlete['id']}
-                className="rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
+                className="rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
               >
                 <h2 className="font-display text-2xl font-bold text-graphite">{athlete['name']}</h2>
                 <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-4">
