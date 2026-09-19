@@ -3,9 +3,11 @@ import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ChevronDown, Columns3, SlidersHorizontal, X } from "lucide-react";
+import { Columns3, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
+import { DisclosureButton } from "@/components/brand/ActionButton";
+import { EmptyState } from "@/components/brand/EmptyState";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useCompare } from "@/components/compare/compare-selection";
 import { ShortlistSaveButton } from "@/components/brand/ShortlistSaveButton";
