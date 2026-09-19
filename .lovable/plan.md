@@ -1,15 +1,25 @@
 # Answers, then a consolidation proposal
 
-## 1. Why Search still shows a long list of schools
+## 1. Search: starts empty, works like the College list
 
-That is the current design, not a leftover: Search opens by browsing every baseball team in the
-database (1,556 matched, first 400 shown) and narrows as you add filters. Nothing about step 5
-changed that.
+Today Search opens by browsing every team (1,556 matched, first 400 shown). Changing to:
 
-If you'd rather it started empty, I'd change the opening state to a short prompt ("Pick a level,
-a location or a school name to begin") with the six filters visible and no rows until the first
-filter is set. Counts still show, so you can see how many teams a filter reaches. Say which you
-want.
+- Opens empty with a one-line prompt ("Pick a level, a location, or type a school name") and the
+  six filters visible. No rows until a filter or a name is entered.
+- Rows behave exactly like College list rows: clicking one opens the same pop-up sheet over the
+  results (Overview, Roster, Intelligence, Notes & Messages, "Go to full profile"), so you can
+  flip through several schools without leaving the search.
+- **Add to list** on every row. Staff and admins pick which athlete's list it goes to — a small
+  athlete picker that remembers the last athlete chosen, so adding ten schools for one player is
+  ten clicks, not twenty. Parents and players add to their own athlete with no picker. A school
+  already on that athlete's list shows "Added" with its current stage instead of a second button.
+- Match count stays above the results, so you can see how many teams a filter reaches.
+
+**Are Search and College list the same thing?** No — and I'd keep them separate. Search is
+discovery across all 3,238 teams, the funnel in. College list is the small set you're following
+for a player, with stages, notes and conversations. They should look and behave the same (same row
+style, same pop-up sheet), which is what makes them feel like one tool, but a family shouldn't
+wade through the whole country to see their eight schools.
 
 ## 2. Where to look for what was built
 
