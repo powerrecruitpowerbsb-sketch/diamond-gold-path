@@ -65,6 +65,12 @@ export const searchParamsSchema = z.object({
   seniorMin: fallback(z.number(), 0).default(0),
   transferPctMin: fallback(z.number(), 0).default(0),
   transferPctMax: fallback(z.number(), 0).default(0),
+  /** Our own recruiting intelligence: "field:value" tokens, positions, relationship. */
+  intel: fallback(z.string().array(), []).default([]),
+  intelPositions: fallback(z.string().array(), []).default([]),
+  relationship: fallback(z.string(), "").default(""),
+  /** Off by default: matches rise to the top, unevaluated programs stay below. */
+  intelOnly: fallback(z.boolean(), false).default(false),
   sort: fallback(z.string(), "name").default("name"),
   dir: fallback(z.string(), "asc").default("asc"),
   more: fallback(z.boolean(), false).default(false),
@@ -111,6 +117,10 @@ export const SEARCH_DEFAULTS = {
   seniorMin: 0,
   transferPctMin: 0,
   transferPctMax: 0,
+  intel: [] as string[],
+  intelPositions: [] as string[],
+  relationship: "",
+  intelOnly: false,
   sort: "name",
   dir: "asc",
   athleteId: "",
@@ -154,6 +164,12 @@ export type SearchFilters = {
   seniorMin: number | null;
   transferPctMin: number | null;
   transferPctMax: number | null;
+  /** Our own intelligence: which answers a program must carry to count as a fit. */
+  intel: { field: string; value: string }[];
+  intelPositions: string[];
+  relationship: string;
+  /** True hides programs that don't fit; false ranks fits first. */
+  intelOnly: boolean;
 };
 
 const str = (value: unknown) => String(value ?? "").trim();
@@ -228,7 +244,34 @@ export function normalizeSearchInput(input: unknown): SearchFilters {
     seniorMin: num(at("seniorMin"), 0, 100),
     transferPctMin: num(at("transferPctMin"), 0, 100),
     transferPctMax: num(at("transferPctMax"), 0, 100),
+    intel: (Array.isArray(at("intel")) ? (at("intel") as unknown[]) : [])
+      .map((token) => str(token))
+      .filter(Boolean)
+      .map((token) => {
+        const [field, ...rest] = token.split(":");
+        return { field: str(field), value: str(rest.join(":")) };
+      })
+      .filter((pair) => pair.field && pair.value)
+      .slice(0, 20),
+    intelPositions: (Array.isArray(at("intelPositions")) ? (at("intelPositions") as unknown[]) : [])
+      .map((value) => str(value).toUpperCase())
+      .filter(Boolean)
+      .slice(0, 20),
+    relationship: ["strong", "developing", "minimal", "none"].includes(str(at("relationship")))
+      ? str(at("relationship"))
+      : "",
+    intelOnly: at("intelOnly") === true || str(at("intelOnly")) === "true",
   };
+}
+
+/** Is any of our own intelligence being used to rank or filter? */
+export function intelActive(f: SearchFilters): boolean {
+  return f.intel.length > 0 || f.intelPositions.length > 0 || Boolean(f.relationship);
+}
+
+/** How many separate intelligence conditions a program is measured against. */
+export function intelCriteriaCount(f: SearchFilters): number {
+  return f.intel.length + (f.intelPositions.length > 0 ? 1 : 0) + (f.relationship ? 1 : 0);
 }
 
 /** Is any roster-composition filter in use? Those need per-player reads. */
@@ -269,10 +312,12 @@ export function activeSecondaryCount(params: SearchParams): number {
     "seniorGroup",
     "transferPctMin",
     "transferPctMax",
+    "relationship",
   ];
-  return keys.filter((key) => {
+  const simple = keys.filter((key) => {
     const value = params[key];
     return typeof value === "number" ? value > 0 : Boolean(value);
   }).length;
+  return simple + params.intel.length + (params.intelPositions.length > 0 ? 1 : 0);
 }
 

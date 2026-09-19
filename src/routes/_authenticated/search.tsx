@@ -23,6 +23,13 @@ import {
   titleCase,
 } from "@/lib/admin-schemas";
 import { POSITION_GROUP_LABELS, type PositionGroup } from "@/lib/position-group";
+import {
+  INTEL_FIELDS,
+  INTEL_FIELD_MAP,
+  INTEL_POSITIONS,
+  POSITION_LABELS,
+  STRENGTH_CHOICES,
+} from "@/lib/intel-fields";
 import { REGIONS, regionOfState, statesInRegion } from "@/lib/regions";
 import { useSportMode } from "@/hooks/use-sport-mode";
 import { normalizeSport } from "@/lib/sport";
@@ -75,6 +82,20 @@ const plain = (value: unknown) =>
 
 
 const POSITION_GROUPS = Object.keys(POSITION_GROUP_LABELS) as PositionGroup[];
+
+/** The pick-list answers our own staff records, offered as fit filters. */
+const INTEL_CHOICE_FIELDS = INTEL_FIELDS.filter(
+  (field) => field.group === "recruiting" && field.kind === "choice",
+);
+
+/** "style_of_play:power_slugging" → "Style of play: Power & slugging". */
+function intelTokenLabel(token: string): string {
+  const [field, ...rest] = token.split(":");
+  const value = rest.join(":");
+  const def = INTEL_FIELD_MAP[field ?? ""];
+  const choice = def?.choices?.find((c) => c.value === value);
+  return `${def?.label ?? field}: ${choice?.label ?? value}`;
+}
 
 type SortKey =
   | "name"
@@ -220,7 +241,17 @@ function SearchScreen() {
   const toggleSort = (key: SortKey) =>
     set({ sort: key, dir: sortKey === key && dir === "asc" ? "desc" : "asc" });
 
-  const rows = [...((results.data?.results ?? []) as any[])].sort((a, b) => {
+  // With fit criteria on, the server already puts the fits first. Only a
+  // deliberate sort choice overrides that order.
+  const fitActive =
+    params.intel.length > 0 || params.intelPositions.length > 0 || Boolean(params.relationship);
+  const served = (results.data?.results ?? []) as any[];
+  const rows = (fitActive && params.sort === "name" ? [...served] : [...served]).sort((a, b) => {
+    if (fitActive && params.sort === "name") {
+      const fitDiff = (b.fit?.matched ?? 0) - (a.fit?.matched ?? 0);
+      if (fitDiff !== 0) return fitDiff;
+      return String(a.university?.name ?? "").localeCompare(String(b.university?.name ?? ""));
+    }
     const left = sortValue(sortKey, a);
     const right = sortValue(sortKey, b);
     if (left === null && right === null) return 0;
@@ -310,6 +341,27 @@ function SearchScreen() {
       label: `Transfers ${params.transferPctMin || 0}–${params.transferPctMax || 100}%`,
       clear: { transferPctMin: 0, transferPctMax: 0 },
     });
+  for (const token of params.intel) {
+    chips.push({
+      label: intelTokenLabel(token),
+      clear: { intel: params.intel.filter((t) => t !== token) },
+    });
+  }
+  if (params.intelPositions.length > 0)
+    chips.push({
+      label: `Prioritizing ${params.intelPositions
+        .map((p) => POSITION_LABELS[p] ?? p)
+        .join(", ")}`,
+      clear: { intelPositions: [] },
+    });
+  if (params.relationship)
+    chips.push({
+      label: `Relationship: ${
+        STRENGTH_CHOICES.find((c) => c.value === params.relationship)?.label ?? params.relationship
+      }`,
+      clear: { relationship: "" },
+    });
+  if (params.intelOnly) chips.push({ label: "Fits only", clear: { intelOnly: false } });
 
   return (
     <AppShell right={<AuthButton />}>
@@ -645,6 +697,76 @@ function SearchScreen() {
               </Field>
             </FilterGroup>
 
+            <FilterGroup title="Our intelligence & fit">
+              {INTEL_CHOICE_FIELDS.map((field) => (
+                <Field key={field.key} label={field.label}>
+                  <Select
+                    value=""
+                    onChange={(value) => {
+                      const token = `${field.key}:${value}`;
+                      if (!value || params.intel.includes(token)) return;
+                      set({ intel: [...params.intel, token] });
+                    }}
+                    placeholder={
+                      params.intel.some((t) => t.startsWith(`${field.key}:`))
+                        ? "Add another…"
+                        : "Any"
+                    }
+                    options={(field.choices ?? []).map((choice) => ({
+                      value: choice.value,
+                      label: choice.label,
+                    }))}
+                  />
+                </Field>
+              ))}
+              <Field label="Staff relationship">
+                <Select
+                  value={params.relationship}
+                  onChange={(value) => set({ relationship: value })}
+                  placeholder="Any"
+                  options={STRENGTH_CHOICES}
+                />
+              </Field>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <span className="meta mb-1.5 block">PRIORITIZING A POSITION</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {INTEL_POSITIONS.map((position) => {
+                    const on = params.intelPositions.includes(position);
+                    return (
+                      <button
+                        key={position}
+                        type="button"
+                        onClick={() =>
+                          set({
+                            intelPositions: on
+                              ? params.intelPositions.filter((p) => p !== position)
+                              : [...params.intelPositions, position],
+                          })
+                        }
+                        className={cn(
+                          "h-8 rounded-full border px-3 text-[12px] font-semibold transition-colors",
+                          on
+                            ? "border-org-accent bg-org-accent-tint text-org-accent-strong"
+                            : "border-border text-steel hover:bg-muted",
+                        )}
+                      >
+                        {POSITION_LABELS[position] ?? position}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="mt-2.5 flex items-center gap-2 text-sm text-graphite">
+                  <input
+                    type="checkbox"
+                    checked={params.intelOnly}
+                    onChange={(event) => set({ intelOnly: event.target.checked })}
+                  />
+                  Only show programs that fit — otherwise fits rise to the top and the rest stay
+                  below.
+                </label>
+              </div>
+            </FilterGroup>
+
             <Link
               to="/search"
               search={{ sport: params.sport, more: true } as any}
@@ -701,6 +823,18 @@ function SearchScreen() {
           {results.data.unpublishedPositions} team
           {results.data.unpublishedPositions === 1 ? "" : "s"} left out of the position filter
           because the school publishes no positions — not counted as zero.
+        </p>
+      ) : null}
+
+      {fitActive && results.data?.intel ? (
+        <p className="mt-3 rounded border border-seam-red/40 bg-seam-red-tint p-2.5 text-sm text-graphite">
+          {results.data.intel.withIntel === 0
+            ? "None of these programs has a write-up from your staff yet, so nothing can be matched. Add intelligence on a program and it will rise to the top here."
+            : `${results.data.intel.fittingAll} of these programs meet every one of your ${results.data.intel.criteria} intelligence condition${
+                results.data.intel.criteria === 1 ? "" : "s"
+              } · ${results.data.intel.withIntel} written up so far${
+                params.intelOnly ? "" : " · the rest stay listed below"
+              }.`}
         </p>
       ) : null}
 
@@ -781,7 +915,20 @@ function SearchScreen() {
                     className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-org-primary">{u.name}</p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate font-semibold text-org-primary">{u.name}</p>
+                        {fitActive ? (
+                          row.fit?.matched > 0 ? (
+                            <span className="shrink-0 rounded-full border border-seam-red/50 bg-seam-red-tint px-2 py-0.5 text-[11px] font-semibold text-seam-red">
+                              Fits {row.fit.matched} of {row.fit.total}
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-steel">
+                              {row.fit?.evaluated ? "No match on file" : "Not written up yet"}
+                            </span>
+                          )
+                        ) : null}
+                      </div>
                       <p className="mt-0.5 truncate text-[12px] text-steel">
                         {meta.join(" · ") || NOT_REPORTED}
                       </p>

@@ -6,6 +6,8 @@ import { isPitcher, positionGroup, type PositionGroup } from "@/lib/position-gro
 import {
   UNIVERSITY_COLS,
   compositionActive,
+  intelActive,
+  intelCriteriaCount,
   normalizeSearchInput,
   type SearchFilters,
 } from "@/lib/search-schema";
@@ -320,18 +322,115 @@ export const searchPrograms = createServerFn({ method: "POST" })
       });
     }
 
-    results.sort((a, b) => String(a.university?.name).localeCompare(String(b.university?.name)));
+    // ---- Our own recruiting intelligence -----------------------------------
+    // Access rules already limit these rows to what the reader may see: a staff
+    // member's own organization, a family only what their club shared with them.
+    // Nothing is guessed: a program with no write-up is never counted as a match,
+    // and by default it is ranked below the fits rather than hidden.
+    type Fit = { evaluated: boolean; matched: number; total: number; strength: string | null };
+    const criteria = intelCriteriaCount(f);
+    let withIntel = 0;
+    let fittingAll = 0;
+
+    if (intelActive(f) && results.length > 0) {
+      const ids = results.map((r) => r.id);
+      const [records, relationships] = await Promise.all([
+        fetchAllRows(
+          (from, to) =>
+            supabase
+              .from("recruiting_intelligence")
+              .select("program_id, field_type, structured_value, positions")
+              .in("program_id", ids)
+              .range(from, to),
+          40000,
+        ),
+        fetchAllRows(
+          (from, to) =>
+            supabase
+              .from("program_relationships")
+              .select("program_id, strength_label")
+              .in("program_id", ids)
+              .range(from, to),
+          40000,
+        ),
+      ]);
+
+      const answers = new Map<string, Map<string, Set<string>>>();
+      const positions = new Map<string, Set<string>>();
+      for (const row of (records ?? []) as any[]) {
+        const programId = String(row.program_id);
+        const byField = answers.get(programId) ?? new Map<string, Set<string>>();
+        const values = new Set(
+          String(row.structured_value ?? "")
+            .split(",")
+            .map((part) => part.trim())
+            .filter(Boolean),
+        );
+        const existing = byField.get(String(row.field_type)) ?? new Set<string>();
+        for (const value of values) existing.add(value);
+        byField.set(String(row.field_type), existing);
+        answers.set(programId, byField);
+
+        const picked = (row.positions ?? []) as string[];
+        if (picked.length > 0) {
+          const set = positions.get(programId) ?? new Set<string>();
+          for (const position of picked) set.add(String(position).toUpperCase());
+          positions.set(programId, set);
+        }
+      }
+
+      const strengths = new Map<string, string | null>(
+        ((relationships ?? []) as any[]).map((row) => [
+          String(row.program_id),
+          (row.strength_label ?? null) as string | null,
+        ]),
+      );
+
+      results = results.map((row) => {
+        const byField = answers.get(row.id);
+        const strength = strengths.get(row.id) ?? null;
+        const evaluated = Boolean(byField) || Boolean(strength);
+        if (evaluated) withIntel += 1;
+
+        let matched = 0;
+        for (const pair of f.intel) {
+          if (byField?.get(pair.field)?.has(pair.value)) matched += 1;
+        }
+        if (f.intelPositions.length > 0) {
+          const set = positions.get(row.id);
+          if (set && f.intelPositions.some((position) => set.has(position))) matched += 1;
+        }
+        if (f.relationship && strength === f.relationship) matched += 1;
+        if (matched === criteria && criteria > 0) fittingAll += 1;
+
+        return { ...row, fit: { evaluated, matched, total: criteria, strength } as Fit };
+      });
+
+      // Strict mode is opt-in: only programs meeting every condition remain.
+      if (f.intelOnly) results = results.filter((row) => (row as any).fit.matched === criteria);
+    }
+
+    results.sort((a, b) => {
+      const left = (a as any).fit?.matched ?? 0;
+      const right = (b as any).fit?.matched ?? 0;
+      if (left !== right) return right - left;
+      return String(a.university?.name).localeCompare(String(b.university?.name));
+    });
 
     const matches = Number(count ?? results.length);
+    const narrowed = detailed || (intelActive(f) && f.intelOnly);
 
     return {
       results,
       total: results.length,
       // How many programs match the filters in total, and whether the list was cut
       // off at the display cap (composition filtering happens after the fetch).
-      matches: detailed ? results.length : matches,
-      capped: capped && !detailed,
+      matches: narrowed ? results.length : matches,
+      capped: capped && !narrowed,
       unpublishedPositions,
+      // Honest coverage: how many of these programs our staff has written up at
+      // all, and how many meet every intelligence condition.
+      intel: { criteria, withIntel, fittingAll },
     };
 
 
