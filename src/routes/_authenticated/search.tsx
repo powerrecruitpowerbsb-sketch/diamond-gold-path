@@ -24,6 +24,8 @@ import {
 } from "@/lib/admin-schemas";
 import { POSITION_GROUP_LABELS, type PositionGroup } from "@/lib/position-group";
 import { REGIONS, regionOfState, statesInRegion } from "@/lib/regions";
+import { useSportMode } from "@/hooks/use-sport-mode";
+import { normalizeSport } from "@/lib/sport";
 import {
   DIVISIONS_BY_BODY,
   SEARCH_DEFAULTS,
