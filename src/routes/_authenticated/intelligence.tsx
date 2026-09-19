@@ -60,11 +60,11 @@ export const Route = createFileRoute("/_authenticated/intelligence")({
 
 const input =
   "h-8 w-full rounded border border-border bg-card px-2 text-sm text-graphite focus:outline-none focus:ring-1 focus:ring-org-primary";
-const label = "meta mb-1 block";
-const button =
-  "inline-flex h-8 items-center rounded bg-org-primary px-3 text-xs font-semibold text-white disabled:opacity-50";
-const ghost =
-  "inline-flex h-8 items-center rounded border border-border bg-card px-3 text-xs font-semibold text-graphite";
+const label = "mb-1 block text-[13px] font-medium text-steel";
+const button = actionClass("primary", "sm");
+const ghost = actionClass("secondary", "sm");
+const sectionHeading =
+  "relative border-b border-border pb-1.5 font-display text-base font-bold text-org-primary after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-10 after:bg-org-accent";
 
 type Tab = "programs" | "mine" | "queue";
 
