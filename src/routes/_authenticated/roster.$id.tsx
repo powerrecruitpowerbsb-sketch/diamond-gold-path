@@ -9,6 +9,7 @@ import { InvitePanel } from "@/components/admin/InvitePanel";
 import { AthleteProfilePanel } from "@/components/athlete/AthleteProfilePanel";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { HelpTip } from "@/components/brand/HelpTip";
 import {
   addAthleteNote,
   deleteAthleteNote,
@@ -373,11 +374,13 @@ function AthleteDetail() {
 
           {/* Staff notes */}
           <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
-            <h2 className="font-display text-xl font-bold text-graphite">Staff notes</h2>
-            <p className="text-sm text-steel">
-              Notes are internal by default. Anything marked visible to the parent will appear in
-              their family account.
-            </p>
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-display text-xl font-bold text-graphite">Staff notes</h2>
+              <HelpTip label="About staff notes">
+                Notes are internal by default. Anything marked visible to the parent will appear in
+                their family account.
+              </HelpTip>
+            </div>
             <form onSubmit={submitNote} className="mt-3">
               <textarea
                 value={note}

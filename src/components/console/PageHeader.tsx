@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 
+import { HelpTip } from "@/components/brand/HelpTip";
+
 /**
- * Every console screen opens the same way: a title line, an optional single
- * sentence, and one line of live counts. No hero blocks, no stat-tile grids.
+ * Every console screen opens the same way: a title line, one line of live
+ * counts, and — behind a hover mark next to the title — the sentence that
+ * explains the screen. No hero blocks, no stat-tile grids.
  */
 export function PageHeader({
   title,
@@ -21,9 +24,9 @@ export function PageHeader({
   return (
     <header className="mb-5 border-b border-border pb-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-1.5">
           <h1 className="font-display text-2xl font-bold text-graphite">{title}</h1>
-          {description ? <p className="mt-1 max-w-2xl text-sm text-steel">{description}</p> : null}
+          {description ? <HelpTip label={`About ${title}`}>{description}</HelpTip> : null}
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
