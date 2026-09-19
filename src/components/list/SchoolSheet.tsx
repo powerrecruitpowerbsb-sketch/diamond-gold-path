@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Flag, Send } from "lucide-react";
+import { ExternalLink, Flag, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityChips } from "@/components/list/ActivityChips";
@@ -11,6 +11,8 @@ import { RosterComposition, type RosterRow } from "@/components/profile/Composit
 import { RosterTable } from "@/components/profile/RosterTable";
 import { TrueFitPanel } from "@/components/profile/TrueFitPanel";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
+import { Panel, StatCard } from "@/components/profile/ProfileUI";
+import { count, money, pct } from "@/lib/profile-fields";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -109,14 +111,27 @@ export function SchoolSheet({
 
         {entry ? (
           <Tabs defaultValue={defaultTab ?? "overview"} className="px-5 py-5 sm:px-7">
-            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
-              <TabsTrigger value="email">Email coach</TabsTrigger>
-              <TabsTrigger value="roster">Roster</TabsTrigger>
-              <TabsTrigger value="fit">True fit</TabsTrigger>
-              <TabsTrigger value="intel">Intelligence</TabsTrigger>
-              <TabsTrigger value="notes">Notes &amp; Messages</TabsTrigger>
+            <TabsList className="sticky top-0 z-20 -mx-5 h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto border-b border-border bg-background/95 px-5 py-0 backdrop-blur sm:-mx-7 sm:px-7">
+              {(
+                [
+                  ["overview", "Overview"],
+                  ["activity", "Activity"],
+                  ["email", "Email coach"],
+                  ["academics", "Academics & cost"],
+                  ["roster", "Roster"],
+                  ["fit", "True fit"],
+                  ["intel", "Intelligence"],
+                  ["notes", "Notes & Messages"],
+                ] as [string, string][]
+              ).map(([value, label]) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="touch-target rounded-none border-0 bg-transparent px-3 py-2.5 text-sm font-semibold whitespace-nowrap text-steel shadow-none data-[state=active]:bg-transparent data-[state=active]:text-org-primary data-[state=active]:shadow-[inset_0_-2px_0_0_var(--org-primary)]"
+                >
+                  {label}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
             <TabsContent value="fit" className="pt-5">
@@ -145,55 +160,172 @@ export function SchoolSheet({
               {profile.isPending ? (
                 <p className="text-sm text-steel">Loading…</p>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {(
-                    [
-                      [
-                        "Undergrads",
-                        university['undergrad_enrollment']
-                          ? Number(university['undergrad_enrollment']).toLocaleString("en-US")
-                          : null,
-                      ],
-                      [
-                        "Net price",
-                        university['est_net_price']
-                          ? `$${Number(university['est_net_price']).toLocaleString("en-US")}`
-                          : null,
-                      ],
-                      ["Acceptance rate", university['acceptance_rate']],
-                      [
-                        "Location",
-                        [university['city'], university['state']].filter(Boolean).join(", "),
-                      ],
-                      ["Head coach", program['head_coach_name']],
-                      ["Roster size", roster.length || null],
-                    ] as [string, unknown][]
-                  ).map(([label, value]) => (
+                <div className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-4">
                     <StatCard
-                      key={label}
-                      label={label}
+                      label="Undergrads"
                       value={
-                        value === null || value === undefined || value === ""
-                          ? "Not reported"
-                          : String(value)
+                        university['undergrad_enrollment']
+                          ? count(university['undergrad_enrollment'])
+                          : "Not reported"
                       }
+                      verified
                     />
-                  ))}
+                    <StatCard
+                      label="Net price"
+                      value={
+                        university['est_net_price']
+                          ? money(university['est_net_price'])
+                          : "Not reported"
+                      }
+                      hint="Average after aid"
+                      verified
+                    />
+                    <StatCard
+                      label="Acceptance"
+                      value={
+                        university['acceptance_rate']
+                          ? pct(university['acceptance_rate'])
+                          : "Not reported"
+                      }
+                      verified
+                    />
+                    <StatCard
+                      label="Roster"
+                      value={roster.length ? `${roster.length} players` : "Not published"}
+                      hint={profile.data?.latestSeason ? String(profile.data.latestSeason) : null}
+                    />
+                  </div>
+                  <Panel title="The program">
+                    <dl className="grid gap-x-8 sm:grid-cols-2">
+                      {(
+                        [
+                          ["Level", [program['governing_body'], program['division']].filter(Boolean).join(" ")],
+                          ["Conference", program['conference']],
+                          ["Head coach", program['head_coach_name']],
+                          [
+                            "Location",
+                            [university['city'], university['state']].filter(Boolean).join(", "),
+                          ],
+                        ] as [string, unknown][]
+                      ).map(([label, value]) => (
+                        <div
+                          key={label}
+                          className="flex items-baseline justify-between gap-4 border-b border-border/70 py-2.5"
+                        >
+                          <dt className="text-sm text-steel">{label}</dt>
+                          <dd className="text-sm font-semibold text-graphite">
+                            {value ? String(value) : <span className="font-normal italic text-steel/70">Not reported</span>}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </Panel>
                 </div>
               )}
             </TabsContent>
 
+            <TabsContent value="academics" className="pt-5">
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <StatCard
+                    label="SAT middle 50%"
+                    value={
+                      university['sat_total_25'] && university['sat_total_75']
+                        ? `${university['sat_total_25']}–${university['sat_total_75']}`
+                        : "Not reported"
+                    }
+                    verified
+                  />
+                  <StatCard
+                    label="ACT middle 50%"
+                    value={
+                      university['act_25'] && university['act_75']
+                        ? `${university['act_25']}–${university['act_75']}`
+                        : "Not reported"
+                    }
+                    verified
+                  />
+                  <StatCard
+                    label="Graduation rate"
+                    value={
+                      university['graduation_rate']
+                        ? pct(university['graduation_rate'])
+                        : "Not reported"
+                    }
+                    verified
+                  />
+                  <StatCard
+                    label="Test optional"
+                    value={
+                      university['test_optional'] === null ||
+                      university['test_optional'] === undefined
+                        ? "Not reported"
+                        : university['test_optional']
+                          ? "Yes"
+                          : "No"
+                    }
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <StatCard
+                    label="In-state tuition"
+                    value={
+                      university['tuition_in_state']
+                        ? money(university['tuition_in_state'])
+                        : "Not reported"
+                    }
+                    verified
+                  />
+                  <StatCard
+                    label="Out-of-state"
+                    value={
+                      university['tuition_out_state']
+                        ? money(university['tuition_out_state'])
+                        : "Not reported"
+                    }
+                    verified
+                  />
+                  <StatCard
+                    label="Cost of attendance"
+                    value={
+                      university['est_cost_of_attendance']
+                        ? money(university['est_cost_of_attendance'])
+                        : "Not reported"
+                    }
+                    verified
+                  />
+                  <StatCard
+                    label="Net price"
+                    value={
+                      university['est_net_price']
+                        ? money(university['est_net_price'])
+                        : "Not reported"
+                    }
+                    hint="Average after aid"
+                    verified
+                  />
+                </div>
+                <p className="meta">
+                  Figures come from the school's own reporting. Anything we don't hold says so.
+                </p>
+              </div>
+            </TabsContent>
 
-            <TabsContent value="roster" className="pt-4">
+            <TabsContent value="roster" className="pt-5">
               {roster.length === 0 ? (
-                <p className="text-sm text-steel">Not published by the school.</p>
+                <Panel title="Roster">
+                  <p className="text-sm text-steel">
+                    Not published by the school. The school keeps its place either way.
+                  </p>
+                </Panel>
               ) : (
-                <>
+                <div className="space-y-4">
                   <RosterComposition rows={roster} season={profile.data?.latestSeason ?? null} />
-                  <div className="mt-4">
+                  <Panel title="Players" meta={`${roster.length} listed`}>
                     <RosterTable rows={roster} />
-                  </div>
-                </>
+                  </Panel>
+                </div>
               )}
             </TabsContent>
 
