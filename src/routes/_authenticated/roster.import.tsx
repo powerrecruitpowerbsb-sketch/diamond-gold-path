@@ -8,8 +8,10 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
+import { useSportMode } from "@/hooks/use-sport-mode";
 import { importAthletes, matchAthletes } from "@/lib/athletes.functions";
 import { parseCsv } from "@/lib/csv";
+import { normalizeSport, SPORTS, SPORT_LABEL, type Sport } from "@/lib/sport";
 
 export const Route = createFileRoute("/_authenticated/roster/import")({
   head: () => ({
