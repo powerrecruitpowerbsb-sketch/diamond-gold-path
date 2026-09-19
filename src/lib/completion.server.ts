@@ -101,106 +101,74 @@ async function programsWithSourcedCoach(supabase: any): Promise<Set<string>> {
   return new Set(rows.map((row) => row.record_id));
 }
 
-/** Every unfinished sponsored team, with what it still needs. */
+/**
+ * Every unfinished sponsored team, with what it still needs.
+ *
+ * The counting happens in the database. Reading every program, every roster row
+ * and every source row page by page took tens of thousands of rows per visit and
+ * the database cancelled the query, so the progress screens failed to load.
+ */
 export async function programGaps(supabase: any): Promise<ProgramGap[]> {
-  const [programs, rostered, sourced] = await Promise.all([
-    loadPrograms(supabase),
-    programsWithCurrentRoster(supabase),
-    programsWithSourcedCoach(supabase),
-  ]);
-
-  const gaps: ProgramGap[] = [];
-  for (const program of programs) {
-    if (program.offering_status !== "verified") continue;
-    const needsLinks = !program.roster_url || !program.coaching_staff_url;
-    const needsRoster = !rostered.has(program.id);
-    const needsCoach = !program.head_coach_name || !sourced.has(program.id);
-    if (!needsLinks && !needsRoster && !needsCoach) continue;
-    gaps.push({
-      programId: program.id,
-      universityId: program.university_id,
-      schoolName: program.universities?.name ?? null,
-      sport: program.sport,
-      needsLinks,
-      needsRoster,
-      needsCoach,
-    });
-  }
-  return gaps;
+  const { data, error } = await supabase.rpc("program_gaps", {
+    _years: acceptableSeasonYears(),
+    _limit: 20000,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as any[]).map((row) => ({
+    programId: row.program_id,
+    universityId: row.university_id,
+    schoolName: row.school_name ?? null,
+    sport: row.sport ?? null,
+    needsLinks: Boolean(row.needs_links),
+    needsRoster: Boolean(row.needs_roster),
+    needsCoach: Boolean(row.needs_coach),
+  }));
 }
 
 /** The progress board: how close the database is to finished, plus queue health. */
 export async function completionBoard(supabase: any): Promise<CompletionBoard> {
-  const [programs, rostered, sourced] = await Promise.all([
-    loadPrograms(supabase),
-    programsWithCurrentRoster(supabase),
-    programsWithSourcedCoach(supabase),
-  ]);
-
-  const sponsored = programs.filter((row) => row.offering_status === "verified");
-  const board = {
-    seasonYear: currentSeasonYear(),
-    sponsored: sponsored.length,
-    done: 0,
-    withRosterPage: 0,
-    withStaffPage: 0,
-    withCurrentRoster: 0,
-    withCoach: 0,
-    needsLinks: 0,
-    needsRoster: 0,
-    needsCoach: 0,
-    unverifiedSponsorship: programs.filter((row) => row.offering_status === "unverified").length,
-  };
-
-  for (const program of sponsored) {
-    const hasRosterPage = Boolean(program.roster_url);
-    const hasStaffPage = Boolean(program.coaching_staff_url);
-    const hasRoster = rostered.has(program.id);
-    const hasCoach = Boolean(program.head_coach_name) && sourced.has(program.id);
-    if (hasRosterPage) board.withRosterPage += 1;
-    if (hasStaffPage) board.withStaffPage += 1;
-    if (hasRoster) board.withCurrentRoster += 1;
-    if (hasCoach) board.withCoach += 1;
-    if (!hasRosterPage || !hasStaffPage) board.needsLinks += 1;
-    if (!hasRoster) board.needsRoster += 1;
-    if (!hasCoach) board.needsCoach += 1;
-    if (hasRosterPage && hasStaffPage && hasRoster && hasCoach) board.done += 1;
-  }
-
-  const queueRows = await fetchAllRows<{ status: string; attempts: number }>((from, to) =>
+  const [counts, queueCounts, state] = await Promise.all([
+    supabase.rpc("completion_counts", { _years: acceptableSeasonYears() }),
+    supabase.rpc("collection_queue_counts"),
     supabase
-      .from("ingest_queue")
-      .select("status, attempts")
-      .in("stage", ["url_discovery", "program_scrape"])
-      .neq("status", "done")
-      .order("id", { ascending: true })
-      .range(from, to),
-  );
-  const queue = { pending: 0, running: 0, failed: 0, blocked: 0, exhausted: 0 };
-  for (const row of queueRows) {
-    if ((row.attempts ?? 0) >= 3 && row.status !== "running") {
-      queue.exhausted += 1;
-      continue;
-    }
-    if (row.status in queue) (queue as any)[row.status] += 1;
-  }
+      .from("collection_state")
+      .select("is_running, last_beat_at, last_message")
+      .eq("id", "singleton")
+      .maybeSingle(),
+  ]);
+  if (counts.error) throw new Error(counts.error.message);
+  if (queueCounts.error) throw new Error(queueCounts.error.message);
 
-  const { data: state } = await supabase
-    .from("collection_state")
-    .select("is_running, last_beat_at, last_message")
-    .eq("id", "singleton")
-    .maybeSingle();
+  const c = (Array.isArray(counts.data) ? counts.data[0] : counts.data) ?? {};
+  const q = (Array.isArray(queueCounts.data) ? queueCounts.data[0] : queueCounts.data) ?? {};
+  const num = (value: unknown) => Number(value ?? 0);
 
-  const lastBeatAt = state?.last_beat_at ?? null;
+  const lastBeatAt = state.data?.last_beat_at ?? null;
   const quietMinutes = lastBeatAt ? (Date.now() - new Date(lastBeatAt).getTime()) / 60000 : Infinity;
 
   return {
-    ...board,
-    queue,
+    seasonYear: currentSeasonYear(),
+    sponsored: num(c.sponsored),
+    done: num(c.done),
+    withRosterPage: num(c.with_roster_page),
+    withStaffPage: num(c.with_staff_page),
+    withCurrentRoster: num(c.with_current_roster),
+    withCoach: num(c.with_coach),
+    needsLinks: num(c.needs_links),
+    needsRoster: num(c.needs_roster),
+    needsCoach: num(c.needs_coach),
+    unverifiedSponsorship: num(c.unverified_sponsorship),
+    queue: {
+      pending: num(q.pending),
+      running: num(q.running),
+      failed: num(q.failed),
+      blocked: num(q.blocked),
+      exhausted: num(q.exhausted),
+    },
     lastBeatAt,
-    isRunning: Boolean(state?.is_running),
-    lastMessage: state?.last_message ?? null,
-    stalled: Boolean(state?.is_running) && quietMinutes > 10,
+    isRunning: Boolean(state.data?.is_running),
+    lastMessage: state.data?.last_message ?? null,
+    stalled: Boolean(state.data?.is_running) && quietMinutes > 10,
   };
 }
 
