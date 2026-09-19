@@ -384,6 +384,10 @@ function TeamManager({
             </button>
           </div>
 
+          <div className="mt-4">
+            <TeamSchedulePanel teamId={team.id} teamName={team.name} />
+          </div>
+
           <div className="mt-4 grid gap-5 md:grid-cols-2">
             <div>
               <p className={LABEL}>Assigned coaches</p>
