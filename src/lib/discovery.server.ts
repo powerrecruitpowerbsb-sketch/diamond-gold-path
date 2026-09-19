@@ -934,11 +934,14 @@ export async function applyDiscoveredUrl(
     // athletics domain must never be written there. There is no
     // universities-level athletics column, so the athletics address lives on
     // the program rows only.
-    const { error: programError } = await supabase
+    // Automatic writes only fill an empty value; a reviewer who chose this address
+    // is allowed to replace what is there.
+    let athleticsUpdate = supabase
       .from("programs")
-      .update({ athletic_website: row.discovered_url, link_evidence: evidence })
-      .eq("university_id", row.university_id)
-      .is("athletic_website", null);
+      .update({ athletic_website: row.discovered_url, link_evidence: written })
+      .eq("university_id", row.university_id);
+    if (!human) athleticsUpdate = athleticsUpdate.is("athletic_website", null);
+    const { error: programError } = await athleticsUpdate;
     if (programError) throw new Error(programError.message);
     return;
   }
@@ -948,7 +951,7 @@ export async function applyDiscoveredUrl(
   const field = row.discovery_type === "roster_page" ? "roster_url" : "coaching_staff_url";
   const { error } = await supabase
     .from("programs")
-    .update({ [field]: row.discovered_url, link_evidence: evidence })
+    .update({ [field]: row.discovered_url, link_evidence: written })
     .eq("id", row.program_id);
   if (error) throw new Error(error.message);
 }
