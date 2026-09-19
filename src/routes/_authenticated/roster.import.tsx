@@ -337,6 +337,21 @@ function ImportAthletes() {
                 </label>
               ))}
             </div>
+            <label className="mt-4 flex w-fit items-center gap-2 rounded-lg border border-org-accent/50 bg-org-accent-tint px-3 py-2 text-sm text-graphite">
+              <span className="font-semibold">If the file has no sport column, these are</span>
+              <select
+                value={defaultSport}
+                onChange={(event) => setFileSport(normalizeSport(event.target.value))}
+                className={FIELD_CLASS}
+              >
+                {SPORTS.map((option) => (
+                  <option key={option} value={option}>
+                    {SPORT_LABEL[option]} players
+                  </option>
+                ))}
+              </select>
+            </label>
+
             {!canPreview ? (
               <p className="mt-3 text-sm text-seam-red">
                 Name is required — pick which CSV column holds the athlete's name.
