@@ -141,7 +141,7 @@ function Pipeline() {
                 </div>
                 <Link
                   to={task.to}
-                  className="touch-target inline-flex items-center rounded-lg bg-org-primary px-3.5 text-sm font-semibold text-white"
+                  className="touch-target inline-flex items-center rounded-lg bg-org-primary px-3.5 text-sm font-semibold text-org-primary-foreground"
                 >
                   {task.cta}
                 </Link>

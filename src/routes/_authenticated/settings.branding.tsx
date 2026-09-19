@@ -288,7 +288,7 @@ function BrandingSettings() {
                 type="button"
                 disabled={saving || !branding.canEdit}
                 onClick={() => void save()}
-                className="touch-target inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-white disabled:opacity-60"
+                className="touch-target inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
               >
                 {saving ? "Saving…" : "Save branding"}
               </button>

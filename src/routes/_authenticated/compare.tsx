@@ -204,7 +204,7 @@ function ComparePage() {
                       {entry.university?.name}
                     </Link>
                     <span className="mt-2 block">
-                      <span className="rounded-md bg-org-primary px-2 py-1 text-[11px] font-bold text-white">
+                      <span className="rounded-md bg-org-primary px-2 py-1 text-[11px] font-bold text-org-primary-foreground">
                         {[entry.program.governing_body, entry.program.division]
                           .filter(Boolean)
                           .join(" ") || "—"}

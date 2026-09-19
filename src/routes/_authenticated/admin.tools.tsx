@@ -586,7 +586,7 @@ function Tools() {
             type="button"
             onClick={onRequeueRejected}
             disabled={busy !== null}
-            className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+            className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
           >
             <RefreshCw className="size-4" aria-hidden />
             {busy === "requeue-rejected" ? "Queueing…" : "Search these again"}
@@ -622,7 +622,7 @@ function Tools() {
               type="button"
               onClick={() => onImportSlice(slice.division, slice.sport, slice.label)}
               disabled={busy !== null}
-              className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+              className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
             >
               <Download className="size-4" aria-hidden />
               {busy === slice.label ? "Pulling…" : slice.label}
@@ -653,7 +653,7 @@ function Tools() {
               type="button"
               onClick={() => onImportWikiSlice(slice.key, slice.label)}
               disabled={busy !== null}
-              className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-white disabled:opacity-60"
+              className="touch-target inline-flex items-center gap-2 rounded-lg bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
             >
               <Download className="size-4" aria-hidden />
               {busy === slice.label ? "Pulling…" : slice.label}
@@ -752,7 +752,7 @@ function Tools() {
             </p>
             <Link
               to="/admin/federal-decisions"
-              className="touch-target inline-flex w-fit items-center gap-2 rounded-lg bg-org-primary px-3.5 text-sm font-semibold text-white"
+              className="touch-target inline-flex w-fit items-center gap-2 rounded-lg bg-org-primary px-3.5 text-sm font-semibold text-org-primary-foreground"
             >
               Decide the last schools
             </Link>

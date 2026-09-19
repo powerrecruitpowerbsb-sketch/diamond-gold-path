@@ -102,7 +102,7 @@ function MajorsScreen() {
                       className="max-w-xs"
                     />
                     <Button
-                      className="touch-target bg-org-primary text-white hover:bg-org-primary/90"
+                      className="touch-target bg-org-primary text-org-primary-foreground hover:bg-org-primary/90"
                       disabled={saveMutation.isPending}
                       onClick={() => saveMutation.mutate({ id: major.id, name: editing?.name ?? "" })}
                     >
