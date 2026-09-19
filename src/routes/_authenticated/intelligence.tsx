@@ -582,7 +582,7 @@ function WorkPanels({
   ];
   // Arriving from a search tag opens the panel that holds that answer.
   const focusGroup = focusField ? INTEL_FIELD_MAP[focusField]?.group ?? null : null;
-  const [panel, setPanel] = useState(focusGroup ?? "relationship");
+  const [panel, setPanel] = useState<string>(focusGroup ?? "relationship");
   useEffect(() => {
     if (focusGroup) setPanel(focusGroup);
   }, [focusGroup]);
