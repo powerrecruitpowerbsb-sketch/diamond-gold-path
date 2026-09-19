@@ -349,7 +349,12 @@ function SearchScreen() {
         </p>
       ) : null}
 
-      {results.isPending ? (
+      {!searching ? (
+        <p className="mt-4 rounded border border-border bg-card p-6 text-sm text-steel">
+          Set a filter below to start — a level, a state or region, a cost ceiling, or a school
+          name. Nothing is listed until you do.
+        </p>
+      ) : results.isPending ? (
         <div className="mt-4 h-64 animate-pulse rounded border border-border bg-card" />
       ) : rows.length === 0 ? (
         <p className="mt-4 rounded border border-border bg-card p-6 text-sm text-steel">
