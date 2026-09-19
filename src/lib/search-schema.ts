@@ -65,6 +65,12 @@ export const searchParamsSchema = z.object({
   seniorMin: fallback(z.number(), 0).default(0),
   transferPctMin: fallback(z.number(), 0).default(0),
   transferPctMax: fallback(z.number(), 0).default(0),
+  /** Our own recruiting intelligence: "field:value" tokens, positions, relationship. */
+  intel: fallback(z.string().array(), []).default([]),
+  intelPositions: fallback(z.string().array(), []).default([]),
+  relationship: fallback(z.string(), "").default(""),
+  /** Off by default: matches rise to the top, unevaluated programs stay below. */
+  intelOnly: fallback(z.boolean(), false).default(false),
   sort: fallback(z.string(), "name").default("name"),
   dir: fallback(z.string(), "asc").default("asc"),
   more: fallback(z.boolean(), false).default(false),
