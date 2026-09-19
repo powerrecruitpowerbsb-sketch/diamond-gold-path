@@ -177,7 +177,59 @@ const CHOICES = {
     { value: "strength_nutrition", label: "Physical transformation (strength & nutrition)" },
     { value: "mental_culture", label: "Mental performance & team culture" },
   ],
+  reputation: [
+    { value: "player_first", label: "High integrity / player-first" },
+    { value: "old_school", label: "Demanding / old-school grinder" },
+    { value: "development_tech", label: "Development & tech-focused" },
+    { value: "straight_on_money", label: "Straight-shooter on scholarships" },
+    { value: "communicates_well", label: "Communicates well with clubs" },
+    { value: "scout_favorite", label: "Pro scout favourite" },
+    { value: "volatile", label: "High turnover / volatile" },
+  ],
+  stability: [
+    { value: "established_hc", label: "Established head coach" },
+    { value: "new_staff", label: "New coaching staff" },
+    { value: "hot_seat", label: "Hot seat / on watch" },
+    { value: "conference_move", label: "Conference transition" },
+    { value: "facility_growth", label: "Budget & facility expansion" },
+    { value: "staff_churn", label: "Frequent staff churn" },
+  ],
+  rosterNeeds: [
+    { value: "starting_arms", label: "Starting pitching arms" },
+    { value: "bullpen", label: "High-leverage bullpen" },
+    { value: "catcher", label: "Catcher / receiver" },
+    { value: "middle_infield", label: "Middle infield (SS/2B)" },
+    { value: "power_bat", label: "Middle-of-order power bat" },
+    { value: "outfield_speed", label: "Outfield speed & range" },
+    { value: "impact_transfers", label: "Immediate impact transfers" },
+    { value: "hs_class", label: "Developmental high school class" },
+  ],
+  priorities: [
+    { value: "closing_class", label: "Closing the current class" },
+    { value: "next_class", label: "Next class priority evaluations" },
+    { value: "early_ids", label: "Early underclass IDs" },
+    { value: "portal_juco_now", label: "Immediate portal / JUCO additions" },
+    { value: "academic_qualifiers", label: "High-academic qualifiers" },
+    { value: "local_targets", label: "Local / in-state targets" },
+  ],
+  previousPlayers: [
+    { value: "current_roster", label: "Player of ours on the roster" },
+    { value: "committed_alumni", label: "Committed alumni" },
+    { value: "past_offers", label: "Offered in past cycles" },
+    { value: "scouting_us", label: "Actively scouting our club" },
+    { value: "camp_attendees", label: "Our players attended their camp" },
+    { value: "none_yet", label: "No history yet" },
+  ],
+  staffNotes: [
+    { value: "priority_target", label: "High priority target" },
+    { value: "academic_fit", label: "Great academic fit" },
+    { value: "tough_freshman", label: "Tough freshman competition" },
+    { value: "great_visit", label: "Great campus visit" },
+    { value: "late_offers", label: "Patient / late offerers" },
+    { value: "early_offers", label: "Quick offers / early commits" },
+  ],
 } as const;
+
 
 export const INTEL_FIELDS: IntelFieldDef[] = [
   // ---- Recruiting: the conclusion families are paying for -----------------
@@ -319,12 +371,38 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
     key: "coaching_staff_reputation",
     label: "Coaching staff reputation",
     group: "notes",
-    kind: "text",
+    kind: "choice",
     audience: "org",
+    multi: true,
+    choices: [...CHOICES.reputation],
   },
-  { key: "program_stability", label: "Program stability", group: "notes", kind: "text", audience: "org" },
-  { key: "roster_needs", label: "Roster needs", group: "notes", kind: "text", audience: "org" },
-  { key: "current_priorities", label: "Current priorities", group: "notes", kind: "text", audience: "org" },
+  {
+    key: "program_stability",
+    label: "Program stability",
+    group: "notes",
+    kind: "choice",
+    audience: "org",
+    multi: true,
+    choices: [...CHOICES.stability],
+  },
+  {
+    key: "roster_needs",
+    label: "Roster needs",
+    group: "notes",
+    kind: "choice",
+    audience: "org",
+    multi: true,
+    choices: [...CHOICES.rosterNeeds],
+  },
+  {
+    key: "current_priorities",
+    label: "Current priorities",
+    group: "notes",
+    kind: "choice",
+    audience: "org",
+    multi: true,
+    choices: [...CHOICES.priorities],
+  },
   {
     key: "graduation_needs",
     label: "Graduation needs by position",
@@ -337,11 +415,101 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
     key: "players_previously_recruited",
     label: "Players previously recruited or committed",
     group: "notes",
-    kind: "text",
+    kind: "choice",
     audience: "org",
+    multi: true,
+    choices: [...CHOICES.previousPlayers],
   },
-  { key: "staff_notes", label: "Staff notes", group: "notes", kind: "text", audience: "org" },
+  {
+    key: "staff_notes",
+    label: "Staff notes",
+    group: "notes",
+    kind: "choice",
+    audience: "org",
+    multi: true,
+    choices: [...CHOICES.staffNotes],
+  },
 ];
+
+/** Relationship quick-picks — the institutional relationship, not a player's stage. */
+export const PLACED_PLAYERS_CHOICES = [
+  { value: "multiple_alumni", label: "Multiple alumni here" },
+  { value: "one_alumnus", label: "One alumnus here" },
+  { value: "past_offers", label: "Past offers / recruited before" },
+  { value: "evaluating_now", label: "Currently evaluating our players" },
+  { value: "none_yet", label: "None yet" },
+];
+
+export const CONTACT_ROLE_CHOICES = [
+  { value: "head_coach", label: "Head coach" },
+  { value: "recruiting_coordinator", label: "Recruiting coordinator" },
+  { value: "pitching_coach", label: "Pitching coach" },
+  { value: "hitting_coach", label: "Hitting coach" },
+  { value: "assistant_coach", label: "Assistant coach" },
+  { value: "operations", label: "Director of operations" },
+];
+
+export const STABILITY_CHOICES = [
+  { value: "established", label: "Established head coach" },
+  { value: "new_staff", label: "New coaching staff" },
+  { value: "hot_seat", label: "Hot seat / on watch" },
+  { value: "assistant_turnover", label: "Assistant turnover" },
+  { value: "conference_move", label: "Conference transition" },
+  { value: "budget_growth", label: "Budget & facility growth" },
+];
+
+export const INTERACTION_CONTEXT_CHOICES = [
+  { value: "Showcase", label: "Showcase" },
+  { value: "Tournament", label: "Tournament" },
+  { value: "Campus visit", label: "Campus visit" },
+  { value: "Phone call", label: "Phone call" },
+  { value: "Email or text", label: "Email or text" },
+  { value: "Camp", label: "Camp" },
+];
+
+/**
+ * Relationship notes live in single text columns, so a pick-list answer is
+ * stored as its chosen labels followed by the free note after a dash.
+ */
+export function composeTagged(values: string[], note: string): string | null {
+  const head = values.join("; ");
+  const tail = note.trim();
+  if (!head && !tail) return null;
+  if (!head) return tail;
+  return tail ? `${head} — ${tail}` : head;
+}
+
+/** Split a stored "labels — note" value back into its chips and its note. */
+export function parseTagged(
+  stored: string | null | undefined,
+  choices: { value: string; label: string }[],
+): { values: string[]; note: string } {
+  const text = String(stored ?? "").trim();
+  if (!text) return { values: [], note: "" };
+  const [headRaw, ...rest] = text.split(" — ");
+  const head = String(headRaw ?? "");
+  const parts = head
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const known = parts.filter((part) => choices.some((c) => c.value === part || c.label === part));
+  if (known.length !== parts.length || parts.length === 0) {
+    return { values: [], note: text };
+  }
+  const values = known.map(
+    (part) => choices.find((c) => c.value === part || c.label === part)!.value,
+  );
+  return { values, note: rest.join(" — ").trim() };
+}
+
+/** The label a stored relationship chip should show. */
+export function choiceLabel(
+  choices: { value: string; label: string }[],
+  value: string,
+): string {
+  return choices.find((c) => c.value === value)?.label ?? value;
+}
+
 
 export const INTEL_FIELD_MAP: Record<string, IntelFieldDef> = Object.fromEntries(
   INTEL_FIELDS.map((field) => [field.key, field]),
