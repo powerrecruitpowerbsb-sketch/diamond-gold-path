@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, X } from "lucide-react";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
