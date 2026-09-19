@@ -77,35 +77,47 @@ export function OrgTheme({
   children: ReactNode;
 }) {
   const style = {} as Record<string, string>;
-  if (primaryColor) {
-    style["--org-primary"] = primaryColor;
-    style["--org-primary-tint"] = `color-mix(in oklab, ${primaryColor} 10%, white)`;
-  }
-  if (accentColor) {
-    style["--org-accent"] = accentColor;
-    style["--org-accent-strong"] = `color-mix(in oklab, ${accentColor} 88%, black)`;
-    style["--org-accent-pressed"] = `color-mix(in oklab, ${accentColor} 76%, black)`;
-    style["--org-accent-tint"] = `color-mix(in oklab, ${accentColor} 14%, white)`;
-    const fg = readableOn(accentColor);
-    if (fg) style["--org-accent-foreground"] = fg;
+
+  // The two brand colors as uploaded, with the platform defaults as a stand-in
+  // so the sport swap still reads when nothing has been uploaded yet.
+  const brandPrimary = primaryColor || "#1f3a5f";
+  const brandAccent = accentColor || "#d3a94e";
+
+  /*
+   * Softball flips the club's own two colors: the accent becomes the dominant
+   * color of the whole app and the primary steps back to the accent role. A
+   * light accent (gold, yellow, white) is deepened against the club's dark tone
+   * first, so filled surfaces keep readable text everywhere.
+   */
+  const swap = sport === "softball";
+  let effPrimary = brandPrimary;
+  let effAccent = brandAccent;
+  if (swap) {
+    const lum = luminance(brandAccent);
+    const deepened =
+      lum !== null && lum > 0.3 ? (blend(brandAccent, "#12233a", 0.58) ?? brandAccent) : brandAccent;
+    effPrimary = deepened;
+    effAccent = brandPrimary;
   }
 
-  // Softball gets a companion tone of the same two brand colors, so both
-  // sports stay unmistakably the club's. Baseball keeps the primary itself.
-  if (sport === "softball") {
-    const base = primaryColor && accentColor ? blend(primaryColor, accentColor, 0.55) : null;
-    const tone = base ?? "color-mix(in oklab, var(--org-primary) 55%, var(--org-accent))";
-    style["--sport-strong"] = tone;
-    style["--sport-tint"] = `color-mix(in oklab, ${tone} 12%, white)`;
-    style["--sport-line"] = `color-mix(in oklab, ${tone} 55%, white)`;
-    const fg = base ? readableOn(base) : null;
-    style["--sport-foreground"] = fg ?? "#ffffff";
-  } else if (primaryColor) {
-    style["--sport-strong"] = primaryColor;
-    style["--sport-tint"] = `color-mix(in oklab, ${primaryColor} 12%, white)`;
-    style["--sport-line"] = `color-mix(in oklab, ${primaryColor} 55%, white)`;
-    style["--sport-foreground"] = readableOn(primaryColor) ?? "#ffffff";
-  }
+  style["--org-primary"] = effPrimary;
+  style["--org-primary-tint"] = `color-mix(in oklab, ${effPrimary} 10%, white)`;
+  style["--org-primary-foreground"] = readableOn(effPrimary) ?? "#ffffff";
+  style["--navy-deep"] = blend(effPrimary, "#0c1421", 0.55) ?? "#12233a";
+
+  style["--org-accent"] = effAccent;
+  style["--org-accent-strong"] = `color-mix(in oklab, ${effAccent} 88%, black)`;
+  style["--org-accent-pressed"] = `color-mix(in oklab, ${effAccent} 76%, black)`;
+  style["--org-accent-tint"] = `color-mix(in oklab, ${effAccent} 14%, white)`;
+  const accentFg = readableOn(effAccent);
+  if (accentFg) style["--org-accent-foreground"] = accentFg;
+
+  // The active-sport marks follow the dominant color of that sport.
+  style["--sport-strong"] = effPrimary;
+  style["--sport-tint"] = `color-mix(in oklab, ${effPrimary} 12%, white)`;
+  style["--sport-line"] = `color-mix(in oklab, ${effPrimary} 55%, white)`;
+  style["--sport-foreground"] = readableOn(effPrimary) ?? "#ffffff";
+
 
 
   return (
