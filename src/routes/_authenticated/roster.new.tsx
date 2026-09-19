@@ -39,12 +39,15 @@ function NewAthlete() {
   const ctx = useSeasonContext();
   const [saving, setSaving] = useState(false);
   const [teamId, setTeamId] = useState("");
+  // New athletes default to whichever sport the app is currently showing.
+  const { sport } = useSportMode();
   const [form, setForm] = useState({
     name: "",
     gradYear: "",
     primaryPosition: "",
     bats: "",
     throws: "",
+    sport: "",
   });
 
   const set = (key: keyof typeof form) => (value: string) =>
@@ -61,6 +64,7 @@ function NewAthlete() {
           primaryPosition: form.primaryPosition || null,
           bats: form.bats || null,
           throws: form.throws || null,
+          sport: form.sport || sport,
           source: "manual",
           seasonId: ctx.seasonId || null,
           teamId: teamId || null,
