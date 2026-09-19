@@ -821,7 +821,16 @@ export async function applyDiscoveredUrl(
     discovery_type: DiscoveryType;
     discovered_url: string | null;
   },
+  /**
+   * A person pressed Confirm or typed the address in. The automatic gates that
+   * exist to stop a machine from overwriting a stored address, or from saving a
+   * page nobody could read, are exactly the cases a reviewer is there to settle,
+   * so they become a recorded override instead of a refusal.
+   */
+  opts?: { humanDecision?: boolean },
 ) {
+  const human = opts?.humanDecision === true;
+  const overrides: string[] = [];
   if (!row.discovered_url) throw new Error("There's no URL on this item to confirm");
 
   const inst = await loadInstitution(supabase, row.university_id);
