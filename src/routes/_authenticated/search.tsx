@@ -331,6 +331,27 @@ function SearchScreen() {
       label: `Transfers ${params.transferPctMin || 0}–${params.transferPctMax || 100}%`,
       clear: { transferPctMin: 0, transferPctMax: 0 },
     });
+  for (const token of params.intel) {
+    chips.push({
+      label: intelTokenLabel(token),
+      clear: { intel: params.intel.filter((t) => t !== token) },
+    });
+  }
+  if (params.intelPositions.length > 0)
+    chips.push({
+      label: `Prioritizing ${params.intelPositions
+        .map((p) => POSITION_LABELS[p] ?? p)
+        .join(", ")}`,
+      clear: { intelPositions: [] },
+    });
+  if (params.relationship)
+    chips.push({
+      label: `Relationship: ${
+        STRENGTH_CHOICES.find((c) => c.value === params.relationship)?.label ?? params.relationship
+      }`,
+      clear: { relationship: "" },
+    });
+  if (params.intelOnly) chips.push({ label: "Fits only", clear: { intelOnly: false } });
 
   return (
     <AppShell right={<AuthButton />}>
