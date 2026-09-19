@@ -11,6 +11,7 @@ import { OrgMark } from "@/components/brand/OrgMark";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
+import { useSportMode } from "@/hooks/use-sport-mode";
 import {
   DIVISION_BUCKETS,
   SHORTLIST_STATUSES,
