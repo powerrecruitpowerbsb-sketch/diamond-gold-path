@@ -121,6 +121,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
     <OrgTheme
       primaryColor={themed ? (branding?.primary ?? null) : null}
       accentColor={themed ? (branding?.accent ?? null) : null}
+      sport={themed ? sport : null}
     >
     <div className="min-h-screen bg-chalk pb-[76px] min-[680px]:pb-0">
       {actingOrg ? <ActingOrgBar name={actingOrg.name} /> : null}
