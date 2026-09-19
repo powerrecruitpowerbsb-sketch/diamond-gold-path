@@ -536,10 +536,12 @@ function EditPanel({
         programId={programId}
         canApprove={canApprove}
         canRate={canRate}
+        focusField={focusField}
         detail={detail.data}
         recordByField={recordByField}
         refresh={refresh}
       />
+
     </div>
   );
 }
