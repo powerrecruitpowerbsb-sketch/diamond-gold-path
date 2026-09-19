@@ -3416,7 +3416,32 @@ export type Database = {
       collection_cron_start: { Args: never; Returns: undefined }
       collection_cron_stop: { Args: never; Returns: undefined }
       collection_cron_unschedule: { Args: never; Returns: undefined }
+      collection_queue_counts: {
+        Args: never
+        Returns: {
+          blocked: number
+          exhausted: number
+          failed: number
+          pending: number
+          running: number
+        }[]
+      }
       collection_watchdog: { Args: never; Returns: Json }
+      completion_counts: {
+        Args: { _years: number[] }
+        Returns: {
+          done: number
+          needs_coach: number
+          needs_links: number
+          needs_roster: number
+          sponsored: number
+          unverified_sponsorship: number
+          with_coach: number
+          with_current_roster: number
+          with_roster_page: number
+          with_staff_page: number
+        }[]
+      }
       current_org_id: { Args: never; Returns: string }
       enqueue_due_refreshes: {
         Args: { _program_limit?: number; _school_limit?: number }
@@ -3451,6 +3476,18 @@ export type Database = {
       link_host_only: { Args: { _url: string }; Returns: string }
       link_key: { Args: { _url: string }; Returns: string }
       pages_check_on: { Args: never; Returns: boolean }
+      program_gaps: {
+        Args: { _limit?: number; _years: number[] }
+        Returns: {
+          needs_coach: boolean
+          needs_links: boolean
+          needs_roster: boolean
+          program_id: string
+          school_name: string
+          sport: Database["public"]["Enums"]["sport"]
+          university_id: string
+        }[]
+      }
       program_relationship_summary: {
         Args: { _program_id: string }
         Returns: {
