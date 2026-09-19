@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,17 +10,24 @@ import { AuthButton } from "@/components/brand/AuthButton";
 import { PageHeader } from "@/components/console/PageHeader";
 import { useMyAccount } from "@/hooks/use-my-account";
 import {
+  CONTACT_ROLE_CHOICES,
   INTEL_FIELDS,
   INTEL_FIELD_COUNT,
+  INTEL_FIELD_MAP,
   INTEL_POSITIONS,
+  INTERACTION_CONTEXT_CHOICES,
   POSITION_GROUP_PRESETS,
   POSITION_LABELS,
+  STABILITY_CHOICES,
   STATUS_LABELS,
   STRENGTH_CHOICES,
+  composeTagged,
   fieldLabel,
+  parseTagged,
   structuredValues,
   type IntelFieldDef,
 } from "@/lib/intel-fields";
+
 import {
   getIntelProgram,
   listApprovalQueue,
