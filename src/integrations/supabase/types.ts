@@ -1813,6 +1813,70 @@ export type Database = {
         }
         Relationships: []
       }
+      program_coach_contacts: {
+        Row: {
+          coach_name: string
+          coach_role: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          phone: string | null
+          program_id: string
+          updated_at: string
+        }
+        Insert: {
+          coach_name: string
+          coach_role?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          phone?: string | null
+          program_id: string
+          updated_at?: string
+        }
+        Update: {
+          coach_name?: string
+          coach_role?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          phone?: string | null
+          program_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_coach_contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_coach_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_coach_contacts_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       program_level_archive: {
         Row: {
           created_at: string
