@@ -637,10 +637,12 @@ function WorkPanels({
               field={field}
               record={recordByField.get(field.key) ?? null}
               canApprove={canApprove}
+              focused={focusField === field.key}
               onSaved={refresh}
             />
           ))}
         </div>
+
       )}
     </div>
   );
