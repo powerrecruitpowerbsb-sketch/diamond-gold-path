@@ -48,11 +48,13 @@ function RosterScreen() {
   const [gradYear, setGradYear] = useState("");
   const [status, setStatus] = useState("active");
 
+  // The header switch decides which sport's players this roster shows.
+  const { sport } = useSportMode();
   const { data, isPending, error } = useQuery({
-    queryKey: ["org-athletes", q, gradYear, status, ctx.seasonId, ctx.teamId],
+    queryKey: ["org-athletes", q, gradYear, status, ctx.seasonId, ctx.teamId, sport],
     queryFn: () =>
       listFn({
-        data: { q, gradYear, status, seasonId: ctx.seasonId, teamId: ctx.teamId },
+        data: { q, gradYear, status, seasonId: ctx.seasonId, teamId: ctx.teamId, sport },
       }),
     retry: false,
   });
@@ -145,6 +147,7 @@ function RosterScreen() {
           <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>
               <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Sport</th>
               <th className="px-4 py-3">Team</th>
               <th className="px-4 py-3">Grad year</th>
               <th className="px-4 py-3">Position</th>
