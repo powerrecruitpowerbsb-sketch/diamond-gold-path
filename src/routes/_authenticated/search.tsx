@@ -83,6 +83,20 @@ const plain = (value: unknown) =>
 
 const POSITION_GROUPS = Object.keys(POSITION_GROUP_LABELS) as PositionGroup[];
 
+/** The pick-list answers our own staff records, offered as fit filters. */
+const INTEL_CHOICE_FIELDS = INTEL_FIELDS.filter(
+  (field) => field.group === "recruiting" && field.kind === "choice",
+);
+
+/** "style_of_play:power_slugging" → "Style of play: Power & slugging". */
+function intelTokenLabel(token: string): string {
+  const [field, ...rest] = token.split(":");
+  const value = rest.join(":");
+  const def = INTEL_FIELD_MAP[field ?? ""];
+  const choice = def?.choices?.find((c) => c.value === value);
+  return `${def?.label ?? field}: ${choice?.label ?? value}`;
+}
+
 type SortKey =
   | "name"
   | "state"
