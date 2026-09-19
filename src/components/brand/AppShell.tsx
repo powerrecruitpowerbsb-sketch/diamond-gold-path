@@ -129,7 +129,9 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       {actingOrg ? <ActingOrgBar name={actingOrg.name} /> : null}
 
       {/* Chrome: top nav on desktop, condensed bar + hamburger on mobile */}
-      <header className="sticky top-0 z-40 bg-org-primary text-org-primary-foreground shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+      {/* Dark chrome, brand-lit: the club's color marks the active tab and the
+          top hairline rather than flooding the whole bar. */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-navy-deep text-white shadow-[0_1px_0_color-mix(in_srgb,var(--org-primary)_40%,transparent)]">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
           <Link to="/" className="touch-target flex items-center gap-2.5">
             <OrgMark
