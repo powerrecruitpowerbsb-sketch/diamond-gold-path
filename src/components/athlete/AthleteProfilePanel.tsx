@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -43,6 +43,30 @@ const inputClass =
 function shareUrl(slug: string): string {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   return `${origin}/p/${slug}`;
+}
+
+/** The stored row turned back into editable text fields. */
+function formFrom(athlete: Record<string, any>): Record<string, string> {
+  return {
+    athleteEmail: athlete['athlete_email'] ?? "",
+    athletePhone: athlete['athlete_phone'] ?? "",
+    parentName: athlete['parent_name'] ?? "",
+    parentEmail: athlete['parent_email'] ?? "",
+    parentPhone: athlete['parent_phone'] ?? "",
+    homeCity: athlete['home_city'] ?? "",
+    homeState: athlete['home_state'] ?? "",
+    highSchool: athlete['high_school'] ?? "",
+    clubTeam: athlete['club_team'] ?? "",
+    secondaryPosition: athlete['secondary_position'] ?? "",
+    heightInches: athlete['height_inches'] ?? "",
+    weightLbs: athlete['weight_lbs'] ?? "",
+    gpa: athlete['gpa'] ?? "",
+    satScore: athlete['sat_score'] ?? "",
+    actScore: athlete['act_score'] ?? "",
+    eligibilityId: athlete['eligibility_id'] ?? "",
+    twitterHandle: athlete['twitter_handle'] ?? "",
+    instagramHandle: athlete['instagram_handle'] ?? "",
+  };
 }
 
 type Props = { athleteId: string; canEdit?: boolean };
