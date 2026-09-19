@@ -10,8 +10,10 @@ import { EmptyState } from "@/components/brand/EmptyState";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
+import { useSportMode } from "@/hooks/use-sport-mode";
 import { listOrgAthletes } from "@/lib/athletes.functions";
 import { ATHLETE_STATUS_LABEL } from "@/lib/season-constants";
+import { normalizeSport, SPORT_LABEL } from "@/lib/sport";
 
 
 export const Route = createFileRoute("/_authenticated/roster/")({
