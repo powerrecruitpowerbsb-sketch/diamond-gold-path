@@ -275,40 +275,85 @@ function BarCard({
   max,
   barClass,
   loading,
+  onSelect,
+  activeKey,
 }: {
   title: string;
   hint: string;
-  rows: { label: string; count: number; barClass?: string }[];
+  rows: { label: string; count: number; barClass?: string; key?: string }[];
   max: number;
   barClass: string;
   loading: boolean;
+  /** When set, each bar filters the roster below to that segment. */
+  onSelect?: (key: string | null) => void;
+  activeKey?: string | null;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h3 className="font-display text-lg font-bold text-graphite">{title}</h3>
-      <p className="meta mt-0.5">{hint.toUpperCase()}</p>
+    <section className="rounded-lg border border-border bg-card p-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="font-display text-lg font-bold text-org-primary">{title}</h3>
+        {activeKey && onSelect ? (
+          <button
+            type="button"
+            onClick={() => onSelect(null)}
+            className="text-xs font-semibold text-org-accent-strong hover:underline"
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+      <p className="mt-1 text-sm text-steel">{hint}</p>
       {loading ? (
-        <div className="mt-4 h-28 animate-pulse rounded-lg bg-muted" />
+        <div className="mt-5 h-28 animate-pulse rounded-lg bg-muted" />
       ) : rows.length === 0 ? (
-        <p className="mt-4 text-sm text-steel">Nothing saved yet.</p>
+        <p className="mt-5 text-sm text-steel">Nothing saved yet.</p>
       ) : (
-        <ul className="mt-4 space-y-2.5">
-          {rows.map((row) => (
-            <li key={row.label} className="flex items-center gap-3">
-              <span className="w-16 shrink-0 font-mono text-[11px] text-steel uppercase">
-                {row.label}
-              </span>
-              <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
-                <span
-                  className={cn("block h-full rounded-full", row.barClass ?? barClass)}
-                  style={{ width: `${Math.round((row.count / max) * 100)}%` }}
-                />
-              </span>
-              <span className="w-7 shrink-0 text-right font-display text-sm font-bold text-graphite tabular-nums">
-                {row.count}
-              </span>
-            </li>
-          ))}
+        <ul className="mt-5 space-y-3">
+          {rows.map((row) => {
+            const key = row.key ?? row.label;
+            const active = activeKey === key;
+            const width = `${Math.max(row.count > 0 ? 4 : 0, Math.round((row.count / max) * 100))}%`;
+            const body = (
+              <>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold text-graphite">{row.label}</span>
+                  <span className="font-display text-lg leading-none font-bold text-org-primary tabular-nums">
+                    {row.count}
+                  </span>
+                </span>
+                <span className="mt-1.5 block h-2.5 overflow-hidden rounded-full bg-track">
+                  <span
+                    className={cn(
+                      "block h-full rounded-full transition-[width,opacity] duration-300",
+                      row.barClass ?? barClass,
+                      active && "opacity-100",
+                    )}
+                    style={{ width }}
+                  />
+                </span>
+              </>
+            );
+
+            return (
+              <li key={key}>
+                {onSelect ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelect(active ? null : key)}
+                    aria-pressed={active}
+                    className={cn(
+                      "block w-full cursor-pointer rounded-md px-2 py-1.5 text-left transition-colors",
+                      active ? "bg-org-accent-tint" : "hover:bg-org-accent-tint/60",
+                    )}
+                  >
+                    {body}
+                  </button>
+                ) : (
+                  <div className="px-2 py-1.5">{body}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
