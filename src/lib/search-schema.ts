@@ -244,7 +244,34 @@ export function normalizeSearchInput(input: unknown): SearchFilters {
     seniorMin: num(at("seniorMin"), 0, 100),
     transferPctMin: num(at("transferPctMin"), 0, 100),
     transferPctMax: num(at("transferPctMax"), 0, 100),
+    intel: (Array.isArray(at("intel")) ? (at("intel") as unknown[]) : [])
+      .map((token) => str(token))
+      .filter(Boolean)
+      .map((token) => {
+        const [field, ...rest] = token.split(":");
+        return { field: str(field), value: str(rest.join(":")) };
+      })
+      .filter((pair) => pair.field && pair.value)
+      .slice(0, 20),
+    intelPositions: (Array.isArray(at("intelPositions")) ? (at("intelPositions") as unknown[]) : [])
+      .map((value) => str(value).toUpperCase())
+      .filter(Boolean)
+      .slice(0, 20),
+    relationship: ["strong", "developing", "minimal", "none"].includes(str(at("relationship")))
+      ? str(at("relationship"))
+      : "",
+    intelOnly: at("intelOnly") === true || str(at("intelOnly")) === "true",
   };
+}
+
+/** Is any of our own intelligence being used to rank or filter? */
+export function intelActive(f: SearchFilters): boolean {
+  return f.intel.length > 0 || f.intelPositions.length > 0 || Boolean(f.relationship);
+}
+
+/** How many separate intelligence conditions a program is measured against. */
+export function intelCriteriaCount(f: SearchFilters): number {
+  return f.intel.length + (f.intelPositions.length > 0 ? 1 : 0) + (f.relationship ? 1 : 0);
 }
 
 /** Is any roster-composition filter in use? Those need per-player reads. */
