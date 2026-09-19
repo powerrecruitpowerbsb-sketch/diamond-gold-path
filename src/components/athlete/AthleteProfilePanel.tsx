@@ -177,6 +177,46 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
     </label>
   );
 
+  /** Height is typed the way people say it: feet and inches, stored as inches. */
+  const heightParts = splitHeight(form['heightInches']);
+  const setHeight = (feet: string, inches: string) => {
+    const f = feet === "" ? null : Number(feet);
+    const i = inches === "" ? 0 : Number(inches);
+    setForm((prev) => ({ ...prev, heightInches: f === null ? "" : String(f * 12 + i) }));
+  };
+  const heightField = () => (
+    <div className="block">
+      <span className={labelClass}>Height (ft / in)</span>
+      <div className="mt-1 flex gap-2">
+        <select
+          value={String(heightParts.feet)}
+          disabled={!canEdit}
+          onChange={(e) => setHeight(e.target.value, String(heightParts.inches))}
+          className={cn(inputClass, "mt-0", !canEdit && "opacity-70")}
+          aria-label="Height in feet"
+        >
+          <option value="">ft</option>
+          {[4, 5, 6, 7].map((f) => (
+            <option key={f} value={f}>{f}&apos;</option>
+          ))}
+        </select>
+        <select
+          value={String(heightParts.inches)}
+          disabled={!canEdit}
+          onChange={(e) => setHeight(String(heightParts.feet), e.target.value)}
+          className={cn(inputClass, "mt-0", !canEdit && "opacity-70")}
+          aria-label="Height in inches"
+        >
+          <option value="">in</option>
+          {Array.from({ length: 12 }, (_, i) => i).map((i) => (
+            <option key={i} value={i}>{i}&quot;</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+
+
   // What the card can show, grouped the way a college coach reads it. Blank
   // rows are left out entirely — the card shows what is on file, nothing else.
   const groups: { title: string; rows: [string, string | null][] }[] = [
