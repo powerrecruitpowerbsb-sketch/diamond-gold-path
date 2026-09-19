@@ -53,67 +53,92 @@ const plain = (value: unknown) =>
   value === null || value === undefined || value === "" ? "—" : String(value);
 
 type Row = { label: string; verified?: boolean; value: (entry: any) => string };
+type Group = { title: string; rows: Row[] };
 
-const ROWS: Row[] = [
-  { label: "Sport", value: (e) => titleCase(e.program.sport) },
+/**
+ * The same rows as before, read in the order a family actually asks the
+ * questions: where is it and who runs it, can we get in, what does it cost,
+ * how many players are already there.
+ */
+const GROUPS: Group[] = [
   {
-    label: "Location",
-    value: (e) => [e.university?.city, e.university?.state].filter(Boolean).join(", ") || "—",
-  },
-  // Region comes from the shared state grouping, so it reads the same here as in search.
-  { label: "Region", value: (e) => regionOfState(e.university?.state) ?? "Not reported" },
-
-  { label: "Conference", value: (e) => plain(e.program.conference) },
-  { label: "Average GPA", verified: true, value: (e) => plain(e.university?.avg_gpa) },
-  { label: "Avg SAT", verified: true, value: (e) => plain(e.university?.avg_sat) },
-  { label: "Avg ACT", verified: true, value: (e) => plain(e.university?.avg_act) },
-  {
-    label: "Acceptance rate",
-    verified: true,
-    value: (e) => pct(e.university?.acceptance_rate),
-  },
-  {
-    label: "Cost of attendance",
-    verified: true,
-    value: (e) => money(e.university?.est_cost_of_attendance),
-  },
-  {
-    label: "In-state tuition",
-    verified: true,
-    value: (e) => money(e.university?.tuition_in_state),
-  },
-  {
-    label: "Out-of-state tuition",
-    verified: true,
-    value: (e) => money(e.university?.tuition_out_state),
-  },
-  {
-    label: "Roster size",
-    verified: true,
-    value: (e) => (e.rosterSize ? String(e.rosterSize) : "—"),
+    title: "The school",
+    rows: [
+      { label: "Sport", value: (e) => titleCase(e.program.sport) },
+      {
+        label: "Location",
+        value: (e) => [e.university?.city, e.university?.state].filter(Boolean).join(", ") || "—",
+      },
+      // Region comes from the shared state grouping, so it reads the same here as in search.
+      { label: "Region", value: (e) => regionOfState(e.university?.state) ?? "Not reported" },
+      { label: "Conference", value: (e) => plain(e.program.conference) },
+      {
+        label: "Undergrad enrollment",
+        value: (e) => plain(e.university?.undergrad_enrollment),
+      },
+      {
+        label: "School size",
+        value: (e) =>
+          e.university?.school_size_bucket ? titleCase(e.university.school_size_bucket) : "—",
+      },
+      {
+        label: "Public / private",
+        value: (e) => (e.university?.public_private ? titleCase(e.university.public_private) : "—"),
+      },
+    ],
   },
   {
-    label: "Undergrad enrollment",
-    value: (e) => plain(e.university?.undergrad_enrollment),
+    title: "Academics & admissions",
+    rows: [
+      { label: "Average GPA", verified: true, value: (e) => plain(e.university?.avg_gpa) },
+      { label: "Avg SAT", verified: true, value: (e) => plain(e.university?.avg_sat) },
+      { label: "Avg ACT", verified: true, value: (e) => plain(e.university?.avg_act) },
+      {
+        label: "Acceptance rate",
+        verified: true,
+        value: (e) => pct(e.university?.acceptance_rate),
+      },
+      { label: "Academic classification", value: (e) => plain(e.academicBucket) },
+    ],
   },
   {
-    label: "School size",
-    value: (e) =>
-      e.university?.school_size_bucket ? titleCase(e.university.school_size_bucket) : "—",
+    title: "Cost",
+    rows: [
+      {
+        label: "In-state tuition",
+        verified: true,
+        value: (e) => money(e.university?.tuition_in_state),
+      },
+      {
+        label: "Out-of-state tuition",
+        verified: true,
+        value: (e) => money(e.university?.tuition_out_state),
+      },
+      {
+        label: "Cost of attendance",
+        verified: true,
+        value: (e) => money(e.university?.est_cost_of_attendance),
+      },
+    ],
   },
   {
-    label: "Public / private",
-    value: (e) => (e.university?.public_private ? titleCase(e.university.public_private) : "—"),
-  },
-  { label: "Academic classification", value: (e) => plain(e.academicBucket) },
-  {
-    label: "Athletic scholarships",
-    value: (e) =>
-      e.program.scholarships_available === null || e.program.scholarships_available === undefined
-        ? "—"
-        : e.program.scholarships_available
-          ? "Available"
-          : "None",
+    title: "The program",
+    rows: [
+      {
+        label: "Roster size",
+        verified: true,
+        value: (e) => (e.rosterSize ? String(e.rosterSize) : "—"),
+      },
+      {
+        label: "Athletic scholarships",
+        value: (e) =>
+          e.program.scholarships_available === null || e.program.scholarships_available === undefined
+            ? "—"
+            : e.program.scholarships_available
+              ? "Available"
+              : "None",
+      },
+    ],
   },
 ];
 
