@@ -106,16 +106,25 @@ export const openThread = createServerFn({ method: "POST" })
     }
     wanted.push({ user_id: me.userId, participant_role: me.role, removable: true });
 
+    // One row per person: a player may also appear as their own family link.
+    const seen = new Set<string>();
+    const deduped = wanted.filter((w) => {
+      if (seen.has(w.user_id)) return false;
+      seen.add(w.user_id);
+      return true;
+    });
+
     const { data: already } = await context.supabase
       .from("thread_participants")
       .select("user_id")
       .eq("thread_id", threadId);
     const have = new Set(((already ?? []) as Record<string, any>[]).map((p) => p['user_id']));
-    const missing = wanted.filter((w) => !have.has(w.user_id));
+    const missing = deduped.filter((w) => !have.has(w.user_id));
     if (missing.length) {
-      await context.supabase
+      const { error: participantError } = await context.supabase
         .from("thread_participants")
         .insert(missing.map((m) => ({ ...m, thread_id: threadId })) as any);
+      if (participantError) throw new Error(participantError.message);
     }
 
     return { threadId };

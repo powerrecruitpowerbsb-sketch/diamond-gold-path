@@ -200,6 +200,16 @@ function NotesAndMessages({
     bottom.current?.scrollIntoView({ block: "end" });
   }, [thread.data?.messages.length]);
 
+  // Opening the tab also tops up the participant list, so a parent added to the
+  // athlete after the thread started still joins the conversation.
+  useEffect(() => {
+    if (threadId && athleteId) {
+      openFn({ data: { athleteId, programId: entry.programId } }).catch((error: Error) =>
+        console.error("thread sync failed", error.message),
+      );
+    }
+  }, [threadId, athleteId, entry.programId, openFn]);
+
   const start = useMutation({
     mutationFn: () => openFn({ data: { athleteId: athleteId ?? "", programId: entry.programId } }),
     onSuccess: (result) => {
