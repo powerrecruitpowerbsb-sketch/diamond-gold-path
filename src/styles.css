@@ -31,6 +31,18 @@
   --color-org-accent: var(--org-accent);
   --color-navy-deep: var(--navy-deep);
 
+  /*
+   * Derived brand shades. Every one of these resolves from --org-primary /
+   * --org-accent, which OrgTheme emits from the organization's own uploaded
+   * colors. No literal brand hex belongs in a component.
+   */
+  --color-org-accent-strong: var(--org-accent-strong);
+  --color-org-accent-pressed: var(--org-accent-pressed);
+  --color-org-accent-tint: var(--org-accent-tint);
+  --color-org-accent-foreground: var(--org-accent-foreground);
+  --color-org-primary-tint: var(--org-primary-tint);
+  --color-track: var(--track);
+
   /* Platform semantics — fixed */
   --color-seam-red: var(--seam-red);
   --color-seam-red-tint: var(--seam-red-tint);
@@ -85,10 +97,18 @@
    */
   --radius: 0.25rem;
 
-  /* Themeable brand defaults */
+  /* Themeable brand defaults — used only when an organization has uploaded nothing */
   --org-primary: #1f3a5f;
   --org-accent: #d3a94e;
   --navy-deep: #12233a;
+
+  /* Derived from whatever the two values above hold */
+  --org-accent-strong: color-mix(in oklab, var(--org-accent) 88%, black);
+  --org-accent-pressed: color-mix(in oklab, var(--org-accent) 76%, black);
+  --org-accent-tint: color-mix(in oklab, var(--org-accent) 14%, white);
+  --org-accent-foreground: #12233a;
+  --org-primary-tint: color-mix(in oklab, var(--org-primary) 10%, white);
+  --track: #dfe3ea;
 
   /* Fixed platform semantics */
   --seam-red: #9a2b2b;
