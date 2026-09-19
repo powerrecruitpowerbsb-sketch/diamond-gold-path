@@ -491,23 +491,24 @@ function EditPanel({
   }
 
   const program = detail.data.program as any;
-  const groups: { key: string; title: string; fields: IntelFieldDef[] }[] = [
-    { key: "recruiting", title: "Recruiting", fields: INTEL_FIELDS.filter((f) => f.group === "recruiting") },
-    { key: "notes", title: "Notes", fields: INTEL_FIELDS.filter((f) => f.group === "notes") },
-  ];
 
   return (
-    <div className="rounded border border-border bg-card p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
-        <div>
-          <h2 className="font-display text-lg font-bold text-graphite">
+    <div className="rounded-lg border border-border bg-card">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border bg-org-primary-tint px-4 py-3">
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl font-bold text-org-primary">
             {program.universities?.name}
           </h2>
-          <p className="meta">
+          <p className="mt-0.5 text-sm text-steel">
             {program.sport === "baseball" ? "Baseball" : "Softball"} ·{" "}
-            {[program.governing_body, program.division].filter(Boolean).join(" ") || "Level not confirmed"}
+            {[program.governing_body, program.division].filter(Boolean).join(" ") ||
+              "Level not confirmed"}
+            {program.conference ? ` · ${program.conference}` : ""}
             {program.universities?.state ? ` · ${program.universities.state}` : ""}
           </p>
+          {program.head_coach_name ? (
+            <p className="text-sm text-steel">Head coach: {program.head_coach_name}</p>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <Link to="/programs/$id" params={{ id: programId }} className={ghost}>
@@ -521,37 +522,110 @@ function EditPanel({
         </div>
       </div>
 
-      <RelationshipBlock
+      <WorkPanels
         programId={programId}
+        canApprove={canApprove}
         canRate={canRate}
-        relationship={detail.data.relationship as any}
-        interactions={detail.data.interactions as any[]}
-        people={detail.data.people as Record<string, string>}
-        onSaved={refresh}
+        detail={detail.data}
+        recordByField={recordByField}
+        refresh={refresh}
       />
-
-      {groups.map((group) => (
-        <section key={group.key} className="mt-6">
-          <h3 className={sectionHeading}>
-            {group.title}
-          </h3>
-          <div className="mt-2 divide-y divide-border">
-            {group.fields.map((field) => (
-              <FieldRow
-                key={field.key}
-                programId={programId}
-                field={field}
-                record={recordByField.get(field.key) ?? null}
-                canApprove={canApprove}
-                onSaved={refresh}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
     </div>
   );
 }
+
+/* Four panels instead of one endless form. */
+function WorkPanels({
+  programId,
+  canApprove,
+  canRate,
+  detail,
+  recordByField,
+  refresh,
+}: {
+  programId: string;
+  canApprove: boolean;
+  canRate: boolean;
+  detail: any;
+  recordByField: Map<string, any>;
+  refresh: () => void;
+}) {
+  const panels: { key: string; text: string; fields?: IntelFieldDef[] }[] = [
+    { key: "relationship", text: "Relationship" },
+    {
+      key: "recruiting",
+      text: "Recruiting",
+      fields: INTEL_FIELDS.filter((f) => f.group === "recruiting"),
+    },
+    { key: "notes", text: "Notes", fields: INTEL_FIELDS.filter((f) => f.group === "notes") },
+  ];
+  const [panel, setPanel] = useState("relationship");
+  const current = panels.find((p) => p.key === panel) ?? panels[0]!;
+  const pendingCount = (detail.records ?? []).filter((r: any) => r.status === "pending").length;
+
+  return (
+    <div className="p-4">
+      <div className="flex flex-wrap gap-1 border-b border-border">
+        {panels.map((item) => {
+          const done = item.fields
+            ? item.fields.filter((f) => recordByField.get(f.key)).length
+            : null;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              aria-pressed={panel === item.key}
+              onClick={() => setPanel(item.key)}
+              className={cn(
+                "-mb-px border-b-2 px-3 py-2 text-sm font-semibold",
+                panel === item.key
+                  ? "border-org-accent text-org-primary"
+                  : "border-transparent text-steel hover:text-graphite",
+              )}
+            >
+              {item.text}
+              {done !== null ? (
+                <span className="tabular ml-1.5 text-[11px] text-steel">
+                  {done}/{item.fields!.length}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+        {pendingCount ? (
+          <span className="ml-auto self-center text-[12px] font-semibold text-org-accent-strong">
+            {pendingCount} awaiting review
+          </span>
+        ) : null}
+      </div>
+
+      {panel === "relationship" ? (
+        <RelationshipBlock
+          programId={programId}
+          canRate={canRate}
+          relationship={detail.relationship as any}
+          interactions={detail.interactions as any[]}
+          people={detail.people as Record<string, string>}
+          onSaved={refresh}
+        />
+      ) : (
+        <div className="mt-2 divide-y divide-border">
+          {(current.fields ?? []).map((field) => (
+            <FieldRow
+              key={field.key}
+              programId={programId}
+              field={field}
+              record={recordByField.get(field.key) ?? null}
+              canApprove={canApprove}
+              onSaved={refresh}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function FieldRow({
   programId,
