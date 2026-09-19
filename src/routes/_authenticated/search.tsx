@@ -458,16 +458,20 @@ function SearchScreen() {
                     <td className="h-[38px] max-w-[170px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
                       {row.head_coach_name ?? "Not published by the school"}
                     </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle">
+                    <td
+                      className="h-[38px] px-3 py-1.5 align-middle"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-2">
                         <ShortlistSaveButton
-                          iconOnly
                           programId={row.id}
                           athleteId={params.athleteId || undefined}
                           athleteName={
                             (contextAthlete?.["name"] as string | undefined) ?? undefined
                           }
+                          className="h-8 rounded border border-border bg-card px-2 text-xs font-semibold text-org-primary hover:bg-muted"
                         />
+
 
 
                         <button
