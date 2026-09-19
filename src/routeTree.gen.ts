@@ -21,6 +21,7 @@ import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authenticated/intelligence'
 import { Route as AuthenticatedListRouteImport } from './routes/_authenticated/list'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminArchiveRouteImport } from './routes/_authenticated/admin.archive'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
@@ -118,6 +119,11 @@ const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
   id: '/search',
   path: '/search',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/list': typeof AuthenticatedListRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/p/$slug': typeof PSlugRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -394,6 +401,7 @@ export interface FileRoutesByTo {
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/list': typeof AuthenticatedListRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/p/$slug': typeof PSlugRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/_authenticated/intelligence': typeof AuthenticatedIntelligenceRoute
   '/_authenticated/list': typeof AuthenticatedListRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
+  '/p/$slug': typeof PSlugRoute
   '/_authenticated/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -498,6 +507,7 @@ export interface FileRouteTypes {
     | '/intelligence'
     | '/list'
     | '/search'
+    | '/p/$slug'
     | '/admin/archive'
     | '/admin/audit'
     | '/admin/blocks'
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
     | '/intelligence'
     | '/list'
     | '/search'
+    | '/p/$slug'
     | '/admin/archive'
     | '/admin/audit'
     | '/admin/blocks'
@@ -598,6 +609,7 @@ export interface FileRouteTypes {
     | '/_authenticated/intelligence'
     | '/_authenticated/list'
     | '/_authenticated/search'
+    | '/p/$slug'
     | '/_authenticated/admin/archive'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/blocks'
@@ -643,6 +655,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  PSlugRoute: typeof PSlugRoute
   ApiPublicCollectionRunnerRoute: typeof ApiPublicCollectionRunnerRoute
   ApiPublicFederalRunnerRoute: typeof ApiPublicFederalRunnerRoute
 }
@@ -732,6 +745,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/search'
       preLoaderRoute: typeof AuthenticatedSearchRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -1106,6 +1126,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  PSlugRoute: PSlugRoute,
   ApiPublicCollectionRunnerRoute: ApiPublicCollectionRunnerRoute,
   ApiPublicFederalRunnerRoute: ApiPublicFederalRunnerRoute,
 }
