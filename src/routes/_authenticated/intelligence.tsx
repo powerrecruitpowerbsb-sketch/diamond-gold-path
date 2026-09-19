@@ -199,9 +199,11 @@ function Workstation() {
                 programId={selected}
                 canApprove={canApprove}
                 canRate={viewer?.canRate ?? false}
+                focusField={focusField ?? null}
                 onNext={next ? () => select(next.id) : null}
                 nextLabel={next?.school ?? null}
               />
+
             ) : (
               <div className="rounded-lg border border-border bg-card p-10 text-center">
                 <h2 className="font-display text-xl font-bold text-graphite">
