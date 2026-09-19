@@ -71,35 +71,10 @@ async function loadPrograms(supabase: any): Promise<ProgramRow[]> {
   )) as ProgramRow[];
 }
 
-/** Programs holding a current-or-previous-season roster. */
-async function programsWithCurrentRoster(supabase: any): Promise<Set<string>> {
-  const years = acceptableSeasonYears();
-  const rows = await fetchAllRows<{ program_id: string }>(
-    (from, to) =>
-      supabase
-        .from("roster_players")
-        .select("program_id")
-        .in("season_year", years)
-        .order("program_id", { ascending: true })
-        .range(from, to),
-    120000,
-  );
-  return new Set(rows.map((row) => row.program_id));
-}
+/* Roster and coach-source counting now happens in the database (see
+ * public.completion_counts and public.program_gaps); reading those tables row by
+ * row here was what timed the progress screens out. */
 
-/** Programs whose coach name has a recorded source page. */
-async function programsWithSourcedCoach(supabase: any): Promise<Set<string>> {
-  const rows = await fetchAllRows<{ record_id: string }>((from, to) =>
-    supabase
-      .from("data_field_sources")
-      .select("record_id")
-      .eq("table_name", "programs")
-      .eq("field_name", "head_coach_name")
-      .order("record_id", { ascending: true })
-      .range(from, to),
-  );
-  return new Set(rows.map((row) => row.record_id));
-}
 
 /**
  * Every unfinished sponsored team, with what it still needs.
