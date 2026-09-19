@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Database,
   Home,
@@ -19,6 +21,9 @@ import {
 
 import { OrgTheme } from "@/components/brand/OrgTheme";
 import { OrgMark } from "@/components/brand/OrgMark";
+import { SportSwitch } from "@/components/brand/SportSwitch";
+import { useSportMode } from "@/hooks/use-sport-mode";
+import { getAthleteSportMix } from "@/lib/athletes.functions";
 import { ActingOrgBar } from "@/components/brand/ActingOrgBar";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { useMyAccount } from "@/hooks/use-my-account";
