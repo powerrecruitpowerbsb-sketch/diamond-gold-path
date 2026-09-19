@@ -187,7 +187,7 @@ function CollegeList() {
       {showStages ? <StageSettings /> : null}
 
       <div className="mt-5 flex flex-wrap gap-3">
-        {(data?.athletes ?? []).length > 1 ? (
+        {data?.viewer.isStaff || (data?.athletes ?? []).length > 1 ? (
           <label className="text-sm">
             <span className="meta block text-steel">Athlete</span>
             <select
@@ -195,6 +195,9 @@ function CollegeList() {
               onChange={(event) => setAthleteId(event.target.value)}
               className="mt-1 h-9 rounded border border-input bg-card px-2 text-sm"
             >
+              {data?.viewer.isStaff ? (
+                <option value="all">All athletes ({(data?.athletes ?? []).length})</option>
+              ) : null}
               {(data?.athletes ?? []).map((athlete) => (
                 <option key={String(athlete.id)} value={String(athlete.id)}>
                   {String(athlete.name)}
