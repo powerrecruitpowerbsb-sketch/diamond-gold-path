@@ -245,6 +245,9 @@ function SearchScreen() {
   // deliberate sort choice overrides that order.
   const fitActive =
     params.intel.length > 0 || params.intelPositions.length > 0 || Boolean(params.relationship);
+  // The first intelligence condition decides which row the workstation opens on.
+  const focusFieldKey = params.intel[0]?.split(":")[0] ?? null;
+
   const served = (results.data?.results ?? []) as any[];
   const rows = (fitActive && params.sort === "name" ? [...served] : [...served]).sort((a, b) => {
     if (fitActive && params.sort === "name") {
@@ -918,16 +921,28 @@ function SearchScreen() {
                       <div className="flex min-w-0 items-center gap-2">
                         <p className="truncate font-semibold text-org-primary">{u.name}</p>
                         {fitActive ? (
-                          row.fit?.matched > 0 ? (
-                            <span className="shrink-0 rounded-full border border-seam-red/50 bg-seam-red-tint px-2 py-0.5 text-[11px] font-semibold text-seam-red">
-                              Fits {row.fit.matched} of {row.fit.total}
-                            </span>
-                          ) : (
-                            <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-steel">
-                              {row.fit?.evaluated ? "No match on file" : "Not written up yet"}
-                            </span>
-                          )
+                          <Link
+                            to="/intelligence"
+                            search={{
+                              programId: row.id,
+                              ...(focusFieldKey ? { field: focusFieldKey } : {}),
+                            }}
+                            onClick={(event) => event.stopPropagation()}
+                            title="Open this program in the intelligence workstation"
+                            className={
+                              row.fit?.matched > 0
+                                ? "shrink-0 rounded-full border border-seam-red/50 bg-seam-red-tint px-2 py-0.5 text-[11px] font-semibold text-seam-red hover:bg-seam-red/15"
+                                : "shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-steel hover:border-org-primary hover:text-graphite"
+                            }
+                          >
+                            {row.fit?.matched > 0
+                              ? `Fits ${row.fit.matched} of ${row.fit.total}`
+                              : row.fit?.evaluated
+                                ? "No match on file"
+                                : "Not written up yet"}
+                          </Link>
                         ) : null}
+
                       </div>
                       <p className="mt-0.5 truncate text-[12px] text-steel">
                         {meta.join(" · ") || NOT_REPORTED}
