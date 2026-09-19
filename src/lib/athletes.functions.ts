@@ -113,6 +113,7 @@ function normalizeAthlete(input: AthleteInput) {
     primary_position: nullable(input?.primaryPosition),
     bats,
     throws,
+    sport: normalizeSport(input?.sport),
     athlete_data_source: source,
   };
 }
