@@ -899,7 +899,10 @@ export async function applyDiscoveredUrl(
       .eq("id", row.id);
     throw new Error(reason);
   };
-  if (page.refused) await refuse(page.verdict.reason);
+  if (page.refused) {
+    if (!human) await refuse(page.verdict.reason);
+    overrides.push(`Saved by a reviewer even though ${page.verdict.reason}`);
+  }
 
   if (storedValue && normalizeUrl(storedValue) !== normalizeUrl(row.discovered_url)) {
     const old = await checkPage({
@@ -915,9 +918,14 @@ export async function applyDiscoveredUrl(
       storedFails: old.read && !old.verdict.ok,
     });
     if (decision.action !== "replace" && decision.action !== "fill_empty") {
-      await refuse(`${decision.reason} Stored: ${storedValue}`);
+      if (!human) await refuse(`${decision.reason} Stored: ${storedValue}`);
+      overrides.push(`A reviewer replaced the stored address ${storedValue}. ${decision.reason}`);
     }
   }
+
+  const written = overrides.length
+    ? { ...(evidence as Record<string, unknown>), human_override: overrides }
+    : evidence;
 
   if (isAthleticsSite) {
     // universities.website_url is the school's INSTITUTIONAL site — it sits
