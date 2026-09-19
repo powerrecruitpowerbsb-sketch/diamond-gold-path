@@ -62,25 +62,32 @@ function FamilyPortal() {
 
   return (
     <AppShell right={<AuthButton />}>
-      <h1 className="font-display text-3xl font-bold text-graphite">Family portal</h1>
-      <p className="mt-1 max-w-2xl text-sm text-steel">
-        Your athlete's college list, with the recruiting activity on each school. You and your
-        coaches keep the same picture up to date.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link
-          to="/search"
-          className="touch-target inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
-        >
-          Find and add a school
-        </Link>
-        <Link
-          to="/list"
-          className="touch-target inline-flex items-center rounded-xl border border-border px-4 text-sm font-semibold text-graphite hover:border-org-primary"
-        >
-          Update recruiting activity
-        </Link>
-      </div>
+      <header className="stadium-gradient overflow-hidden rounded-2xl px-5 py-7 sm:px-8 sm:py-9">
+        <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">
+          For families
+        </p>
+        <h1 className="font-display mt-2 text-[2rem] leading-[1.06] font-bold text-white sm:text-4xl">
+          Family portal
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm text-white/75">
+          Your athlete's college list, with the recruiting activity on each school. You and your
+          coaches keep the same picture up to date.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link
+            to="/search"
+            className="touch-target inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
+          >
+            Find and add a school
+          </Link>
+          <Link
+            to="/list"
+            className="touch-target inline-flex items-center rounded-xl border border-white/25 px-4 text-sm font-semibold text-white hover:border-white/60"
+          >
+            Update recruiting activity
+          </Link>
+        </div>
+      </header>
 
       {isPending ? (
         <p className="mt-6 text-sm text-steel">Loading…</p>
