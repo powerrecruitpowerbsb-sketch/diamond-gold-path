@@ -41,8 +41,14 @@
   --color-org-accent-tint: var(--org-accent-tint);
   --color-org-accent-foreground: var(--org-accent-foreground);
   --color-org-primary-tint: var(--org-primary-tint);
+  --color-org-primary-strong: var(--org-primary-strong);
   --color-org-primary-foreground: var(--org-primary-foreground);
   --color-track: var(--track);
+
+  /* Raw midnight surfaces, for panels that must sit above a card. */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
 
   /*
    * Active-sport marks. Derived from the organization's own two colors — a
@@ -108,66 +114,79 @@
    */
   --radius: 0.25rem;
 
+  /*
+   * DEEP STADIUM MIDNIGHT.
+   * The canvas is a neutral midnight slate on purpose: it carries no brand hue
+   * of its own, so an organization's uploaded colors are the only saturated
+   * thing on screen.
+   */
+  --surface-0: #0a0f18; /* canvas */
+  --surface-1: #121c2c; /* card */
+  --surface-2: #17233a; /* raised surface: popovers, hovered rows */
+  --surface-line: #1f2d44; /* hairline */
+
   /* Themeable brand defaults — used only when an organization has uploaded nothing */
-  --org-primary: #1f3a5f;
-  --org-accent: #d3a94e;
-  --navy-deep: #12233a;
+  --org-primary: #d3a94e;
+  --org-accent: #4f86c6;
+  --navy-deep: #0b1422;
 
   /* Derived from whatever the two values above hold */
-  --org-accent-strong: color-mix(in oklab, var(--org-accent) 88%, black);
-  --org-accent-pressed: color-mix(in oklab, var(--org-accent) 76%, black);
-  --org-accent-tint: color-mix(in oklab, var(--org-accent) 14%, white);
-  --org-accent-foreground: #12233a;
-  --org-primary-tint: color-mix(in oklab, var(--org-primary) 10%, white);
+  --org-accent-strong: color-mix(in oklab, var(--org-accent) 88%, white);
+  --org-accent-pressed: color-mix(in oklab, var(--org-accent) 76%, white);
+  --org-accent-tint: color-mix(in oklab, var(--org-accent) 18%, var(--surface-1));
+  --org-accent-foreground: #0a0f18;
+  --org-primary-tint: color-mix(in oklab, var(--org-primary) 16%, var(--surface-1));
+  /* Brand primary lifted for text on the midnight canvas. */
+  --org-primary-strong: color-mix(in oklab, var(--org-primary) 82%, white);
   /* Text/icons sitting on a filled --org-primary surface. Recomputed at runtime
      when the active sport inverts the brand colors. */
-  --org-primary-foreground: #ffffff;
-  --track: #dfe3ea;
+  --org-primary-foreground: #0a0f18;
+  --track: #22314a;
 
   /* Baseball is the default sport mark: the organization's primary color. */
   --sport-strong: var(--org-primary);
-  --sport-tint: color-mix(in oklab, var(--org-primary) 12%, white);
-  --sport-line: color-mix(in oklab, var(--org-primary) 55%, white);
-  --sport-foreground: #ffffff;
+  --sport-tint: color-mix(in oklab, var(--org-primary) 18%, var(--surface-1));
+  --sport-line: color-mix(in oklab, var(--org-primary) 55%, var(--surface-1));
+  --sport-foreground: #0a0f18;
 
-  /* Fixed platform semantics */
-  --seam-red: #9a2b2b;
-  --seam-red-tint: #fbefef;
-  --diamond-green: #2f6b45;
-  --diamond-green-tint: #eaf3ec;
+  /* Fixed platform semantics — legible on midnight, same meaning as before */
+  --seam-red: #e05c5c;
+  --seam-red-tint: color-mix(in oklab, #e05c5c 18%, var(--surface-1));
+  --diamond-green: #3ecf8e;
+  --diamond-green-tint: color-mix(in oklab, #3ecf8e 16%, var(--surface-1));
 
   /* Neutrals */
-  --chalk: #f0f1f4;
-  --graphite: #23262b;
-  --steel: #6b7280;
+  --chalk: var(--surface-0);
+  --graphite: #f1f5f9;
+  --steel: #94a3b8;
 
-  --background: var(--chalk);
+  --background: var(--surface-0);
   --foreground: var(--graphite);
-  --card: #ffffff;
+  --card: var(--surface-1);
   --card-foreground: var(--graphite);
-  --popover: #ffffff;
+  --popover: var(--surface-2);
   --popover-foreground: var(--graphite);
   --primary: var(--org-primary);
-  --primary-foreground: #ffffff;
-  --secondary: #e4e7ec;
-  --secondary-foreground: var(--org-primary);
-  --muted: #e9ebef;
+  --primary-foreground: var(--org-primary-foreground);
+  --secondary: #1a2740;
+  --secondary-foreground: var(--graphite);
+  --muted: #182339;
   --muted-foreground: var(--steel);
   --accent: var(--org-accent);
-  --accent-foreground: #12233a;
+  --accent-foreground: #0a0f18;
   --destructive: var(--seam-red);
-  --destructive-foreground: #ffffff;
-  --border: #d8dce3;
-  --input: #d8dce3;
-  --ring: var(--org-primary);
-  --sidebar: #ffffff;
+  --destructive-foreground: #0a0f18;
+  --border: var(--surface-line);
+  --input: #22314a;
+  --ring: var(--org-accent);
+  --sidebar: #0d1523;
   --sidebar-foreground: var(--graphite);
   --sidebar-primary: var(--org-primary);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e9ebef;
-  --sidebar-accent-foreground: var(--org-primary);
-  --sidebar-border: #d8dce3;
-  --sidebar-ring: var(--org-primary);
+  --sidebar-primary-foreground: var(--org-primary-foreground);
+  --sidebar-accent: #1a2740;
+  --sidebar-accent-foreground: var(--graphite);
+  --sidebar-border: var(--surface-line);
+  --sidebar-ring: var(--org-accent);
 }
 
 @layer base {
@@ -193,9 +212,13 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    color: var(--org-primary);
+    color: var(--foreground);
     letter-spacing: -0.015em;
     line-height: 1.1;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--org-accent) 40%, transparent);
   }
 
   /* Numbers must align in columns everywhere they carry meaning. */
@@ -220,16 +243,44 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Stadium floodlight hero: navy gradient + warm radial highlight. */
+/*
+ * Stadium floodlight hero. On the midnight canvas this is a dark plate lit by
+ * two brand-colored floods, so the club's colors read as light rather than as
+ * a flat fill — and white text stays readable whatever the club uploaded.
+ */
 @utility stadium-gradient {
   background-color: var(--navy-deep);
   background-image:
     radial-gradient(
-      120% 90% at 78% -10%,
-      color-mix(in srgb, var(--org-accent) 34%, transparent) 0%,
-      transparent 62%
+      90% 120% at 88% -20%,
+      color-mix(in srgb, var(--org-primary) 38%, transparent) 0%,
+      transparent 60%
     ),
-    linear-gradient(155deg, var(--org-primary) 0%, var(--navy-deep) 78%);
+    radial-gradient(
+      70% 100% at 6% 110%,
+      color-mix(in srgb, var(--org-accent) 26%, transparent) 0%,
+      transparent 65%
+    ),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--org-primary) 14%, var(--navy-deep)) 0%,
+      var(--navy-deep) 70%
+    );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--org-primary) 45%, transparent);
+}
+
+/* A card that needs to lift off the canvas: panels, sheets, hero stat blocks. */
+@utility surface-raised {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, white 5%, transparent) inset,
+    0 18px 40px -24px rgb(0 0 0 / 0.75);
+}
+
+/* Focus/emphasis ring in the organization's accent. */
+@utility brand-ring {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--org-accent) 55%, transparent);
 }
 
 /* Minimum comfortable touch target on mobile. */

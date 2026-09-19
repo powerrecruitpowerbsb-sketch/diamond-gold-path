@@ -63,7 +63,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           </button>
           <a
             href="/"
-            className="touch-target inline-flex items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-medium transition-colors hover:bg-muted"
+            className="touch-target inline-flex items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted"
           >
             Go home
           </a>

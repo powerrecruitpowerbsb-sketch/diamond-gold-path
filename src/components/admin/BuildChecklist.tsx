@@ -92,7 +92,7 @@ export function BuildChecklist() {
   const finishedCount = steps.filter((step) => step.state === "done").length;
 
   return (
-    <section className="rounded border border-border bg-white p-5">
+    <section className="rounded border border-border bg-card p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-lg font-bold text-graphite">
           Building the national database

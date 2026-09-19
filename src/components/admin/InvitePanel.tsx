@@ -87,7 +87,7 @@ export function InvitePanel({
   const staffBlocked = !athleteId && data && !data.canInviteStaff;
 
   return (
-    <section className="mt-6 rounded border border-border bg-white p-6">
+    <section className="mt-6 rounded border border-border bg-card p-6">
       <h2 className="font-display text-xl font-bold text-graphite">{title}</h2>
       <p className="mt-1 text-sm text-steel">{description}</p>
 
@@ -105,7 +105,7 @@ export function InvitePanel({
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="name@example.com"
-              className="touch-target mt-1 w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite outline-none focus:border-org-primary"
+              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary"
             />
           </label>
           <label className="text-sm">
@@ -113,7 +113,7 @@ export function InvitePanel({
             <select
               value={role}
               onChange={(event) => setRole(event.target.value)}
-              className="touch-target mt-1 w-full rounded-lg border border-border bg-white px-3 text-sm font-semibold text-graphite outline-none focus:border-org-primary"
+              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm font-semibold text-graphite outline-none focus:border-org-primary"
             >
               {roles.map((option) => (
                 <option key={option.value} value={option.value}>

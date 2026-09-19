@@ -194,7 +194,7 @@ function SeedImport() {
               type="file"
               accept=".csv,text/csv"
               onChange={(event) => onFile(event.target.files?.[0] ?? null)}
-              className="touch-target rounded-lg border border-border bg-white px-3 text-sm"
+              className="touch-target rounded-lg border border-border bg-card px-3 text-sm"
             />
           </label>
 

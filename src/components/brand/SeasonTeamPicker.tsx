@@ -6,7 +6,7 @@ import type { useSeasonContext } from "@/hooks/use-season-context";
 type Ctx = ReturnType<typeof useSeasonContext>;
 
 const CONTROL =
-  "touch-target rounded-lg border border-border bg-white px-3 text-sm font-medium text-graphite outline-none focus:border-org-primary";
+  "touch-target rounded-lg border border-border bg-card px-3 text-sm font-medium text-graphite outline-none focus:border-org-primary";
 
 /**
  * Season + team scope selector. Coaches only ever see teams they're assigned

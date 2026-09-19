@@ -129,7 +129,9 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       {actingOrg ? <ActingOrgBar name={actingOrg.name} /> : null}
 
       {/* Chrome: top nav on desktop, condensed bar + hamburger on mobile */}
-      <header className="sticky top-0 z-40 bg-org-primary text-org-primary-foreground shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+      {/* Dark chrome, brand-lit: the club's color marks the active tab and the
+          top hairline rather than flooding the whole bar. */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-navy-deep text-white shadow-[0_1px_0_color-mix(in_srgb,var(--org-primary)_40%,transparent)]">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
           <Link to="/" className="touch-target flex items-center gap-2.5">
             <OrgMark
@@ -202,7 +204,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       {/* Fixed bottom tab bar below ~680px */}
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-white shadow-[0_-4px_20px_-8px_rgba(18,35,58,0.25)] min-[680px]:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card shadow-[0_-4px_20px_-8px_rgba(18,35,58,0.25)] min-[680px]:hidden"
       >
         {tabs.map((item, index) => (
           <Link

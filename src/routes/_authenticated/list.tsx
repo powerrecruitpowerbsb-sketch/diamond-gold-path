@@ -199,7 +199,7 @@ function CollegeList() {
             <select
               value={currentAthlete ?? ""}
               onChange={(event) => setAthleteId(event.target.value)}
-              className="mt-1 h-9 rounded border border-input bg-card px-2 text-sm"
+              className="touch-target mt-1 w-full rounded-lg border border-border bg-surface-2 px-2.5 text-sm font-medium text-graphite outline-none focus:border-org-accent"
             >
               {data?.viewer.isStaff ? (
                 <option value="all">All athletes ({(data?.athletes ?? []).length})</option>
@@ -219,7 +219,7 @@ function CollegeList() {
           <select
             value={stageFilter}
             onChange={(event) => setStageFilter(event.target.value)}
-            className="mt-1 h-9 rounded border border-input bg-card px-2 text-sm"
+            className="touch-target mt-1 w-full rounded-lg border border-border bg-surface-2 px-2.5 text-sm font-medium text-graphite outline-none focus:border-org-accent"
           >
             <option value="all">All stages ({entries.length})</option>
             {stages.map((stage) => (
@@ -235,7 +235,7 @@ function CollegeList() {
           <select
             value={sportFilter}
             onChange={(event) => setSportFilter(event.target.value)}
-            className="mt-1 h-9 rounded border border-input bg-card px-2 text-sm"
+            className="touch-target mt-1 w-full rounded-lg border border-border bg-surface-2 px-2.5 text-sm font-medium text-graphite outline-none focus:border-org-accent"
           >
             <option value="all">Both</option>
             <option value="baseball">Baseball</option>
@@ -248,7 +248,7 @@ function CollegeList() {
           <select
             value={levelFilter}
             onChange={(event) => setLevelFilter(event.target.value)}
-            className="mt-1 h-9 rounded border border-input bg-card px-2 text-sm"
+            className="touch-target mt-1 w-full rounded-lg border border-border bg-surface-2 px-2.5 text-sm font-medium text-graphite outline-none focus:border-org-accent"
           >
             <option value="all">All levels</option>
             {levels.map((level) => (

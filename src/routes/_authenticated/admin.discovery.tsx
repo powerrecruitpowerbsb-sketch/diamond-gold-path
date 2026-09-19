@@ -508,7 +508,7 @@ function DiscoveryQueue() {
             <p className="meta">
               {(unfound.data?.total ?? 0).toLocaleString()} left · working on one at a time
             </p>
-            <div className="rounded border border-border bg-white p-4">
+            <div className="rounded border border-border bg-card p-4">
               <h3 className="font-display text-xl font-bold text-graphite">
                 {current.universities?.name ?? "School"}
                 {current.universities?.state ? (

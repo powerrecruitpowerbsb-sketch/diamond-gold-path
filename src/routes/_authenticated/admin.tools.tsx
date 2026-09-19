@@ -784,7 +784,7 @@ function Tools() {
             {parked.map((school: any) => (
               <div
                 key={school.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-white p-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
               >
                 <div>
                   <p className="text-sm font-semibold text-graphite">{school.name}</p>
@@ -821,7 +821,7 @@ function Tools() {
             {nonSchools.entries.map((entry: any) => (
               <div
                 key={entry.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-white p-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
               >
                 <div>
                   <p className="text-sm font-semibold text-graphite">{entry.name}</p>
@@ -885,7 +885,7 @@ function Tools() {
               {(undecidedSports as any[]).map((row) => (
                 <li
                   key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-white p-3"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card p-3"
                 >
                   <div>
                     <p className="text-sm font-semibold text-graphite">
@@ -930,14 +930,14 @@ function Tools() {
         blurb="Rosters are checked twice a year, school facts once a year. Each school has its own date, so the work is spread out and happens on its own."
       >
         <div className="grid gap-2 sm:grid-cols-2">
-          <div className="rounded-lg border border-border bg-white p-3">
+          <div className="rounded-lg border border-border bg-card p-3">
             <p className="text-sm font-semibold text-graphite">Rosters</p>
             <p className="meta">
               {status?.refresh?.rostersDueNow ?? 0} due now · {status?.refresh?.rostersDueSoon ?? 0} in the
               next month
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-white p-3">
+          <div className="rounded-lg border border-border bg-card p-3">
             <p className="text-sm font-semibold text-graphite">School facts</p>
             <p className="meta">
               {status?.refresh?.factsDueNow ?? 0} due now · {status?.refresh?.factsDueSoon ?? 0} in the next

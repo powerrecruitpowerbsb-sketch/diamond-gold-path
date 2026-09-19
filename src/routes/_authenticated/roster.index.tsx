@@ -69,11 +69,17 @@ function RosterScreen() {
 
   return (
     <AppShell right={<AuthButton />}>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      {/* Same header language as the school pages: a lit plate, then the work. */}
+      <div className="stadium-gradient flex flex-wrap items-end justify-between gap-4 rounded-2xl px-5 py-7 sm:px-8 sm:py-9">
         <div>
-          <h1 className="font-display text-3xl font-bold text-org-primary">Your roster</h1>
+          <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">
+            {SPORT_LABEL[sport]} · your organization
+          </p>
+          <h1 className="font-display mt-2 text-[2rem] leading-[1.06] font-bold text-white sm:text-4xl">
+            Your roster
+          </h1>
           <p
-            className="mt-1 text-sm text-steel"
+            className="mt-2 text-sm text-white/75"
             title="These are your organization's players. College rosters are separate, verified data."
           >
             {(data?.athletes ?? []).length} player
@@ -96,7 +102,7 @@ function RosterScreen() {
       </div>
 
       {/* Sport tabs: jump straight into either roster, with live counts. */}
-      <div className="mt-6 inline-flex rounded-lg border border-border bg-white p-1">
+      <div className="mt-6 inline-flex rounded-lg border border-border bg-card p-1">
         {SPORTS.map((option) => {
           const active = option === sport;
           return (
@@ -125,7 +131,7 @@ function RosterScreen() {
 
 
 
-      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white p-3 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
         <label className="relative flex min-w-56 flex-1 items-center">
           <SearchIcon className="pointer-events-none absolute left-3 size-4 text-steel" aria-hidden />
           <span className="sr-only">Search athletes by name</span>
@@ -133,7 +139,7 @@ function RosterScreen() {
             value={q}
             onChange={(event) => setQ(event.target.value)}
             placeholder="Search by name"
-            className="touch-target w-full rounded-lg border border-border bg-chalk pl-9 pr-3 text-sm text-graphite outline-none focus:border-org-primary"
+            className="touch-target w-full rounded-lg border border-border bg-surface-2 pl-9 pr-3 text-sm text-graphite outline-none focus:border-org-primary"
           />
         </label>
         <label className="flex items-center gap-2 text-sm text-steel">
@@ -141,7 +147,7 @@ function RosterScreen() {
           <select
             value={gradYear}
             onChange={(event) => setGradYear(event.target.value)}
-            className="touch-target rounded-lg border border-border bg-white px-3 text-sm text-graphite"
+            className="touch-target rounded-lg border border-border bg-card px-3 text-sm text-graphite"
           >
             <option value="">All</option>
             {(data?.gradYears ?? []).map((year) => (
@@ -156,7 +162,7 @@ function RosterScreen() {
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value)}
-            className="touch-target rounded-lg border border-border bg-white px-3 text-sm text-graphite"
+            className="touch-target rounded-lg border border-border bg-card px-3 text-sm text-graphite"
           >
             <option value="">All</option>
             {Object.entries(ATHLETE_STATUS_LABEL).map(([value, label]) => (
@@ -174,9 +180,9 @@ function RosterScreen() {
         </p>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
         <table className="w-full text-left text-sm tabular-nums">
-          <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
+          <thead className="bg-surface-2 font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Sport</th>
@@ -221,7 +227,7 @@ function RosterScreen() {
               </tr>
             ) : (
               (data?.athletes ?? []).map((athlete) => (
-                <tr key={athlete['id']} className="border-t border-border/70 hover:bg-chalk/60">
+                <tr key={athlete['id']} className="border-t border-border/70 transition-colors hover:bg-surface-2/70">
                   <td className="px-4 py-3 font-semibold text-graphite">
                     <Link
                       to="/roster/$id"

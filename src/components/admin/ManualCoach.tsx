@@ -35,7 +35,7 @@ export function ManualCoach({
   });
 
   return (
-    <section className="rounded-2xl border border-border bg-white p-5">
+    <section className="rounded-2xl border border-border bg-card p-5">
       <h2 className="font-display text-lg font-bold text-graphite">Head coach</h2>
       <p className="mt-1 text-sm text-steel">
         On file: <span className="font-semibold text-graphite">{currentName || "nobody yet"}</span>. Type

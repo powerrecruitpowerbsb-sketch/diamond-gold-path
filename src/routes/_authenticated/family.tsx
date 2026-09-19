@@ -62,30 +62,37 @@ function FamilyPortal() {
 
   return (
     <AppShell right={<AuthButton />}>
-      <h1 className="font-display text-3xl font-bold text-graphite">Family portal</h1>
-      <p className="mt-1 max-w-2xl text-sm text-steel">
-        Your athlete's college list, with the recruiting activity on each school. You and your
-        coaches keep the same picture up to date.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link
-          to="/search"
-          className="touch-target inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
-        >
-          Find and add a school
-        </Link>
-        <Link
-          to="/list"
-          className="touch-target inline-flex items-center rounded-xl border border-border px-4 text-sm font-semibold text-graphite hover:border-org-primary"
-        >
-          Update recruiting activity
-        </Link>
-      </div>
+      <header className="stadium-gradient overflow-hidden rounded-2xl px-5 py-7 sm:px-8 sm:py-9">
+        <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">
+          For families
+        </p>
+        <h1 className="font-display mt-2 text-[2rem] leading-[1.06] font-bold text-white sm:text-4xl">
+          Family portal
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm text-white/75">
+          Your athlete's college list, with the recruiting activity on each school. You and your
+          coaches keep the same picture up to date.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link
+            to="/search"
+            className="touch-target inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
+          >
+            Find and add a school
+          </Link>
+          <Link
+            to="/list"
+            className="touch-target inline-flex items-center rounded-xl border border-white/25 px-4 text-sm font-semibold text-white hover:border-white/60"
+          >
+            Update recruiting activity
+          </Link>
+        </div>
+      </header>
 
       {isPending ? (
         <p className="mt-6 text-sm text-steel">Loading…</p>
       ) : athletes.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-border bg-white p-8 text-center shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+        <div className="mt-6 rounded-xl border border-border bg-card p-8 text-center shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
           <p className="font-display text-lg font-bold text-graphite">No athlete linked yet</p>
           <p className="mt-1 text-sm text-steel">
             Ask your organization's staff to send you a family invite — that's what connects this
@@ -106,7 +113,7 @@ function FamilyPortal() {
             return (
               <section
                 key={athlete['id']}
-                className="rounded-xl border border-border bg-white p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
+                className="rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
               >
                 <h2 className="font-display text-2xl font-bold text-graphite">{athlete['name']}</h2>
                 <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-4">

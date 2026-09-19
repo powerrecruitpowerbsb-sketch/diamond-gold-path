@@ -421,7 +421,7 @@ function ProgramProfile() {
 
           <div className="flex flex-col items-start gap-3 sm:items-end">
             <div className="flex items-center overflow-hidden rounded-full border border-white/25 bg-white/10">
-              <span className="bg-white px-3.5 py-1.5 text-sm font-semibold text-graphite">
+              <span className="bg-card px-3.5 py-1.5 text-sm font-semibold text-graphite">
                 {titleCase(program.sport)}
               </span>
               {sibling ? (

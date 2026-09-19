@@ -48,10 +48,10 @@ export const Route = createFileRoute("/_authenticated/settings/seasons")({
 });
 
 const FIELD =
-  "touch-target w-full rounded-lg border border-border bg-white px-3 text-sm text-graphite outline-none focus:border-org-primary";
+  "touch-target w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary";
 const LABEL = "font-mono text-[11px] tracking-wide text-steel uppercase";
 const CARD =
-  "rounded-xl border border-border bg-white p-5 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]";
+  "rounded-xl border border-border bg-card p-5 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]";
 
 function SeasonsSettings() {
   const ctx = useSeasonContext();
@@ -183,7 +183,7 @@ function SeasonList({
               "rounded-lg border p-3",
               season.id === ctx.seasonId
                 ? "border-org-primary bg-org-primary/5"
-                : "border-border bg-white",
+                : "border-border bg-card",
             )}
           >
             <div className="flex items-center justify-between gap-2">
