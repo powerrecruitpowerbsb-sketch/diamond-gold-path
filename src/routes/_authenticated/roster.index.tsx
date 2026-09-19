@@ -51,7 +51,13 @@ function RosterScreen() {
   const [status, setStatus] = useState("active");
 
   // The header switch decides which sport's players this roster shows.
-  const { sport } = useSportMode();
+  const { sport, setSport } = useSportMode();
+  const mixFn = useServerFn(getAthleteSportMix);
+  const { data: mix } = useQuery({
+    queryKey: ["athlete-sport-mix", "roster"],
+    queryFn: () => mixFn(),
+    staleTime: 30_000,
+  });
   const { data, isPending, error } = useQuery({
     queryKey: ["org-athletes", q, gradYear, status, ctx.seasonId, ctx.teamId, sport],
     queryFn: () =>
