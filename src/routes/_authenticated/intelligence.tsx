@@ -37,10 +37,13 @@ import { REGIONS } from "@/lib/regions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/intelligence")({
-  validateSearch: (search: Record<string, unknown>): { programId?: string } =>
-    typeof search['programId'] === "string" && search['programId']
+  validateSearch: (search: Record<string, unknown>): { programId?: string; field?: string } => ({
+    ...(typeof search['programId'] === "string" && search['programId']
       ? { programId: search['programId'] }
-      : {},
+      : {}),
+    ...(typeof search['field'] === "string" && search['field'] ? { field: search['field'] } : {}),
+  }),
+
   head: () => ({
     meta: [
       { title: "Intelligence workstation — Power Recruit" },
