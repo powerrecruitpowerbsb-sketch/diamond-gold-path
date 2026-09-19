@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { TeamSchedulePanel } from "@/components/athlete/TeamSchedulePanel";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
@@ -382,6 +383,10 @@ function TeamManager({
             >
               <Trash2 className="size-3.5" aria-hidden /> Delete team
             </button>
+          </div>
+
+          <div className="mt-4">
+            <TeamSchedulePanel teamId={team.id} teamName={team.name} />
           </div>
 
           <div className="mt-4 grid gap-5 md:grid-cols-2">

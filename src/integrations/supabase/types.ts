@@ -143,6 +143,56 @@ export type Database = {
           },
         ]
       }
+      athlete_metrics: {
+        Row: {
+          created_at: string
+          id: string
+          metric_key: string
+          org_athlete_id: string
+          recorded_on: string | null
+          source: string
+          source_ref: string | null
+          unit: string | null
+          updated_at: string
+          value: number
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metric_key: string
+          org_athlete_id: string
+          recorded_on?: string | null
+          source?: string
+          source_ref?: string | null
+          unit?: string | null
+          updated_at?: string
+          value: number
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metric_key?: string
+          org_athlete_id?: string
+          recorded_on?: string | null
+          source?: string
+          source_ref?: string | null
+          unit?: string | null
+          updated_at?: string
+          value?: number
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_metrics_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athlete_saved_schools: {
         Row: {
           activity_chips: string[]
@@ -1261,52 +1311,109 @@ export type Database = {
       }
       org_athletes: {
         Row: {
+          act_score: number | null
           athlete_data_source: Database["public"]["Enums"]["athlete_data_source"]
+          athlete_email: string | null
+          athlete_phone: string | null
           bats: Database["public"]["Enums"]["bats_hand"] | null
+          club_team: string | null
           created_at: string
+          eligibility_id: string | null
+          gpa: number | null
           grad_year: number | null
+          height_inches: number | null
+          high_school: string | null
+          home_city: string | null
+          home_state: string | null
           id: string
+          instagram_handle: string | null
           linked_handled_profile_id: string | null
           linked_parent_user_id: string | null
           name: string
           organization_id: string
+          parent_email: string | null
+          parent_name: string | null
+          parent_phone: string | null
           primary_position: string | null
+          sat_score: number | null
+          secondary_position: string | null
           sport: Database["public"]["Enums"]["sport"]
           status: Database["public"]["Enums"]["athlete_status"]
           throws: Database["public"]["Enums"]["throws_hand"] | null
+          twitter_handle: string | null
           updated_at: string
+          video_links: string[]
+          weight_lbs: number | null
         }
         Insert: {
+          act_score?: number | null
           athlete_data_source?: Database["public"]["Enums"]["athlete_data_source"]
+          athlete_email?: string | null
+          athlete_phone?: string | null
           bats?: Database["public"]["Enums"]["bats_hand"] | null
+          club_team?: string | null
           created_at?: string
+          eligibility_id?: string | null
+          gpa?: number | null
           grad_year?: number | null
+          height_inches?: number | null
+          high_school?: string | null
+          home_city?: string | null
+          home_state?: string | null
           id?: string
+          instagram_handle?: string | null
           linked_handled_profile_id?: string | null
           linked_parent_user_id?: string | null
           name: string
           organization_id: string
+          parent_email?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
           primary_position?: string | null
+          sat_score?: number | null
+          secondary_position?: string | null
           sport?: Database["public"]["Enums"]["sport"]
           status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
+          twitter_handle?: string | null
           updated_at?: string
+          video_links?: string[]
+          weight_lbs?: number | null
         }
         Update: {
+          act_score?: number | null
           athlete_data_source?: Database["public"]["Enums"]["athlete_data_source"]
+          athlete_email?: string | null
+          athlete_phone?: string | null
           bats?: Database["public"]["Enums"]["bats_hand"] | null
+          club_team?: string | null
           created_at?: string
+          eligibility_id?: string | null
+          gpa?: number | null
           grad_year?: number | null
+          height_inches?: number | null
+          high_school?: string | null
+          home_city?: string | null
+          home_state?: string | null
           id?: string
+          instagram_handle?: string | null
           linked_handled_profile_id?: string | null
           linked_parent_user_id?: string | null
           name?: string
           organization_id?: string
+          parent_email?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
           primary_position?: string | null
+          sat_score?: number | null
+          secondary_position?: string | null
           sport?: Database["public"]["Enums"]["sport"]
           status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
+          twitter_handle?: string | null
           updated_at?: string
+          video_links?: string[]
+          weight_lbs?: number | null
         }
         Relationships: [
           {
@@ -2398,6 +2505,102 @@ export type Database = {
             columns: ["university_id"]
             isOneToOne: false
             referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_events: {
+        Row: {
+          city: string | null
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          event_type: string
+          id: string
+          link_url: string | null
+          name: string
+          notes: string | null
+          org_athlete_id: string | null
+          organization_id: string | null
+          season_id: string | null
+          start_date: string
+          state: string | null
+          team_id: string | null
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          event_type?: string
+          id?: string
+          link_url?: string | null
+          name: string
+          notes?: string | null
+          org_athlete_id?: string | null
+          organization_id?: string | null
+          season_id?: string | null
+          start_date: string
+          state?: string | null
+          team_id?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          event_type?: string
+          id?: string
+          link_url?: string | null
+          name?: string
+          notes?: string | null
+          org_athlete_id?: string | null
+          organization_id?: string | null
+          season_id?: string | null
+          start_date?: string
+          state?: string | null
+          team_id?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_events_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_events_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_events_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
