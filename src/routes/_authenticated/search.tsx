@@ -721,138 +721,133 @@ function SearchScreen() {
           Widen a filter. Division, location and net price narrow things fastest.
         </EmptyState>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded border border-border bg-card">
-          <table className="w-full border-collapse text-sm">
-            <caption className="sr-only">Matching college teams</caption>
-            <thead>
-              <tr className="border-b border-border">
-                {SORTABLE.map((column) => (
-                  <th
-                    key={column.key}
-                    scope="col"
-                    aria-sort={
-                      sortKey === column.key
-                        ? dir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
-                    className={cn(
-                      "px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-steel uppercase",
-                      column.numeric && "text-right",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleSort(column.key)}
-                      className="uppercase hover:text-graphite"
-                    >
-                      {column.header}
-                      {sortKey === column.key ? (dir === "asc" ? " ↑" : " ↓") : ""}
-                    </button>
-                  </th>
-                ))}
-                <th scope="col" className="px-3 py-2 text-right text-[11px] text-steel uppercase">
-                  Add to list
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row: any) => {
-                const u = row.university ?? {};
-                const selected = compare.isSelected(row.id);
-                const region = regionOfState(u.state);
-                const openRow = () =>
-                  setOpenEntry({
-                    id: null,
-                    programId: row.id,
-                    school: String(u.name ?? "Program"),
-                    sport: row.sport ?? null,
-                    notes: null,
-                    threadId: null,
-                    athleteId: params.athleteId || null,
-                  });
-                return (
-                  <tr
-                    key={row.id}
+        <>
+          {/* Sorting is a single control, not eleven column buttons. */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="meta text-steel">Sort by</span>
+            <select
+              value={sortKey}
+              onChange={(event) => set({ sort: event.target.value })}
+              className="h-9 rounded-md border border-input bg-card px-2 text-sm outline-none focus:border-org-primary"
+            >
+              {SORTABLE.map((column) => (
+                <option key={column.key} value={column.key}>
+                  {column.header}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => set({ dir: dir === "asc" ? "desc" : "asc" })}
+              className="h-9 rounded-md border border-input bg-card px-3 text-sm font-semibold text-org-primary hover:bg-muted"
+            >
+              {dir === "asc" ? "Low to high ↑" : "High to low ↓"}
+            </button>
+          </div>
+
+          <ul className="mt-2 divide-y divide-border rounded-lg border border-border bg-card">
+            {rows.map((row: any) => {
+              const u = row.university ?? {};
+              const selected = compare.isSelected(row.id);
+              const region = regionOfState(u.state);
+              const meta = [
+                u.state,
+                region,
+                [row.governing_body, row.division].filter(Boolean).join(" ") || null,
+                row.conference || null,
+              ].filter(Boolean) as string[];
+              const openRow = () =>
+                setOpenEntry({
+                  id: null,
+                  programId: row.id,
+                  school: String(u.name ?? "Program"),
+                  sport: row.sport ?? null,
+                  notes: null,
+                  threadId: null,
+                  athleteId: params.athleteId || null,
+                });
+              return (
+                <li key={row.id}>
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={openRow}
-                    className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/50"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openRow();
+                      }
+                    }}
+                    className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
                   >
-                    <td className="h-[38px] max-w-[240px] truncate px-3 py-1.5 align-middle whitespace-nowrap">
-                      <span className="font-semibold text-org-primary underline-offset-2 hover:underline">
-                        {u.name}
-                      </span>
-                    </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {u.state ?? NOT_REPORTED}
-                    </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {region ?? NOT_REPORTED}
-                    </td>
-                    <td className="h-[38px] px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {[row.governing_body, row.division].filter(Boolean).join(" ") || NOT_REPORTED}
-                    </td>
-                    <td className="h-[38px] max-w-[200px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {row.conference ? row.conference : NOT_REPORTED}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {number(u.undergrad_enrollment)}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {money(u.est_net_price)}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {plain(u.avg_sat)}
-                    </td>
-                    <td className="tabular h-[38px] px-3 py-1.5 text-right align-middle whitespace-nowrap text-graphite">
-                      {row.roster?.size ? row.roster.size : "No roster on file"}
-                    </td>
-                    <td className="h-[38px] max-w-[170px] truncate px-3 py-1.5 align-middle whitespace-nowrap text-graphite">
-                      {row.head_coach_name ?? "Not published by the school"}
-                    </td>
-                    <td
-                      className="h-[38px] px-3 py-1.5 align-middle"
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-org-primary">{u.name}</p>
+                      <p className="mt-0.5 truncate text-[12px] text-steel">
+                        {meta.join(" · ") || NOT_REPORTED}
+                      </p>
+                      <p className="tabular mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[12px] text-graphite">
+                        <span>
+                          <span className="text-steel">Net price </span>
+                          {money(u.est_net_price)}
+                        </span>
+                        <span>
+                          <span className="text-steel">Roster </span>
+                          {row.roster?.size ? row.roster.size : NOT_REPORTED}
+                        </span>
+                        <span className="hidden sm:inline">
+                          <span className="text-steel">Enrolled </span>
+                          {number(u.undergrad_enrollment)}
+                        </span>
+                        <span className="hidden sm:inline">
+                          <span className="text-steel">SAT </span>
+                          {plain(u.avg_sat)}
+                        </span>
+                        <span className="hidden truncate md:inline">
+                          <span className="text-steel">Coach </span>
+                          {row.head_coach_name ?? "Not published by the school"}
+                        </span>
+                      </p>
+                    </div>
+
+                    <div
+                      className="flex shrink-0 items-center gap-2"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <div className="flex items-center justify-end gap-2">
-                        <ShortlistSaveButton
-                          programId={row.id}
-                          athleteId={params.athleteId || undefined}
-                          athleteName={
-                            (contextAthlete?.["name"] as string | undefined) ?? undefined
-                          }
-                          className="h-8 rounded border border-border bg-card px-2 text-xs font-semibold text-org-primary hover:bg-muted"
-                        />
-                        <button
-                          type="button"
-                          aria-pressed={selected}
-                          aria-label={selected ? "Selected for compare" : "Add to compare"}
-                          disabled={!selected && compare.isFull}
-                          onClick={() =>
-                            compare.toggle({
-                              id: row.id,
-                              name: u.name ?? "Program",
-                              badge: [row.governing_body, row.division].filter(Boolean).join(" "),
-                            })
-                          }
-                          className={cn(
-                            "flex size-8 items-center justify-center rounded border",
-                            selected
-                              ? "border-org-primary bg-org-primary text-org-primary-foreground"
-                              : "border-border text-org-primary hover:bg-muted",
-                            !selected && compare.isFull && "cursor-not-allowed opacity-50",
-                          )}
-                        >
-                          <Columns3 className="size-4" aria-hidden />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <ShortlistSaveButton
+                        programId={row.id}
+                        athleteId={params.athleteId || undefined}
+                        athleteName={(contextAthlete?.["name"] as string | undefined) ?? undefined}
+                      />
+                      <button
+                        type="button"
+                        aria-pressed={selected}
+                        aria-label={selected ? "Selected for compare" : "Add to compare"}
+                        title={selected ? "Selected for compare" : "Add to compare"}
+                        disabled={!selected && compare.isFull}
+                        onClick={() =>
+                          compare.toggle({
+                            id: row.id,
+                            name: u.name ?? "Program",
+                            badge: [row.governing_body, row.division].filter(Boolean).join(" "),
+                          })
+                        }
+                        className={cn(
+                          "flex size-10 items-center justify-center rounded-md border transition-colors",
+                          selected
+                            ? "border-org-primary bg-org-primary text-org-primary-foreground"
+                            : "border-border text-org-primary hover:bg-muted",
+                          !selected && compare.isFull && "cursor-not-allowed opacity-50",
+                        )}
+                      >
+                        <Columns3 className="size-4" aria-hidden />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
 
 

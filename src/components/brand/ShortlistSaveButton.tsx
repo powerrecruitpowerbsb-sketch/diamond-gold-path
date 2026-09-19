@@ -127,11 +127,15 @@ export function ShortlistSaveButton({
                   : "border-border text-org-primary hover:bg-muted",
               )
             : cn(
-                "touch-target gap-2 rounded-xl border px-3 text-sm font-semibold",
+                "gap-2 whitespace-nowrap rounded-md border px-4 text-sm font-semibold",
+                "outline-none focus-visible:ring-2 focus-visible:ring-org-accent/60",
                 savedStatus
                   ? "border-diamond-green/30 bg-diamond-green-tint text-diamond-green"
-                  : "border-seam-red bg-seam-red text-white hover:bg-seam-red/90",
-                size === "sm" && "h-11",
+                  : cn(
+                      "border-org-accent bg-org-accent text-org-accent-foreground",
+                      "hover:bg-org-accent-strong active:translate-y-px active:bg-org-accent-pressed",
+                    ),
+                size === "sm" ? "h-10" : "h-11",
               ),
           className,
         )}
