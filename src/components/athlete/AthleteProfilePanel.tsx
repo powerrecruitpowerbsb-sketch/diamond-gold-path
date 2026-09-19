@@ -21,8 +21,13 @@ import {
   metricDef,
   metricLabel,
   metricSourceLabel,
+  metricStep,
+  metricUnit,
   metricsForSport,
+  parseHeightInput,
+  splitHeight,
 } from "@/lib/athlete-metrics";
+
 import { HelpTip } from "@/components/brand/HelpTip";
 import { normalizeSport } from "@/lib/sport";
 import { cn } from "@/lib/utils";
