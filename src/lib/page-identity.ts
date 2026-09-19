@@ -264,17 +264,11 @@ export function verifyPageIdentity(input: {
   // not, because that is the very value we are checking. Vouching for a page with
   // itself meant a page belonging to another college could never be caught.
   const ownDomain = registrableDomain(hostOf(input.url));
-  const held = new Set(
-    [input.schoolWebsite, input.athleticsSite, ...(input.ownDomains ?? [])]
-      .map((u) => registrableDomain(hostOf(u)))
-      .filter(Boolean),
-  );
   const independent = new Set(
     [input.schoolWebsite, input.athleticsSite]
       .map((u) => registrableDomain(hostOf(u)))
       .filter(Boolean),
   );
-  void held;
   if (ownDomain && independent.has(ownDomain)) {
     return {
       verdict: "confirmed",
