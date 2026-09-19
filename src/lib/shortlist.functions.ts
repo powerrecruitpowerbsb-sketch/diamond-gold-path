@@ -193,19 +193,21 @@ export const removeShortlistEntry = createServerFn({ method: "POST" })
 
 export const getOrgDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { seasonId?: string; teamId?: string } | undefined) => ({
+  .inputValidator((input: { seasonId?: string; teamId?: string; sport?: string } | undefined) => ({
     seasonId: str(input?.seasonId),
     teamId: str(input?.teamId),
+    sport: str(input?.sport),
   }))
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
 
     let athleteQuery = context.supabase
       .from("org_athletes")
-      .select("id, name, grad_year, primary_position, status, organization_id")
+      .select("id, name, grad_year, primary_position, sport, status, organization_id")
       .order("grad_year", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true });
     if (actor.organizationId) athleteQuery = athleteQuery.eq("organization_id", actor.organizationId);
+    if (data.sport) athleteQuery = athleteQuery.eq("sport", data.sport as never);
 
     const { data: athleteRows, error } = await athleteQuery;
     if (error) throw new Error(error.message);
