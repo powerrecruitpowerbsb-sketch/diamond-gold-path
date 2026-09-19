@@ -77,28 +77,16 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
 
   const [form, setForm] = useState<Record<string, string>>({});
   const [videos, setVideos] = useState<string[]>([]);
+  /** The card is a finished page by default; the form only appears on request. */
+  const [editing, setEditing] = useState(false);
+  const resetForm = () => {
+    if (!athlete) return;
+    setForm(formFrom(athlete));
+    setVideos(((athlete['video_links'] ?? []) as string[]).filter(Boolean));
+  };
   useEffect(() => {
     if (!athlete) return;
-    setForm({
-      athleteEmail: athlete['athlete_email'] ?? "",
-      athletePhone: athlete['athlete_phone'] ?? "",
-      parentName: athlete['parent_name'] ?? "",
-      parentEmail: athlete['parent_email'] ?? "",
-      parentPhone: athlete['parent_phone'] ?? "",
-      homeCity: athlete['home_city'] ?? "",
-      homeState: athlete['home_state'] ?? "",
-      highSchool: athlete['high_school'] ?? "",
-      clubTeam: athlete['club_team'] ?? "",
-      secondaryPosition: athlete['secondary_position'] ?? "",
-      heightInches: athlete['height_inches'] ?? "",
-      weightLbs: athlete['weight_lbs'] ?? "",
-      gpa: athlete['gpa'] ?? "",
-      satScore: athlete['sat_score'] ?? "",
-      actScore: athlete['act_score'] ?? "",
-      eligibilityId: athlete['eligibility_id'] ?? "",
-      twitterHandle: athlete['twitter_handle'] ?? "",
-      instagramHandle: athlete['instagram_handle'] ?? "",
-    });
+    setForm(formFrom(athlete));
     setVideos(((athlete['video_links'] ?? []) as string[]).filter(Boolean));
   }, [athlete?.['id'], athlete]);
 
