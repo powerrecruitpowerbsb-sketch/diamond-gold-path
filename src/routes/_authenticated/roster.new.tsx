@@ -106,6 +106,20 @@ function NewAthlete() {
             />
           </label>
           <label>
+            <span className={LABEL}>Sport *</span>
+            <select
+              value={form.sport || sport}
+              onChange={(event) => set("sport")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            >
+              {SPORTS.map((option) => (
+                <option key={option} value={option}>
+                  {SPORT_LABEL[option]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
             <span className={LABEL}>Graduation year</span>
             <input
               inputMode="numeric"
