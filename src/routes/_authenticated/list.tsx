@@ -34,6 +34,54 @@ export const Route = createFileRoute("/_authenticated/list")({
   component: CollegeList,
 });
 
+type SortKey =
+  | "athlete"
+  | "school"
+  | "sport"
+  | "level"
+  | "conference"
+  | "state"
+  | "stage"
+  | "activity";
+
+/** Sortable columns; the Athlete column only appears when every athlete is on screen. */
+const COLUMNS: { key: SortKey; header: string; athleteOnly?: boolean }[] = [
+  { key: "athlete", header: "Athlete", athleteOnly: true },
+  { key: "school", header: "School" },
+  { key: "sport", header: "Sport" },
+  { key: "level", header: "Level" },
+  { key: "conference", header: "Conference" },
+  { key: "state", header: "State" },
+  { key: "stage", header: "Stage" },
+  { key: "activity", header: "Last activity" },
+];
+
+function sortValue(
+  key: SortKey,
+  entry: Record<string, any>,
+  stageOrder: Map<string, number>,
+): string | number {
+  switch (key) {
+    case "athlete":
+      return String(entry['athleteName'] ?? "");
+    case "school":
+      return String(entry['school'] ?? "");
+    case "sport":
+      return String(entry['sport'] ?? "");
+    case "level":
+      return [entry['governingBody'], entry['division']].filter(Boolean).join(" ");
+    case "conference":
+      return String(entry['conference'] ?? "");
+    case "state":
+      return String(entry['state'] ?? "");
+    case "stage":
+      return stageOrder.get(String(entry['stageId'] ?? "")) ?? 999;
+    case "activity":
+      return String(entry['lastMessageAt'] ?? entry['updatedAt'] ?? "");
+  }
+}
+
+
 function CollegeList() {
   const listFn = useServerFn(getCollegeList);
   const moveFn = useServerFn(moveToStage);
