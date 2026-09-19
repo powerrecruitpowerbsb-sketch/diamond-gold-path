@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 
+import { HelpTip } from "@/components/brand/HelpTip";
+
 /**
- * Every console screen opens the same way: a title line, an optional single
- * sentence, and one line of live counts. No hero blocks, no stat-tile grids.
+ * Every console screen opens the same way: a title line, one line of live
+ * counts, and — behind a hover mark next to the title — the sentence that
+ * explains the screen. No hero blocks, no stat-tile grids.
  */
 export function PageHeader({
   title,
