@@ -160,7 +160,19 @@ function SearchScreen() {
     staleTime: 30_000,
     retry: false,
   });
-  const pickerAthletes = (picker.data?.athletes ?? []) as Record<string, any>[];
+  // The header switch decides the sport; the URL follows it, so a shared link
+  // still carries the sport it was searched in.
+  const { sport: sportMode, setSport } = useSportMode();
+  useEffect(() => {
+    if (params.sport !== sportMode) {
+      void navigate({ search: (prev: any) => ({ ...prev, sport: sportMode }), replace: true });
+    }
+  }, [sportMode, params.sport, navigate]);
+
+  // Only athletes of this sport can take one of these programs.
+  const pickerAthletes = ((picker.data?.athletes ?? []) as Record<string, any>[]).filter(
+    (row) => normalizeSport(row["sport"]) === params.sport,
+  );
   const contextAthlete = params.athleteId
     ? pickerAthletes.find((row) => row["id"] === params.athleteId) ?? null
     : null;
