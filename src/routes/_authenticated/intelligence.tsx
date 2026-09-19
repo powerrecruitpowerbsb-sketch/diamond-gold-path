@@ -13,10 +13,12 @@ import {
   INTEL_FIELDS,
   INTEL_FIELD_COUNT,
   INTEL_POSITIONS,
+  POSITION_GROUP_PRESETS,
   POSITION_LABELS,
   STATUS_LABELS,
   STRENGTH_CHOICES,
   fieldLabel,
+  structuredValues,
   type IntelFieldDef,
 } from "@/lib/intel-fields";
 import {
