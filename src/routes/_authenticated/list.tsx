@@ -403,6 +403,7 @@ function CollegeList() {
       <SchoolSheet
         entry={openEntry}
         athleteId={openEntry?.athleteId ?? (showingAll ? null : currentAthlete)}
+        defaultTab={sheetTab}
         onClose={() => setOpenEntry(null)}
       />
     </AppShell>
