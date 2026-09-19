@@ -92,7 +92,7 @@ export const openThread = createServerFn({ method: "POST" })
       context.supabase.from("users").select("id").eq("linked_org_athlete_id", data.athleteId),
     ]);
 
-    const wanted: { user_id: string; participant_role: string; removable: boolean }[] = [];
+    const wanted: { user_id: string; participant_role: any; removable: boolean }[] = [];
     for (const link of (links ?? []) as Record<string, any>[]) {
       wanted.push({
         user_id: link['user_id'] as string,
@@ -115,7 +115,7 @@ export const openThread = createServerFn({ method: "POST" })
     if (missing.length) {
       await context.supabase
         .from("thread_participants")
-        .insert(missing.map((m) => ({ ...m, thread_id: threadId })));
+        .insert(missing.map((m) => ({ ...m, thread_id: threadId })) as any);
     }
 
     return { threadId };
