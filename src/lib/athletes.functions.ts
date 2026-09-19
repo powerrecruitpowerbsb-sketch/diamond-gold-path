@@ -255,7 +255,7 @@ export const getOrgAthlete = createServerFn({ method: "GET" })
     const { data: athlete, error } = await context.supabase
       .from("org_athletes")
       .select(
-        "id, organization_id, name, grad_year, primary_position, bats, throws, athlete_data_source, status, linked_parent_user_id, created_at, updated_at",
+        "id, organization_id, name, grad_year, primary_position, bats, throws, sport, athlete_data_source, status, linked_parent_user_id, created_at, updated_at",
       )
       .eq("id", data.id)
       .maybeSingle();
