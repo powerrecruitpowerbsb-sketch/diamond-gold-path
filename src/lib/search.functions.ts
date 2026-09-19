@@ -6,6 +6,8 @@ import { isPitcher, positionGroup, type PositionGroup } from "@/lib/position-gro
 import {
   UNIVERSITY_COLS,
   compositionActive,
+  intelActive,
+  intelCriteriaCount,
   normalizeSearchInput,
   type SearchFilters,
 } from "@/lib/search-schema";
