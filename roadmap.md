@@ -34,3 +34,10 @@
 - [x] Athletics-only crawl over every program not marked not_offered (3,238), resumable, guarded writes
 - [ ] Quarantined sites: one attempt each at the end of the run; report which respond
 - [ ] Seven reports (coverage, reader split, refused writes, no-data reasons, composition at scale, league disagreements, head coach titles)
+
+## Player card, measurables & schedules (2026-09-19)
+- [x] Athlete contact + parent contact, home town, high school, club team, GPA/SAT/ACT, eligibility ID, socials, highlight links
+- [x] Measurables kept as dated rows with a source (hand-entered, Curve Testing, HandledReports, Perfect Game, PBR) so outside services can feed in later
+- [x] Team schedules posted by staff auto-appear on assigned athletes; families can add their own guest-play events
+- [ ] Shareable scout card (public link) — next
+- [ ] Coach email addresses + outreach composer — next
