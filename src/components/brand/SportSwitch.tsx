@@ -19,7 +19,10 @@ export function SportSwitch({
     <div
       role="group"
       aria-label="Sport"
-      className={cn("inline-flex rounded border border-white/25 bg-white/10 p-0.5", className)}
+      className={cn(
+        "inline-flex rounded border border-current/25 bg-current/10 p-0.5 text-org-primary-foreground",
+        className,
+      )}
     >
       {SPORTS.map((option) => {
         const active = option === sport;
@@ -32,8 +35,8 @@ export function SportSwitch({
             className={cn(
               "rounded-sm px-3 py-1 text-xs font-semibold transition-colors",
               active
-                ? "bg-sport-strong text-sport-foreground"
-                : "text-white/70 hover:text-white",
+                ? "bg-org-accent text-org-accent-foreground"
+                : "opacity-70 hover:opacity-100",
             )}
           >
             {SPORT_LABEL[option]}
