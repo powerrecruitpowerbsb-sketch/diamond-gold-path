@@ -572,6 +572,10 @@ function parseCards(input: string[]): PlayerRow[] {
   // A name line belongs to one player only: pages that list the squad twice
   // otherwise read each player once per reading order.
   const usedNames = new Set<number>();
+  // The last line already read as part of an earlier player's block. Without
+  // this, "number / name / position" pages seeded each player with the position
+  // line belonging to the player listed before him.
+  let consumedThrough = -1;
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
     // Either a bare number on its own line, or a labelled one ("Jersey Number 12").
@@ -620,8 +624,12 @@ function parseCards(input: string[]): PlayerRow[] {
     // Some pages print the position ABOVE the jersey number ("Outfield / 1 /
     // Seth Perkins"). Scanning forward only, the position read was the one
     // belonging to the NEXT player, so every player carried his neighbour's spot.
-    const aboveNumber = (lines[nameAt === index - 1 ? index - 2 : index - 1] ?? "").trim();
+    // Only read that line when no earlier player's block already claimed it —
+    // on "number / name / position" pages it is the PREVIOUS player's position.
+    const aboveIndex = nameAt === index - 1 ? index - 2 : index - 1;
+    const aboveNumber = (lines[aboveIndex] ?? "").trim();
     if (
+      aboveIndex > consumedThrough &&
       aboveNumber &&
       aboveNumber.length <= 24 &&
       !aboveNumber.includes(",") &&
@@ -632,6 +640,7 @@ function parseCards(input: string[]): PlayerRow[] {
       positionRaw = aboveNumber;
     }
 
+    let scannedTo = Math.max(index, nameAt);
     for (let ahead = start; ahead < Math.min(start + 8, lines.length); ahead += 1) {
       const next = lines[ahead]!;
       // The next player's block may open with his position rather than his
@@ -646,6 +655,7 @@ function parseCards(input: string[]): PlayerRow[] {
       ) {
         break;
       }
+      scannedTo = ahead;
       // "Bats/Throws R/L", "B/T: S/R", or a bare "R/R" line on a card.
       const combined = next.match(/(?:bats\s*[/-]\s*throws|b\s*[/-]\s*t)\s*:?\s*([LRSB])\s*[/-]\s*([LR])\b/i);
       const bare = batsThrowsCell(next);
@@ -793,6 +803,8 @@ function parseCards(input: string[]): PlayerRow[] {
 
 
     }
+
+    consumedThrough = Math.max(consumedThrough, scannedTo);
 
     if (!position && !klass && !number) continue;
     const place = splitHometown(hometown);

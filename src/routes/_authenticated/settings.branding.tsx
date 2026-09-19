@@ -114,7 +114,13 @@ function BrandingSettings() {
       setLogoPreview(signed?.signedUrl ?? null);
       toast.success("Logo uploaded — save to apply it");
     } catch (error) {
-      setUploadError((error as Error).message);
+      const raw = (error as Error).message ?? "";
+      // Storage refusals come back as raw database text; say what it means instead.
+      setUploadError(
+        /row-level security|not authorized|permission/i.test(raw)
+          ? "Your account isn't allowed to change this organization's logo. Ask the organization owner to upload it."
+          : `That logo could not be saved. ${raw}`.trim(),
+      );
     } finally {
       setUploading(false);
     }

@@ -90,9 +90,13 @@ function escape(word: string): string {
   return word.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
 }
 
-/** Whole word, allowing an ordinary plural/inflected ending ("coaches"). */
+/**
+ * Whole word, allowing only an ordinary plural ("coach" → "coaches").
+ * A looser ending matched real surnames — Stafford read as "staff", Coachman as
+ * "coach", Biondi as "bio" — and those coaches were refused as job titles.
+ */
 function wordish(word: string): RegExp {
-  return new RegExp(`(^|[^a-z])${escape(word)}[a-z]{0,3}([^a-z]|$)`, "i");
+  return new RegExp(`(^|[^a-z])${escape(word)}(?:s|es)?([^a-z]|$)`, "i");
 }
 
 /** Exact word only — "More" is furniture, "Moreno" is a surname. */

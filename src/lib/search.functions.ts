@@ -198,10 +198,19 @@ export const searchPrograms = createServerFn({ method: "POST" })
 
     const compositions = new Map<string, Composition>();
     if (programIds.length > 0) {
-      const { data: roster } = await supabase
-        .from("roster_players")
-        .select(rosterCols)
-        .in("program_id", programIds);
+      // Hundreds of programs carry tens of thousands of players between them, far
+      // past the 1,000 rows one request returns — read every page or most schools
+      // look as though they have no roster at all.
+      const roster = await fetchAllRows(
+        (from, to) =>
+          supabase
+            .from("roster_players")
+            .select(rosterCols)
+            .in("program_id", programIds)
+            .range(from, to) as any,
+        60000,
+      );
+
 
       const byProgram = new Map<string, Map<number, any[]>>();
       for (const row of (roster ?? []) as any[]) {
@@ -343,6 +352,8 @@ export const getProgramProfile = createServerFn({ method: "GET" })
         `id, university_id, sport, governing_body, division, conference, scholarships_available,
          scholarship_details, athletic_website, roster_url, coaching_staff_url, facility_url,
          head_coach_name, recruiting_coordinator_name, last_verified_at, last_roster_pull_at,
+         division_source, division_verified_at, conference_source, conference_verified_at,
+         coach_source_url, coach_extracted_at,
          universities!inner(${UNIVERSITY_COLS})`,
       )
       .eq("id", data.programId)

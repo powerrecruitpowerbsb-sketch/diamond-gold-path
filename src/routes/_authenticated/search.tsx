@@ -136,6 +136,9 @@ const CRITERIA_KEYS = Object.keys(SEARCH_DEFAULTS).filter(
 ) as (keyof SearchParams)[];
 
 function hasCriteria(params: SearchParams) {
+  // Picking states is a filter in its own right; "states" is not in the defaults
+  // object the keys above come from, so it has to be counted explicitly.
+  if (params.states.length > 0) return true;
   return CRITERIA_KEYS.some((key) => {
     const value = params[key];
     const fallback = (SEARCH_DEFAULTS as Record<string, unknown>)[key as string];

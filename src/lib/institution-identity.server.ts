@@ -263,7 +263,10 @@ export async function institutionLinksTo(
 ): Promise<boolean> {
   try {
     const result = await safeFetch(institutionWebsite);
-    const body = (result as any)?.html ?? (result as any)?.text ?? (result as any)?.content ?? "";
+    // The rendered fallback returns html: null and only fills markdown, so
+    // reading html alone saw nothing for every school whose homepage needs
+    // rendering and refused its correct athletics address.
+    const body = `${result?.html ?? ""}\n${result?.markdown ?? ""}`.trim();
     if (!body) return false;
     return String(body).toLowerCase().includes(candidateDomain.toLowerCase());
   } catch {
