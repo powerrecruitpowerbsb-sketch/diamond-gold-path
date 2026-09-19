@@ -43,6 +43,16 @@
   --color-org-primary-tint: var(--org-primary-tint);
   --color-track: var(--track);
 
+  /*
+   * Active-sport marks. Derived from the organization's own two colors — a
+   * club that uploads blue and white gets blue-and-white sport marks. Never a
+   * literal hex, and never the fixed fact/opinion semantics below.
+   */
+  --color-sport-strong: var(--sport-strong);
+  --color-sport-tint: var(--sport-tint);
+  --color-sport-line: var(--sport-line);
+  --color-sport-foreground: var(--sport-foreground);
+
   /* Platform semantics — fixed */
   --color-seam-red: var(--seam-red);
   --color-seam-red-tint: var(--seam-red-tint);
@@ -109,6 +119,12 @@
   --org-accent-foreground: #12233a;
   --org-primary-tint: color-mix(in oklab, var(--org-primary) 10%, white);
   --track: #dfe3ea;
+
+  /* Baseball is the default sport mark: the organization's primary color. */
+  --sport-strong: var(--org-primary);
+  --sport-tint: color-mix(in oklab, var(--org-primary) 12%, white);
+  --sport-line: color-mix(in oklab, var(--org-primary) 55%, white);
+  --sport-foreground: #ffffff;
 
   /* Fixed platform semantics */
   --seam-red: #9a2b2b;
