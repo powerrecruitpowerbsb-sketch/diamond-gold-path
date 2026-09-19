@@ -230,6 +230,70 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
             {saveProfile.isPending ? "Saving…" : "Save player card"}
           </button>
         ) : null}
+
+        {/* Shareable card link — what a college coach opens from an email. */}
+        <div className="mt-5 border-t border-border pt-4">
+          <p className={labelClass}>Shareable profile link</p>
+          {athlete['share_enabled'] && athlete['share_slug'] ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <a
+                href={`/p/${String(athlete['share_slug'])}`}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all font-mono text-xs font-semibold text-org-primary hover:underline"
+              >
+                {shareUrl(String(athlete['share_slug']))}
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard?.writeText(shareUrl(String(athlete['share_slug'])));
+                  toast.success("Link copied");
+                }}
+                className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-graphite hover:border-org-primary"
+              >
+                Copy link
+              </button>
+              {canEdit ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      share.mutate({ enabled: true, shareContact: !athlete['share_contact'] })
+                    }
+                    className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-graphite hover:border-org-primary"
+                  >
+                    {athlete['share_contact'] ? "Hide contact details" : "Show contact details"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => share.mutate({ enabled: false, shareContact: Boolean(athlete['share_contact']) })}
+                    className="rounded-md border border-seam-red/40 px-2 py-1 text-xs font-semibold text-seam-red hover:bg-seam-red-tint"
+                  >
+                    Turn off
+                  </button>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-2">
+              <p className="text-sm text-steel">
+                Off. Turn it on to get a link you can send to a college coach — it shows this card,
+                the measurables, video and upcoming events. No account needed to open it.
+              </p>
+              {canEdit ? (
+                <button
+                  type="button"
+                  onClick={() => share.mutate({ enabled: true, shareContact: true })}
+                  disabled={share.isPending}
+                  className="mt-2 rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-graphite hover:border-org-primary disabled:opacity-60"
+                >
+                  {share.isPending ? "Creating…" : "Create shareable link"}
+                </button>
+              ) : null}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Measurables */}
