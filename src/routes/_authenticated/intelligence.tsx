@@ -744,7 +744,14 @@ function FieldRow({
     );
 
   return (
-    <div className="py-3">
+    <div
+      ref={rowRef}
+      className={cn(
+        "py-3 transition-colors",
+        focused ? "-mx-2 rounded-lg bg-org-accent/10 px-2 ring-1 ring-org-accent" : "",
+      )}
+    >
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-semibold text-graphite">
           {field.label}
