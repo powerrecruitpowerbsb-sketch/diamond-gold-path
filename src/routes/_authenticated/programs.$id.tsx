@@ -18,6 +18,7 @@ import {
 } from "@/components/profile/DataLayers";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
+import { TrueFitPanel } from "@/components/profile/TrueFitPanel";
 import { useMyAccount } from "@/hooks/use-my-account";
 import { getProgramProfile } from "@/lib/search.functions";
 import { listAthletePicker } from "@/lib/shortlist.functions";
