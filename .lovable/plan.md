@@ -99,6 +99,11 @@ The player sees the same two; nothing is hidden from the parent that the player 
 
 ## Technical notes
 
+- Search: `searchPrograms` only runs once at least one filter is set (the route keeps its URL
+  schema; an empty filter set skips the query). `search.tsx` reuses `SchoolSheet` for row clicks
+  and `ShortlistSaveButton`'s upsert path for Add to list, with the chosen athlete held in the URL
+  so a reload or shared link keeps the context. "Added" state comes from one extra read of that
+  athlete's saved programs.
 - Sorting and the all-athletes view: `getCollegeList` gains an "all athletes for this
   organization" mode (same org scoping and RLS as now, one query rather than per athlete);
   `list.tsx` gains sort state and an Athlete column. No schema change.
