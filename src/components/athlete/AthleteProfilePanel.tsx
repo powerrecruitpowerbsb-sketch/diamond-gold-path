@@ -350,8 +350,9 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
           {field("homeCity", "Home town")}
           {field("homeState", "State", "text", { maxLength: 2 })}
           {field("secondaryPosition", "Secondary position")}
-          {field("heightInches", "Height (inches)", "number")}
+          {heightField()}
           {field("weightLbs", "Weight (lb)", "number")}
+
           {field("gpa", "GPA", "number", { step: "0.01" })}
           {field("satScore", "SAT", "number")}
           {field("actScore", "ACT", "number")}
