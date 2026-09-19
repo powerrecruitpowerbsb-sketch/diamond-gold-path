@@ -160,7 +160,14 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
   .inputValidator(
     (
       input:
-        | { q?: string; gradYear?: string; seasonId?: string; teamId?: string; status?: string }
+        | {
+            q?: string;
+            gradYear?: string;
+            seasonId?: string;
+            teamId?: string;
+            status?: string;
+            sport?: string;
+          }
         | undefined,
     ) => ({
       q: str(input?.q),
@@ -168,6 +175,7 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
       seasonId: str(input?.seasonId),
       teamId: str(input?.teamId),
       status: str(input?.status),
+      sport: str(input?.sport),
     }),
   )
   .handler(async ({ context, data }) => {
@@ -175,7 +183,7 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
     let query = context.supabase
       .from("org_athletes")
       .select(
-        "id, name, grad_year, primary_position, bats, throws, athlete_data_source, status, organization_id, created_at",
+        "id, name, grad_year, primary_position, bats, throws, sport, athlete_data_source, status, organization_id, created_at",
       )
       .order("grad_year", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true });
@@ -184,6 +192,7 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
     if (data.q) query = query.ilike("name", `%${data.q}%`);
     if (data.gradYear) query = query.eq("grad_year", Number(data.gradYear));
     if (data.status) query = query.eq("status", data.status as never);
+    if (data.sport) query = query.eq("sport", normalizeSport(data.sport) as never);
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
