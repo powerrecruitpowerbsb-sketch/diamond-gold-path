@@ -460,15 +460,18 @@ function EditPanel({
   programId,
   canApprove,
   canRate,
+  focusField,
   onNext,
   nextLabel,
 }: {
   programId: string;
   canApprove: boolean;
   canRate: boolean;
+  focusField: string | null;
   onNext: (() => void) | null;
   nextLabel: string | null;
 }) {
+
   const queryClient = useQueryClient();
   const detailFn = useServerFn(getIntelProgram);
   const detail = useQuery({
