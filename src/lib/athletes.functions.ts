@@ -338,6 +338,44 @@ export const deleteOrgAthlete = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Move one athlete between baseball and softball. */
+export const setAthleteSport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId: string; sport: string }) => ({
+    athleteId: str(input?.athleteId),
+    sport: normalizeSport(input?.sport),
+  }))
+  .handler(async ({ context, data }) => {
+    await requireOrgActor(context as any);
+    if (!data.athleteId) throw new Error("Missing athlete");
+    const { error } = await context.supabase
+      .from("org_athletes")
+      .update({ sport: data.sport })
+      .eq("id", data.athleteId);
+    if (error) throw new Error(error.message);
+    return { ok: true, sport: data.sport as Sport };
+  });
+
+/**
+ * How many athletes sit in each sport. The header switch only appears once an
+ * organization actually has both, so a single-sport club sees no control.
+ */
+export const getAthleteSportMix = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const actor = await requireOrgActor(context as any);
+    let query = context.supabase.from("org_athletes").select("sport");
+    if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const counts: Record<Sport, number> = { baseball: 0, softball: 0 };
+    for (const row of (rows ?? []) as { sport: string }[]) {
+      counts[normalizeSport(row.sport)] += 1;
+    }
+    return counts;
+  });
+
 /**
  * Duplicate detection for the CSV preview: returns the existing athlete id for
  * each (name, grad year) pair that already exists in the caller's org.
