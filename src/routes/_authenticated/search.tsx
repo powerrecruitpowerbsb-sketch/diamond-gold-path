@@ -848,6 +848,11 @@ function SearchScreen() {
 
 
 
+      <SchoolSheet
+        entry={openEntry}
+        athleteId={params.athleteId || null}
+        onClose={() => setOpenEntry(null)}
+      />
     </AppShell>
   );
 }
