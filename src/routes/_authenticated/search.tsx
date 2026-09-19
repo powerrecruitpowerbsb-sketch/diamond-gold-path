@@ -869,7 +869,19 @@ function SearchScreen() {
   );
 }
 
+function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="relative mb-2 border-b border-border pb-1 font-display text-sm font-bold text-org-primary after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-8 after:bg-org-accent">
+        {title}
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    </section>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+
   return (
     <label className="block">
       <span className="meta mb-1.5 block">{label.toUpperCase()}</span>
