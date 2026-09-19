@@ -134,7 +134,7 @@ export const saveAthleteProfile = createServerFn({ method: "POST" })
 
     const { error } = await context.supabase
       .from("org_athletes")
-      .update(fields)
+      .update(fields as never)
       .eq("id", athleteId);
     if (error) throw new Error(error.message);
     return { ok: true };
