@@ -67,8 +67,10 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
     enabled: orgSide,
     staleTime: 60_000,
   });
-  const showSportSwitch =
-    orgSide && Boolean(sportMix && sportMix.baseball > 0 && sportMix.softball > 0);
+  // Always available to anyone running an organization, on every page — a club
+  // needs to reach its softball side before it has a single softball player.
+  const showSportSwitch = orgSide;
+  void sportMix;
 
 
   const primaryNav: NavItem[] = [
@@ -140,7 +142,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           </Link>
 
           {showSportSwitch ? (
-            <SportSwitch sport={sport} onChange={setSport} className="hidden sm:inline-flex" />
+            <SportSwitch sport={sport} onChange={setSport} />
           ) : null}
 
 
