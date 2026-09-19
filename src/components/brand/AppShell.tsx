@@ -109,20 +109,12 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       <header className="sticky top-0 z-40 bg-org-primary text-white shadow-[0_1px_0_rgba(255,255,255,0.08)]">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
           <Link to="/" className="touch-target flex items-center gap-2.5">
-            {orgLogo ? (
-              <img
-                src={orgLogo}
-                alt={orgName ? `${orgName} logo` : "Organization logo"}
-                className="size-8 rounded-md bg-white/10 object-contain"
-              />
-            ) : (
-              <span
-                className="grid size-8 place-items-center rounded-md bg-org-accent font-display text-[15px] font-bold text-navy-deep"
-                aria-hidden
-              >
-                P
-              </span>
-            )}
+            <OrgMark
+              logoUrl={orgLogo ?? null}
+              name={orgName ?? null}
+              size={32}
+              className={orgLogo ? "bg-white/10" : undefined}
+            />
             <span className="font-display text-lg font-bold text-white">Power Recruit</span>
           </Link>
 
@@ -131,8 +123,11 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
               <Link
                 key={item.to}
                 to={item.to}
-                className="touch-target flex items-center rounded-md px-3 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
-                activeProps={{ className: "bg-white/12 text-white" }}
+                className="touch-target relative flex items-center rounded-md px-3 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+                activeProps={{
+                  className:
+                    "bg-white/10 text-white after:absolute after:inset-x-2 after:bottom-1 after:h-0.5 after:rounded-full after:bg-org-accent",
+                }}
                 activeOptions={{ exact: item.to === "/" }}
               >
                 {item.label}
