@@ -38,7 +38,7 @@ function luminance(hex: string): number | null {
 function readableOn(hex: string): string | null {
   const l = luminance(hex);
   if (l === null) return null;
-  return l > 0.45 ? "#12233a" : "#ffffff";
+  return l > 0.4 ? "#0a0f18" : "#f1f5f9";
 }
 
 /** Blend two hex colors in sRGB so the result's readability can be measured. */
