@@ -7,6 +7,8 @@ const INTEL_FIELD_TYPES = [
   "recruiting_philosophy",
   "positions_prioritized",
   "preferred_player_profile",
+  "preferred_pitcher_profile",
+  "preferred_position_player_profile",
   "transfer_juco_tendencies",
   "freshman_tendencies",
   "geographic_tendencies",

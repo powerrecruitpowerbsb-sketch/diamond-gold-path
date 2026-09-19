@@ -3556,6 +3556,8 @@ export type Database = {
         | "graduation_needs"
         | "staff_notes"
         | "players_previously_recruited"
+        | "preferred_pitcher_profile"
+        | "preferred_position_player_profile"
       intel_status:
         | "draft"
         | "pending"
@@ -3790,6 +3792,8 @@ export const Constants = {
         "graduation_needs",
         "staff_notes",
         "players_previously_recruited",
+        "preferred_pitcher_profile",
+        "preferred_position_player_profile",
       ],
       intel_status: [
         "draft",
