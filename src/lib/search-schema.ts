@@ -312,10 +312,12 @@ export function activeSecondaryCount(params: SearchParams): number {
     "seniorGroup",
     "transferPctMin",
     "transferPctMax",
+    "relationship",
   ];
-  return keys.filter((key) => {
+  const simple = keys.filter((key) => {
     const value = params[key];
     return typeof value === "number" ? value > 0 : Boolean(value);
   }).length;
+  return simple + params.intel.length + (params.intelPositions.length > 0 ? 1 : 0);
 }
 
