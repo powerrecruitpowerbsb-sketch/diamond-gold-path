@@ -141,19 +141,18 @@ function Workstation() {
     <AppShell right={<AuthButton />}>
       <PageHeader
         title="Intelligence workstation"
-        description="Work the list: write up a program, save field by field, move to the next."
+        description="Pick a program, write it up, move to the next."
         counts={[
-          `${rows.length} programs`,
-          `${rows.filter((r) => r.filled > 0).length} with intelligence`,
+          `${rows.length} in view`,
+          `${rows.filter((r) => r.filled > 0).length} written up`,
           `${rows.filter((r) => r.statuses.includes("pending")).length} awaiting review`,
         ]}
       />
 
-
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 inline-flex rounded-lg border border-border bg-card p-1">
         {(
           [
-            ["programs", "Programs"],
+            ["programs", "Workstation"],
             ["mine", "My submissions"],
             ...(canApprove ? ([["queue", "Approval queue"]] as [Tab, string][]) : []),
           ] as [Tab, string][]
@@ -161,8 +160,14 @@ function Workstation() {
           <button
             key={key}
             type="button"
+            aria-pressed={tab === key}
             onClick={() => setTab(key)}
-            className={cn(ghost, tab === key && "border-org-primary text-org-primary")}
+            className={cn(
+              "touch-target rounded-md px-4 text-sm font-semibold",
+              tab === key
+                ? "bg-org-primary text-org-primary-foreground"
+                : "text-steel hover:text-graphite",
+            )}
           >
             {text}
           </button>
@@ -173,81 +178,15 @@ function Workstation() {
       {tab === "queue" ? <ApprovalQueue /> : null}
 
       {tab === "programs" ? (
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <div>
-            <Filters filters={filters} setFilters={setFilters} />
-            <div className="mt-3 overflow-x-auto rounded border border-border bg-card">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    {["Program", "Level", "Fields", "Rel.", "Touched"].map((head) => (
-                      <th
-                        key={head}
-                        className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-steel uppercase"
-                      >
-                        {head}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.isPending ? (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-6 text-sm text-steel">
-                        Loading programs…
-                      </td>
-                    </tr>
-                  ) : rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-6 text-sm text-steel">
-                        No programs match these filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        onClick={() => select(row.id)}
-                        className={cn(
-                          "h-[38px] cursor-pointer border-b border-border last:border-0 hover:bg-muted/60",
-                          row.id === selected && "bg-muted",
-                        )}
-                      >
-                        <td className="max-w-[170px] truncate px-3 py-1.5 whitespace-nowrap text-graphite">
-                          {row.school}
-                          {row.state ? <span className="text-steel"> · {row.state}</span> : null}
-                        </td>
-                        <td
-                          className="px-3 py-1.5 whitespace-nowrap text-steel"
-                          title={
-                            row.conference
-                              ? `${row.conference}${row.conferenceConfirmed ? "" : " (not confirmed)"}`
-                              : "Conference not on file"
-                          }
-                        >
-                          {[row.governingBody, row.division].filter(Boolean).join(" ") || "—"}
-                        </td>
-
-                        <td className="tabular px-3 py-1.5 whitespace-nowrap text-graphite">
-                          {row.filled} / {INTEL_FIELD_COUNT}
-                        </td>
-                        <td className="px-3 py-1.5 whitespace-nowrap text-steel">
-                          {STRENGTH_CHOICES.find((c) => c.value === row.strength)?.label ??
-                            "Not rated"}
-                        </td>
-                        <td
-                          className="px-3 py-1.5 whitespace-nowrap text-steel"
-                          title={row.lastBy ? `Last touched by ${row.lastBy}` : ""}
-                        >
-                          {row.lastAt ? new Date(row.lastAt).toLocaleDateString() : "Never"}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <div className="mt-4 grid items-start gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <ProgramSwitcher
+            filters={filters}
+            setFilters={setFilters}
+            rows={rows}
+            loading={list.isPending}
+            selected={selected}
+            onSelect={select}
+          />
 
           <div>
             {selected ? (
@@ -259,7 +198,14 @@ function Workstation() {
                 nextLabel={next?.school ?? null}
               />
             ) : (
-              <p className="py-6 text-sm text-steel">Pick a program from the list to write it up.</p>
+              <div className="rounded-lg border border-border bg-card p-10 text-center">
+                <h2 className="font-display text-xl font-bold text-graphite">
+                  Nothing open yet
+                </h2>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-steel">
+                  Type a school name on the left, or pick one of the queues, to start writing.
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -268,152 +214,236 @@ function Workstation() {
   );
 }
 
-function Filters({
+/* ------------------------------------------------------------------ */
+/* Left rail: find a program fast, no wall of filters                   */
+/* ------------------------------------------------------------------ */
+
+const QUEUES: { key: string; text: string; patch: Record<string, unknown> }[] = [
+  { key: "all", text: "All", patch: { coverage: "any", status: "", author: "any" } },
+  { key: "review", text: "Needs review", patch: { coverage: "any", status: "pending", author: "any" } },
+  { key: "mine", text: "Mine", patch: { coverage: "any", status: "", author: "mine" } },
+  { key: "written", text: "Written up", patch: { coverage: "has", status: "", author: "any" } },
+  { key: "empty", text: "Nothing yet", patch: { coverage: "none", status: "", author: "any" } },
+];
+
+function activeQueue(filters: any) {
+  if (filters.status === "pending") return "review";
+  if (filters.author === "mine") return "mine";
+  if (filters.coverage === "has") return "written";
+  if (filters.coverage === "none") return "empty";
+  return "all";
+}
+
+function ProgramSwitcher({
   filters,
   setFilters,
+  rows,
+  loading,
+  selected,
+  onSelect,
 }: {
   filters: any;
   setFilters: (next: any) => void;
+  rows: any[];
+  loading: boolean;
+  selected: string | null;
+  onSelect: (id: string) => void;
 }) {
+  const [advanced, setAdvanced] = useState(false);
   const set = (patch: Record<string, unknown>) => setFilters({ ...filters, ...patch });
   const divisions = DIVISIONS_BY_BODY[filters.governingBody] ?? [];
+  const queue = activeQueue(filters);
+  const shown = rows.slice(0, 40);
+
   return (
-    <div className="rounded border border-border bg-card p-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <span className={label}>Sport</span>
-          <div className="flex gap-2">
-            {["baseball", "softball"].map((sport) => (
-              <button
-                key={sport}
-                type="button"
-                onClick={() => set({ sport })}
-                className={cn(ghost, filters.sport === sport && "border-org-primary text-org-primary")}
+    <div className="rounded-lg border border-border bg-card">
+      <div className="border-b border-border p-3">
+        <div className="inline-flex w-full rounded-md border border-border p-0.5">
+          {(["baseball", "softball"] as const).map((sport) => (
+            <button
+              key={sport}
+              type="button"
+              onClick={() => set({ sport })}
+              className={cn(
+                "h-8 flex-1 rounded-sm text-sm font-semibold",
+                filters.sport === sport
+                  ? "bg-org-primary text-org-primary-foreground"
+                  : "text-steel hover:text-graphite",
+              )}
+            >
+              {sport === "baseball" ? "Baseball" : "Softball"}
+            </button>
+          ))}
+        </div>
+
+        <input
+          className={cn(input, "mt-2 h-9")}
+          value={filters.q}
+          onChange={(e) => set({ q: e.target.value })}
+          placeholder="Jump to a school…"
+        />
+
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {QUEUES.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              aria-pressed={queue === item.key}
+              onClick={() => set(item.patch)}
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-[12px] font-semibold",
+                queue === item.key
+                  ? "border-org-accent bg-org-accent-tint text-org-accent-strong"
+                  : "border-border text-steel hover:text-graphite",
+              )}
+            >
+              {item.text}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setAdvanced((open) => !open)}
+          className="mt-2 text-[12px] font-semibold text-org-primary underline decoration-dotted underline-offset-4"
+        >
+          {advanced ? "Hide narrowing" : "Narrow by level, place or date"}
+        </button>
+
+        {advanced ? (
+          <div className="mt-2 grid gap-2">
+            <div>
+              <span className={label}>Location</span>
+              <select
+                className={input}
+                value={filters.region}
+                onChange={(e) => set({ region: e.target.value })}
               >
-                {sport === "baseball" ? "Baseball" : "Softball"}
-              </button>
-            ))}
+                <option value="">Anywhere</option>
+                {REGIONS.map((region) => (
+                  <option key={region} value={region}>
+                    {region}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className={label}>Body</span>
+                <select
+                  className={input}
+                  value={filters.governingBody}
+                  onChange={(e) => set({ governingBody: e.target.value, division: "" })}
+                >
+                  <option value="">Any</option>
+                  {["NCAA", "NAIA", "NJCAA", "CCCAA", "NWAC"].map((body) => (
+                    <option key={body} value={body}>
+                      {body}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <span className={label}>Division</span>
+                <select
+                  className={input}
+                  value={filters.division}
+                  onChange={(e) => set({ division: e.target.value })}
+                  disabled={!divisions.length}
+                >
+                  <option value="">Any</option>
+                  {divisions.map((division) => (
+                    <option key={division} value={division}>
+                      {division}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <span className={label}>Conference</span>
+              <input
+                className={input}
+                value={filters.conference}
+                onChange={(e) => set({ conference: e.target.value })}
+                placeholder="Exact conference name"
+              />
+            </div>
+            <div>
+              <span className={label}>Relationship strength</span>
+              <select
+                className={input}
+                value={filters.strength}
+                onChange={(e) => set({ strength: e.target.value })}
+              >
+                <option value="">Any</option>
+                {STRENGTH_CHOICES.map((choice) => (
+                  <option key={choice.value} value={choice.value}>
+                    {choice.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <span className={label}>Not updated since</span>
+              <input
+                type="date"
+                className={input}
+                value={filters.staleBefore}
+                onChange={(e) => set({ staleBefore: e.target.value })}
+              />
+            </div>
           </div>
-        </div>
-        <div>
-          <span className={label}>School name</span>
-          <input
-            className={input}
-            value={filters.q}
-            onChange={(e) => set({ q: e.target.value })}
-            placeholder="Search schools"
-          />
-        </div>
-        <div>
-          <span className={label}>Location</span>
-          <select className={input} value={filters.region} onChange={(e) => set({ region: e.target.value })}>
-            <option value="">Anywhere</option>
-            {REGIONS.map((region) => (
-              <option key={region} value={region}>
-                {region}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <span className={label}>Governing body</span>
-            <select
-              className={input}
-              value={filters.governingBody}
-              onChange={(e) => set({ governingBody: e.target.value, division: "" })}
-            >
-              <option value="">Any</option>
-              {["NCAA", "NAIA", "NJCAA", "CCCAA", "NWAC"].map((body) => (
-                <option key={body} value={body}>
-                  {body}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <span className={label}>Division</span>
-            <select
-              className={input}
-              value={filters.division}
-              onChange={(e) => set({ division: e.target.value })}
-              disabled={!divisions.length}
-            >
-              <option value="">Any</option>
-              {divisions.map((division) => (
-                <option key={division} value={division}>
-                  {division}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div>
-          <span className={label}>Conference</span>
-          <input
-            className={input}
-            value={filters.conference}
-            onChange={(e) => set({ conference: e.target.value })}
-            placeholder="Exact conference name"
-          />
-        </div>
-        <div>
-          <span className={label}>Coverage</span>
-          <select
-            className={input}
-            value={filters.coverage}
-            onChange={(e) => set({ coverage: e.target.value })}
-          >
-            <option value="any">Any</option>
-            <option value="has">Has intelligence</option>
-            <option value="none">None yet</option>
-          </select>
-        </div>
-        <div>
-          <span className={label}>Relationship strength</span>
-          <select
-            className={input}
-            value={filters.strength}
-            onChange={(e) => set({ strength: e.target.value })}
-          >
-            <option value="">Any</option>
-            {STRENGTH_CHOICES.map((choice) => (
-              <option key={choice.value} value={choice.value}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <span className={label}>Written by</span>
-          <select className={input} value={filters.author} onChange={(e) => set({ author: e.target.value })}>
-            <option value="any">Anyone</option>
-            <option value="mine">Me</option>
-          </select>
-        </div>
-        <div>
-          <span className={label}>Stage</span>
-          <select className={input} value={filters.status} onChange={(e) => set({ status: e.target.value })}>
-            <option value="">Any</option>
-            <option value="pending">Awaiting review</option>
-            <option value="changes_requested">Sent back</option>
-            <option value="rejected">Rejected</option>
-            <option value="approved">Approved</option>
-          </select>
-        </div>
-        <div>
-          <span className={label}>Not updated since</span>
-          <input
-            type="date"
-            className={input}
-            value={filters.staleBefore}
-            onChange={(e) => set({ staleBefore: e.target.value })}
-          />
-        </div>
+        ) : null}
       </div>
+
+      <ul className="max-h-[520px] overflow-y-auto">
+        {loading ? (
+          <li className="p-3 text-sm text-steel">Loading…</li>
+        ) : shown.length === 0 ? (
+          <li className="p-3 text-sm text-steel">Nothing here. Try another queue or name.</li>
+        ) : (
+          shown.map((row) => (
+            <li key={row.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(row.id)}
+                className={cn(
+                  "flex w-full items-center justify-between gap-2 border-b border-border px-3 py-2 text-left hover:bg-muted/60",
+                  row.id === selected && "bg-org-primary-tint",
+                )}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-graphite">
+                    {row.school}
+                  </span>
+                  <span className="meta block truncate">
+                    {[row.governingBody, row.division].filter(Boolean).join(" ") || "Level unknown"}
+                    {row.state ? ` · ${row.state}` : ""}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  {row.statuses.includes("pending") ? (
+                    <span className="size-2 rounded-full bg-org-accent" title="Awaiting review" />
+                  ) : null}
+                  <span className="tabular text-[11px] font-semibold text-steel">
+                    {row.filled}/{INTEL_FIELD_COUNT}
+                  </span>
+                </span>
+              </button>
+            </li>
+          ))
+        )}
+        {!loading && rows.length > shown.length ? (
+          <li className="p-3 text-xs text-steel">
+            Showing the first {shown.length} of {rows.length}. Type a name to go straight to one.
+          </li>
+        ) : null}
+      </ul>
     </div>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /* The editing panel                                                    */
