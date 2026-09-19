@@ -6,6 +6,7 @@ import { Flag, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityChips } from "@/components/list/ActivityChips";
+import { OutreachComposer } from "@/components/list/OutreachComposer";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
