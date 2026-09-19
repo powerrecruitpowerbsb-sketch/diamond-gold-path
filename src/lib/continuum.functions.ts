@@ -206,12 +206,19 @@ export const deleteStage = createServerFn({ method: "POST" })
 
 export const getCollegeList = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { athleteId?: string } | undefined) => ({
+  .inputValidator((input: { athleteId?: string; sport?: string } | undefined) => ({
     athleteId: str(input?.athleteId) || null,
+    sport: str(input?.sport) || null,
   }))
   .handler(async ({ context, data }) => {
     const viewer = await resolveViewer(context as any);
-    const athletes = await visibleAthletes(context as any, viewer);
+    const all = await visibleAthletes(context as any, viewer);
+
+    // Staff work one sport at a time; a family's own athlete is always shown,
+    // whichever sport the header happens to be set to.
+    const athletes =
+      data.sport && viewer.isStaff ? all.filter((a) => a['sport'] === data.sport) : all;
+
 
     // Staff default to every athlete at once; a family only ever has their own.
     const wantsAll = data.athleteId === "all" || (!data.athleteId && viewer.isStaff);
