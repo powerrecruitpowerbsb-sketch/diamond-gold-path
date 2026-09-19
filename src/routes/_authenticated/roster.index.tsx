@@ -139,7 +139,7 @@ function RosterScreen() {
             value={q}
             onChange={(event) => setQ(event.target.value)}
             placeholder="Search by name"
-            className="touch-target w-full rounded-lg border border-border bg-chalk pl-9 pr-3 text-sm text-graphite outline-none focus:border-org-primary"
+            className="touch-target w-full rounded-lg border border-border bg-surface-2 pl-9 pr-3 text-sm text-graphite outline-none focus:border-org-primary"
           />
         </label>
         <label className="flex items-center gap-2 text-sm text-steel">
@@ -182,7 +182,7 @@ function RosterScreen() {
 
       <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
         <table className="w-full text-left text-sm tabular-nums">
-          <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
+          <thead className="bg-surface-2 font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Sport</th>
@@ -227,7 +227,7 @@ function RosterScreen() {
               </tr>
             ) : (
               (data?.athletes ?? []).map((athlete) => (
-                <tr key={athlete['id']} className="border-t border-border/70 hover:bg-chalk/60">
+                <tr key={athlete['id']} className="border-t border-border/70 transition-colors hover:bg-surface-2/70">
                   <td className="px-4 py-3 font-semibold text-graphite">
                     <Link
                       to="/roster/$id"
