@@ -111,14 +111,27 @@ export function SchoolSheet({
 
         {entry ? (
           <Tabs defaultValue={defaultTab ?? "overview"} className="px-5 py-5 sm:px-7">
-            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
-              <TabsTrigger value="email">Email coach</TabsTrigger>
-              <TabsTrigger value="roster">Roster</TabsTrigger>
-              <TabsTrigger value="fit">True fit</TabsTrigger>
-              <TabsTrigger value="intel">Intelligence</TabsTrigger>
-              <TabsTrigger value="notes">Notes &amp; Messages</TabsTrigger>
+            <TabsList className="sticky top-0 z-20 -mx-5 h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto border-b border-border bg-background/95 px-5 py-0 backdrop-blur sm:-mx-7 sm:px-7">
+              {(
+                [
+                  ["overview", "Overview"],
+                  ["activity", "Activity"],
+                  ["email", "Email coach"],
+                  ["academics", "Academics & cost"],
+                  ["roster", "Roster"],
+                  ["fit", "True fit"],
+                  ["intel", "Intelligence"],
+                  ["notes", "Notes & Messages"],
+                ] as [string, string][]
+              ).map(([value, label]) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="touch-target rounded-none border-0 bg-transparent px-3 py-2.5 text-sm font-semibold whitespace-nowrap text-steel shadow-none data-[state=active]:bg-transparent data-[state=active]:text-org-primary data-[state=active]:shadow-[inset_0_-2px_0_0_var(--org-primary)]"
+                >
+                  {label}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
             <TabsContent value="fit" className="pt-5">
