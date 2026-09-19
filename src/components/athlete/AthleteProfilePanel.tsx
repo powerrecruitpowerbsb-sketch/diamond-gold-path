@@ -12,6 +12,7 @@ import {
   saveAthleteMetric,
   saveAthleteProfile,
   saveScheduleEvent,
+  setAthleteSharing,
 } from "@/lib/athlete-profile.functions";
 import {
   formatHeight,
@@ -99,6 +100,16 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
     onSuccess: async () => {
       await invalidate();
       toast.success("Player card saved");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const share = useMutation({
+    mutationFn: async (input: { enabled: boolean; shareContact: boolean }) =>
+      setSharingFn({ data: { athleteId, ...input } }),
+    onSuccess: async (result) => {
+      await invalidate();
+      toast.success(result.enabled ? "Shareable link is live" : "Sharing turned off");
     },
     onError: (err) => toast.error((err as Error).message),
   });
