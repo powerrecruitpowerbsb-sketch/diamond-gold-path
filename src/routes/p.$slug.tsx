@@ -134,7 +134,7 @@ function ScoutCard() {
                   <tr key={String(metric['metric_key'])}>
                     <td className="py-1.5 text-graphite">{metricLabel(String(metric['metric_key']))}</td>
                     <td className="py-1.5 text-right font-mono font-semibold text-graphite">
-                      {formatMetric(String(metric['metric_key']), Number(metric['value']))}
+                      {formatMetric(metric['value'], String(metric['metric_key']))}
                     </td>
                     <td className="py-1.5 pl-4 text-right font-mono text-[11px] text-steel">
                       {[
