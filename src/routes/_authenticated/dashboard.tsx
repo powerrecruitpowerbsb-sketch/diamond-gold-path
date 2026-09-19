@@ -123,7 +123,7 @@ function Dashboard() {
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <BarCard
           title="Targets by division"
-          hint="Schools across every athlete's shortlist"
+          hint="Every school your athletes are tracking."
           rows={DIVISION_BUCKETS.map((bucket) => ({
             label: bucket,
             count: data?.byDivision?.[bucket] ?? 0,
@@ -134,16 +134,17 @@ function Dashboard() {
         />
         <BarCard
           title="Targets by region"
-          hint="Where the class is looking"
+          hint="Where your class is looking."
           rows={data?.byRegion ?? []}
           max={regionMax}
           barClass="bg-org-accent"
           loading={isPending}
         />
         <BarCard
-          title="Pipeline by status"
-          hint="Every saved school by stage"
+          title="Pipeline by stage"
+          hint="Tap a stage to see just those athletes."
           rows={SHORTLIST_STATUSES.map((status) => ({
+            key: status,
             label: SHORTLIST_STATUS_LABEL[status],
             count: data?.byStatus?.[status] ?? 0,
             barClass: STATUS_DOT[status],
@@ -151,15 +152,18 @@ function Dashboard() {
           max={statusMax}
           barClass="bg-org-primary"
           loading={isPending}
+          onSelect={(key) => setStageFilter(key as ShortlistStatus | null)}
+          activeKey={stageFilter}
         />
       </div>
 
       <section className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-bold text-graphite">Roster pipeline</h2>
+            <h2 className="font-display text-xl font-bold text-org-primary">Your athletes</h2>
             <p className="text-sm text-steel">
               {athletes.length} athlete{athletes.length === 1 ? "" : "s"} shown
+              {stageFilter ? ` at ${SHORTLIST_STATUS_LABEL[stageFilter].toLowerCase()}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
