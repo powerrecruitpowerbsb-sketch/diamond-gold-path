@@ -41,6 +41,7 @@
   --color-org-accent-tint: var(--org-accent-tint);
   --color-org-accent-foreground: var(--org-accent-foreground);
   --color-org-primary-tint: var(--org-primary-tint);
+  --color-org-primary-foreground: var(--org-primary-foreground);
   --color-track: var(--track);
 
   /*
@@ -118,6 +119,9 @@
   --org-accent-tint: color-mix(in oklab, var(--org-accent) 14%, white);
   --org-accent-foreground: #12233a;
   --org-primary-tint: color-mix(in oklab, var(--org-primary) 10%, white);
+  /* Text/icons sitting on a filled --org-primary surface. Recomputed at runtime
+     when the active sport inverts the brand colors. */
+  --org-primary-foreground: #ffffff;
   --track: #dfe3ea;
 
   /* Baseball is the default sport mark: the organization's primary color. */
