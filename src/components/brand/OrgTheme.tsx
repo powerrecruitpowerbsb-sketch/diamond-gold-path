@@ -121,7 +121,7 @@ export function OrgTheme({
   // Brand primary as readable text on midnight.
   style["--org-primary-strong"] = `color-mix(in oklab, ${effPrimary} 82%, white)`;
   style["--org-primary-foreground"] = readableOn(effPrimary) ?? "#0a0f18";
-  style["--navy-deep"] = blend(effPrimary, "#080d15", 0.18) ?? "#0b1422";
+  style["--navy-deep"] = blend(effPrimary, "#080d15", 0.1) ?? "#0b1422";
 
   style["--org-accent"] = effAccent;
   style["--org-accent-strong"] = `color-mix(in oklab, ${effAccent} 88%, white)`;
