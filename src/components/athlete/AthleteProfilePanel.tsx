@@ -23,14 +23,24 @@ import {
   formatMetric,
   latestByMetric,
   metricDef,
+  metricGroupsForSport,
   metricLabel,
   metricSourceLabel,
+  metricSourceShort,
+  metricSourcesForSport,
   metricStep,
   metricUnit,
-  metricsForSport,
   parseHeightInput,
   splitHeight,
 } from "@/lib/athlete-metrics";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 
 import { HelpTip } from "@/components/brand/HelpTip";
 import { normalizeSport } from "@/lib/sport";
