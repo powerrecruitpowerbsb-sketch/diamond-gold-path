@@ -537,6 +537,44 @@ export type Database = {
           },
         ]
       }
+      crawl_progress: {
+        Row: {
+          outcome: Json | null
+          pass: string
+          players: number
+          program_id: string
+          reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          outcome?: Json | null
+          pass: string
+          players?: number
+          program_id: string
+          reason?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          outcome?: Json | null
+          pass?: string
+          players?: number
+          program_id?: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crawl_progress_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_field_sources: {
         Row: {
           created_at: string
