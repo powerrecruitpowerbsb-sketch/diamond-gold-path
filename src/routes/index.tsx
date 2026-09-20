@@ -1,13 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-
-import { getPublicStats } from "@/lib/console.functions";
+import { useEffect } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BadgeCheck, Database, ShieldCheck } from "lucide-react";
 
-import { AppShell } from "@/components/brand/AppShell";
-import { AuthButton } from "@/components/brand/AuthButton";
-import { StadiumHero } from "@/components/brand/StadiumHero";
-import { IntelBlock, SourceLine, VerifiedChip } from "@/components/brand/DataSignals";
-import { Card } from "@/components/ui/card";
+import { getPublicStats } from "@/lib/console.functions";
+import { useMyAccount } from "@/hooks/use-my-account";
+import { routeForRole } from "@/lib/role-routes";
+import { OrgMark } from "@/components/brand/OrgMark";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
@@ -17,7 +15,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Research college baseball and softball programs with verified academic, athletic and cost data alongside proprietary staff intelligence.",
+          "Sign in to Power Recruit to research college baseball and softball programs with verified academic, athletic and cost data alongside staff intelligence.",
       },
       { property: "og:title", content: "Power Recruit — Recruiting Research Platform" },
       {
@@ -25,6 +23,8 @@ export const Route = createFileRoute("/")({
         content:
           "Verified program, academic and cost data for college baseball and softball, paired with staff intelligence.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   loader: async () => await getPublicStats(),
@@ -33,91 +33,96 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const stats = Route.useLoaderData();
+  const navigate = useNavigate();
+  const { account, signedIn } = useMyAccount();
+
+  // Signed-in people never need the front door — send them straight to work.
+  useEffect(() => {
+    if (signedIn && account) {
+      navigate({ to: routeForRole(account.primaryRole), replace: true });
+    }
+  }, [signedIn, account, navigate]);
+
   const fmt = (value: number) => value.toLocaleString("en-US");
-  const verifiedFields = [
+  const figures = [
     { label: "Programs tracked", value: fmt(stats.programs) },
     { label: "Universities", value: fmt(stats.schools) },
     { label: "Roster entries", value: fmt(stats.players) },
     { label: "Sourced fields", value: fmt(stats.sourcedFields) },
   ];
 
+  const points = [
+    {
+      icon: BadgeCheck,
+      title: "Verified data",
+      body: "Tuition, enrollment, admissions and roster figures carry a source link and a verification date on the field itself.",
+    },
+    {
+      icon: Database,
+      title: "One shared college database",
+      body: "Universities, programs, majors, rosters and classifications maintained centrally and read by every organization.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Scoped by organization",
+      body: "Staff, parents and players read the shared database. Only platform staff can change it, and every edit is logged.",
+    },
+  ];
+
   return (
-    <AppShell right={<AuthButton />}>
-      <StadiumHero
-        eyebrow="College baseball & softball"
-        headline="Recruiting research that separates fact from opinion."
-        subhead="Every academic, athletic and cost figure is sourced and dated. Every judgment call is labeled as ours. No blended guesswork."
-        stats={verifiedFields}
-        actions={
-          <>
-            <Button
-              asChild
-              className="touch-target bg-seam-red px-6 text-base font-semibold text-white hover:bg-seam-red/90"
-            >
-              <Link to="/auth">Sign in to research</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="touch-target border-white/25 bg-transparent px-6 text-base text-white hover:bg-white/10 hover:text-white"
-            >
-              <Link to="/admin">Staff console</Link>
-            </Button>
-          </>
-        }
-      />
-
-      <section className="mt-10 grid gap-5 md:grid-cols-3">
-        <Card className="rounded-xl border-0 p-6">
-          <BadgeCheck className="size-6 text-diamond-green" aria-hidden />
-          <h2 className="mt-4 text-lg font-semibold">Verified Data</h2>
-          <p className="mt-2 text-sm text-steel">
-            Tuition, enrollment, admissions and roster figures carry a source link and a
-            verification date on the field itself.
-          </p>
-          <div className="mt-4">
-            <VerifiedChip>Verified field</VerifiedChip>
-          </div>
-        </Card>
-
-        <Card className="rounded-xl border-0 p-6">
-          <Database className="size-6 text-org-primary" aria-hidden />
-          <h2 className="mt-4 text-lg font-semibold">One shared college database</h2>
-          <p className="mt-2 text-sm text-steel">
-            Universities, programs, majors, rosters and classifications maintained centrally and
-            read by every organization.
-          </p>
-          <SourceLine
-            className="mt-4"
-            sourceLabel="Institutional websites"
-            lastVerifiedAt={new Date().toISOString()}
-          />
-        </Card>
-
-        <Card className="rounded-xl border-0 p-6">
-          <ShieldCheck className="size-6 text-org-primary" aria-hidden />
-          <h2 className="mt-4 text-lg font-semibold">Scoped by organization</h2>
-          <p className="mt-2 text-sm text-steel">
-            Staff, parents and players read the shared database. Only platform staff can change
-            it, and every edit is logged.
-          </p>
-        </Card>
-      </section>
-
-      <section className="mt-10 grid gap-5 lg:grid-cols-2">
-        <IntelBlock>
-          Roster construction at this level leans heavily on JUCO arms in the spring. Expect a
-          walk-on-first conversation unless the recruit is a two-way with a plus fastball.
-        </IntelBlock>
-
-        <div className="rounded border border-border bg-card p-5">
-          <p className="text-sm text-steel">
-            Every academic, athletic and cost figure on a school's page carries the source it came
-            from and the date it was last checked. Judgment calls are labelled as ours.
-          </p>
-          <VerifiedChip className="mt-4">Sourced and dated</VerifiedChip>
+    <div className="stadium-gradient min-h-screen">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-5 py-8 sm:px-8 sm:py-12">
+        <div className="flex items-center gap-2.5">
+          <OrgMark logoUrl={null} name={null} size={32} className="bg-white/10" />
+          <span className="font-display text-lg font-bold text-white">Power Recruit</span>
         </div>
-      </section>
-    </AppShell>
+
+        <div className="flex flex-1 flex-col justify-center py-12">
+          <p className="mb-4 font-mono text-[11px] font-medium tracking-[0.18em] text-org-accent uppercase">
+            College baseball &amp; softball
+          </p>
+          <h1 className="max-w-3xl font-display text-[2.5rem] leading-[1.05] font-bold text-white sm:text-[3.5rem]">
+            Recruiting research that separates fact from opinion.
+          </h1>
+          <p className="mt-5 max-w-2xl text-base text-white/75 sm:text-lg">
+            Every academic, athletic and cost figure is sourced and dated. Every judgment call is
+            labeled as ours. No blended guesswork.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Button
+              asChild
+              className="touch-target bg-seam-red px-7 text-base font-semibold text-white hover:bg-seam-red/90"
+            >
+              <Link to="/auth">Sign in</Link>
+            </Button>
+            <span className="text-sm text-white/55">
+              Need access? Ask your program admin for an invite code.
+            </span>
+          </div>
+
+          <dl className="mt-14 grid grid-cols-2 gap-x-6 gap-y-8 border-t border-white/12 pt-8 sm:grid-cols-4">
+            {figures.map((figure) => (
+              <div key={figure.label}>
+                <dt className="meta text-white/55">{figure.label}</dt>
+                <dd className="tabular font-display text-3xl font-bold text-white sm:text-4xl">
+                  {figure.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div className="grid gap-6 border-t border-white/12 pt-8 sm:grid-cols-3">
+          {points.map((point) => (
+            <div key={point.title}>
+              <point.icon className="size-5 text-org-accent" aria-hidden />
+              <h2 className="mt-3 text-sm font-semibold text-white">{point.title}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/60">{point.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
