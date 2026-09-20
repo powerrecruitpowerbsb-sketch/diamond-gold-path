@@ -55,11 +55,14 @@ export const countMissingData = createServerFn({ method: "GET" })
  */
 export const listMissingData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input?: { gap?: string; sport?: string; search?: string }) => ({
-    gap: String(input?.gap ?? "any"),
-    sport: String(input?.sport ?? ""),
-    search: String(input?.search ?? "").trim().toLowerCase(),
-  }))
+  .inputValidator(
+    (input?: { gap?: string; sport?: string; search?: string; level?: string }) => ({
+      gap: String(input?.gap ?? "any"),
+      sport: String(input?.sport ?? ""),
+      level: String(input?.level ?? ""),
+      search: String(input?.search ?? "").trim().toLowerCase(),
+    }),
+  )
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
 
