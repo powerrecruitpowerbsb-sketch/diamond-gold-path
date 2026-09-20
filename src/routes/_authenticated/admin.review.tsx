@@ -560,7 +560,6 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
           </p>
         </div>
       ) : groups.length === 0 ? (
-      ) : groups.length === 0 ? (
         <div className="rounded border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-bold text-graphite">Nothing to review</p>
           <p className="mt-1 text-sm text-steel">
