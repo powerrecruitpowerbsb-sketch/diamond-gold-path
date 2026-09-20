@@ -126,6 +126,7 @@ function ContactButton({
 
 function ScoutCard() {
   const card = Route.useLoaderData() as Record<string, any> | null;
+  const { slug } = Route.useParams();
   if (!card?.["athlete"]) return <Missing />;
 
   const a = card["athlete"] as Record<string, any>;
