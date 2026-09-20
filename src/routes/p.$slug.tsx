@@ -150,6 +150,32 @@ function ScoutCard() {
       <header className="stadium-gradient relative overflow-hidden">
         <div className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
           <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="flex min-w-0 items-start gap-5">
+              {/* The player's picture, or the club's mark when none is on file. */}
+              <div className="size-28 shrink-0 overflow-hidden rounded-2xl border border-white/20 bg-white/10 sm:size-32">
+                {a["photo_path"] ? (
+                  <img
+                    src={`/api/public/athlete-photo/${slug}`}
+                    alt={`${String(a["name"])} photo`}
+                    className="size-full object-cover"
+                  />
+                ) : org?.["logo_url"] ? (
+                  <img
+                    src={String(org["logo_url"])}
+                    alt={`${String(org["name"] ?? "Club")} logo`}
+                    className="size-full object-contain p-3"
+                  />
+                ) : (
+                  <span className="font-display grid size-full place-items-center text-3xl font-bold text-white/80">
+                    {String(a["name"] ?? "")
+                      .split(" ")
+                      .map((part) => part.charAt(0))
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </span>
+                )}
+              </div>
             <div className="min-w-0">
               <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">
                 {sport === "softball" ? "Softball" : "Baseball"} recruit
