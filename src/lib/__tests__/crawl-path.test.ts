@@ -137,10 +137,15 @@ describe("the crawl still routes through the entry points", () => {
   });
 
   it("guards the composition summary before writing it", () => {
-    const snapshot = crawl.indexOf('.from("roster_snapshots").insert(');
+    const snapshot = crawl.indexOf('.from("roster_snapshots").upsert(');
     const guard = crawl.indexOf("checkRosterSource(supabase, programId, target.url)");
     expect(guard).toBeGreaterThan(-1);
+    expect(snapshot).toBeGreaterThan(-1);
     expect(guard).toBeLessThan(snapshot);
     expect(crawl).toMatch(/suspect: suspicious/);
+  });
+
+  it("keeps one composition summary per program and season", () => {
+    expect(crawl).toMatch(/onConflict: "program_id,season_year"/);
   });
 });
