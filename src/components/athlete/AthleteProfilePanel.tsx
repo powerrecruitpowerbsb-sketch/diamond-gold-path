@@ -363,6 +363,61 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
           ) : null}
         </div>
 
+        {/* The player's picture. With none on file the organization's own mark
+            stands in, so the card still looks finished. */}
+        <div className="mt-4 flex items-center gap-4">
+          <div className="relative size-24 shrink-0 overflow-hidden rounded-xl border border-border bg-surface-2">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={`${String(athlete['name'] ?? "Player")} photo`}
+                className="size-full object-cover"
+              />
+            ) : (
+              <span className="grid size-full place-items-center">
+                <OrgMark size={44} />
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <SocialLinks
+              twitter={athlete['twitter_handle']}
+              instagram={athlete['instagram_handle']}
+              className="mb-2"
+            />
+            {canEdit ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  ref={photoInput}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void pickPhoto(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  disabled={photoBusy}
+                  onClick={() => photoInput.current?.click()}
+                  className="touch-target inline-flex items-center gap-1.5 rounded-xl border border-dashed border-border px-4 text-sm font-semibold text-steel hover:border-org-primary hover:text-org-primary disabled:opacity-60"
+                >
+                  <ImagePlus className="size-4" aria-hidden />
+                  {photoBusy ? "Saving…" : photoUrl ? "Replace photo" : "Add photo"}
+                </button>
+                {photoUrl ? (
+                  <button
+                    type="button"
+                    disabled={photoBusy}
+                    onClick={() => void removePhoto()}
+                    className="touch-target inline-flex items-center rounded-xl border border-border px-3 text-sm font-semibold text-steel hover:border-seam-red hover:text-seam-red disabled:opacity-60"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
         {!editing ? (
           filledCount === 0 ? (
             <div className="mt-4 rounded-xl border border-dashed border-border bg-surface-2/60 p-6 text-center">
