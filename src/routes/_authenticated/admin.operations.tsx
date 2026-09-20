@@ -53,8 +53,9 @@ function Operations() {
   const countFn = useServerFn(countPendingChanges);
   const { data: pending } = useQuery({
     queryKey: ["pending-changes-count", "operations"],
-    queryFn: () => countFn({ data: {} }),
+    queryFn: () => countFn(),
   });
+  const reviewCount = pending?.pending ?? 0;
 
   const baseline = (data?.baseline ?? {}) as any;
   const blocked = data?.exceptions?.blocked ?? 0;
