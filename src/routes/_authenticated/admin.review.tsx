@@ -551,7 +551,15 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
 
 
       {isPending ? (
-        <div className="h-48 animate-pulse rounded bg-muted" />
+        <div className="rounded border border-border bg-card p-10 text-center">
+          <p className="font-display text-lg font-bold text-graphite">
+            Loading proposed coach &amp; roster updates…
+          </p>
+          <p className="mt-1 text-sm text-steel">
+            Reading the open items and what we currently have saved for each school.
+          </p>
+        </div>
+      ) : groups.length === 0 ? (
       ) : groups.length === 0 ? (
         <div className="rounded border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-bold text-graphite">Nothing to review</p>
