@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -10,12 +10,8 @@ import { Button } from "@/components/ui/button";
 import {
   countPendingDiscoveries,
   listDiscoveredUrls,
-  listUnfoundLinks,
-  markSportNotOffered,
   reviewDiscoveredUrl,
   reviewDiscoveredUrls,
-  setAthleticsSite,
-  setLinkManually,
   sweepDiscoveredLinksFn,
 } from "@/lib/discovery.functions";
 import { classifyLink } from "@/lib/link-quality";
