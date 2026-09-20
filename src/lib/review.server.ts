@@ -196,8 +196,18 @@ export async function replaceRoster(
     };
   }).filter((r: { name: string }) => r.name);
 
+  // One page can print the same player twice (a duplicate listing, or the same
+  // name in two position groups). The stored roster allows one row per player
+  // per season, so keep the first reading of each name.
+  const seenNames = new Set<string>();
+  const uniqueRows = rows.filter((r: { name: string }) => {
+    const key = r.name.trim().toLowerCase();
+    if (seenNames.has(key)) return false;
+    seenNames.add(key);
+    return true;
+  });
 
-  if (!rows.length) throw new Error("Roster proposal contains no named players");
+  if (!uniqueRows.length) throw new Error("Roster proposal contains no named players");
 
   const { error: clearError } = await supabase
     .from("roster_players")
@@ -206,9 +216,9 @@ export async function replaceRoster(
     .eq("season_year", seasonYear);
   if (clearError) throw new Error(clearError.message);
 
-  const { error: insertError } = await supabase.from("roster_players").insert(rows);
+  const { error: insertError } = await supabase.from("roster_players").insert(uniqueRows);
   if (insertError) throw new Error(insertError.message);
-  return rows.length;
+  return uniqueRows.length;
 }
 
 /**
