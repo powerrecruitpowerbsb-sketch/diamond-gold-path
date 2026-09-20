@@ -24,7 +24,7 @@ export const getOperationsOverview = createServerFn({ method: "GET" })
     const { refreshCycles } = await import("@/lib/operations.server");
 
     const count = async (table: string, apply?: (query: any) => any) => {
-      let query = supabase.from(table).select("*", { count: "exact", head: true });
+      let query = (supabase as any).from(table).select("*", { count: "exact", head: true });
       if (apply) query = apply(query);
       const { count: total, error } = await query;
       if (error) throw new Error(error.message);
