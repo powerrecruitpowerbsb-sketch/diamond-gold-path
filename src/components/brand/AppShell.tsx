@@ -31,7 +31,7 @@ import { isOrgManagerRole, isOwnerRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 
-type NavItem = { to: string; label: string; icon: typeof Home };
+type NavItem = { to: string; label: string; icon: typeof Search };
 
 export function AppShell({ children, right }: { children: ReactNode; right?: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
