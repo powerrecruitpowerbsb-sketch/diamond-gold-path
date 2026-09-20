@@ -89,7 +89,11 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
   const saveEventFn = useServerFn(saveScheduleEvent);
   const deleteEventFn = useServerFn(deleteScheduleEvent);
   const setSharingFn = useServerFn(setAthleteSharing);
+  const setPhotoFn = useServerFn(setAthletePhoto);
   const queryClient = useQueryClient();
+  const photoInput = useRef<HTMLInputElement | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const { data, isPending, error } = useQuery({
     queryKey: ["athlete-profile", athleteId],
