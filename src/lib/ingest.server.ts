@@ -22,6 +22,7 @@ import { verifyPageIdentity } from "@/lib/page-identity";
 import { safeFetch, type SafeFetchResult } from "@/lib/safe-fetch.server";
 import { readRoster } from "@/lib/roster-read.server";
 import { readCoaches } from "@/lib/coach-read.server";
+import { coachPathCandidates } from "@/lib/coach-path";
 import { checkRosterSource, recordRefusal, sourceDomain } from "@/lib/roster-provenance.server";
 
 // The AI Gateway below is a rate-limited data service, not an athletics host: it
