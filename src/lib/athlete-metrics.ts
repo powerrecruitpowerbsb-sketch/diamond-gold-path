@@ -109,6 +109,9 @@ export const METRIC_SOURCES = [
   "handled_reports",
   "perfect_game",
   "prep_baseball_report",
+  "ondeck_softball",
+  "alliance_fastpitch",
+  "blast_motion",
   "other",
 ] as const;
 
@@ -120,13 +123,43 @@ export const METRIC_SOURCE_LABEL: Record<MetricSource, string> = {
   handled_reports: "HandledReports",
   perfect_game: "Perfect Game",
   prep_baseball_report: "Prep Baseball Report",
+  ondeck_softball: "OnDeck Softball",
+  alliance_fastpitch: "Alliance Fastpitch",
+  blast_motion: "Blast Motion",
   other: "Another service",
 };
+
+/** Short badge wording for the card tiles. */
+export const METRIC_SOURCE_SHORT: Record<MetricSource, string> = {
+  manual: "Self-reported",
+  curve_testing: "Curve",
+  handled_reports: "Handled",
+  perfect_game: "PG",
+  prep_baseball_report: "PBR",
+  ondeck_softball: "OnDeck",
+  alliance_fastpitch: "Alliance",
+  blast_motion: "Blast",
+  other: "Other",
+};
+
+/** Services that test this sport, so the picker never offers the wrong one. */
+export function metricSourcesForSport(sport: Sport): MetricSource[] {
+  const baseballOnly: MetricSource[] = ["prep_baseball_report"];
+  const softballOnly: MetricSource[] = ["ondeck_softball", "alliance_fastpitch"];
+  const skip = sport === "softball" ? baseballOnly : softballOnly;
+  return METRIC_SOURCES.filter((s) => !skip.includes(s));
+}
 
 export function metricSourceLabel(source: unknown): string {
   const key = String(source ?? "manual") as MetricSource;
   return METRIC_SOURCE_LABEL[key] ?? String(source);
 }
+
+export function metricSourceShort(source: unknown): string {
+  const key = String(source ?? "manual") as MetricSource;
+  return METRIC_SOURCE_SHORT[key] ?? String(source);
+}
+
 
 export function formatMetric(value: unknown, key: string): string {
   const def = metricDef(key);
