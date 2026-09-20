@@ -218,8 +218,8 @@ function DiscoveryQueue() {
             </p>
             {preview.skippedNoUrl ? (
               <p className="mt-1 text-steel">
-                {preview.skippedNoUrl} more rows had no address at all — nothing to judge, so they sit in
-                "Couldn't find these pages" below instead of your decision count.
+                {preview.skippedNoUrl} more rows had no address at all — those schools are listed on
+                Missing pages &amp; coaches instead.
               </p>
             ) : null}
             {!preview.scanned ? (
