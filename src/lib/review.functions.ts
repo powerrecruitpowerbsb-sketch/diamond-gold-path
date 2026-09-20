@@ -162,7 +162,8 @@ export const countPendingChanges = createServerFn({ method: "GET" })
     // tally scanned the whole 40,000-row history and competed with the queue read
     // for the same connection, which is part of why this screen crawled.
     let pending: number | null = null;
-    const exact = await context.supabase
+    const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
+    const exact = await db
       .from("pending_data_changes")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending");
