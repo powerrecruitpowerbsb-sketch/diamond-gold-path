@@ -88,7 +88,7 @@ function AdminLayout() {
         { to: "/admin/operations", label: "Overview & schedule", exact: true },
         { to: "/admin/review", label: "Review queue", count: needs?.review },
         { to: "/admin/federal-decisions", label: "School identity", count: needs?.identity },
-        { to: "/admin/discovery", label: "Found addresses", count: needs?.discovered },
+        { to: "/admin/discovery", label: "Suggested addresses", count: needs?.discovered },
         { to: "/admin/withheld", label: "Shared addresses", count: needs?.withheld },
         { to: "/admin/blocks", label: "Never propose again", count: needs?.blocks },
       ],
