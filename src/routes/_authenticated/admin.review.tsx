@@ -463,6 +463,15 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
             variant="outline"
             className="touch-target"
             disabled={busy}
+            onClick={() => approveCoaches.mutate()}
+          >
+            <ShieldCheck className="size-4" aria-hidden />
+            Approve all real coach names
+          </Button>
+          <Button
+            variant="outline"
+            className="touch-target"
+            disabled={busy}
             onClick={() => approveMatching.mutate()}
           >
             <ShieldCheck className="size-4" aria-hidden />
