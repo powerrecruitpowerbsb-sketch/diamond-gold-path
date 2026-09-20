@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   approveCorrectedChange,
+  approveCleanCoachChanges,
   approveMatchingChanges,
   approvePendingChanges,
   countPendingChanges,
@@ -144,6 +145,7 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
   const rejectFn = useServerFn(rejectPendingChanges);
   const sweepFn = useServerFn(sweepReviewQueue);
   const approveMatchingFn = useServerFn(approveMatchingChanges);
+  const approveCoachesFn = useServerFn(approveCleanCoachChanges);
   const correctFn = useServerFn(approveCorrectedChange);
 
   const [search, setSearch] = useState("");
