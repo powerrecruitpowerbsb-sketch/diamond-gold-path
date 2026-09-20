@@ -60,10 +60,60 @@ type Outcome = {
 
 type State = { pass: string; done: Record<string, Outcome>; quarantine?: unknown };
 
+const PASS = "2026-09-12-full-crawl";
 const state: State = existsSync(STATE)
   ? (JSON.parse(readFileSync(STATE, "utf8")) as State)
-  : { pass: "2026-09-12-full-crawl", done: {} };
+  : { pass: PASS, done: {} };
 const save = () => writeFileSync(STATE, JSON.stringify(state));
+
+/**
+ * The checkpoint lives in the database, not in /tmp.
+ *
+ * The sandbox clears /tmp whenever it restarts, which used to throw the run back
+ * to the first team and made completion impossible. Every finished team is now
+ * recorded in public.crawl_progress, so a restart resumes where it stopped.
+ */
+async function loadDoneIds(): Promise<Set<string>> {
+  const done = new Set<string>(Object.keys(state.done));
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb
+      .from("crawl_progress")
+      .select("program_id")
+      .eq("pass", PASS)
+      .order("program_id", { ascending: true })
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as { program_id: string }[];
+    for (const row of rows) done.add(row.program_id);
+    if (rows.length < 1000) break;
+  }
+  return done;
+}
+
+async function recordDone(outcome: Outcome) {
+  const { error } = await sb.from("crawl_progress").upsert(
+    {
+      pass: PASS,
+      program_id: outcome.id,
+      status: outcome.status,
+      players: outcome.players,
+      reason: outcome.reason || null,
+      outcome: outcome as unknown as Record<string, unknown>,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "pass,program_id" },
+  );
+  // A checkpoint write must never lose the work it is recording.
+  if (error) console.error(`checkpoint failed for ${outcome.id}: ${error.message}`);
+}
+
+async function doneCount(): Promise<number> {
+  const { count } = await sb
+    .from("crawl_progress")
+    .select("program_id", { count: "exact", head: true })
+    .eq("pass", PASS);
+  return count ?? 0;
+}
 
 /* --------------------------------- heartbeat ------------------------------- */
 const HEARTBEAT = "/tmp/crawl/heartbeat.json";
@@ -258,6 +308,7 @@ if (quarantinePhase) {
           const p = now[cursor++]!;
           const result = await crawlOne(p);
           state.done[p.id] = result;
+          await recordDone(result);
           save();
           console.log(`[lifted] ${result.school} ${result.sport}: ${result.status} ${result.players}p`);
           beat(`[lifted] ${result.school} ${result.sport}`, now.length);
@@ -268,8 +319,9 @@ if (quarantinePhase) {
   console.log("quarantine phase complete");
 } else {
   const all = await population();
-  const todo = spreadByHost(all.filter((p) => !state.done[p.id]));
-  console.log(`population ${all.length}; already done ${Object.keys(state.done).length}; to do ${todo.length}`);
+  const alreadyDone = await loadDoneIds();
+  const todo = spreadByHost(all.filter((p) => !alreadyDone.has(p.id)));
+  console.log(`population ${all.length}; already done ${alreadyDone.size}; to do ${todo.length}`);
 
   let cursor = 0;
   let n = 0;
@@ -279,26 +331,28 @@ if (quarantinePhase) {
         const p = todo[cursor++]!;
         const result = await crawlOne(p);
         state.done[p.id] = result;
+        await recordDone(result);
         n += 1;
         if (n % 5 === 0) save();
         beat(`${result.school} ${result.sport}: ${result.status}`, all.length);
         if (n % 25 === 0) {
           console.log(
-            `${Object.keys(state.done).length}/${all.length} — ${result.school} ${result.sport}: ${result.status} ${result.players}p`,
+            `${alreadyDone.size + n}/${all.length} — ${result.school} ${result.sport}: ${result.status} ${result.players}p`,
           );
         }
       }
     }),
   );
   save();
-  const done = Object.values(state.done);
+  const done = await doneCount();
+  const passResults = Object.values(state.done);
   console.log(
     JSON.stringify(
       {
-        done: done.length,
-        remaining: all.length - done.length,
-        withPlayers: done.filter((d) => d.players > 0).length,
-        refusedRoster: done.filter((d) => d.reason.startsWith("roster write refused")).length,
+        done,
+        remaining: all.length - done,
+        withPlayers: passResults.filter((d) => d.players > 0).length,
+        refusedRoster: passResults.filter((d) => d.reason.startsWith("roster write refused")).length,
       },
       null,
       2,

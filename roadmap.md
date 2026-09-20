@@ -15,7 +15,7 @@
 
 ## Open
 - [x] League pass applied 2026-09-20: 149 league + 65 NJCAA rows marked not_offered (run 99db7ebf, 207 already were), and 17 of the 556 matched rows confirmed as offered (run 119ec3f2; the other 539 were already verified). Both reversible from program_level_archive. Counts now: 3,123 verified / 369 not_offered / 112 unverified.
-- Crawl itself: NOT started, awaiting the go-ahead.
+- Crawl running since 2026-09-20; progress is checkpointed in public.crawl_progress (pass + program), so a sandbox restart resumes instead of re-reading from the first team.
 - Coach extraction only names a head coach on 16% of sampled programs; 36% of coach addresses are 404 and 15% blocked (fallback above should lift this; measure on the next crawl).
 
 ## Extraction gaps to close before the crawl (requested 2026-09-12)
