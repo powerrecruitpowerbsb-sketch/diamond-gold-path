@@ -64,49 +64,36 @@ function AdminLayout() {
 
   const sections: ConsoleNavSection[] = [
     {
-      label: "Needs you",
-      to: "/admin",
+      label: "Data operations",
+      to: "/admin/operations",
       count: waiting || undefined,
       items: [
-        { to: "/admin/withheld", label: "Withheld links", count: needs?.withheld },
-        { to: "/admin/blocks", label: "Permanent blocks", count: needs?.blocks },
-        { to: "/admin/federal-decisions", label: "School identity", count: needs?.identity },
-        { to: "/admin/discovery", label: "Discovered links", count: needs?.discovered },
+        { to: "/admin/operations", label: "Overview & schedule", exact: true },
         { to: "/admin/review", label: "Review queue", count: needs?.review },
+        { to: "/admin/federal-decisions", label: "School identity", count: needs?.identity },
+        { to: "/admin/discovery", label: "Found addresses", count: needs?.discovered },
+        { to: "/admin/withheld", label: "Shared addresses", count: needs?.withheld },
+        { to: "/admin/blocks", label: "Never propose again", count: needs?.blocks },
       ],
     },
     {
-      label: "Collection",
+      label: "Colleges & teams",
       items: [
-        { to: "/admin/operations", label: "Data operations" },
-        { to: "/admin/pipeline", label: "Live run" },
-        { to: "/admin/build", label: "Stages" },
-        { to: "/admin/tools", label: "Tools" },
-        { to: "/admin/reports", label: "Flagged conversations" },
-        { to: "/admin/wordings", label: "Unrecognised wordings" },
-
-        { to: "/admin/seed-import", label: "Bulk import" },
-      ],
-    },
-    {
-      label: "Schools",
-      items: [
-        { to: "/admin/universities", label: "All schools" },
-        { to: "/admin/retired", label: "Retired" },
+        { to: "/admin/universities", label: "All colleges" },
+        { to: "/admin/programs", label: "All teams" },
         { to: "/admin/not-offered", label: "Not offered" },
+        { to: "/admin/retired", label: "Retired" },
       ],
     },
-    { label: "Teams", items: [{ to: "/admin/programs", label: "All teams" }] },
-    { label: "Majors", items: [{ to: "/admin/majors", label: "All majors" }] },
     {
-      label: "Organizations",
-      items: [{ to: "/admin/organizations", label: "All organizations" }],
+      label: "Organizations & accounts",
+      items: [{ to: "/admin/organizations", label: "Organizations" }],
     },
     {
-      label: "Activity",
+      label: "Safety & reports",
       items: [
+        { to: "/admin/reports", label: "Flagged conversations" },
         { to: "/admin/audit", label: "Audit log" },
-        { to: "/admin/archive", label: "Run archive" },
       ],
     },
   ];
