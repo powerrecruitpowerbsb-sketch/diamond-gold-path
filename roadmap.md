@@ -7,10 +7,15 @@
 - Name matcher: league shorthand ("Everett", "Modesto", "Loyola (La.)") now matches when only one school in the pool answers to it; sibling shorthand still refused. Both league passes re-issued.
 - Coverage measurement on 100 stratified programs.
 
+## Pre-crawl cleanup (approved 2026-09-20)
+- [x] Wrong-school rosters cleared: only 24 player rows from a rival domain remained; deleted.
+- [x] Duplicate composition summaries cleared: 3,779 extra rows removed, newest kept per program+season; 2,650 remain.
+- [x] Unique index roster_snapshots (program_id, season_year); the crawl now replaces a season's summary instead of stacking another.
+- [x] Coach staff-page fallback (coach-path.ts): when the stored address cannot be read and no staff name came out of the run, try the common /sports/<slug>/<coaches|staff|…> paths on the school's OWN athletics host; the page must still name this school, and the stored address is never rewritten.
+
 ## Open
-- Decide on the 87 provenance wrong-school rosters (report only so far) and the 209 untraceable ones.
-- Apply the re-issued league pass (556 matched, 149 proposed not_offered) — awaiting go-ahead.
-- Coach extraction only names a head coach on 16% of sampled programs; 36% of coach addresses are 404 and 15% blocked.
+- Apply the re-issued league pass (556 matched, 149 proposed not_offered) — lives in a script only; needs a re-run to land in the database.
+- Coach extraction only names a head coach on 16% of sampled programs; 36% of coach addresses are 404 and 15% blocked (fallback above should lift this; measure on the next crawl).
 
 ## Extraction gaps to close before the crawl (requested 2026-09-12)
 - [ ] home_state — split the hometown cell ("Tampa, FL", "Tampa, Fla.", full state names)
