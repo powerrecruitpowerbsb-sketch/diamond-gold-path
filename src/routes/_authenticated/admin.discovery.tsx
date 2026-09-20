@@ -85,23 +85,14 @@ const TYPE_LABELS: Record<Kind, string> = {
 
 function DiscoveryQueue() {
   const listFn = useServerFn(listDiscoveredUrls);
-  const unfoundFn = useServerFn(listUnfoundLinks);
   const countFn = useServerFn(countPendingDiscoveries);
   const reviewFn = useServerFn(reviewDiscoveredUrl);
   const reviewManyFn = useServerFn(reviewDiscoveredUrls);
   const sweepFn = useServerFn(sweepDiscoveredLinksFn);
-  const manualFn = useServerFn(setLinkManually);
-  const athleticsFn = useServerFn(setAthleticsSite);
-  const notOfferedFn = useServerFn(markSportNotOffered);
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
-  const [unfoundPage, setUnfoundPage] = useState(1);
   const [preview, setPreview] = useState<Sweep | null>(null);
-  const [manual, setManual] = useState<Record<string, string>>({});
-  const [showAll, setShowAll] = useState(false);
-  const [skipped, setSkipped] = useState<string[]>([]);
-
 
   const counts = useQuery({
     queryKey: ["pending-discoveries-count"],
@@ -113,14 +104,7 @@ function DiscoveryQueue() {
     queryFn: () => listFn({ data: { page, pageSize: 50 } }) as Promise<Page<Row>>,
   });
 
-  const unfound = useQuery({
-    queryKey: ["unfound-links", unfoundPage],
-    queryFn: () => unfoundFn({ data: { page: unfoundPage, pageSize: 50 } }) as Promise<Page<UnfoundRow>>,
-  });
 
-  // In one-at-a-time mode the skipped rows step aside without being decided.
-  const rowsLeft = (unfound.data?.rows ?? []).filter((row) => !skipped.includes(row.id));
-  const current = rowsLeft[0] ?? null;
 
 
 
