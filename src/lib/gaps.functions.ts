@@ -55,11 +55,14 @@ export const countMissingData = createServerFn({ method: "GET" })
  */
 export const listMissingData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input?: { gap?: string; sport?: string; search?: string }) => ({
-    gap: String(input?.gap ?? "any"),
-    sport: String(input?.sport ?? ""),
-    search: String(input?.search ?? "").trim().toLowerCase(),
-  }))
+  .inputValidator(
+    (input?: { gap?: string; sport?: string; search?: string; level?: string }) => ({
+      gap: String(input?.gap ?? "any"),
+      sport: String(input?.sport ?? ""),
+      level: String(input?.level ?? ""),
+      search: String(input?.search ?? "").trim().toLowerCase(),
+    }),
+  )
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
 
@@ -74,18 +77,31 @@ export const listMissingData = createServerFn({ method: "GET" })
     else if (data.gap === "staff") query = query.is("coaching_staff_url", null);
     else if (data.gap === "coach") query = query.is("head_coach_name", null);
     else if (data.gap === "site") query = query.is("athletic_website", null);
+    else if (data.gap === "quickwin")
+      query = query.is("head_coach_name", null).not("coaching_staff_url", "is", null);
+    else if (data.gap === "zero")
+      query = query
+        .is("head_coach_name", null)
+        .is("roster_url", null)
+        .is("coaching_staff_url", null);
     else
       query = query.or(
         "roster_url.is.null,coaching_staff_url.is.null,head_coach_name.is.null,athletic_website.is.null",
       );
 
     if (data.sport) query = query.eq("sport", data.sport);
+    if (data.level) query = query.eq("governing_body", data.level.split(" ")[0]);
 
     const { data: rows, error } = await query.limit(4000);
     if (error) throw new Error(error.message);
 
+    const wantDivision = data.level.split(" ")[1]?.replace(/\D/g, "") ?? "";
+
     const list = ((rows ?? []) as any[])
       .filter((row) => !row.universities?.retired_at)
+      .filter((row) =>
+        wantDivision ? String(row.division ?? "").replace(/\D/g, "") === wantDivision : true,
+      )
       .filter((row) =>
         data.search
           ? `${row.universities?.name ?? ""} ${row.universities?.state ?? ""} ${row.conference ?? ""}`
@@ -109,8 +125,80 @@ export const listMissingData = createServerFn({ method: "GET" })
       }))
       .sort((a, b) => a.school.localeCompare(b.school) || a.sport.localeCompare(b.sport));
 
-    return clean({ rows: list.slice(0, 500), total: list.length });
+    return clean({ rows: list.slice(0, 1000), total: list.length });
   });
+
+/** Mark one or many sport slots as not offered, in a single staff decision. */
+export const markProgramsNotOffered = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { programIds?: string[]; reason?: string }) => ({
+    programIds: (input?.programIds ?? []).map((id) => String(id)).filter(Boolean),
+    reason: String(input?.reason ?? "Staff confirmed this sport isn't offered."),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (data.programIds.length === 0) throw new Error("Pick at least one team first");
+
+    const stamp = new Date().toISOString();
+    const { error } = await (context.supabase as any)
+      .from("programs")
+      .update({
+        offering_status: "not_offered",
+        offering_source: "staff_decision",
+        offering_verified_at: stamp,
+        sponsorship_checked_at: stamp,
+      })
+      .in("id", data.programIds);
+    if (error) throw new Error(error.message);
+
+    const { retireProgram } = await import("@/lib/sport-sponsorship.server");
+    for (const id of data.programIds) {
+      await retireProgram(context.supabase, id, data.reason);
+    }
+
+    return clean({ ok: true, retired: data.programIds.length });
+  });
+
+/** One school sponsors neither sport: retire both slots at once. */
+export const markSchoolNoSports = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { universityId?: string }) => ({
+    universityId: String(input?.universityId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.universityId) throw new Error("Pick a school first");
+
+    const { data: rows, error } = await (context.supabase as any)
+      .from("programs")
+      .select("id")
+      .eq("university_id", data.universityId)
+      .neq("offering_status", "not_offered");
+    if (error) throw new Error(error.message);
+
+    const ids = ((rows ?? []) as any[]).map((row) => row.id);
+    if (ids.length === 0) return clean({ ok: true, retired: 0 });
+
+    const stamp = new Date().toISOString();
+    const { error: updateError } = await (context.supabase as any)
+      .from("programs")
+      .update({
+        offering_status: "not_offered",
+        offering_source: "staff_decision",
+        offering_verified_at: stamp,
+        sponsorship_checked_at: stamp,
+      })
+      .in("id", ids);
+    if (updateError) throw new Error(updateError.message);
+
+    const { retireProgram } = await import("@/lib/sport-sponsorship.server");
+    for (const id of ids) {
+      await retireProgram(context.supabase, id, "Staff confirmed this school offers neither sport.");
+    }
+
+    return clean({ ok: true, retired: ids.length });
+  });
+
 
 /**
  * Old "couldn't find this page" rows where the address has since been saved.
