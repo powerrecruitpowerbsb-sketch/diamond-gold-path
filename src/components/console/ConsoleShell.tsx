@@ -34,7 +34,7 @@ export function ConsoleShell({
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
         <Link to="/admin" className="font-display text-base font-bold text-white">
-          Power Recruit
+          Curve Recruit
         </Link>
         <span className="meta text-white/50">Staff console</span>
         <div className="ml-auto">

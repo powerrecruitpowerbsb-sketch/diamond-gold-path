@@ -44,7 +44,7 @@ export const validateInviteCode = createServerFn({ method: "POST" })
 /**
  * Signed-in user's profile + authoritative roles.
  *
- * When Power Recruit staff have entered an organization, `actingOrg` names it
+ * When Curve Recruit staff have entered an organization, `actingOrg` names it
  * and `primaryRole` becomes the Owner role so every screen behaves exactly as
  * it does for that organization's owner. `isSuperadmin` still tells the truth
  * about who is signed in.

@@ -64,7 +64,7 @@ async function requireOrgActor(context: Ctx) {
   const roleList = ((roles ?? []) as { role: string }[]).map((r) => r.role);
   const isSuperadmin = roleList.includes("superadmin");
   const { actingOrgId } = await import("@/lib/acting-org");
-  // Power Recruit staff inside an organization act on that organization.
+  // Curve Recruit staff inside an organization act on that organization.
   const acting = await actingOrgId(context, isSuperadmin);
   const isManager = (roleList.includes("org_admin") || roleList.includes("org_owner")) || roleList.includes("org_staff");
   const organizationId = acting ?? ((profile as { organization_id?: string | null } | null)?.organization_id ?? null);

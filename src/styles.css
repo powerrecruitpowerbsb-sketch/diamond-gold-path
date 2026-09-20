@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Power Recruit design system.
+ * Curve Recruit design system.
  *
  * THEMEABLE (per organization, set at runtime as inline style on the theme
  * provider element): --org-primary, --org-accent.

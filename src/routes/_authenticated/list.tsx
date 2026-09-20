@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/list")({
   head: () => ({
     meta: [
-      { title: "College list — Power Recruit" },
+      { title: "College list — Curve Recruit" },
       {
         name: "description",
         content:
           "Every school on an athlete's college list, with the stage each one is at and the conversation about it.",
       },
-      { property: "og:title", content: "College list — Power Recruit" },
+      { property: "og:title", content: "College list — Curve Recruit" },
       {
         property: "og:description",
         content: "Track each school an athlete is looking at, from researching through committed.",

@@ -48,16 +48,16 @@ export const Route = createFileRoute("/_authenticated/search")({
   search: { middlewares: [stripSearchParams(SEARCH_DEFAULTS)] },
   head: () => ({
     meta: [
-      { title: "Find your college fit — Power Recruit" },
+      { title: "Find your college fit — Curve Recruit" },
       {
         name: "description",
         content:
           "Search verified baseball and softball college programs by division, location, cost, academics, and roster construction.",
       },
-      { property: "og:title", content: "Find your college fit — Power Recruit" },
+      { property: "og:title", content: "Find your college fit — Curve Recruit" },
       {
         property: "og:description",
-        content: "Search verified college baseball and softball programs on Power Recruit.",
+        content: "Search verified college baseball and softball programs on Curve Recruit.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

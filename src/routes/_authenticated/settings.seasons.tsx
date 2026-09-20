@@ -29,13 +29,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/settings/seasons")({
   head: () => ({
     meta: [
-      { title: "Seasons & teams — Power Recruit" },
+      { title: "Seasons & teams — Curve Recruit" },
       {
         name: "description",
         content:
           "Create seasons, build teams, assign coaches and athletes, and roll your roster forward into a new season.",
       },
-      { property: "og:title", content: "Seasons & teams — Power Recruit" },
+      { property: "og:title", content: "Seasons & teams — Curve Recruit" },
       {
         property: "og:description",
         content: "Season and team structure for your travel organization.",

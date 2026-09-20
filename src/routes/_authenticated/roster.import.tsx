@@ -16,15 +16,15 @@ import { normalizeSport, SPORTS, SPORT_LABEL, type Sport } from "@/lib/sport";
 export const Route = createFileRoute("/_authenticated/roster/import")({
   head: () => ({
     meta: [
-      { title: "Import athletes from CSV — Power Recruit" },
+      { title: "Import athletes from CSV — Curve Recruit" },
       {
         name: "description",
         content: "Bulk import your organization's athletes from a CSV file with column mapping and preview.",
       },
-      { property: "og:title", content: "Import athletes from CSV — Power Recruit" },
+      { property: "og:title", content: "Import athletes from CSV — Curve Recruit" },
       {
         property: "og:description",
-        content: "Map columns, preview rows, then import athletes into Power Recruit.",
+        content: "Map columns, preview rows, then import athletes into Curve Recruit.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

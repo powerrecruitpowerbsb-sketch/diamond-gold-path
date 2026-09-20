@@ -16,12 +16,12 @@ const BRANDING_BUCKET = "org-branding";
 export const Route = createFileRoute("/_authenticated/settings/branding")({
   head: () => ({
     meta: [
-      { title: "Organization branding — Power Recruit" },
+      { title: "Organization branding — Curve Recruit" },
       {
         name: "description",
-        content: "Set your organization's logo and brand colors across Power Recruit.",
+        content: "Set your organization's logo and brand colors across Curve Recruit.",
       },
-      { property: "og:title", content: "Organization branding — Power Recruit" },
+      { property: "og:title", content: "Organization branding — Curve Recruit" },
       {
         property: "og:description",
         content: "Upload a logo and choose brand colors for your travel organization.",
@@ -189,7 +189,7 @@ function BrandingSettings() {
                       P
                     </span>
                   )}
-                  <span className="font-display text-lg font-bold text-white">Power Recruit</span>
+                  <span className="font-display text-lg font-bold text-white">Curve Recruit</span>
                   <span className="ml-auto rounded-lg px-3 py-1.5 text-sm font-semibold text-navy-deep" style={{ background: accent }}>
                     Search
                   </span>
@@ -301,7 +301,7 @@ function BrandingSettings() {
                 }}
                 className="touch-target inline-flex items-center rounded-xl border border-border bg-card px-5 text-sm font-semibold text-graphite"
               >
-                Reset to Power Recruit colors
+                Reset to Curve Recruit colors
               </button>
             </div>
           </>

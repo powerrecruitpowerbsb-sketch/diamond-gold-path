@@ -14,16 +14,16 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Power Recruit" },
+      { title: "Sign in — Curve Recruit" },
       {
         name: "description",
         content:
-          "Sign in to Power Recruit to research verified college baseball and softball program data.",
+          "Sign in to Curve Recruit to research verified college baseball and softball program data.",
       },
-      { property: "og:title", content: "Sign in — Power Recruit" },
+      { property: "og:title", content: "Sign in — Curve Recruit" },
       {
         property: "og:description",
-        content: "Access the Power Recruit college baseball and softball research database.",
+        content: "Access the Curve Recruit college baseball and softball research database.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -102,13 +102,13 @@ function AuthPage() {
             >
               P
             </span>
-            <span className="font-display text-xl font-bold text-white">Power Recruit</span>
+            <span className="font-display text-xl font-bold text-white">Curve Recruit</span>
           </Link>
           <h1 className="mt-8 max-w-xl font-display text-3xl font-bold text-white sm:text-4xl">
             Verified college baseball and softball program research.
           </h1>
           <p className="mt-3 max-w-lg text-sm text-white/70">
-            Sourced school data, program detail, and Power Recruit intelligence — in one place for
+            Sourced school data, program detail, and Curve Recruit intelligence — in one place for
             your staff and families.
           </p>
         </div>
@@ -226,7 +226,7 @@ function AuthPage() {
                       required
                       className="mt-1.5 font-mono"
                     />
-                    <p className="meta mt-1.5">Codes are issued per organization by Power Recruit staff.</p>
+                    <p className="meta mt-1.5">Codes are issued per organization by Curve Recruit staff.</p>
                   </div>
                 ) : null}
 

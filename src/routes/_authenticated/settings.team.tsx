@@ -8,13 +8,13 @@ import { AuthButton } from "@/components/brand/AuthButton";
 export const Route = createFileRoute("/_authenticated/settings/team")({
   head: () => ({
     meta: [
-      { title: "Team & invites — Power Recruit" },
+      { title: "Team & invites — Curve Recruit" },
       {
         name: "description",
         content:
-          "Invite coaches and staff to your Power Recruit organization by email, and manage pending invitations.",
+          "Invite coaches and staff to your Curve Recruit organization by email, and manage pending invitations.",
       },
-      { property: "og:title", content: "Team & invites — Power Recruit" },
+      { property: "og:title", content: "Team & invites — Curve Recruit" },
       {
         property: "og:description",
         content: "Invite staff by email and manage who has access to your organization.",

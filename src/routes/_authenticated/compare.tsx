@@ -21,13 +21,13 @@ export const Route = createFileRoute("/_authenticated/compare")({
   validateSearch: zodValidator(compareSearchSchema),
   head: () => ({
     meta: [
-      { title: "Compare schools — Power Recruit" },
+      { title: "Compare schools — Curve Recruit" },
       {
         name: "description",
         content:
           "Compare up to four college baseball or softball programs side by side on verified academics, cost, and roster size.",
       },
-      { property: "og:title", content: "Compare schools — Power Recruit" },
+      { property: "og:title", content: "Compare schools — Curve Recruit" },
       {
         property: "og:description",
         content: "Side-by-side verified comparison of college baseball and softball programs.",

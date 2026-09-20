@@ -16,13 +16,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/federal-decisions")({
   head: () => ({
     meta: [
-      { title: "Decide the last schools — Power Recruit" },
+      { title: "Decide the last schools — Curve Recruit" },
       {
         name: "description",
         content:
           "Settle the remaining schools by confirming the suggested national record, choosing another, or parking the school.",
       },
-      { property: "og:title", content: "Decide the last schools — Power Recruit" },
+      { property: "og:title", content: "Decide the last schools — Curve Recruit" },
       {
         property: "og:description",
         content: "One-click confirmation of suggested national school records for the leftover schools.",

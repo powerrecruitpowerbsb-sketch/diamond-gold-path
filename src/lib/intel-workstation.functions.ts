@@ -34,7 +34,7 @@ async function viewer(context: Ctx): Promise<IntelViewer> {
   const list = ((roles ?? []) as { role: string }[]).map((r) => r.role);
   const superadmin = list.includes("superadmin");
   const { actingOrgId } = await import("@/lib/acting-org");
-  // Power Recruit staff inside an organization work it as its owner.
+  // Curve Recruit staff inside an organization work it as its owner.
   const acting = await actingOrgId(context, superadmin);
   const type = (profile as any)?.user_type ?? "player";
   const role: IntelViewer["role"] = acting

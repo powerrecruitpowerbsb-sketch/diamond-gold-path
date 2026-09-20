@@ -14,13 +14,13 @@ import { SectionCard } from "@/components/admin/form-kit";
 export const Route = createFileRoute("/_authenticated/admin/seed-import")({
   head: () => ({
     meta: [
-      { title: "Bulk import programs — Power Recruit" },
+      { title: "Bulk import programs — Curve Recruit" },
       {
         name: "description",
         content:
           "Seed school and program skeleton records in bulk from a CSV, then hand them to URL discovery.",
       },
-      { property: "og:title", content: "Bulk import programs — Power Recruit" },
+      { property: "og:title", content: "Bulk import programs — Curve Recruit" },
       {
         property: "og:description",
         content: "Upload a CSV of schools and sports to create program skeletons in one pass.",

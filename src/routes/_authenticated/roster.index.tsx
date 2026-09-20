@@ -19,15 +19,15 @@ import { normalizeSport, SPORT_LABEL, SPORTS } from "@/lib/sport";
 export const Route = createFileRoute("/_authenticated/roster/")({
   head: () => ({
     meta: [
-      { title: "Athlete roster — Power Recruit" },
+      { title: "Athlete roster — Curve Recruit" },
       {
         name: "description",
         content: "Your organization's athlete roster: graduation year, position, and recruiting research.",
       },
-      { property: "og:title", content: "Athlete roster — Power Recruit" },
+      { property: "og:title", content: "Athlete roster — Curve Recruit" },
       {
         property: "og:description",
-        content: "Manage your travel organization's athletes inside Power Recruit.",
+        content: "Manage your travel organization's athletes inside Curve Recruit.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

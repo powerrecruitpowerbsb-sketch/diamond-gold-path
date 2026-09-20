@@ -1,5 +1,5 @@
 /**
- * The organization a Power Recruit staff member is currently working inside.
+ * The organization a Curve Recruit staff member is currently working inside.
  *
  * The value is resolved on the server from a row the staff member owns, never
  * from anything the browser sends, and the row records when they entered. For

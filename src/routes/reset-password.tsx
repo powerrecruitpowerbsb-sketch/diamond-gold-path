@@ -11,12 +11,12 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Set a new password — Power Recruit" },
-      { name: "description", content: "Choose a new password for your Power Recruit account." },
-      { property: "og:title", content: "Set a new password — Power Recruit" },
+      { title: "Set a new password — Curve Recruit" },
+      { name: "description", content: "Choose a new password for your Curve Recruit account." },
+      { property: "og:title", content: "Set a new password — Curve Recruit" },
       {
         property: "og:description",
-        content: "Choose a new password for your Power Recruit account.",
+        content: "Choose a new password for your Curve Recruit account.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

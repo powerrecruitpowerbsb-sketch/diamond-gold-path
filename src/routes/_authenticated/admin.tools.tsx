@@ -36,13 +36,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/tools")({
   head: () => ({
     meta: [
-      { title: "Collection tools — Power Recruit" },
+      { title: "Collection tools — Curve Recruit" },
       {
         name: "description",
         content:
           "Hands-on tools behind the collection process: pull membership lists, fill school facts, and clean up stray records.",
       },
-      { property: "og:title", content: "Collection tools — Power Recruit" },
+      { property: "og:title", content: "Collection tools — Curve Recruit" },
       {
         property: "og:description",
         content: "Staff tools for pulling membership lists and tidying the college database.",

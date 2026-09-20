@@ -36,16 +36,16 @@ export const Route = createFileRoute("/_authenticated/admin/review")({
   }),
   head: () => ({
     meta: [
-      { title: "Data review queue — Power Recruit" },
+      { title: "Data review queue — Curve Recruit" },
       {
         name: "description",
         content:
           "Superadmin queue for approving or rejecting proposed school and program data changes before they reach live records.",
       },
-      { property: "og:title", content: "Data review queue — Power Recruit" },
+      { property: "og:title", content: "Data review queue — Curve Recruit" },
       {
         property: "og:description",
-        content: "Approve or reject proposed changes to the Power Recruit college database.",
+        content: "Approve or reject proposed changes to the Curve Recruit college database.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

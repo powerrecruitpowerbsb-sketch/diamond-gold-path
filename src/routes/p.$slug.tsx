@@ -48,7 +48,7 @@ function Missing() {
         their club for a fresh link.
       </p>
       <Link to="/" className="mt-6 inline-block text-sm font-semibold text-org-primary-strong">
-        Power Recruit
+        Curve Recruit
       </Link>
     </main>
   );
@@ -360,7 +360,7 @@ function ScoutCard() {
         ) : null}
 
         <p className="meta pt-2 text-center normal-case">
-          Shared by {org?.["name"] ? String(org["name"]) : "the player's club"} · Power Recruit
+          Shared by {org?.["name"] ? String(org["name"]) : "the player's club"} · Curve Recruit
         </p>
       </div>
     </main>

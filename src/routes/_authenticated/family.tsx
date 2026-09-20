@@ -14,13 +14,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/family")({
   head: () => ({
     meta: [
-      { title: "Family portal — Power Recruit" },
+      { title: "Family portal — Curve Recruit" },
       {
         name: "description",
         content:
           "Follow your athlete's college list, recruiting status and the notes your coaches share with you.",
       },
-      { property: "og:title", content: "Family portal — Power Recruit" },
+      { property: "og:title", content: "Family portal — Curve Recruit" },
       {
         property: "og:description",
         content: "Your athlete's college list, recruiting status and shared coach notes.",

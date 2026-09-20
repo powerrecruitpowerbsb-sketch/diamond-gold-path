@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Power Recruit — College Baseball & Softball Recruiting Research" },
+      { title: "Curve Recruit — College Baseball & Softball Recruiting Research" },
       {
         name: "description",
         content:
           "Verified college baseball and softball program data paired with staff intelligence, built for recruiting research.",
       },
-      { name: "author", content: "Power Recruit" },
-      { property: "og:title", content: "Power Recruit" },
+      { name: "author", content: "Curve Recruit" },
+      { property: "og:title", content: "Curve Recruit" },
       {
         property: "og:description",
         content: "Verified college baseball and softball recruiting research.",
@@ -101,7 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
     ],
   }),
   shellComponent: RootShell,

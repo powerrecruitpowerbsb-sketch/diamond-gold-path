@@ -1,29 +1,31 @@
 import { useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BadgeCheck, Database, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Database, Send } from "lucide-react";
 
 import { getPublicStats } from "@/lib/console.functions";
 import { useMyAccount } from "@/hooks/use-my-account";
 import { routeForRole } from "@/lib/role-routes";
-import { OrgMark } from "@/components/brand/OrgMark";
 import { Button } from "@/components/ui/button";
+import curveMark from "@/assets/curve-mark-white.png.asset.json";
+import heroPitcher from "@/assets/hero-pitcher.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Power Recruit — College Baseball & Softball Recruiting Research" },
+      { title: "Curve Recruit — College Baseball & Softball Recruiting Research" },
       {
         name: "description",
         content:
-          "Sign in to Power Recruit to research college baseball and softball programs with verified academic, athletic and cost data alongside staff intelligence.",
+          "Sign in to Curve Recruit to research college baseball and softball programs with verified academic, athletic and cost data.",
       },
-      { property: "og:title", content: "Power Recruit — Recruiting Research Platform" },
+      { property: "og:title", content: "Curve Recruit — Recruiting Research Platform" },
       {
         property: "og:description",
         content:
           "Verified program, academic and cost data for college baseball and softball, paired with staff intelligence.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://diamond-gold-path.lovable.app/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
@@ -53,82 +55,84 @@ function Index() {
 
   const fmt = (value: number) => value.toLocaleString("en-US");
   const figures = [
-    { label: "Programs tracked", value: fmt(stats.programs) },
-    { label: "Universities", value: fmt(stats.schools) },
+    { label: "Programs", value: fmt(stats.programs) },
+    { label: "Schools", value: fmt(stats.schools) },
     { label: "Roster entries", value: fmt(stats.players) },
     { label: "Sourced fields", value: fmt(stats.sourcedFields) },
   ];
 
   const points = [
-    {
-      icon: BadgeCheck,
-      title: "Verified data",
-      body: "Tuition, enrollment, admissions and roster figures carry a source link and a verification date on the field itself.",
-    },
-    {
-      icon: Database,
-      title: "One shared college database",
-      body: "Universities, programs, majors, rosters and classifications maintained centrally and read by every organization.",
-    },
-    {
-      icon: ShieldCheck,
-      title: "Scoped by organization",
-      body: "Staff, parents and players read the shared database. Only platform staff can change it, and every edit is logged.",
-    },
+    { icon: BadgeCheck, title: "Verified data", body: "Every figure carries its source." },
+    { icon: Database, title: "One college database", body: "Shared by every organization." },
+    { icon: Send, title: "Scout cards & outreach", body: "Share a player in one link." },
   ];
 
   return (
-    <div className="stadium-gradient min-h-screen">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-5 py-8 sm:px-8 sm:py-12">
-        <div className="flex items-center gap-2.5">
-          <OrgMark logoUrl={null} name={null} size={32} className="bg-white/10" />
-          <span className="font-display text-lg font-bold text-white">Power Recruit</span>
-        </div>
-
-        <div className="flex flex-1 flex-col justify-center py-12">
-          <p className="mb-4 font-mono text-[11px] font-medium tracking-[0.18em] text-org-accent uppercase">
-            College baseball &amp; softball
-          </p>
-          <h1 className="max-w-3xl font-display text-[2.5rem] leading-[1.05] font-bold text-white sm:text-[3.5rem]">
-            Recruiting research that separates fact from opinion.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base text-white/75 sm:text-lg">
-            Every academic, athletic and cost figure is sourced and dated. Every judgment call is
-            labeled as ours. No blended guesswork.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button
-              asChild
-              className="touch-target bg-seam-red px-7 text-base font-semibold text-white hover:bg-seam-red/90"
-            >
-              <Link to="/auth">Sign in</Link>
-            </Button>
-            <span className="text-sm text-white/55">
-              Need access? Ask your program admin for an invite code.
-            </span>
+    <div className="min-h-screen bg-surface-0">
+      <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+        {/* Left: the entrance */}
+        <div className="stadium-gradient relative z-10 flex flex-col px-6 py-8 sm:px-12 sm:py-12">
+          <div className="flex items-center gap-2.5">
+            <img src={curveMark.url} alt="Curve Recruit" width={34} height={34} className="size-9 object-contain" />
+            <span className="font-display text-lg font-bold text-white">Curve Recruit</span>
           </div>
 
-          <dl className="mt-14 grid grid-cols-2 gap-x-6 gap-y-8 border-t border-white/12 pt-8 sm:grid-cols-4">
-            {figures.map((figure) => (
-              <div key={figure.label}>
-                <dt className="meta text-white/55">{figure.label}</dt>
-                <dd className="tabular font-display text-3xl font-bold text-white sm:text-4xl">
-                  {figure.value}
-                </dd>
+          <div className="flex flex-1 flex-col justify-center py-14">
+            <p className="mb-4 font-mono text-[11px] font-medium tracking-[0.2em] text-org-accent uppercase">
+              College baseball &amp; softball
+            </p>
+            <h1 className="max-w-xl font-display text-[2.6rem] leading-[1.03] font-bold text-white sm:text-[3.4rem]">
+              Recruiting built on verified data.
+            </h1>
+            <p className="mt-5 max-w-md text-base text-white/70">
+              Sourced, dated, and honest about what a school hasn&apos;t published.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Button
+                asChild
+                className="touch-target bg-seam-red px-8 text-base font-semibold text-white hover:bg-seam-red/90"
+              >
+                <Link to="/auth">Sign in</Link>
+              </Button>
+              <span className="text-sm text-white/50">Invite code from your program admin.</span>
+            </div>
+
+            <dl className="mt-14 grid max-w-lg grid-cols-2 gap-x-6 gap-y-7 border-t border-white/12 pt-8 sm:grid-cols-4">
+              {figures.map((figure) => (
+                <div key={figure.label}>
+                  <dd className="tabular font-display text-2xl font-bold text-white sm:text-[1.75rem]">
+                    {figure.value}
+                  </dd>
+                  <dt className="meta mt-0.5 text-white/45">{figure.label}</dt>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div className="grid gap-4 border-t border-white/12 pt-6 sm:grid-cols-3">
+            {points.map((point) => (
+              <div key={point.title} className="flex items-start gap-2.5">
+                <point.icon className="mt-0.5 size-4 shrink-0 text-org-accent" aria-hidden />
+                <div>
+                  <h2 className="text-sm font-semibold text-white">{point.title}</h2>
+                  <p className="text-xs text-white/50">{point.body}</p>
+                </div>
               </div>
             ))}
-          </dl>
+          </div>
         </div>
 
-        <div className="grid gap-6 border-t border-white/12 pt-8 sm:grid-cols-3">
-          {points.map((point) => (
-            <div key={point.title}>
-              <point.icon className="size-5 text-org-accent" aria-hidden />
-              <h2 className="mt-3 text-sm font-semibold text-white">{point.title}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-white/60">{point.body}</p>
-            </div>
-          ))}
+        {/* Right: the field */}
+        <div className="relative min-h-[340px] overflow-hidden lg:min-h-screen">
+          <img
+            src={heroPitcher}
+            alt="A college pitcher in his windup under stadium lights"
+            width={1280}
+            height={1600}
+            className="absolute inset-0 size-full object-cover object-top"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/25 to-transparent lg:bg-gradient-to-r lg:from-surface-0 lg:via-transparent lg:to-surface-0/40" />
         </div>
       </div>
     </div>

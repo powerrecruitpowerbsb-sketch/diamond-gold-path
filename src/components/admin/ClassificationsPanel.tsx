@@ -72,7 +72,7 @@ export function ClassificationsPanel({
       blurb="Staff judgement, recorded as an override until the Phase 4 AI pipeline suggests values."
     >
       <IntelBlock className="mb-5">
-        Everything set here is Power Recruit intelligence, not sourced fact. Each save is stamped as
+        Everything set here is Curve Recruit intelligence, not sourced fact. Each save is stamped as
         staff-overridden with you as the reviewer.
       </IntelBlock>
 

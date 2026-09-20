@@ -12,13 +12,13 @@ import { seasonLabel } from "@/lib/season";
 export const Route = createFileRoute("/_authenticated/admin/build")({
   head: () => ({
     meta: [
-      { title: "Build progress — Power Recruit" },
+      { title: "Build progress — Curve Recruit" },
       {
         name: "description",
         content:
           "Four stages, one button each: check the pages, read the rosters, fill in the head coaches, close out the leftovers.",
       },
-      { property: "og:title", content: "Build progress — Power Recruit" },
+      { property: "og:title", content: "Build progress — Curve Recruit" },
       {
         property: "og:description",
         content: "The four stages that finish the national baseball and softball database.",

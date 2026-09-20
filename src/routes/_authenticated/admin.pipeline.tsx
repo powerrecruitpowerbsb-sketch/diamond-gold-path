@@ -13,13 +13,13 @@ import { getPipelineStatus, listNonSchoolEntries } from "@/lib/pipeline.function
 export const Route = createFileRoute("/_authenticated/admin/pipeline")({
   head: () => ({
     meta: [
-      { title: "Data collection — Power Recruit" },
+      { title: "Data collection — Curve Recruit" },
       {
         name: "description",
         content:
           "See what the nationwide collection is doing right now, how far the database has come, and what still needs a person.",
       },
-      { property: "og:title", content: "Data collection — Power Recruit" },
+      { property: "og:title", content: "Data collection — Curve Recruit" },
       {
         property: "og:description",
         content: "Collection status, build progress, and the short list of decisions waiting for staff.",
