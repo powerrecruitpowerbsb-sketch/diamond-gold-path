@@ -50,6 +50,12 @@ function Operations() {
 
   const { data } = useQuery({ queryKey: ["operations-overview"], queryFn: () => overviewFn() });
 
+  const countFn = useServerFn(countPendingChanges);
+  const { data: pending } = useQuery({
+    queryKey: ["pending-changes-count", "operations"],
+    queryFn: () => countFn({ data: {} }),
+  });
+
   const baseline = (data?.baseline ?? {}) as any;
   const blocked = data?.exceptions?.blocked ?? 0;
   const broken = data?.exceptions?.broken ?? 0;
@@ -70,6 +76,7 @@ function Operations() {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "overview", label: "Overview & schedule" },
+    { key: "review", label: "Review queue", count: reviewCount },
     { key: "blocked", label: "Blocked sites", count: blocked },
     { key: "broken", label: "Broken addresses", count: broken },
   ];
@@ -197,6 +204,7 @@ function Operations() {
         </>
       ) : null}
 
+      {tab === "review" ? <ReviewQueuePanel /> : null}
       {tab === "blocked" ? <BlockedSitesQueue /> : null}
       {tab === "broken" ? <BrokenLinksQueue /> : null}
     </div>
