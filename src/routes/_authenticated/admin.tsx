@@ -36,6 +36,13 @@ function AdminLayout() {
     queryFn: () => needsFn(),
     enabled: Boolean(account?.isSuperadmin),
   });
+  const missingFn = useServerFn(countMissingData);
+  const { data: missing } = useQuery({
+    queryKey: ["missing-counts"],
+    queryFn: () => missingFn(),
+    enabled: Boolean(account?.isSuperadmin),
+    staleTime: 60_000,
+  });
 
   if (isPending) {
     return <div className="min-h-screen bg-chalk p-6"><div className="h-40 animate-pulse rounded border border-border bg-card" /></div>;
