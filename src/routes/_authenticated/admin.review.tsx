@@ -175,7 +175,7 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
 
   useEffect(() => setPage(1), [search, confidence, kind, programFilter]);
 
-  const { data, isPending } = useQuery({
+  const { data, isPending, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["pending-changes", programFilter ?? "all", search, confidence, kind, page],
     queryFn: () =>
       listFn({
@@ -596,7 +596,19 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
       ) : null}
 
 
-      {isPending ? (
+      {isError ? (
+        <div className="rounded border border-border bg-card p-10 text-center">
+          <p className="font-display text-lg font-bold text-graphite">
+            We couldn't load the waiting items
+          </p>
+          <p className="mt-1 text-sm text-steel">
+            {(error as Error)?.message ?? "The read didn't come back."}
+          </p>
+          <Button className="mt-4" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching ? "Trying again…" : "Try again"}
+          </Button>
+        </div>
+      ) : isPending ? (
         <div className="rounded border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-bold text-graphite">
             Loading proposed coach &amp; roster updates…
