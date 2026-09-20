@@ -175,7 +175,7 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
 
   useEffect(() => setPage(1), [search, confidence, kind, programFilter]);
 
-  const { data, isPending } = useQuery({
+  const { data, isPending, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["pending-changes", programFilter ?? "all", search, confidence, kind, page],
     queryFn: () =>
       listFn({
