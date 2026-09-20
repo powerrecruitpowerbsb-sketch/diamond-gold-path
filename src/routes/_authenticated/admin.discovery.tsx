@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -10,12 +10,8 @@ import { Button } from "@/components/ui/button";
 import {
   countPendingDiscoveries,
   listDiscoveredUrls,
-  listUnfoundLinks,
-  markSportNotOffered,
   reviewDiscoveredUrl,
   reviewDiscoveredUrls,
-  setAthleticsSite,
-  setLinkManually,
   sweepDiscoveredLinksFn,
 } from "@/lib/discovery.functions";
 import { classifyLink } from "@/lib/link-quality";
@@ -57,15 +53,6 @@ type Row = {
   programs: { sport: string | null; athletic_website: string | null } | null;
 };
 
-type UnfoundRow = {
-  id: string;
-  university_id: string;
-  program_id: string | null;
-  discovery_type: Kind;
-  notes: string | null;
-  universities: { name: string; state: string | null; website_url?: string | null } | null;
-  programs: { sport: string | null } | null;
-};
 
 type Page<T> = { rows: T[]; total: number; page: number; totalPages: number };
 
@@ -89,23 +76,14 @@ const TYPE_LABELS: Record<Kind, string> = {
 
 function DiscoveryQueue() {
   const listFn = useServerFn(listDiscoveredUrls);
-  const unfoundFn = useServerFn(listUnfoundLinks);
   const countFn = useServerFn(countPendingDiscoveries);
   const reviewFn = useServerFn(reviewDiscoveredUrl);
   const reviewManyFn = useServerFn(reviewDiscoveredUrls);
   const sweepFn = useServerFn(sweepDiscoveredLinksFn);
-  const manualFn = useServerFn(setLinkManually);
-  const athleticsFn = useServerFn(setAthleticsSite);
-  const notOfferedFn = useServerFn(markSportNotOffered);
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
-  const [unfoundPage, setUnfoundPage] = useState(1);
   const [preview, setPreview] = useState<Sweep | null>(null);
-  const [manual, setManual] = useState<Record<string, string>>({});
-  const [showAll, setShowAll] = useState(false);
-  const [skipped, setSkipped] = useState<string[]>([]);
-
 
   const counts = useQuery({
     queryKey: ["pending-discoveries-count"],
@@ -117,14 +95,7 @@ function DiscoveryQueue() {
     queryFn: () => listFn({ data: { page, pageSize: 50 } }) as Promise<Page<Row>>,
   });
 
-  const unfound = useQuery({
-    queryKey: ["unfound-links", unfoundPage],
-    queryFn: () => unfoundFn({ data: { page: unfoundPage, pageSize: 50 } }) as Promise<Page<UnfoundRow>>,
-  });
 
-  // In one-at-a-time mode the skipped rows step aside without being decided.
-  const rowsLeft = (unfound.data?.rows ?? []).filter((row) => !skipped.includes(row.id));
-  const current = rowsLeft[0] ?? null;
 
 
 
@@ -148,7 +119,6 @@ function DiscoveryQueue() {
   const refreshAll = async (decidedIds?: string[]) => {
     if (decidedIds?.length) dropDecided(decidedIds);
     void queryClient.invalidateQueries({ queryKey: ["discovered-urls"] });
-    void queryClient.invalidateQueries({ queryKey: ["unfound-links"] });
     void queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] });
   };
 
@@ -192,56 +162,7 @@ function DiscoveryQueue() {
       toast.error(failure instanceof Error ? failure.message : "The tidy-up couldn't run"),
   });
 
-  const retry = useMutation({
-    mutationFn: (input: { id: string; decision: "reject" }) => reviewFn({ data: input }),
-    onSuccess: async () => {
-      toast.success("Sent back for a fresh search");
-      await refreshAll();
-    },
-    onError: (failure: unknown) =>
-      toast.error(failure instanceof Error ? failure.message : "Could not queue that search"),
-  });
-
-  const saveSite = useMutation({
-    mutationFn: (input: { id: string; url: string }) =>
-      athleticsFn({ data: input }) as Promise<{ message: string }>,
-    onSuccess: async (result) => {
-      toast.success(result.message);
-      await refreshAll();
-    },
-    onError: (failure: unknown) =>
-      toast.error(failure instanceof Error ? failure.message : "Could not save that athletics site"),
-  });
-
-  const noSport = useMutation({
-    mutationFn: (input: { programId: string }) =>
-      notOfferedFn({ data: input }) as Promise<{ message: string }>,
-    onSuccess: async (result) => {
-      toast.success(result.message);
-      await refreshAll();
-    },
-    onError: (failure: unknown) =>
-      toast.error(failure instanceof Error ? failure.message : "Could not save that decision"),
-  });
-
-  const saveManual = useMutation({
-    mutationFn: (input: { id: string; url: string }) => manualFn({ data: input }),
-    onSuccess: async () => {
-      toast.success("Link saved to live data");
-      await refreshAll();
-    },
-    onError: (failure: unknown) =>
-      toast.error(failure instanceof Error ? failure.message : "Could not save that link"),
-  });
-
-  const busy =
-    review.isPending ||
-    reviewMany.isPending ||
-    sweep.isPending ||
-    saveManual.isPending ||
-    retry.isPending ||
-    saveSite.isPending ||
-    noSport.isPending;
+  const busy = review.isPending || reviewMany.isPending || sweep.isPending;
 
   const rows = list.data?.rows ?? [];
   const groups = new Map<string, Row[]>();
@@ -257,9 +178,7 @@ function DiscoveryQueue() {
             that are plainly wrong so you only look at real decisions.
           </p>
         </div>
-        <p className="meta tabular-nums text-right">
-          {counts.data?.pending ?? "—"} TO CHECK · {counts.data?.unfound ?? "—"} NOT FOUND
-        </p>
+        <p className="meta tabular-nums text-right">{counts.data?.pending ?? "—"} TO CHECK</p>
       </div>
 
       <SectionCard
@@ -289,8 +208,8 @@ function DiscoveryQueue() {
             </p>
             {preview.skippedNoUrl ? (
               <p className="mt-1 text-steel">
-                {preview.skippedNoUrl} more rows had no address at all — nothing to judge, so they sit in
-                "Couldn't find these pages" below instead of your decision count.
+                {preview.skippedNoUrl} more rows had no address at all — those schools are listed on
+                Missing pages &amp; coaches instead.
               </p>
             ) : null}
             {!preview.scanned ? (
@@ -439,190 +358,14 @@ function DiscoveryQueue() {
       </SectionCard>
 
       <SectionCard
-        title="Couldn't find these pages"
-        blurb={`${counts.data?.unfound ?? "—"} searches came back empty. Nothing was found to approve or reject — paste in the right address, or send it back for another search.`}
-        aside={
-          <Button variant="ghost" className="touch-target" onClick={() => setShowAll((on) => !on)}>
-            {showAll ? "Show one at a time" : "Show the whole list"}
-          </Button>
-        }
+        title="Missing pages live in one place now"
+        blurb="Schools that still need a roster page, coaching staff page, or head coach are listed on Colleges & teams → Missing pages & coaches, with search, inline editing, and a read-now button."
       >
-        {unfound.isPending ? (
-          <div className="h-24 animate-pulse rounded bg-muted" />
-        ) : !rowsLeft.length ? (
-          <p className="text-sm text-steel">
-            {(unfound.data?.total ?? 0) > 0
-              ? "You've been through this page. Fetching the next few…"
-              : "Nothing outstanding."}
-          </p>
-        ) : showAll ? (
-          <>
-            <ul className="divide-y divide-border">
-              {rowsLeft.map((row) => (
-                <li key={row.id} className="grid gap-2 py-3">
-                  <div>
-                    <p className="text-sm font-semibold text-graphite">
-                      {row.universities?.name ?? "School"} · {TYPE_LABELS[row.discovery_type]}
-                      {row.programs?.sport ? ` · ${row.programs.sport}` : ""}
-                    </p>
-                    {row.notes ? <p className="meta mt-0.5">{row.notes}</p> : null}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      value={manual[row.id] ?? ""}
-                      onChange={(event) =>
-                        setManual((current) => ({ ...current, [row.id]: event.target.value }))
-                      }
-                      placeholder="https://…"
-                      className="h-11 min-w-64 flex-1 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
-                    />
-                    <Button
-                      variant="outline"
-                      className="touch-target"
-                      disabled={busy || !(manual[row.id] ?? "").trim()}
-                      onClick={() => saveManual.mutate({ id: row.id, url: (manual[row.id] ?? "").trim() })}
-                    >
-                      Save this link
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="touch-target"
-                      disabled={busy}
-                      onClick={() => retry.mutate({ id: row.id, decision: "reject" })}
-                    >
-                      Search again
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <Pager
-              page={unfound.data?.page ?? 1}
-              totalPages={unfound.data?.totalPages ?? 1}
-              onChange={setUnfoundPage}
-              disabled={busy}
-            />
-          </>
-        ) : current ? (
-          <div className="grid gap-4">
-            <p className="meta">
-              {(unfound.data?.total ?? 0).toLocaleString()} left · working on one at a time
-            </p>
-            <div className="rounded border border-border bg-card p-4">
-              <h3 className="font-display text-xl font-bold text-graphite">
-                {current.universities?.name ?? "School"}
-                {current.universities?.state ? (
-                  <span className="ml-2 text-base font-semibold text-steel">
-                    {current.universities.state}
-                  </span>
-                ) : null}
-              </h3>
-              <p className="mt-1 text-sm text-steel">
-                We need this school's{" "}
-                <strong className="text-graphite">
-                  {TYPE_LABELS[current.discovery_type].toLowerCase()}
-                </strong>
-                {current.programs?.sport ? ` for ${current.programs.sport}` : ""}. Searching didn't turn
-                one up.
-              </p>
-              {current.notes ? <p className="meta mt-1">{current.notes}</p> : null}
-              {current.universities?.website_url ? (
-                <a
-                  href={current.universities.website_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="meta mt-2 inline-flex text-org-primary underline"
-                >
-                  Open the school's website to look
-                </a>
-              ) : null}
-
-              <label className="mt-4 block text-sm font-semibold text-graphite" htmlFor="focus-url">
-                Paste the address of that page
-              </label>
-              <input
-                id="focus-url"
-                value={manual[current.id] ?? ""}
-                onChange={(event) =>
-                  setManual((state) => ({ ...state, [current.id]: event.target.value }))
-                }
-                placeholder="https://…"
-                className="mt-1 h-11 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-org-primary"
-              />
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button
-                  className="touch-target"
-                  disabled={busy || !(manual[current.id] ?? "").trim()}
-                  onClick={() =>
-                    saveManual.mutate({ id: current.id, url: (manual[current.id] ?? "").trim() })
-                  }
-                >
-                  Save and next
-                </Button>
-                <Button
-                  variant="outline"
-                  className="touch-target"
-                  disabled={busy || !(manual[current.id] ?? "").trim()}
-                  onClick={() =>
-                    saveSite.mutate({ id: current.id, url: (manual[current.id] ?? "").trim() })
-                  }
-                >
-                  This is the school's athletics site
-                </Button>
-                <Button
-                  variant="outline"
-                  className="touch-target"
-                  disabled={busy}
-                  onClick={() => retry.mutate({ id: current.id, decision: "reject" })}
-                >
-                  Search again
-                </Button>
-                {current.program_id ? (
-                  <Button
-                    variant="ghost"
-                    className="touch-target text-destructive"
-                    disabled={busy}
-                    onClick={() => {
-                      const sport = current.programs?.sport ?? "this sport";
-                      if (
-                        window.confirm(
-                          `Mark ${current.universities?.name ?? "this school"} as not having ${sport}? It stops all searching for that sport and can be undone later.`,
-                        )
-                      ) {
-                        noSport.mutate({ programId: String(current.program_id) });
-                      }
-                    }}
-                  >
-                    No {current.programs?.sport ?? "such"} program here
-                  </Button>
-                ) : null}
-                <Button
-                  variant="ghost"
-                  className="touch-target"
-                  disabled={busy}
-                  onClick={() => setSkipped((state) => [...state, current.id])}
-                >
-                  Skip for now
-                </Button>
-              </div>
-              <p className="meta mt-2">
-                Pasting the athletics site saves it for every sport at this school and looks for the
-                roster and staff pages inside it.
-              </p>
-            </div>
-            {skipped.length ? (
-              <button
-                type="button"
-                className="meta w-fit underline"
-                onClick={() => setSkipped([])}
-              >
-                Bring back the {skipped.length} I skipped
-              </button>
-            ) : null}
-          </div>
-        ) : null}
+        <Button variant="outline" className="touch-target" asChild>
+          <Link to="/admin/missing">Go to Missing pages & coaches</Link>
+        </Button>
       </SectionCard>
+
 
     </div>
   );
