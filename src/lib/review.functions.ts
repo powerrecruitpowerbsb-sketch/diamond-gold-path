@@ -136,6 +136,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
     return {
       groups,
       hiddenUnsponsored,
+      hiddenJunk,
       totalGroups,
       totalItems,
       filteredItems,
@@ -153,9 +154,9 @@ export const countPendingChanges = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertSuperadmin(context as any);
 
-    // Only ever report a real number. A rough database estimate used to stand in
-    // when this was slow, which showed thousands of items waiting when there
-    // were a handful; now an indexed count is used, and an unknown stays unknown.
+    // One indexed count, nothing else. The old "applied automatically this week"
+    // tally scanned the whole 40,000-row history and competed with the queue read
+    // for the same connection, which is part of why this screen crawled.
     let pending: number | null = null;
     const exact = await context.supabase
       .from("pending_data_changes")
@@ -163,16 +164,44 @@ export const countPendingChanges = createServerFn({ method: "GET" })
       .eq("status", "pending");
     if (!exact.error) pending = exact.count ?? 0;
 
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { count: autoCount } = await context.supabase
-      .from("pending_data_changes")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "approved")
-      .eq("decided_via", "auto")
-      .gte("reviewed_at", since);
-
-    return { pending, autoAppliedLast7Days: autoCount ?? 0 };
+    return { pending, autoAppliedLast7Days: 0 };
   });
+
+/**
+ * Approve every open coach change whose proposed value reads like a real
+ * person's first and last name. Junk readings are declined in the same pass so
+ * they stop coming back.
+ */
+export const approveCleanCoachChanges = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+
+    const { data: rows, error } = await context.supabase
+      .from("pending_data_changes")
+      .select(PENDING_COLUMNS)
+      .eq("status", "pending")
+      .in("field_name", ["head_coach_name", "recruiting_coordinator_name"])
+      .not("record_id", "is", null)
+      .limit(2000);
+    if (error) throw new Error(error.message);
+
+    const { approvePending, isJunkCoachProposal } = await import("@/lib/review.server");
+    const clean = (rows ?? []).filter((row: any) => !isJunkCoachProposal(row));
+
+    let applied = 0;
+    const failures: { id: string; message: string }[] = [];
+    for (const row of clean as any[]) {
+      try {
+        await approvePending(context.supabase, context.userId, row);
+        applied += 1;
+      } catch (failure) {
+        failures.push({ id: row.id, message: (failure as Error).message });
+      }
+    }
+    return { applied, skipped: (rows ?? []).length - clean.length, failureCount: failures.length, failures: failures.slice(0, 5) };
+  });
+
 
 
 export const approvePendingChanges = createServerFn({ method: "POST" })
