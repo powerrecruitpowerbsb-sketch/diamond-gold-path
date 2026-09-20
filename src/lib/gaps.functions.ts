@@ -95,8 +95,13 @@ export const listMissingData = createServerFn({ method: "GET" })
     const { data: rows, error } = await query.limit(4000);
     if (error) throw new Error(error.message);
 
+    const wantDivision = data.level.split(" ")[1]?.replace(/\D/g, "") ?? "";
+
     const list = ((rows ?? []) as any[])
       .filter((row) => !row.universities?.retired_at)
+      .filter((row) =>
+        wantDivision ? String(row.division ?? "").replace(/\D/g, "") === wantDivision : true,
+      )
       .filter((row) =>
         data.search
           ? `${row.universities?.name ?? ""} ${row.universities?.state ?? ""} ${row.conference ?? ""}`
