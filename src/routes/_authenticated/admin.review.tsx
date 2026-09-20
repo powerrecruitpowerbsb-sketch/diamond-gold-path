@@ -393,6 +393,11 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
               {(queue as any).hiddenUnsponsored} HELD BACK — SPORT NOT CONFIRMED AT THAT SCHOOL
             </p>
           ) : null}
+          {(queue as any)?.hiddenJunk ? (
+            <p className="meta mt-1 tabular-nums">
+              {(queue as any).hiddenJunk} HIDDEN — NOT A PERSON&apos;S NAME
+            </p>
+          ) : null}
         </div>
       </div>
 
