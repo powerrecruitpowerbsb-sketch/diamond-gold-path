@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
- * Power Recruit staff entering an organization and running it as its Owner.
+ * Curve Recruit staff entering an organization and running it as its Owner.
  *
  * Nothing about the signed-in account changes: no role rows are rewritten and
  * no organization is written to their profile. Entering stores one row saying

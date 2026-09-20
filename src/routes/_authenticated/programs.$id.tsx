@@ -61,13 +61,13 @@ export const Route = createFileRoute("/_authenticated/programs/$id")({
       : {},
   head: () => ({
     meta: [
-      { title: "Program profile — Power Recruit" },
+      { title: "Program profile — Curve Recruit" },
       {
         name: "description",
         content:
-          "Verified academics, cost, roster composition, and Power Recruit's own recruiting intelligence for this college program.",
+          "Verified academics, cost, roster composition, and Curve Recruit's own recruiting intelligence for this college program.",
       },
-      { property: "og:title", content: "Program profile — Power Recruit" },
+      { property: "og:title", content: "Program profile — Curve Recruit" },
       {
         property: "og:description",
         content:

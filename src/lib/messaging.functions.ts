@@ -247,7 +247,7 @@ export const listThreadReports = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const me = await actor(context as any);
-    if (!me.isSuperadmin) throw new Error("Forbidden: Power Recruit staff only");
+    if (!me.isSuperadmin) throw new Error("Forbidden: Curve Recruit staff only");
 
     const { data, error } = await context.supabase
       .from("message_reports")
@@ -292,7 +292,7 @@ export const resolveThreadReport = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     const me = await actor(context as any);
-    if (!me.isSuperadmin) throw new Error("Forbidden: Power Recruit staff only");
+    if (!me.isSuperadmin) throw new Error("Forbidden: Curve Recruit staff only");
     const { error } = await context.supabase
       .from("message_reports")
       .update({ status: data.status })

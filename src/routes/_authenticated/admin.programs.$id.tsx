@@ -351,7 +351,7 @@ function RelationshipSection({ programId }: { programId: string }) {
       <header className="border-b border-border bg-org-primary/5 px-5 py-4">
         <h2 className="flex items-center gap-2 font-display text-lg font-bold text-org-primary">
           <Lock className="size-4" aria-hidden />
-          Internal Relationship — Power Recruit staff only
+          Internal Relationship — Curve Recruit staff only
         </h2>
         <p className="text-sm text-steel">
           Never shown to organizations, parents, or players. Enforced server-side, not just hidden.

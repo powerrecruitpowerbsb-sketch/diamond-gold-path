@@ -5,7 +5,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
- * Organization management for Power Recruit staff.
+ * Organization management for Curve Recruit staff.
  *
  * Onboarding a customer used to mean a hand-written database insert. These are
  * the only writes in the console restyle, and every one is superadmin-only.

@@ -2,7 +2,7 @@
  * One place for the account hierarchy, so no screen invents its own idea of
  * who an "admin" is.
  *
- *   superadmin  Power Recruit staff — every organization, plus the console
+ *   superadmin  Curve Recruit staff — every organization, plus the console
  *   org_owner   the organization, including billing and logo/colors
  *   org_admin   the organization, minus billing and logo/colors
  *   org_staff   coach: roster and intelligence submissions
@@ -12,7 +12,7 @@
 export type AppRole = "superadmin" | "org_owner" | "org_admin" | "org_staff" | "parent" | "player";
 
 export const ROLE_LABEL: Record<AppRole, string> = {
-  superadmin: "Power Recruit staff",
+  superadmin: "Curve Recruit staff",
   org_owner: "Owner",
   org_admin: "Admin",
   org_staff: "Coach / Staff",

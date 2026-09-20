@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Power Recruit — College Baseball & Softball Recruiting Research" },
+      { title: "Curve Recruit — College Baseball & Softball Recruiting Research" },
       {
         name: "description",
         content:
           "Verified college baseball and softball program data paired with staff intelligence, built for recruiting research.",
       },
-      { name: "author", content: "Power Recruit" },
-      { property: "og:title", content: "Power Recruit" },
+      { name: "author", content: "Curve Recruit" },
+      { property: "og:title", content: "Curve Recruit" },
       {
         property: "og:description",
         content: "Verified college baseball and softball recruiting research.",

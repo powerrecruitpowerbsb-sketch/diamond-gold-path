@@ -54,7 +54,7 @@ async function resolveLogo(context: Ctx, stored: string | null) {
 }
 
 /**
- * Branding for the organization the caller is working in. Power Recruit staff
+ * Branding for the organization the caller is working in. Curve Recruit staff
  * outside an organization get nulls and the shell keeps the fixed Power
  * Recruit navy/gold identity.
  */

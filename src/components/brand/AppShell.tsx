@@ -41,14 +41,14 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
   const role = account?.primaryRole ?? null;
   const actingOrg = account?.actingOrg ?? null;
-  // Power Recruit staff see the console — unless they have entered an
+  // Curve Recruit staff see the console — unless they have entered an
   // organization, in which case they run it as its owner.
   const isStaff = Boolean(account?.isSuperadmin) && !actingOrg;
   const isOrgManager = isOrgManagerRole(role);
   const isOrgOwner = isOwnerRole(role);
   
 
-  // The superadmin console always shows the fixed Power Recruit identity —
+  // The superadmin console always shows the fixed Curve Recruit identity —
   // never an organization's colors or logo, whatever the database holds.
   const consoleView = pathname === "/admin" || pathname.startsWith("/admin/");
   const themed = !isStaff && !consoleView;
@@ -137,7 +137,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
               size={32}
               className={orgLogo ? "bg-white/10" : undefined}
             />
-            <span className="font-display text-lg font-bold text-white">Power Recruit</span>
+            <span className="font-display text-lg font-bold text-white">Curve Recruit</span>
           </Link>
 
           {showSportSwitch ? (

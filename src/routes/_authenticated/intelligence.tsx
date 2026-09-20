@@ -53,13 +53,13 @@ export const Route = createFileRoute("/_authenticated/intelligence")({
 
   head: () => ({
     meta: [
-      { title: "Intelligence workstation — Power Recruit" },
+      { title: "Intelligence workstation — Curve Recruit" },
       {
         name: "description",
         content:
           "Write and review your organization's recruiting intelligence on college baseball and softball programs, program by program.",
       },
-      { property: "og:title", content: "Intelligence workstation — Power Recruit" },
+      { property: "og:title", content: "Intelligence workstation — Curve Recruit" },
       {
         property: "og:description",
         content: "Work a list of programs and write up recruiting intelligence in one sitting.",

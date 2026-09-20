@@ -427,7 +427,7 @@ function NotesAndMessages({
 
   const flag = useMutation({
     mutationFn: (reason: string) => reportFn({ data: { threadId: threadId!, reason } }),
-    onSuccess: () => toast.success("Reported. Power Recruit staff can see it."),
+    onSuccess: () => toast.success("Reported. Curve Recruit staff can see it."),
     onError: (error: Error) => toast.error(error.message),
   });
 

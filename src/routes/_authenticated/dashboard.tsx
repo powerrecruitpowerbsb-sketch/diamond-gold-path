@@ -24,13 +24,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Recruiting engine — Power Recruit" },
+      { title: "Recruiting engine — Curve Recruit" },
       {
         name: "description",
         content:
           "Organization recruiting dashboard: every athlete's shortlist status, plus division and region targets across the class.",
       },
-      { property: "og:title", content: "Recruiting engine — Power Recruit" },
+      { property: "og:title", content: "Recruiting engine — Curve Recruit" },
       {
         property: "og:description",
         content: "Where your recruiting class stands, at a glance.",

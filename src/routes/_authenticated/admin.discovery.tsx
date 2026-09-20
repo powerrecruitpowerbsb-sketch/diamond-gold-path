@@ -24,13 +24,13 @@ import { sweepReasonLabel } from "@/lib/link-sweep-labels";
 export const Route = createFileRoute("/_authenticated/admin/discovery")({
   head: () => ({
     meta: [
-      { title: "Discovered links — Power Recruit" },
+      { title: "Discovered links — Curve Recruit" },
       {
         name: "description",
         content:
           "Confirm or reject automatically discovered athletics, roster, and coaching staff links before they reach live data.",
       },
-      { property: "og:title", content: "Discovered links — Power Recruit" },
+      { property: "og:title", content: "Discovered links — Curve Recruit" },
       {
         property: "og:description",
         content: "Staff review for automatically discovered school and program links.",

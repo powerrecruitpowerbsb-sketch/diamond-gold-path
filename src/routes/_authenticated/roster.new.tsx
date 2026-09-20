@@ -16,12 +16,12 @@ import { SPORTS, SPORT_LABEL } from "@/lib/sport";
 export const Route = createFileRoute("/_authenticated/roster/new")({
   head: () => ({
     meta: [
-      { title: "Add an athlete — Power Recruit" },
-      { name: "description", content: "Add one of your organization's athletes to Power Recruit." },
-      { property: "og:title", content: "Add an athlete — Power Recruit" },
+      { title: "Add an athlete — Curve Recruit" },
+      { name: "description", content: "Add one of your organization's athletes to Curve Recruit." },
+      { property: "og:title", content: "Add an athlete — Curve Recruit" },
       {
         property: "og:description",
-        content: "Manual athlete entry for Power Recruit organization staff.",
+        content: "Manual athlete entry for Curve Recruit organization staff.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

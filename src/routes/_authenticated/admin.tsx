@@ -10,16 +10,16 @@ import { ConsoleShell, type ConsoleNavSection } from "@/components/console/Conso
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Staff console — Power Recruit" },
+      { title: "Staff console — Curve Recruit" },
       {
         name: "description",
         content:
-          "Power Recruit staff console for managing verified university, program, and classification data.",
+          "Curve Recruit staff console for managing verified university, program, and classification data.",
       },
-      { property: "og:title", content: "Staff console — Power Recruit" },
+      { property: "og:title", content: "Staff console — Curve Recruit" },
       {
         property: "og:description",
-        content: "Staff tools for managing the Power Recruit college database.",
+        content: "Staff tools for managing the Curve Recruit college database.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -48,7 +48,7 @@ function AdminLayout() {
           <ShieldAlert className="mx-auto size-8 text-seam-red" aria-hidden />
           <h1 className="mt-3 font-display text-2xl font-bold text-graphite">Not authorized</h1>
           <p className="mt-2 text-sm text-steel">
-            The staff console is limited to Power Recruit superadmins.
+            The staff console is limited to Curve Recruit superadmins.
           </p>
         </div>
       </div>

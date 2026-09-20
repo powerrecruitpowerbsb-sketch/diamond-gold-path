@@ -11,13 +11,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Power Recruit — College Baseball & Softball Recruiting Research" },
+      { title: "Curve Recruit — College Baseball & Softball Recruiting Research" },
       {
         name: "description",
         content:
-          "Sign in to Power Recruit to research college baseball and softball programs with verified academic, athletic and cost data alongside staff intelligence.",
+          "Sign in to Curve Recruit to research college baseball and softball programs with verified academic, athletic and cost data alongside staff intelligence.",
       },
-      { property: "og:title", content: "Power Recruit — Recruiting Research Platform" },
+      { property: "og:title", content: "Curve Recruit — Recruiting Research Platform" },
       {
         property: "og:description",
         content:
@@ -82,7 +82,7 @@ function Index() {
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-5 py-8 sm:px-8 sm:py-12">
         <div className="flex items-center gap-2.5">
           <OrgMark logoUrl={null} name={null} size={32} className="bg-white/10" />
-          <span className="font-display text-lg font-bold text-white">Power Recruit</span>
+          <span className="font-display text-lg font-bold text-white">Curve Recruit</span>
         </div>
 
         <div className="flex flex-1 flex-col justify-center py-12">

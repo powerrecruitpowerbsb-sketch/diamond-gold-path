@@ -11,15 +11,15 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
     meta: [
-      { title: "Reset your password — Power Recruit" },
+      { title: "Reset your password — Curve Recruit" },
       {
         name: "description",
-        content: "Request a password reset link for your Power Recruit account.",
+        content: "Request a password reset link for your Curve Recruit account.",
       },
-      { property: "og:title", content: "Reset your password — Power Recruit" },
+      { property: "og:title", content: "Reset your password — Curve Recruit" },
       {
         property: "og:description",
-        content: "Request a password reset link for your Power Recruit account.",
+        content: "Request a password reset link for your Curve Recruit account.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

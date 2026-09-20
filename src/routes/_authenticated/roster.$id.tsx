@@ -36,12 +36,12 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/roster/$id")({
   head: () => ({
     meta: [
-      { title: "Athlete detail — Power Recruit" },
+      { title: "Athlete detail — Curve Recruit" },
       { name: "description", content: "Athlete profile, shortlist board, and staff notes." },
-      { property: "og:title", content: "Athlete detail — Power Recruit" },
+      { property: "og:title", content: "Athlete detail — Curve Recruit" },
       {
         property: "og:description",
-        content: "Athlete profile, shortlist status board, and staff notes in Power Recruit.",
+        content: "Athlete profile, shortlist status board, and staff notes in Curve Recruit.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

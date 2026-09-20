@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { exitOrganization } from "@/lib/impersonation.functions";
 
 /**
- * Shown to Power Recruit staff while they are inside a customer organization.
+ * Shown to Curve Recruit staff while they are inside a customer organization.
  * Everything they do is still recorded against their own staff account.
  */
 export function ActingOrgBar({ name }: { name: string | null }) {
@@ -35,7 +35,7 @@ export function ActingOrgBar({ name }: { name: string | null }) {
         <span className="font-mono uppercase tracking-wide text-white/60">Acting as owner</span>
         <span className="font-medium">{name ?? "Organization"}</span>
         <span className="text-white/60">
-          Your actions are recorded against your Power Recruit staff account.
+          Your actions are recorded against your Curve Recruit staff account.
         </span>
         <button
           type="button"
