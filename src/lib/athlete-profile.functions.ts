@@ -158,6 +158,30 @@ export const saveAthleteProfile = createServerFn({ method: "POST" })
 
   });
 
+/**
+ * The picture saves on its own the moment it is chosen, so the card shows a face
+ * without waiting for the rest of the form.
+ */
+export const setAthletePhoto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId: string; photoPath: string | null }) => ({
+    athleteId: str(input?.athleteId),
+    photoPath: nullable(input?.photoPath),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!data.athleteId) throw new Error("Missing athlete");
+    if (data.photoPath && !data.photoPath.startsWith(`${data.athleteId}/`)) {
+      throw new Error("That photo does not belong to this player");
+    }
+    const { error, count } = await context.supabase
+      .from("org_athletes")
+      .update({ photo_path: data.photoPath } as never, { count: "exact" })
+      .eq("id", data.athleteId);
+    if (error) throw new Error(error.message);
+    if (!count) throw new Error("You do not have permission to edit this player card");
+    return { ok: true, photoPath: data.photoPath };
+  });
+
 export const saveAthleteMetric = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
