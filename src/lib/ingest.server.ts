@@ -866,7 +866,9 @@ export async function ingestProgram(
           continue;
         }
 
-        const { error: snapshotError } = await supabase.from("roster_snapshots").insert({
+        // One summary per program and season: a re-read replaces the stored one
+        // rather than stacking a second row a family could be shown instead.
+        const { error: snapshotError } = await supabase.from("roster_snapshots").upsert({
           program_id: programId,
           season_year: seasonYear,
           pulled_at: new Date().toISOString(),
