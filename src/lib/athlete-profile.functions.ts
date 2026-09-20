@@ -34,7 +34,21 @@ export const PROFILE_COLUMNS =
   "id, organization_id, name, sport, grad_year, primary_position, secondary_position, bats, throws, " +
   "athlete_email, athlete_phone, parent_name, parent_email, parent_phone, home_city, home_state, " +
   "high_school, club_team, height_inches, weight_lbs, gpa, sat_score, act_score, eligibility_id, " +
-  "twitter_handle, instagram_handle, video_links, share_slug, share_enabled, share_contact";
+  "twitter_handle, instagram_handle, video_links, photo_path, share_slug, share_enabled, share_contact";
+
+/**
+ * A handle is stored bare, so a pasted profile link or an "@name" both end up
+ * as the username the card links to.
+ */
+const handle = (v: unknown) => {
+  let out = str(v);
+  if (!out) return null;
+  out = out.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
+  out = out.replace(/^(x\.com|twitter\.com|instagram\.com)\//i, "");
+  out = out.split(/[?#/]/)[0] ?? "";
+  out = out.replace(/^@/, "").trim();
+  return out === "" ? null : out;
+};
 
 export type AthleteProfileInput = {
   athleteId: string;
