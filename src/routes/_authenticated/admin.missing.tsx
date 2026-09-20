@@ -218,7 +218,7 @@ function MissingData() {
         <div className="mb-4 flex items-start gap-3 rounded border border-seam-red/40 bg-seam-red-tint p-4">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-seam-red" aria-hidden />
           <p className="text-sm text-graphite">
-            <span className="font-semibold">{num(waiting)} teams need something from you.</span>{" "}
+            <span className="font-semibold">{num(waiting)} things are missing across your teams.</span>{" "}
             Start with <span className="font-semibold">Quick wins</span> — those already have a staff
             page, so one read usually fills the coach in. Tick the teams that don't play the sport and
             mark them not offered.
