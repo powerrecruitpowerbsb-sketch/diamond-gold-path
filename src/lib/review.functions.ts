@@ -39,6 +39,10 @@ export const listPendingChanges = createServerFn({ method: "GET" })
   )
   .handler(async ({ context, data }) => {
     await assertSuperadmin(context as any);
+    // Permission is settled above. The reads below then go through the direct
+    // backend client: re-checking the same permission on every one of 44,000
+    // history rows is what pushed this past the database's time limit.
+    const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
     // Read one window of items straight from the database instead of pulling
     // thousands of rows and slicing them here — that's what made this screen
     // sit blank for the better part of a minute.
