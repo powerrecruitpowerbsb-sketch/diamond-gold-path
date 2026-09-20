@@ -203,6 +203,19 @@ export const saveAthleteMetric = createServerFn({ method: "POST" })
     const value = numOrNull(data?.value);
     if (value === null) throw new Error("Enter a number for this measurable");
 
+    // A number only belongs to the sport this player actually plays, so a
+    // baseball-only or softball-only measurable is refused rather than stored.
+    const { data: row } = await context.supabase
+      .from("org_athletes")
+      .select("sport")
+      .eq("id", athleteId)
+      .maybeSingle();
+    const sport = normalizeSport(row?.["sport"]);
+    if (!metricsForSport(sport).some((m) => m.key === metricKey)) {
+      throw new Error(`That measurable is not recorded for ${sport}.`);
+    }
+
+
     const source = METRIC_SOURCES.includes(str(data?.source) as never)
       ? str(data?.source)
       : "manual";
