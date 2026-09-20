@@ -188,56 +188,7 @@ function DiscoveryQueue() {
       toast.error(failure instanceof Error ? failure.message : "The tidy-up couldn't run"),
   });
 
-  const retry = useMutation({
-    mutationFn: (input: { id: string; decision: "reject" }) => reviewFn({ data: input }),
-    onSuccess: async () => {
-      toast.success("Sent back for a fresh search");
-      await refreshAll();
-    },
-    onError: (failure: unknown) =>
-      toast.error(failure instanceof Error ? failure.message : "Could not queue that search"),
-  });
-
-  const saveSite = useMutation({
-    mutationFn: (input: { id: string; url: string }) =>
-      athleticsFn({ data: input }) as Promise<{ message: string }>,
-    onSuccess: async (result) => {
-      toast.success(result.message);
-      await refreshAll();
-    },
-    onError: (failure: unknown) =>
-      toast.error(failure instanceof Error ? failure.message : "Could not save that athletics site"),
-  });
-
-  const noSport = useMutation({
-    mutationFn: (input: { programId: string }) =>
-      notOfferedFn({ data: input }) as Promise<{ message: string }>,
-    onSuccess: async (result) => {
-      toast.success(result.message);
-      await refreshAll();
-    },
-    onError: (failure: unknown) =>
-      toast.error(failure instanceof Error ? failure.message : "Could not save that decision"),
-  });
-
-  const saveManual = useMutation({
-    mutationFn: (input: { id: string; url: string }) => manualFn({ data: input }),
-    onSuccess: async () => {
-      toast.success("Link saved to live data");
-      await refreshAll();
-    },
-    onError: (failure: unknown) =>
-      toast.error(failure instanceof Error ? failure.message : "Could not save that link"),
-  });
-
-  const busy =
-    review.isPending ||
-    reviewMany.isPending ||
-    sweep.isPending ||
-    saveManual.isPending ||
-    retry.isPending ||
-    saveSite.isPending ||
-    noSport.isPending;
+  const busy = review.isPending || reviewMany.isPending || sweep.isPending;
 
   const rows = list.data?.rows ?? [];
   const groups = new Map<string, Row[]>();
