@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Pencil, Play, Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -12,8 +12,12 @@ import {
   saveAthleteMetric,
   saveAthleteProfile,
   saveScheduleEvent,
+  setAthletePhoto,
   setAthleteSharing,
 } from "@/lib/athlete-profile.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { OrgMark } from "@/components/brand/OrgMark";
+import { SocialLinks } from "@/components/athlete/SocialLinks";
 import {
   formatHeight,
   formatMetric,
