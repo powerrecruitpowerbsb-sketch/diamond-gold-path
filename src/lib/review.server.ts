@@ -462,6 +462,9 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
       athleticWebsite: (record?.["athletic_website"] ?? null) as string | null,
       coachingStaffUrl: (record?.["coaching_staff_url"] ?? null) as string | null,
       schoolWebsite: ((record?.["universities"] as any)?.website_url ?? null) as string | null,
+      // Carried here so the queue never needs a second round of program reads
+      // just to hide sports a school does not play.
+      programOfferingStatus: (record?.["offering_status"] ?? null) as string | null,
       previouslyDeclined: declined.has(
         rejectionKey({
           table_name: row.table_name,
