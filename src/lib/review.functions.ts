@@ -51,7 +51,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
     const itemsPerPage = data.pageSize * 2;
 
     const from = (data.page - 1) * itemsPerPage;
-    let query = context.supabase
+    let query = db
       .from("pending_data_changes")
       .select(PENDING_COLUMNS)
       .order("created_at", { ascending: false })
@@ -60,7 +60,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
 
     if (data.programId) {
       // A program's items live under the program id and its school's id.
-      const { data: program } = await context.supabase
+      const { data: program } = await db
         .from("programs")
         .select("id, university_id")
         .eq("id", data.programId)
@@ -71,7 +71,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
 
     // The window read and the total count are asked for together instead of one
     // after the other — that serial wait is most of why this screen sat blank.
-    let countQuery = context.supabase
+    let countQuery = db
       .from("pending_data_changes")
       .select("id", { count: "exact", head: true });
     if (data.status && data.status !== "all") countQuery = countQuery.eq("status", data.status as any);
@@ -82,7 +82,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
     const totalItems = countResult.count ?? 0;
 
     const { decoratePending, groupPending } = await import("@/lib/review.server");
-    const decorated = await decoratePending(context.supabase, (rows ?? []) as any[]);
+    const decorated = await decoratePending(db, (rows ?? []) as any[]);
 
     // Hold back anything about a sport we haven't confirmed the school plays,
     // so schools without baseball or softball stop appearing here at all. The
@@ -101,7 +101,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
     visible = visible.filter((row) => !isJunkCoachProposal(row));
     const hiddenJunk = beforeJunk - visible.length;
 
-    let groups = await groupPending(context.supabase, visible as any[]);
+    let groups = await groupPending(db, visible as any[]);
 
 
 
