@@ -10,43 +10,89 @@
 
 import { type Sport } from "@/lib/sport";
 
+/** How the picker groups numbers so a family finds theirs quickly. */
+export type MetricGroup = "Body" | "Hitting" | "Pitching" | "Fielding" | "Speed & agility";
+
 export type MetricDef = {
   key: string;
   label: string;
   unit: string;
   sports: Sport[];
+  group: MetricGroup;
   /** Lower is better (times) vs higher is better (velocities, jumps). */
   lowerIsBetter?: boolean;
   step?: number;
 };
 
+const BOTH: Sport[] = ["baseball", "softball"];
+
 export const METRIC_DEFS: MetricDef[] = [
-  { key: "height", label: "Height", unit: "in", sports: ["baseball", "softball"] },
-  { key: "weight", label: "Weight", unit: "lb", sports: ["baseball", "softball"] },
-  { key: "exit_velo", label: "Exit velocity", unit: "mph", sports: ["baseball", "softball"] },
-  { key: "max_exit_velo", label: "Max exit velocity", unit: "mph", sports: ["baseball", "softball"] },
-  { key: "bat_speed", label: "Bat speed", unit: "mph", sports: ["baseball", "softball"] },
-  { key: "fastball_velo", label: "Fastball", unit: "mph", sports: ["baseball"] },
-  { key: "curveball_velo", label: "Curveball", unit: "mph", sports: ["baseball"] },
-  { key: "changeup_velo", label: "Changeup", unit: "mph", sports: ["baseball"] },
-  { key: "sliders_velo", label: "Slider", unit: "mph", sports: ["baseball"] },
-  { key: "pitch_velo", label: "Pitching speed", unit: "mph", sports: ["softball"] },
-  { key: "of_velo", label: "Outfield velocity", unit: "mph", sports: ["baseball", "softball"] },
-  { key: "if_velo", label: "Infield velocity", unit: "mph", sports: ["baseball", "softball"] },
-  { key: "catcher_velo", label: "Catcher velocity", unit: "mph", sports: ["baseball", "softball"] },
-  { key: "pop_time", label: "Pop time", unit: "sec", sports: ["baseball", "softball"], lowerIsBetter: true, step: 0.01 },
-  { key: "sixty_yard", label: "60-yard dash", unit: "sec", sports: ["baseball"], lowerIsBetter: true, step: 0.01 },
-  { key: "home_to_first", label: "Home to first", unit: "sec", sports: ["baseball", "softball"], lowerIsBetter: true, step: 0.01 },
-  { key: "ten_yard", label: "10-yard split", unit: "sec", sports: ["baseball", "softball"], lowerIsBetter: true, step: 0.01 },
-  { key: "vertical_jump", label: "Vertical jump", unit: "in", sports: ["baseball", "softball"], step: 0.1 },
-  { key: "broad_jump", label: "Broad jump", unit: "in", sports: ["baseball", "softball"], step: 0.1 },
+  // Body
+  { key: "height", label: "Height", unit: "in", sports: BOTH, group: "Body" },
+  { key: "weight", label: "Weight", unit: "lb", sports: BOTH, group: "Body" },
+
+  // Hitting
+  { key: "exit_velo", label: "Exit velocity", unit: "mph", sports: BOTH, group: "Hitting" },
+  { key: "max_exit_velo", label: "Max exit velocity", unit: "mph", sports: BOTH, group: "Hitting" },
+  { key: "bat_speed", label: "Bat speed", unit: "mph", sports: BOTH, group: "Hitting" },
+
+  // Pitching — baseball
+  { key: "fastball_velo", label: "Fastball", unit: "mph", sports: ["baseball"], group: "Pitching" },
+  { key: "curveball_velo", label: "Curveball", unit: "mph", sports: ["baseball"], group: "Pitching" },
+  { key: "changeup_velo", label: "Changeup", unit: "mph", sports: ["baseball"], group: "Pitching" },
+  { key: "sliders_velo", label: "Slider", unit: "mph", sports: ["baseball"], group: "Pitching" },
+
+  // Pitching — softball (fastpitch repertoire)
+  { key: "pitch_velo", label: "Pitching speed", unit: "mph", sports: ["softball"], group: "Pitching" },
+  { key: "sb_fastball_velo", label: "Fastball", unit: "mph", sports: ["softball"], group: "Pitching" },
+  { key: "sb_riseball_velo", label: "Rise ball", unit: "mph", sports: ["softball"], group: "Pitching" },
+  { key: "sb_dropball_velo", label: "Drop ball", unit: "mph", sports: ["softball"], group: "Pitching" },
+  { key: "sb_curveball_velo", label: "Curveball", unit: "mph", sports: ["softball"], group: "Pitching" },
+  { key: "sb_changeup_velo", label: "Changeup", unit: "mph", sports: ["softball"], group: "Pitching" },
+  { key: "sb_screwball_velo", label: "Screwball", unit: "mph", sports: ["softball"], group: "Pitching" },
+
+  // Fielding
+  { key: "of_velo", label: "Outfield velocity", unit: "mph", sports: BOTH, group: "Fielding" },
+  { key: "if_velo", label: "Infield velocity", unit: "mph", sports: BOTH, group: "Fielding" },
+  { key: "catcher_velo", label: "Catcher velocity", unit: "mph", sports: BOTH, group: "Fielding" },
+  { key: "overhand_velo", label: "Overhand throwing velocity", unit: "mph", sports: ["softball"], group: "Fielding" },
+  { key: "pop_time", label: "Pop time", unit: "sec", sports: BOTH, group: "Fielding", lowerIsBetter: true, step: 0.01 },
+
+  // Speed & agility
+  { key: "sixty_yard", label: "60-yard dash", unit: "sec", sports: ["baseball"], group: "Speed & agility", lowerIsBetter: true, step: 0.01 },
+  { key: "twenty_yard", label: "20-yard dash", unit: "sec", sports: ["softball"], group: "Speed & agility", lowerIsBetter: true, step: 0.01 },
+  { key: "home_to_home", label: "Home to home", unit: "sec", sports: ["softball"], group: "Speed & agility", lowerIsBetter: true, step: 0.01 },
+  { key: "pro_agility", label: "Pro agility (5-10-5)", unit: "sec", sports: BOTH, group: "Speed & agility", lowerIsBetter: true, step: 0.01 },
+  { key: "home_to_first", label: "Home to first", unit: "sec", sports: BOTH, group: "Speed & agility", lowerIsBetter: true, step: 0.01 },
+  { key: "ten_yard", label: "10-yard split", unit: "sec", sports: BOTH, group: "Speed & agility", lowerIsBetter: true, step: 0.01 },
+  { key: "vertical_jump", label: "Vertical jump", unit: "in", sports: BOTH, group: "Speed & agility", step: 0.1 },
+  { key: "broad_jump", label: "Broad jump", unit: "in", sports: BOTH, group: "Speed & agility", step: 0.1 },
 ];
 
 export const METRIC_KEYS = METRIC_DEFS.map((m) => m.key);
 
+/** Only the numbers that belong to this athlete's game. */
 export function metricsForSport(sport: Sport): MetricDef[] {
   return METRIC_DEFS.filter((m) => m.sports.includes(sport));
 }
+
+export const METRIC_GROUP_ORDER: MetricGroup[] = [
+  "Pitching",
+  "Hitting",
+  "Fielding",
+  "Speed & agility",
+  "Body",
+];
+
+/** The sport's numbers, grouped in the order a coach reads them. */
+export function metricGroupsForSport(sport: Sport): { group: MetricGroup; metrics: MetricDef[] }[] {
+  const all = metricsForSport(sport);
+  return METRIC_GROUP_ORDER.map((group) => ({
+    group,
+    metrics: all.filter((m) => m.group === group),
+  })).filter((entry) => entry.metrics.length > 0);
+}
+
 
 export function metricDef(key: string): MetricDef | null {
   return METRIC_DEFS.find((m) => m.key === key) ?? null;
