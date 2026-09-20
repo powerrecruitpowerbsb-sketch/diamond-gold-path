@@ -54,6 +54,8 @@ function Operations() {
   const { data: pending } = useQuery({
     queryKey: ["pending-changes-count", "operations"],
     queryFn: () => countFn(),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
   const reviewCount = pending?.pending ?? 0;
 
