@@ -10,6 +10,8 @@ import { BlockedSitesQueue } from "@/components/admin/BlockedSitesQueue";
 import { BrokenLinksQueue } from "@/components/admin/BrokenLinksQueue";
 import { getOperationsOverview } from "@/lib/operations.functions";
 import { startCollection } from "@/lib/collection.functions";
+import { countPendingChanges } from "@/lib/review.functions";
+import { ReviewQueuePanel } from "@/routes/_authenticated/admin.review";
 
 export const Route = createFileRoute("/_authenticated/admin/operations")({
   head: () => ({
@@ -32,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/admin/operations")({
   component: Operations,
 });
 
-type Tab = "overview" | "blocked" | "broken";
+type Tab = "overview" | "review" | "blocked" | "broken";
 
 const day = (value: string) =>
   new Date(value).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
