@@ -23,14 +23,24 @@ import {
   formatMetric,
   latestByMetric,
   metricDef,
+  metricGroupsForSport,
   metricLabel,
   metricSourceLabel,
+  metricSourceShort,
+  metricSourcesForSport,
   metricStep,
   metricUnit,
-  metricsForSport,
   parseHeightInput,
   splitHeight,
 } from "@/lib/athlete-metrics";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 
 import { HelpTip } from "@/components/brand/HelpTip";
 import { normalizeSport } from "@/lib/sport";
@@ -217,6 +227,8 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
   const [metricValue, setMetricValue] = useState("");
   const [metricDate, setMetricDate] = useState("");
   const [metricSource, setMetricSource] = useState("manual");
+  const [metricOpen, setMetricOpen] = useState(false);
+
 
   const [eventOpen, setEventOpen] = useState(false);
   const [event, setEvent] = useState({
@@ -593,6 +605,226 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
           </div>
         ) : null}
 
+        {/* Measurables — each number its own tile, the way a coach scans them. */}
+        <div className="mt-5 border-t border-border pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <p className={labelClass}>Measurables</p>
+              <HelpTip label="About measurables">
+                Only the numbers colleges ask for in {sport}. Each one keeps its date and where it
+                came from, so a new test never erases the old one.
+              </HelpTip>
+            </div>
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => setMetricOpen(true)}
+                className="touch-target inline-flex items-center gap-1 rounded-xl border border-border px-4 text-sm font-semibold text-graphite hover:border-org-primary hover:text-org-primary"
+              >
+                <Plus className="size-4" aria-hidden /> Add measurable
+              </button>
+            ) : null}
+          </div>
+
+          {latest.length === 0 ? (
+            <div className="mt-3">
+              {canEdit ? (
+                <button
+                  type="button"
+                  onClick={() => setMetricOpen(true)}
+                  className="grid h-28 w-full place-items-center rounded-xl border border-dashed border-border bg-surface-2/60 text-sm font-semibold text-steel hover:border-org-primary hover:text-org-primary sm:w-44"
+                >
+                  <span className="flex flex-col items-center gap-1">
+                    <Plus className="size-5" aria-hidden />
+                    Add first measurable
+                  </span>
+                </button>
+              ) : (
+                <p className="text-sm text-steel">No numbers recorded yet.</p>
+              )}
+            </div>
+          ) : (
+            <div className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+              {latest.map((row) => {
+                const key = String(row['metric_key']);
+                return (
+                  <div
+                    key={String(row['id'])}
+                    className="group relative rounded-xl border border-border bg-surface-2 px-4 py-3"
+                  >
+                    <p className="font-display text-2xl font-bold tabular-nums text-graphite">
+                      {formatMetric(row['value'], key)}
+                    </p>
+                    <p className="mt-1 font-mono text-[11px] tracking-wide text-graphite uppercase">
+                      {metricLabel(key)}
+                    </p>
+                    <p className="mt-1 font-mono text-[10px] text-steel">
+                      {[
+                        metricSourceShort(row['source']),
+                        row['recorded_on'] ? String(row['recorded_on']) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await deleteMetricFn({ data: { id: String(row['id']) } });
+                            await invalidate();
+                          } catch (err) {
+                            toast.error((err as Error).message);
+                          }
+                        }}
+                        className="absolute top-2 right-2 text-steel opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 hover:text-seam-red"
+                        aria-label={`Remove ${metricLabel(key)}`}
+                      >
+                        <Trash2 className="size-3.5" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Add a measurable — sport-specific list, unit shown as it is typed. */}
+        <Dialog open={metricOpen} onOpenChange={setMetricOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add a measurable</DialogTitle>
+              <DialogDescription>
+                Only numbers recorded for {sport} are listed.
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              className="space-y-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const value =
+                  metricKey === "height" ? parseHeightInput(metricValue) : Number(metricValue);
+                if (value === null || !Number.isFinite(Number(value))) {
+                  toast.error(
+                    metricKey === "height"
+                      ? "Enter the height as 6'2\"."
+                      : `Enter the number in ${metricUnit(metricKey) || "its unit"}.`,
+                  );
+                  return;
+                }
+                try {
+                  await saveMetricFn({
+                    data: {
+                      athleteId,
+                      metricKey,
+                      value: String(value),
+                      recordedOn: metricDate || null,
+                      source: metricSource,
+                      unit: metricDef(metricKey)?.unit ?? null,
+                    },
+                  });
+                  setMetricValue("");
+                  setMetricDate("");
+                  setMetricOpen(false);
+                  await invalidate();
+                  toast.success("Measurable added");
+                } catch (err) {
+                  toast.error((err as Error).message);
+                }
+              }}
+            >
+              <label className="block">
+                <span className={labelClass}>Measurable</span>
+                <select
+                  required
+                  value={metricKey}
+                  onChange={(e) => {
+                    setMetricKey(e.target.value);
+                    setMetricValue("");
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">Choose…</option>
+                  {metricGroupsForSport(sport).map((entry) => (
+                    <optgroup key={entry.group} label={entry.group}>
+                      {entry.metrics.map((m) => (
+                        <option key={m.key} value={m.key}>
+                          {m.label} ({m.key === "height" ? "ft / in" : m.unit})
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>
+                  Value {metricKey ? `(${metricKey === "height" ? "ft'in\"" : metricUnit(metricKey)})` : ""}
+                </span>
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    required
+                    type={metricKey === "height" ? "text" : "number"}
+                    inputMode="decimal"
+                    step={metricKey === "height" ? undefined : String(metricStep(metricKey))}
+                    placeholder={metricKey === "height" ? `6'2"` : ""}
+                    value={metricValue}
+                    onChange={(e) => setMetricValue(e.target.value)}
+                    className={cn(inputClass, "mt-0 w-32")}
+                  />
+                  <span className="font-mono text-[11px] text-steel uppercase">
+                    {metricKey === "height" ? "ft / in" : metricUnit(metricKey)}
+                  </span>
+                </div>
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className={labelClass}>Date tested</span>
+                  <input
+                    type="date"
+                    value={metricDate}
+                    onChange={(e) => setMetricDate(e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelClass}>Source</span>
+                  <select
+                    value={metricSource}
+                    onChange={(e) => setMetricSource(e.target.value)}
+                    className={inputClass}
+                  >
+                    {metricSourcesForSport(sport).map((s) => (
+                      <option key={s} value={s}>
+                        {metricSourceLabel(s)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  className="touch-target inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground"
+                >
+                  Add measurable
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetricOpen(false)}
+                  className="touch-target inline-flex items-center rounded-xl border border-border px-4 text-sm font-semibold text-steel hover:text-graphite"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+
         {/* Shareable card link — what a college coach opens from an email. */}
         <div className="mt-5 border-t border-border pt-4">
           <p className={labelClass}>Shareable profile link</p>
@@ -658,170 +890,6 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
         </div>
       </section>
 
-      {/* Measurables */}
-      <section className={cardClass}>
-        <div className="flex items-center gap-1.5">
-          <h2 className="font-display text-xl font-bold text-graphite">Measurables</h2>
-          <HelpTip label="About measurables">
-            Each number keeps its date and where it came from, so a new test result never erases the
-            old one. Results from testing services land here too.
-          </HelpTip>
-        </div>
-
-        {latest.length === 0 ? (
-          <p className="mt-4 text-sm text-steel">No numbers recorded yet.</p>
-        ) : (
-          <div className="mt-4 overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <tbody>
-                {latest.map((row) => (
-                  <tr key={String(row['id'])} className="border-b border-border last:border-0">
-                    <th scope="row" className="px-3 py-2 text-left font-semibold text-graphite">
-                      {metricLabel(String(row['metric_key']))}
-                    </th>
-                    <td className="px-3 py-2 font-semibold tabular-nums text-graphite">
-                      {formatMetric(row['value'], String(row['metric_key']))}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-steel">
-                      {row['recorded_on'] ?? "no date"} · {metricSourceLabel(row['source'])}
-                      {row['verified'] ? " · verified" : ""}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {canEdit ? (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await deleteMetricFn({ data: { id: String(row['id']) } });
-                              await invalidate();
-                            } catch (err) {
-                              toast.error((err as Error).message);
-                            }
-                          }}
-                          className="text-steel hover:text-seam-red"
-                          aria-label={`Remove ${metricLabel(String(row['metric_key']))}`}
-                        >
-                          <Trash2 className="size-4" aria-hidden />
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {canEdit ? (
-          <form
-            className="mt-4 flex flex-wrap items-end gap-3"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              // Height is entered as 6'2"; everything else is a plain number in
-              // its own unit (mph, sec, in, lb) and is stored with that unit.
-              const value =
-                metricKey === "height" ? parseHeightInput(metricValue) : Number(metricValue);
-              if (value === null || !Number.isFinite(Number(value))) {
-                toast.error(
-                  metricKey === "height"
-                    ? "Enter the height as 6'2\"."
-                    : `Enter the number in ${metricUnit(metricKey) || "its unit"}.`,
-                );
-                return;
-              }
-              try {
-                await saveMetricFn({
-                  data: {
-                    athleteId,
-                    metricKey,
-                    value: String(value),
-                    recordedOn: metricDate || null,
-                    source: metricSource,
-                    unit: metricDef(metricKey)?.unit ?? null,
-                  },
-                });
-                setMetricValue("");
-                setMetricDate("");
-                await invalidate();
-                toast.success("Measurable added");
-              } catch (err) {
-                toast.error((err as Error).message);
-              }
-            }}
-          >
-            <label className="block">
-              <span className={labelClass}>Measurable</span>
-              <select
-                required
-                value={metricKey}
-                onChange={(e) => {
-                  setMetricKey(e.target.value);
-                  setMetricValue("");
-                }}
-                className={inputClass}
-              >
-                <option value="">Choose…</option>
-                {metricsForSport(sport).map((m) => (
-                  <option key={m.key} value={m.key}>
-                    {m.label} ({m.unit})
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className={labelClass}>
-                Value {metricKey ? `(${metricKey === "height" ? "ft'in\"" : metricUnit(metricKey)})` : ""}
-              </span>
-              <div className="mt-1 flex items-center gap-2">
-                <input
-                  required
-                  type={metricKey === "height" ? "text" : "number"}
-                  inputMode="decimal"
-                  step={metricKey === "height" ? undefined : String(metricStep(metricKey))}
-                  placeholder={metricKey === "height" ? `6'2"` : ""}
-                  value={metricValue}
-                  onChange={(e) => setMetricValue(e.target.value)}
-                  className={cn(inputClass, "mt-0 w-28")}
-                />
-                <span className="font-mono text-[11px] uppercase text-steel">
-                  {metricKey === "height" ? "ft / in" : metricUnit(metricKey)}
-                </span>
-              </div>
-            </label>
-
-            <label className="block">
-              <span className={labelClass}>Date</span>
-              <input
-                type="date"
-                value={metricDate}
-                onChange={(e) => setMetricDate(e.target.value)}
-                className={inputClass}
-              />
-            </label>
-            <label className="block">
-              <span className={labelClass}>Source</span>
-              <select
-                value={metricSource}
-                onChange={(e) => setMetricSource(e.target.value)}
-                className={inputClass}
-              >
-                <option value="manual">Entered by hand</option>
-                <option value="curve_testing">Curve Testing</option>
-                <option value="handled_reports">HandledReports</option>
-                <option value="perfect_game">Perfect Game</option>
-                <option value="prep_baseball_report">Prep Baseball Report</option>
-                <option value="other">Another service</option>
-              </select>
-            </label>
-            <button
-              type="submit"
-              className="touch-target inline-flex items-center rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground"
-            >
-              Add
-            </button>
-          </form>
-        ) : null}
-      </section>
 
       {/* Schedule */}
       <section className={cardClass}>

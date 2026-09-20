@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { METRIC_KEYS, METRIC_SOURCES, metricUnit } from "@/lib/athlete-metrics";
+import { METRIC_KEYS, METRIC_SOURCES, metricUnit, metricsForSport } from "@/lib/athlete-metrics";
+import { normalizeSport } from "@/lib/sport";
+
 
 /**
  * Athlete profile, measurables and schedule.
@@ -202,6 +204,19 @@ export const saveAthleteMetric = createServerFn({ method: "POST" })
     if (!METRIC_KEYS.includes(metricKey)) throw new Error(`Unknown measurable "${metricKey}"`);
     const value = numOrNull(data?.value);
     if (value === null) throw new Error("Enter a number for this measurable");
+
+    // A number only belongs to the sport this player actually plays, so a
+    // baseball-only or softball-only measurable is refused rather than stored.
+    const { data: row } = await context.supabase
+      .from("org_athletes")
+      .select("sport")
+      .eq("id", athleteId)
+      .maybeSingle();
+    const sport = normalizeSport(row?.["sport"]);
+    if (!metricsForSport(sport).some((m) => m.key === metricKey)) {
+      throw new Error(`That measurable is not recorded for ${sport}.`);
+    }
+
 
     const source = METRIC_SOURCES.includes(str(data?.source) as never)
       ? str(data?.source)
