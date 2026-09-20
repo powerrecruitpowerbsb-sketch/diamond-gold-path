@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { BadgeCheck, Loader2 } from "lucide-react";
 
+import curveMark from "@/assets/curve-mark-white.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyAccount, validateInviteCode } from "@/lib/admin.functions";
 import { routeForRole } from "@/lib/role-routes";
@@ -96,12 +97,7 @@ function AuthPage() {
       <div className="stadium-gradient relative">
         <div className="mx-auto max-w-6xl px-4 pt-8 pb-28 sm:px-6 sm:pt-10 sm:pb-36">
           <Link to="/" className="inline-flex items-center gap-2.5">
-            <span
-              className="grid size-9 place-items-center rounded-md bg-org-accent font-display text-base font-bold text-navy-deep"
-              aria-hidden
-            >
-              P
-            </span>
+            <img src={curveMark.url} alt="" aria-hidden className="size-9 object-contain" />
             <span className="font-display text-xl font-bold text-white">Curve Recruit</span>
           </Link>
           <h1 className="mt-8 max-w-xl font-display text-3xl font-bold text-white sm:text-4xl">

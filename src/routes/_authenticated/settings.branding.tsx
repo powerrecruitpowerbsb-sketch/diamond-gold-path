@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Upload } from "lucide-react";
 import { toast } from "sonner";
 
+import curveMark from "@/assets/curve-mark-white.png.asset.json";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useOrgBranding } from "@/hooks/use-org-branding";
@@ -181,13 +182,12 @@ function BrandingSettings() {
                       className="size-8 rounded-md bg-white/10 object-contain"
                     />
                   ) : (
-                    <span
-                      className="grid size-8 place-items-center rounded-md font-display text-[15px] font-bold text-navy-deep"
-                      style={{ background: accent }}
+                    <img
+                      src={curveMark.url}
+                      alt=""
                       aria-hidden
-                    >
-                      P
-                    </span>
+                      className="size-8 rounded-md object-contain"
+                    />
                   )}
                   <span className="font-display text-lg font-bold text-white">Curve Recruit</span>
                   <span className="ml-auto rounded-lg px-3 py-1.5 text-sm font-semibold text-navy-deep" style={{ background: accent }}>
