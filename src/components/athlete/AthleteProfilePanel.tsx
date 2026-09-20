@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Pencil, Play, Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -12,8 +12,12 @@ import {
   saveAthleteMetric,
   saveAthleteProfile,
   saveScheduleEvent,
+  setAthletePhoto,
   setAthleteSharing,
 } from "@/lib/athlete-profile.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { OrgMark } from "@/components/brand/OrgMark";
+import { SocialLinks } from "@/components/athlete/SocialLinks";
 import {
   formatHeight,
   formatMetric,
@@ -85,7 +89,11 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
   const saveEventFn = useServerFn(saveScheduleEvent);
   const deleteEventFn = useServerFn(deleteScheduleEvent);
   const setSharingFn = useServerFn(setAthleteSharing);
+  const setPhotoFn = useServerFn(setAthletePhoto);
   const queryClient = useQueryClient();
+  const photoInput = useRef<HTMLInputElement | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const { data, isPending, error } = useQuery({
     queryKey: ["athlete-profile", athleteId],
@@ -119,6 +127,72 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
     setForm(formFrom(athlete));
     setVideos(((athlete['video_links'] ?? []) as string[]).filter(Boolean));
   }, [athlete?.['id'], athlete]);
+
+  // Photos are kept private, so the card asks for a short-lived link each time.
+  const storedPhoto = (athlete?.['photo_path'] ?? null) as string | null;
+  useEffect(() => {
+    let live = true;
+    if (!storedPhoto) {
+      setPhotoUrl(null);
+      return;
+    }
+    supabase.storage
+      .from("athlete-photos")
+      .createSignedUrl(storedPhoto, 60 * 60)
+      .then(({ data: signed }) => {
+        if (live) setPhotoUrl(signed?.signedUrl ?? null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [storedPhoto]);
+
+  const pickPhoto = async (file: File | null | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("That picture is over 5MB — please choose a smaller one.");
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const path = `${athleteId}/photo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("athlete-photos")
+        .upload(path, file, { upsert: true, ...(file.type ? { contentType: file.type } : {}) });
+      if (upErr) throw new Error(upErr.message);
+      await setPhotoFn({ data: { athleteId, photoPath: path } });
+      await invalidate();
+      toast.success("Photo added");
+    } catch (err) {
+      const raw = (err as Error).message ?? "";
+      toast.error(
+        /row-level security|not authorized|permission/i.test(raw)
+          ? "You do not have permission to change this player's photo."
+          : raw || "The photo could not be saved.",
+      );
+    } finally {
+      setPhotoBusy(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  };
+
+  const removePhoto = async () => {
+    setPhotoBusy(true);
+    try {
+      await setPhotoFn({ data: { athleteId, photoPath: null } });
+      await invalidate();
+      toast.success("Photo removed");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
 
   const saveProfile = useMutation({
     mutationFn: async () => saveProfileFn({ data: { athleteId, ...form, videoLinks: videos } as any }),
@@ -256,13 +330,6 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
         ["NCAA / NAIA ID", athlete['eligibility_id'] ?? null],
       ],
     },
-    {
-      title: "Follow along",
-      rows: [
-        ["X", athlete['twitter_handle'] ?? null],
-        ["Instagram", athlete['instagram_handle'] ?? null],
-      ],
-    },
   ].map((group) => ({ ...group, rows: group.rows.filter(([, value]) => Boolean(value)) as [string, string][] }));
 
   const storedVideos = ((athlete['video_links'] ?? []) as string[]).filter(Boolean);
@@ -294,6 +361,61 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
               {editing ? "Done editing" : "Edit card"}
             </button>
           ) : null}
+        </div>
+
+        {/* The player's picture. With none on file the organization's own mark
+            stands in, so the card still looks finished. */}
+        <div className="mt-4 flex items-center gap-4">
+          <div className="relative size-24 shrink-0 overflow-hidden rounded-xl border border-border bg-surface-2">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={`${String(athlete['name'] ?? "Player")} photo`}
+                className="size-full object-cover"
+              />
+            ) : (
+              <span className="grid size-full place-items-center">
+                <OrgMark size={44} />
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <SocialLinks
+              twitter={athlete['twitter_handle']}
+              instagram={athlete['instagram_handle']}
+              className="mb-2"
+            />
+            {canEdit ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  ref={photoInput}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void pickPhoto(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  disabled={photoBusy}
+                  onClick={() => photoInput.current?.click()}
+                  className="touch-target inline-flex items-center gap-1.5 rounded-xl border border-dashed border-border px-4 text-sm font-semibold text-steel hover:border-org-primary hover:text-org-primary disabled:opacity-60"
+                >
+                  <ImagePlus className="size-4" aria-hidden />
+                  {photoBusy ? "Saving…" : photoUrl ? "Replace photo" : "Add photo"}
+                </button>
+                {photoUrl ? (
+                  <button
+                    type="button"
+                    disabled={photoBusy}
+                    onClick={() => void removePhoto()}
+                    className="touch-target inline-flex items-center rounded-xl border border-border px-3 text-sm font-semibold text-steel hover:border-seam-red hover:text-seam-red disabled:opacity-60"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {!editing ? (

@@ -57,6 +57,7 @@ import { Route as AuthenticatedAdminProgramsNewRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminSchoolsNewRouteImport } from './routes/_authenticated/admin.schools.new'
 import { Route as AuthenticatedAdminUniversitiesIndexRouteImport } from './routes/_authenticated/admin.universities.index'
 import { Route as AuthenticatedAdminUniversitiesIdRouteImport } from './routes/_authenticated/admin.universities.$id'
+import { Route as ApiPublicAthletePhotoSlugRouteImport } from './routes/api/public/athlete-photo.$slug'
 import { Route as AuthenticatedAdminProgramsIdEditRouteImport } from './routes/_authenticated/admin.programs.$id_.edit'
 import { Route as AuthenticatedAdminUniversitiesIdEditRouteImport } from './routes/_authenticated/admin.universities.$id_.edit'
 
@@ -326,6 +327,12 @@ const AuthenticatedAdminUniversitiesIdRoute =
     path: '/universities/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const ApiPublicAthletePhotoSlugRoute =
+  ApiPublicAthletePhotoSlugRouteImport.update({
+    id: '/api/public/athlete-photo/$slug',
+    path: '/api/public/athlete-photo/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminProgramsIdEditRoute =
   AuthenticatedAdminProgramsIdEditRouteImport.update({
     id: '/programs/$id_/edit',
@@ -385,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
+  '/api/public/athlete-photo/$slug': typeof ApiPublicAthletePhotoSlugRoute
   '/admin/programs/': typeof AuthenticatedAdminProgramsIndexRoute
   '/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
   '/admin/programs/$id/edit': typeof AuthenticatedAdminProgramsIdEditRoute
@@ -435,6 +443,7 @@ export interface FileRoutesByTo {
   '/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
+  '/api/public/athlete-photo/$slug': typeof ApiPublicAthletePhotoSlugRoute
   '/admin/programs': typeof AuthenticatedAdminProgramsIndexRoute
   '/admin/universities': typeof AuthenticatedAdminUniversitiesIndexRoute
   '/admin/programs/$id/edit': typeof AuthenticatedAdminProgramsIdEditRoute
@@ -488,6 +497,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/programs/new': typeof AuthenticatedAdminProgramsNewRoute
   '/_authenticated/admin/schools/new': typeof AuthenticatedAdminSchoolsNewRoute
   '/_authenticated/admin/universities/$id': typeof AuthenticatedAdminUniversitiesIdRoute
+  '/api/public/athlete-photo/$slug': typeof ApiPublicAthletePhotoSlugRoute
   '/_authenticated/admin/programs/': typeof AuthenticatedAdminProgramsIndexRoute
   '/_authenticated/admin/universities/': typeof AuthenticatedAdminUniversitiesIndexRoute
   '/_authenticated/admin/programs/$id_/edit': typeof AuthenticatedAdminProgramsIdEditRoute
@@ -541,6 +551,7 @@ export interface FileRouteTypes {
     | '/admin/programs/new'
     | '/admin/schools/new'
     | '/admin/universities/$id'
+    | '/api/public/athlete-photo/$slug'
     | '/admin/programs/'
     | '/admin/universities/'
     | '/admin/programs/$id/edit'
@@ -591,6 +602,7 @@ export interface FileRouteTypes {
     | '/admin/programs/new'
     | '/admin/schools/new'
     | '/admin/universities/$id'
+    | '/api/public/athlete-photo/$slug'
     | '/admin/programs'
     | '/admin/universities'
     | '/admin/programs/$id/edit'
@@ -643,6 +655,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/programs/new'
     | '/_authenticated/admin/schools/new'
     | '/_authenticated/admin/universities/$id'
+    | '/api/public/athlete-photo/$slug'
     | '/_authenticated/admin/programs/'
     | '/_authenticated/admin/universities/'
     | '/_authenticated/admin/programs/$id_/edit'
@@ -658,6 +671,7 @@ export interface RootRouteChildren {
   PSlugRoute: typeof PSlugRoute
   ApiPublicCollectionRunnerRoute: typeof ApiPublicCollectionRunnerRoute
   ApiPublicFederalRunnerRoute: typeof ApiPublicFederalRunnerRoute
+  ApiPublicAthletePhotoSlugRoute: typeof ApiPublicAthletePhotoSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -998,6 +1012,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUniversitiesIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/public/athlete-photo/$slug': {
+      id: '/api/public/athlete-photo/$slug'
+      path: '/api/public/athlete-photo/$slug'
+      fullPath: '/api/public/athlete-photo/$slug'
+      preLoaderRoute: typeof ApiPublicAthletePhotoSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/programs/$id_/edit': {
       id: '/_authenticated/admin/programs/$id_/edit'
       path: '/programs/$id/edit'
@@ -1129,6 +1150,7 @@ const rootRouteChildren: RootRouteChildren = {
   PSlugRoute: PSlugRoute,
   ApiPublicCollectionRunnerRoute: ApiPublicCollectionRunnerRoute,
   ApiPublicFederalRunnerRoute: ApiPublicFederalRunnerRoute,
+  ApiPublicAthletePhotoSlugRoute: ApiPublicAthletePhotoSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

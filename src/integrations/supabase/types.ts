@@ -1334,6 +1334,7 @@ export type Database = {
           parent_email: string | null
           parent_name: string | null
           parent_phone: string | null
+          photo_path: string | null
           primary_position: string | null
           sat_score: number | null
           secondary_position: string | null
@@ -1372,6 +1373,7 @@ export type Database = {
           parent_email?: string | null
           parent_name?: string | null
           parent_phone?: string | null
+          photo_path?: string | null
           primary_position?: string | null
           sat_score?: number | null
           secondary_position?: string | null
@@ -1410,6 +1412,7 @@ export type Database = {
           parent_email?: string | null
           parent_name?: string | null
           parent_phone?: string | null
+          photo_path?: string | null
           primary_position?: string | null
           sat_score?: number | null
           secondary_position?: string | null

@@ -34,7 +34,21 @@ export const PROFILE_COLUMNS =
   "id, organization_id, name, sport, grad_year, primary_position, secondary_position, bats, throws, " +
   "athlete_email, athlete_phone, parent_name, parent_email, parent_phone, home_city, home_state, " +
   "high_school, club_team, height_inches, weight_lbs, gpa, sat_score, act_score, eligibility_id, " +
-  "twitter_handle, instagram_handle, video_links, share_slug, share_enabled, share_contact";
+  "twitter_handle, instagram_handle, video_links, photo_path, share_slug, share_enabled, share_contact";
+
+/**
+ * A handle is stored bare, so a pasted profile link or an "@name" both end up
+ * as the username the card links to.
+ */
+const handle = (v: unknown) => {
+  let out = str(v);
+  if (!out) return null;
+  out = out.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
+  out = out.replace(/^(x\.com|twitter\.com|instagram\.com)\//i, "");
+  out = out.split(/[?#/]/)[0] ?? "";
+  out = out.replace(/^@/, "").trim();
+  return out === "" ? null : out;
+};
 
 export type AthleteProfileInput = {
   athleteId: string;
@@ -117,8 +131,8 @@ export const saveAthleteProfile = createServerFn({ method: "POST" })
       sat_score: intOrNull(data.satScore),
       act_score: intOrNull(data.actScore),
       eligibility_id: nullable(data.eligibilityId),
-      twitter_handle: nullable(data.twitterHandle)?.replace(/^@/, "") ?? null,
-      instagram_handle: nullable(data.instagramHandle)?.replace(/^@/, "") ?? null,
+      twitter_handle: handle(data.twitterHandle),
+      instagram_handle: handle(data.instagramHandle),
       video_links: Array.isArray(data.videoLinks)
         ? data.videoLinks.map((v) => str(v)).filter(Boolean).slice(0, 12)
         : [],
@@ -142,6 +156,30 @@ export const saveAthleteProfile = createServerFn({ method: "POST" })
     if (!count) throw new Error("You do not have permission to edit this player card");
     return { ok: true };
 
+  });
+
+/**
+ * The picture saves on its own the moment it is chosen, so the card shows a face
+ * without waiting for the rest of the form.
+ */
+export const setAthletePhoto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId: string; photoPath: string | null }) => ({
+    athleteId: str(input?.athleteId),
+    photoPath: nullable(input?.photoPath),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!data.athleteId) throw new Error("Missing athlete");
+    if (data.photoPath && !data.photoPath.startsWith(`${data.athleteId}/`)) {
+      throw new Error("That photo does not belong to this player");
+    }
+    const { error, count } = await context.supabase
+      .from("org_athletes")
+      .update({ photo_path: data.photoPath } as never, { count: "exact" })
+      .eq("id", data.athleteId);
+    if (error) throw new Error(error.message);
+    if (!count) throw new Error("You do not have permission to edit this player card");
+    return { ok: true, photoPath: data.photoPath };
   });
 
 export const saveAthleteMetric = createServerFn({ method: "POST" })
