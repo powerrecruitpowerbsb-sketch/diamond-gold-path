@@ -5,6 +5,7 @@ import { ShieldAlert } from "lucide-react";
 
 import { useMyAccount } from "@/hooks/use-my-account";
 import { getNeedsYou } from "@/lib/console.functions";
+import { countMissingData } from "@/lib/gaps.functions";
 import { ConsoleShell, type ConsoleNavSection } from "@/components/console/ConsoleShell";
 
 export const Route = createFileRoute("/_authenticated/admin")({
