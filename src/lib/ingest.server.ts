@@ -882,7 +882,7 @@ export async function ingestProgram(
           ingest_run_id: runId,
           suspect: suspicious,
           suspect_reason: suspicious ? reason : null,
-        });
+        }, { onConflict: "program_id,season_year" });
         if (snapshotError) throw new Error(`snapshot write failed: ${snapshotError.message}`);
         snapshotWritten = true;
 
