@@ -215,6 +215,12 @@ function ScoutCard() {
                   {[a["high_school"], hometown].filter(Boolean).join(" · ")}
                 </p>
               ) : null}
+              <SocialLinks
+                twitter={a["twitter_handle"]}
+                instagram={a["instagram_handle"]}
+                className="mt-4"
+              />
+            </div>
             </div>
 
             {org?.["name"] ? (
