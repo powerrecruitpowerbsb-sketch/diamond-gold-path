@@ -308,6 +308,7 @@ if (quarantinePhase) {
           const p = now[cursor++]!;
           const result = await crawlOne(p);
           state.done[p.id] = result;
+          await recordDone(result);
           save();
           console.log(`[lifted] ${result.school} ${result.sport}: ${result.status} ${result.players}p`);
           beat(`[lifted] ${result.school} ${result.sport}`, now.length);
@@ -318,8 +319,9 @@ if (quarantinePhase) {
   console.log("quarantine phase complete");
 } else {
   const all = await population();
-  const todo = spreadByHost(all.filter((p) => !state.done[p.id]));
-  console.log(`population ${all.length}; already done ${Object.keys(state.done).length}; to do ${todo.length}`);
+  const alreadyDone = await loadDoneIds();
+  const todo = spreadByHost(all.filter((p) => !alreadyDone.has(p.id)));
+  console.log(`population ${all.length}; already done ${alreadyDone.size}; to do ${todo.length}`);
 
   let cursor = 0;
   let n = 0;
@@ -329,26 +331,28 @@ if (quarantinePhase) {
         const p = todo[cursor++]!;
         const result = await crawlOne(p);
         state.done[p.id] = result;
+        await recordDone(result);
         n += 1;
         if (n % 5 === 0) save();
         beat(`${result.school} ${result.sport}: ${result.status}`, all.length);
         if (n % 25 === 0) {
           console.log(
-            `${Object.keys(state.done).length}/${all.length} — ${result.school} ${result.sport}: ${result.status} ${result.players}p`,
+            `${alreadyDone.size + n}/${all.length} — ${result.school} ${result.sport}: ${result.status} ${result.players}p`,
           );
         }
       }
     }),
   );
   save();
-  const done = Object.values(state.done);
+  const done = await doneCount();
+  const passResults = Object.values(state.done);
   console.log(
     JSON.stringify(
       {
-        done: done.length,
-        remaining: all.length - done.length,
-        withPlayers: done.filter((d) => d.players > 0).length,
-        refusedRoster: done.filter((d) => d.reason.startsWith("roster write refused")).length,
+        done,
+        remaining: all.length - done,
+        withPlayers: passResults.filter((d) => d.players > 0).length,
+        refusedRoster: passResults.filter((d) => d.reason.startsWith("roster write refused")).length,
       },
       null,
       2,
