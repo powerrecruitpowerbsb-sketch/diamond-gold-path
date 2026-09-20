@@ -5,6 +5,7 @@ import { ShieldAlert } from "lucide-react";
 
 import { useMyAccount } from "@/hooks/use-my-account";
 import { getNeedsYou } from "@/lib/console.functions";
+import { countMissingData } from "@/lib/gaps.functions";
 import { ConsoleShell, type ConsoleNavSection } from "@/components/console/ConsoleShell";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -36,6 +37,13 @@ function AdminLayout() {
     queryFn: () => needsFn(),
     enabled: Boolean(account?.isSuperadmin),
   });
+  const missingFn = useServerFn(countMissingData);
+  const { data: missing } = useQuery({
+    queryKey: ["missing-counts"],
+    queryFn: () => missingFn(),
+    enabled: Boolean(account?.isSuperadmin),
+    staleTime: 60_000,
+  });
 
   if (isPending) {
     return <div className="min-h-screen bg-chalk p-6"><div className="h-40 animate-pulse rounded border border-border bg-card" /></div>;
@@ -62,6 +70,15 @@ function AdminLayout() {
     (needs?.discovered ?? 0) +
     (needs?.review ?? 0);
 
+  const m = (missing ?? { roster: 0, staff: 0, coach: 0, site: 0 }) as {
+    roster: number;
+    staff: number;
+    coach: number;
+    site: number;
+  };
+  const gaps = m.roster + m.staff + m.coach + m.site;
+
+
   const sections: ConsoleNavSection[] = [
     {
       label: "Data operations",
@@ -78,7 +95,9 @@ function AdminLayout() {
     },
     {
       label: "Colleges & teams",
+      ...(gaps ? { count: gaps } : {}),
       items: [
+        { to: "/admin/missing", label: "Missing pages & coaches", ...(gaps ? { count: gaps } : {}) },
         { to: "/admin/universities", label: "All colleges" },
         { to: "/admin/programs", label: "All teams" },
         { to: "/admin/not-offered", label: "Not offered" },
