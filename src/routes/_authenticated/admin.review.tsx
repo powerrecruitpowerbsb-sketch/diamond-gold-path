@@ -187,6 +187,13 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
           pageSize: 25,
         },
       }),
+    // Once read, the queue stays put for a minute and switching tabs or clicking
+    // back into the window no longer restarts the read half way through.
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    placeholderData: (previous: unknown) => previous as any,
   });
   const queue = data as unknown as QueuePage | undefined;
   const groups = queue?.groups ?? [];
@@ -194,6 +201,8 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
   const { data: counts } = useQuery({
     queryKey: ["pending-changes-count"],
     queryFn: () => countFn({}),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
   const autoApplied = (counts as any)?.autoAppliedLast7Days ?? 0;
 
