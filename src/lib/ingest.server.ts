@@ -932,6 +932,72 @@ export async function ingestProgram(
     }
   }
 
+  // --- The staff page, when the stored address is dead ----------------------
+  // A retired ".aspx" path is not evidence a school hides its coaches, so when
+  // no staff name came out of this run we try the handful of addresses these
+  // platforms actually use, on the school's own athletics host only. Reading a
+  // page never rewrites the stored address.
+  const namedACoach = proposals.some(
+    (row) => row.table_name === "programs" && row.field_name === "head_coach_name",
+  );
+  const coachPageReached = urlResults.some(
+    (row) => row.purpose === "Coaching staff" && row.status === "scraped",
+  );
+  if (!namedACoach && !coachPageReached) {
+    const candidates = coachPathCandidates(program["athletic_website"], program["sport"], {
+      exclude: [program["coaching_staff_url"] as string | null],
+      limit: 4,
+    });
+    for (const candidate of candidates) {
+      let candidateText: string;
+      try {
+        candidateText = await scrape(candidate);
+      } catch {
+        continue;
+      }
+
+      // The same test every other athletics page passes: the page must name
+      // this school before a word of it is read.
+      const identity = verifyPageIdentity({
+        text: candidateText,
+        url: candidate,
+        schoolName: university?.["name"] ?? null,
+        schoolWebsite: university?.["website_url"] ?? null,
+        athleticsSite: (program as any)?.["athletic_website"] ?? null,
+        ownDomains: [
+          (program as any)?.["roster_url"] ?? null,
+          (program as any)?.["coaching_staff_url"] ?? null,
+        ],
+      });
+      if (identity.verdict === "wrong_school" || identity.verdict === "non_varsity") continue;
+
+      const read = await readCoaches(candidateText, String(program["sport"] ?? ""), {
+        url: candidate,
+        fallback: null,
+      });
+      const rows = buildFieldProposals(
+        "programs",
+        programId,
+        program,
+        PROGRAM_EXTRACTABLE,
+        read.extracted,
+        candidate,
+        candidateText,
+      );
+      if (!rows.length) continue;
+
+      proposals.push(...rows);
+      urlResults.push({
+        url: candidate,
+        purpose: "Coaching staff (found after the stored address failed)",
+        status: "scraped",
+        detail: `${rows.length} field(s) proposed from this school's own staff page`,
+      });
+      break;
+    }
+  }
+
+
   // --- Dedupe, then split by trust tier -------------------------------------
   const fieldProposals = mergeFieldProposals(proposals.filter((row) => row.field_name));
   const recordProposals = proposals.filter((row) => !row.field_name);
