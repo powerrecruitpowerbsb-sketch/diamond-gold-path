@@ -131,6 +131,12 @@ function sportLabel(sport: string) {
 }
 
 function ReviewQueue() {
+  const { program } = Route.useSearch();
+  return program ? <ReviewQueuePanel programFilter={program} /> : <ReviewQueuePanel />;
+}
+
+/** The review queue body, reusable inside Data operations. */
+export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) {
   const queryClient = useQueryClient();
   const listFn = useServerFn(listPendingChanges);
   const countFn = useServerFn(countPendingChanges);
@@ -164,7 +170,6 @@ function ReviewQueue() {
 
 
 
-  const { program: programFilter } = Route.useSearch();
 
   useEffect(() => setPage(1), [search, confidence, kind, programFilter]);
 

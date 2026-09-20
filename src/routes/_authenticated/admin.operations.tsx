@@ -10,6 +10,8 @@ import { BlockedSitesQueue } from "@/components/admin/BlockedSitesQueue";
 import { BrokenLinksQueue } from "@/components/admin/BrokenLinksQueue";
 import { getOperationsOverview } from "@/lib/operations.functions";
 import { startCollection } from "@/lib/collection.functions";
+import { countPendingChanges } from "@/lib/review.functions";
+import { ReviewQueuePanel } from "@/routes/_authenticated/admin.review";
 
 export const Route = createFileRoute("/_authenticated/admin/operations")({
   head: () => ({
@@ -32,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/admin/operations")({
   component: Operations,
 });
 
-type Tab = "overview" | "blocked" | "broken";
+type Tab = "overview" | "review" | "blocked" | "broken";
 
 const day = (value: string) =>
   new Date(value).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -47,6 +49,13 @@ function Operations() {
   const [starting, setStarting] = useState(false);
 
   const { data } = useQuery({ queryKey: ["operations-overview"], queryFn: () => overviewFn() });
+
+  const countFn = useServerFn(countPendingChanges);
+  const { data: pending } = useQuery({
+    queryKey: ["pending-changes-count", "operations"],
+    queryFn: () => countFn(),
+  });
+  const reviewCount = pending?.pending ?? 0;
 
   const baseline = (data?.baseline ?? {}) as any;
   const blocked = data?.exceptions?.blocked ?? 0;
@@ -68,6 +77,7 @@ function Operations() {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "overview", label: "Overview & schedule" },
+    { key: "review", label: "Review queue", count: reviewCount },
     { key: "blocked", label: "Blocked sites", count: blocked },
     { key: "broken", label: "Broken addresses", count: broken },
   ];
@@ -195,6 +205,7 @@ function Operations() {
         </>
       ) : null}
 
+      {tab === "review" ? <ReviewQueuePanel /> : null}
       {tab === "blocked" ? <BlockedSitesQueue /> : null}
       {tab === "broken" ? <BrokenLinksQueue /> : null}
     </div>
