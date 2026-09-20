@@ -65,69 +65,37 @@ export const listPendingChanges = createServerFn({ method: "GET" })
       query = query.in("record_id", ids);
     }
 
-    const { data: rows, error } = await query;
-    if (error) throw new Error(error.message);
+    // The window read and the total count are asked for together instead of one
+    // after the other — that serial wait is most of why this screen sat blank.
+    let countQuery = context.supabase
+      .from("pending_data_changes")
+      .select("id", { count: "exact", head: true });
+    if (data.status && data.status !== "all") countQuery = countQuery.eq("status", data.status as any);
 
-    // The total comes from its own count, and falls back to an estimate: an
-    // exact count over tens of thousands of rows can time out and used to take
-    // the whole screen down with it.
-    const countFilter = () => {
-      let base = context.supabase.from("pending_data_changes");
-      return base;
-    };
-    let totalItems = 0;
-    {
-      let exact = countFilter().select("id", { count: "exact", head: true });
-      if (data.status && data.status !== "all") exact = exact.eq("status", data.status as any);
-      const exactResult = await exact;
-      if (exactResult.error) {
-        let planned = countFilter().select("id", { count: "planned", head: true });
-        if (data.status && data.status !== "all") planned = planned.eq("status", data.status as any);
-        const plannedResult = await planned;
-        totalItems = plannedResult.count ?? 0;
-      } else {
-        totalItems = exactResult.count ?? 0;
-      }
-    }
+    const [windowResult, countResult] = await Promise.all([query, countQuery]);
+    if (windowResult.error) throw new Error(windowResult.error.message);
+    const rows = windowResult.data as any[] | null;
+    const totalItems = countResult.count ?? 0;
 
     const { decoratePending, groupPending } = await import("@/lib/review.server");
     const decorated = await decoratePending(context.supabase, (rows ?? []) as any[]);
 
     // Hold back anything about a sport we haven't confirmed the school plays,
-    // so schools without baseball or softball stop appearing here at all.
-    const programIds = [
-      ...new Set(
-        (decorated as any[])
-          .map((row) =>
-            row.table_name === "programs"
-              ? row.record_id
-              : row.table_name === "roster_players"
-                ? (row.proposed_value?.program_id ?? row.record_id)
-                : null,
-          )
-          .filter(Boolean) as string[],
-      ),
-    ];
-    const sponsored = new Set<string>();
-    for (let index = 0; index < programIds.length; index += 100) {
-      const { data: programRows } = await context.supabase
-        .from("programs")
-        .select("id, offering_status")
-        .in("id", programIds.slice(index, index + 100));
-      for (const program of (programRows ?? []) as any[]) {
-        if (program.offering_status === "verified") sponsored.add(program.id);
-      }
-    }
-    const visible = (decorated as any[]).filter((row) => {
-      const programId =
-        row.table_name === "programs"
-          ? row.record_id
-          : row.table_name === "roster_players"
-            ? (row.proposed_value?.program_id ?? row.record_id)
-            : null;
-      return !programId || sponsored.has(String(programId));
-    });
+    // so schools without baseball or softball stop appearing here at all. The
+    // sponsorship answer now rides along with the record we already read.
+    const sponsorable = (row: any) =>
+      row.table_name === "programs" || row.table_name === "roster_players";
+    let visible = (decorated as any[]).filter(
+      (row) => !sponsorable(row) || row.programOfferingStatus === "verified",
+    );
     const hiddenUnsponsored = (decorated as any[]).length - visible.length;
+
+    // Obvious scraper glitches ("Staff", "Skip To Main Content", "All Videos")
+    // are never worth a person's time — they are held out of the queue.
+    const { isJunkCoachProposal } = await import("@/lib/review.server");
+    const beforeJunk = visible.length;
+    visible = visible.filter((row) => !isJunkCoachProposal(row));
+    const hiddenJunk = beforeJunk - visible.length;
 
     let groups = await groupPending(context.supabase, visible as any[]);
 
@@ -168,6 +136,7 @@ export const listPendingChanges = createServerFn({ method: "GET" })
     return {
       groups,
       hiddenUnsponsored,
+      hiddenJunk,
       totalGroups,
       totalItems,
       filteredItems,
@@ -185,9 +154,9 @@ export const countPendingChanges = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertSuperadmin(context as any);
 
-    // Only ever report a real number. A rough database estimate used to stand in
-    // when this was slow, which showed thousands of items waiting when there
-    // were a handful; now an indexed count is used, and an unknown stays unknown.
+    // One indexed count, nothing else. The old "applied automatically this week"
+    // tally scanned the whole 40,000-row history and competed with the queue read
+    // for the same connection, which is part of why this screen crawled.
     let pending: number | null = null;
     const exact = await context.supabase
       .from("pending_data_changes")
@@ -195,16 +164,44 @@ export const countPendingChanges = createServerFn({ method: "GET" })
       .eq("status", "pending");
     if (!exact.error) pending = exact.count ?? 0;
 
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { count: autoCount } = await context.supabase
-      .from("pending_data_changes")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "approved")
-      .eq("decided_via", "auto")
-      .gte("reviewed_at", since);
-
-    return { pending, autoAppliedLast7Days: autoCount ?? 0 };
+    return { pending, autoAppliedLast7Days: 0 };
   });
+
+/**
+ * Approve every open coach change whose proposed value reads like a real
+ * person's first and last name. Junk readings are declined in the same pass so
+ * they stop coming back.
+ */
+export const approveCleanCoachChanges = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperadmin(context as any);
+
+    const { data: rows, error } = await context.supabase
+      .from("pending_data_changes")
+      .select(PENDING_COLUMNS)
+      .eq("status", "pending")
+      .in("field_name", ["head_coach_name", "recruiting_coordinator_name"])
+      .not("record_id", "is", null)
+      .limit(2000);
+    if (error) throw new Error(error.message);
+
+    const { approvePending, isJunkCoachProposal } = await import("@/lib/review.server");
+    const clean = (rows ?? []).filter((row: any) => !isJunkCoachProposal(row));
+
+    let applied = 0;
+    const failures: { id: string; message: string }[] = [];
+    for (const row of clean as any[]) {
+      try {
+        await approvePending(context.supabase, context.userId, row);
+        applied += 1;
+      } catch (failure) {
+        failures.push({ id: row.id, message: (failure as Error).message });
+      }
+    }
+    return { applied, skipped: (rows ?? []).length - clean.length, failureCount: failures.length, failures: failures.slice(0, 5) };
+  });
+
 
 
 export const approvePendingChanges = createServerFn({ method: "POST" })

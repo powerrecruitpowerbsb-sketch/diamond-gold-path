@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   approveCorrectedChange,
+  approveCleanCoachChanges,
   approveMatchingChanges,
   approvePendingChanges,
   countPendingChanges,
@@ -144,6 +145,7 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
   const rejectFn = useServerFn(rejectPendingChanges);
   const sweepFn = useServerFn(sweepReviewQueue);
   const approveMatchingFn = useServerFn(approveMatchingChanges);
+  const approveCoachesFn = useServerFn(approveCleanCoachChanges);
   const correctFn = useServerFn(approveCorrectedChange);
 
   const [search, setSearch] = useState("");
@@ -187,6 +189,13 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
           pageSize: 25,
         },
       }),
+    // Once read, the queue stays put for a minute and switching tabs or clicking
+    // back into the window no longer restarts the read half way through.
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    placeholderData: (previous: unknown) => previous as any,
   });
   const queue = data as unknown as QueuePage | undefined;
   const groups = queue?.groups ?? [];
@@ -194,6 +203,8 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
   const { data: counts } = useQuery({
     queryKey: ["pending-changes-count"],
     queryFn: () => countFn({}),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
   const autoApplied = (counts as any)?.autoAppliedLast7Days ?? 0;
 
@@ -315,11 +326,32 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
     onError: (error: Error) => toast.error(error.message),
   });
 
+  /** Approve every waiting coach change that reads like a real person's name. */
+  const approveCoaches = useMutation({
+    mutationFn: () =>
+      approveCoachesFn({}) as Promise<{
+        applied: number;
+        skipped: number;
+        failureCount: number;
+      }>,
+    onSuccess: async (result) => {
+      toast.success(
+        result.applied
+          ? `Applied ${result.applied} coach change${result.applied === 1 ? "" : "s"}`
+          : "No coach changes with real names were waiting",
+      );
+      if (result.failureCount) toast.error(`${result.failureCount} could not be applied`);
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const busy =
     approve.isPending ||
     reject.isPending ||
     sweep.isPending ||
     approveMatching.isPending ||
+    approveCoaches.isPending ||
     correct.isPending;
 
   const toggle = (set: Set<string>, id: string) => {
@@ -359,6 +391,11 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
           {(queue as any)?.hiddenUnsponsored ? (
             <p className="meta mt-1 tabular-nums">
               {(queue as any).hiddenUnsponsored} HELD BACK — SPORT NOT CONFIRMED AT THAT SCHOOL
+            </p>
+          ) : null}
+          {(queue as any)?.hiddenJunk ? (
+            <p className="meta mt-1 tabular-nums">
+              {(queue as any).hiddenJunk} HIDDEN — NOT A PERSON&apos;S NAME
             </p>
           ) : null}
         </div>
@@ -426,6 +463,15 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
           >
             <Sparkles className="size-4" aria-hidden />
             Tidy the queue
+          </Button>
+          <Button
+            variant="outline"
+            className="touch-target"
+            disabled={busy}
+            onClick={() => approveCoaches.mutate()}
+          >
+            <ShieldCheck className="size-4" aria-hidden />
+            Approve all real coach names
           </Button>
           <Button
             variant="outline"
@@ -551,7 +597,14 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
 
 
       {isPending ? (
-        <div className="h-48 animate-pulse rounded bg-muted" />
+        <div className="rounded border border-border bg-card p-10 text-center">
+          <p className="font-display text-lg font-bold text-graphite">
+            Loading proposed coach &amp; roster updates…
+          </p>
+          <p className="mt-1 text-sm text-steel">
+            Reading the open items and what we currently have saved for each school.
+          </p>
+        </div>
       ) : groups.length === 0 ? (
         <div className="rounded border border-border bg-card p-10 text-center">
           <p className="font-display text-lg font-bold text-graphite">Nothing to review</p>

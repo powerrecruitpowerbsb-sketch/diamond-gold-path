@@ -1,7 +1,7 @@
 /** Server-only logic for the superadmin data review queue. */
 
 import { PROGRAM_FIELD_NAMES, UNIVERSITY_FIELD_NAMES } from "@/lib/admin-schemas";
-import { COACH_FIELDS, coachEvidenceVerdict } from "@/lib/coach-quality";
+import { COACH_FIELDS, coachEvidenceVerdict, coachNameSane } from "@/lib/coach-quality";
 import {
   coerceForColumn,
   fieldValueSane,
@@ -13,6 +13,7 @@ import {
   valuesEquivalent,
 } from "@/lib/data-quality";
 import { markJucoTransfers, twoYearSchoolNames } from "@/lib/juco-transfer.server";
+import { hasUiText } from "@/lib/person-words";
 import { rejectionKey } from "@/lib/rejected-memory";
 import { checkRosterSource, recordRefusal } from "@/lib/roster-provenance.server";
 import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
@@ -462,6 +463,9 @@ export async function decoratePending(supabase: any, rows: PendingRow[]) {
       athleticWebsite: (record?.["athletic_website"] ?? null) as string | null,
       coachingStaffUrl: (record?.["coaching_staff_url"] ?? null) as string | null,
       schoolWebsite: ((record?.["universities"] as any)?.website_url ?? null) as string | null,
+      // Carried here so the queue never needs a second round of program reads
+      // just to hide sports a school does not play.
+      programOfferingStatus: (record?.["offering_status"] ?? null) as string | null,
       previouslyDeclined: declined.has(
         rejectionKey({
           table_name: row.table_name,
@@ -960,3 +964,21 @@ export async function sweepPendingUntilDone(
   return total;
 }
 
+
+/**
+ * Is this a coach proposal that clearly isn't a person? Page furniture ("Skip
+ * To Main Content", "All Videos"), job titles and departments ("Staff",
+ * "Athletics") read as ordinary capitalised English, so they survive any shape
+ * test — they are named here and never put in front of a person.
+ */
+export function isJunkCoachProposal(row: {
+  field_name?: string | null;
+  proposed_value?: unknown;
+}): boolean {
+  const field = row.field_name ?? "";
+  if (!COACH_FIELDS.has(field)) return false;
+  const value = unwrapFieldValue(field, row.proposed_value);
+  if (value == null || value === "") return false;
+  if (hasUiText(String(value))) return true;
+  return !coachNameSane(value).ok;
+}
