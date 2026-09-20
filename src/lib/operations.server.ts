@@ -198,7 +198,7 @@ export async function repairProgramLink(
     .eq("id", input.programId);
   if (error) throw new Error(error.message);
 
-  await supabase
+  const health = await supabase
     .from("link_health")
     .update({
       url: input.url,
@@ -210,7 +210,9 @@ export async function repairProgramLink(
       updated_at: new Date().toISOString(),
     })
     .eq("program_id", input.programId)
-    .eq("field", input.field);
+    .eq("field", input.field)
+    .select("id");
+  if (health.error) throw new Error(health.error.message);
 
   return { ok: true, message: "The page opened, so the new address is saved. Read it now to pull the data in." };
 }
