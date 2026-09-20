@@ -349,18 +349,12 @@ function ScoutCard() {
                 />
               ) : null}
             </div>
-            {a["twitter_handle"] || a["instagram_handle"] ? (
-              <dl className="mt-4 grid grid-cols-2 gap-5">
-                <Fact
-                  label="X"
-                  value={a["twitter_handle"] ? `@${String(a["twitter_handle"])}` : null}
-                />
-                <Fact
-                  label="Instagram"
-                  value={a["instagram_handle"] ? `@${String(a["instagram_handle"])}` : null}
-                />
-              </dl>
-            ) : null}
+            <SocialLinks
+              twitter={a["twitter_handle"]}
+              instagram={a["instagram_handle"]}
+              className="mt-4"
+            />
+
           </Panel>
         ) : null}
 
