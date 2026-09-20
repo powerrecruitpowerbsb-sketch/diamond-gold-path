@@ -125,8 +125,80 @@ export const listMissingData = createServerFn({ method: "GET" })
       }))
       .sort((a, b) => a.school.localeCompare(b.school) || a.sport.localeCompare(b.sport));
 
-    return clean({ rows: list.slice(0, 500), total: list.length });
+    return clean({ rows: list.slice(0, 1000), total: list.length });
   });
+
+/** Mark one or many sport slots as not offered, in a single staff decision. */
+export const markProgramsNotOffered = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { programIds?: string[]; reason?: string }) => ({
+    programIds: (input?.programIds ?? []).map((id) => String(id)).filter(Boolean),
+    reason: String(input?.reason ?? "Staff confirmed this sport isn't offered."),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (data.programIds.length === 0) throw new Error("Pick at least one team first");
+
+    const stamp = new Date().toISOString();
+    const { error } = await (context.supabase as any)
+      .from("programs")
+      .update({
+        offering_status: "not_offered",
+        offering_source: "staff_decision",
+        offering_verified_at: stamp,
+        sponsorship_checked_at: stamp,
+      })
+      .in("id", data.programIds);
+    if (error) throw new Error(error.message);
+
+    const { retireProgram } = await import("@/lib/sport-sponsorship.server");
+    for (const id of data.programIds) {
+      await retireProgram(context.supabase, id, data.reason);
+    }
+
+    return clean({ ok: true, retired: data.programIds.length });
+  });
+
+/** One school sponsors neither sport: retire both slots at once. */
+export const markSchoolNoSports = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { universityId?: string }) => ({
+    universityId: String(input?.universityId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (!data.universityId) throw new Error("Pick a school first");
+
+    const { data: rows, error } = await (context.supabase as any)
+      .from("programs")
+      .select("id")
+      .eq("university_id", data.universityId)
+      .neq("offering_status", "not_offered");
+    if (error) throw new Error(error.message);
+
+    const ids = ((rows ?? []) as any[]).map((row) => row.id);
+    if (ids.length === 0) return clean({ ok: true, retired: 0 });
+
+    const stamp = new Date().toISOString();
+    const { error: updateError } = await (context.supabase as any)
+      .from("programs")
+      .update({
+        offering_status: "not_offered",
+        offering_source: "staff_decision",
+        offering_verified_at: stamp,
+        sponsorship_checked_at: stamp,
+      })
+      .in("id", ids);
+    if (updateError) throw new Error(updateError.message);
+
+    const { retireProgram } = await import("@/lib/sport-sponsorship.server");
+    for (const id of ids) {
+      await retireProgram(context.supabase, id, "Staff confirmed this school offers neither sport.");
+    }
+
+    return clean({ ok: true, retired: ids.length });
+  });
+
 
 /**
  * Old "couldn't find this page" rows where the address has since been saved.
