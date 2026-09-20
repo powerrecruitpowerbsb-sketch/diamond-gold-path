@@ -119,7 +119,7 @@ function DiscoveryQueue() {
   const refreshAll = async (decidedIds?: string[]) => {
     if (decidedIds?.length) dropDecided(decidedIds);
     void queryClient.invalidateQueries({ queryKey: ["discovered-urls"] });
-    void queryClient.invalidateQueries({ queryKey: ["unfound-links"] });
+    void queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] });
     void queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] });
   };
 
