@@ -131,8 +131,8 @@ export const saveAthleteProfile = createServerFn({ method: "POST" })
       sat_score: intOrNull(data.satScore),
       act_score: intOrNull(data.actScore),
       eligibility_id: nullable(data.eligibilityId),
-      twitter_handle: nullable(data.twitterHandle)?.replace(/^@/, "") ?? null,
-      instagram_handle: nullable(data.instagramHandle)?.replace(/^@/, "") ?? null,
+      twitter_handle: handle(data.twitterHandle),
+      instagram_handle: handle(data.instagramHandle),
       video_links: Array.isArray(data.videoLinks)
         ? data.videoLinks.map((v) => str(v)).filter(Boolean).slice(0, 12)
         : [],
