@@ -120,7 +120,6 @@ function DiscoveryQueue() {
     if (decidedIds?.length) dropDecided(decidedIds);
     void queryClient.invalidateQueries({ queryKey: ["discovered-urls"] });
     void queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] });
-    void queryClient.invalidateQueries({ queryKey: ["pending-discoveries-count"] });
   };
 
   const review = useMutation({
