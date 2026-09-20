@@ -216,9 +216,9 @@ export async function replaceRoster(
     .eq("season_year", seasonYear);
   if (clearError) throw new Error(clearError.message);
 
-  const { error: insertError } = await supabase.from("roster_players").insert(rows);
+  const { error: insertError } = await supabase.from("roster_players").insert(uniqueRows);
   if (insertError) throw new Error(insertError.message);
-  return rows.length;
+  return uniqueRows.length;
 }
 
 /**
