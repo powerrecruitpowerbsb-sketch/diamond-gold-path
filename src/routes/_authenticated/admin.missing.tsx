@@ -65,8 +65,13 @@ function MissingData() {
     staleTime: 30_000,
   });
 
-  const c = (counts.data ?? {}) as Record<string, number>;
-  const waiting = (c.roster ?? 0) + (c.staff ?? 0) + (c.coach ?? 0) + (c.site ?? 0);
+  const c = (counts.data ?? { roster: 0, staff: 0, coach: 0, site: 0 }) as {
+    roster: number;
+    staff: number;
+    coach: number;
+    site: number;
+  };
+  const waiting = c.roster + c.staff + c.coach + c.site;
   const rows = ((list.data as any)?.rows ?? []) as any[];
   const total = ((list.data as any)?.total ?? 0) as number;
 

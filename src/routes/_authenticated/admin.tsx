@@ -70,8 +70,13 @@ function AdminLayout() {
     (needs?.discovered ?? 0) +
     (needs?.review ?? 0);
 
-  const m = (missing ?? {}) as Record<string, number>;
-  const gaps = (m.roster ?? 0) + (m.staff ?? 0) + (m.coach ?? 0) + (m.site ?? 0);
+  const m = (missing ?? { roster: 0, staff: 0, coach: 0, site: 0 }) as {
+    roster: number;
+    staff: number;
+    coach: number;
+    site: number;
+  };
+  const gaps = m.roster + m.staff + m.coach + m.site;
 
 
   const sections: ConsoleNavSection[] = [
@@ -90,9 +95,9 @@ function AdminLayout() {
     },
     {
       label: "Colleges & teams",
-      count: gaps || undefined,
+      ...(gaps ? { count: gaps } : {}),
       items: [
-        { to: "/admin/missing", label: "Missing pages & coaches", count: gaps },
+        { to: "/admin/missing", label: "Missing pages & coaches", ...(gaps ? { count: gaps } : {}) },
         { to: "/admin/universities", label: "All colleges" },
         { to: "/admin/programs", label: "All teams" },
         { to: "/admin/not-offered", label: "Not offered" },
