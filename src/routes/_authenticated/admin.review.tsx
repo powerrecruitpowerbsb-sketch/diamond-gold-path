@@ -132,7 +132,7 @@ function sportLabel(sport: string) {
 
 function ReviewQueue() {
   const { program } = Route.useSearch();
-  return <ReviewQueuePanel programFilter={program} />;
+  return program ? <ReviewQueuePanel programFilter={program} /> : <ReviewQueuePanel />;
 }
 
 /** The review queue body, reusable inside Data operations. */
