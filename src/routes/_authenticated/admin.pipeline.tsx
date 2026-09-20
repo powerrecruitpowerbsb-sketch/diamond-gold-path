@@ -120,6 +120,8 @@ function Pipeline() {
         ]}
       />
 
+      <CrawlStatus />
+
       <RunningNow />
 
       <BuildChecklist />
