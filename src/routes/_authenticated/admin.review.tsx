@@ -324,11 +324,32 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
     onError: (error: Error) => toast.error(error.message),
   });
 
+  /** Approve every waiting coach change that reads like a real person's name. */
+  const approveCoaches = useMutation({
+    mutationFn: () =>
+      approveCoachesFn({}) as Promise<{
+        applied: number;
+        skipped: number;
+        failureCount: number;
+      }>,
+    onSuccess: async (result) => {
+      toast.success(
+        result.applied
+          ? `Applied ${result.applied} coach change${result.applied === 1 ? "" : "s"}`
+          : "No coach changes with real names were waiting",
+      );
+      if (result.failureCount) toast.error(`${result.failureCount} could not be applied`);
+      await invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const busy =
     approve.isPending ||
     reject.isPending ||
     sweep.isPending ||
     approveMatching.isPending ||
+    approveCoaches.isPending ||
     correct.isPending;
 
   const toggle = (set: Set<string>, id: string) => {
