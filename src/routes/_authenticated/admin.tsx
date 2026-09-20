@@ -78,7 +78,9 @@ function AdminLayout() {
     },
     {
       label: "Colleges & teams",
+      count: gaps || undefined,
       items: [
+        { to: "/admin/missing", label: "Missing pages & coaches", count: gaps },
         { to: "/admin/universities", label: "All colleges" },
         { to: "/admin/programs", label: "All teams" },
         { to: "/admin/not-offered", label: "Not offered" },

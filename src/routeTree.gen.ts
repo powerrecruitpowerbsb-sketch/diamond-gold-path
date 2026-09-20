@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminBuildRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminDiscoveryRouteImport } from './routes/_authenticated/admin.discovery'
 import { Route as AuthenticatedAdminFederalDecisionsRouteImport } from './routes/_authenticated/admin.federal-decisions'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
+import { Route as AuthenticatedAdminMissingRouteImport } from './routes/_authenticated/admin.missing'
 import { Route as AuthenticatedAdminNotOfferedRouteImport } from './routes/_authenticated/admin.not-offered'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated/admin.operations'
 import { Route as AuthenticatedAdminOrganizationsRouteImport } from './routes/_authenticated/admin.organizations'
@@ -169,6 +170,12 @@ const AuthenticatedAdminMajorsRoute =
   AuthenticatedAdminMajorsRouteImport.update({
     id: '/majors',
     path: '/majors',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminMissingRoute =
+  AuthenticatedAdminMissingRouteImport.update({
+    id: '/missing',
+    path: '/missing',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminNotOfferedRoute =
@@ -367,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/admin/missing': typeof AuthenticatedAdminMissingRoute
   '/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -418,6 +426,7 @@ export interface FileRoutesByTo {
   '/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/admin/missing': typeof AuthenticatedAdminMissingRoute
   '/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -472,6 +481,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/discovery': typeof AuthenticatedAdminDiscoveryRoute
   '/_authenticated/admin/federal-decisions': typeof AuthenticatedAdminFederalDecisionsRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
+  '/_authenticated/admin/missing': typeof AuthenticatedAdminMissingRoute
   '/_authenticated/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/_authenticated/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -526,6 +536,7 @@ export interface FileRouteTypes {
     | '/admin/discovery'
     | '/admin/federal-decisions'
     | '/admin/majors'
+    | '/admin/missing'
     | '/admin/not-offered'
     | '/admin/operations'
     | '/admin/organizations'
@@ -577,6 +588,7 @@ export interface FileRouteTypes {
     | '/admin/discovery'
     | '/admin/federal-decisions'
     | '/admin/majors'
+    | '/admin/missing'
     | '/admin/not-offered'
     | '/admin/operations'
     | '/admin/organizations'
@@ -630,6 +642,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/discovery'
     | '/_authenticated/admin/federal-decisions'
     | '/_authenticated/admin/majors'
+    | '/_authenticated/admin/missing'
     | '/_authenticated/admin/not-offered'
     | '/_authenticated/admin/operations'
     | '/_authenticated/admin/organizations'
@@ -822,6 +835,13 @@ declare module '@tanstack/react-router' {
       path: '/majors'
       fullPath: '/admin/majors'
       preLoaderRoute: typeof AuthenticatedAdminMajorsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/missing': {
+      id: '/_authenticated/admin/missing'
+      path: '/missing'
+      fullPath: '/admin/missing'
+      preLoaderRoute: typeof AuthenticatedAdminMissingRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/not-offered': {
@@ -1045,6 +1065,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDiscoveryRoute: typeof AuthenticatedAdminDiscoveryRoute
   AuthenticatedAdminFederalDecisionsRoute: typeof AuthenticatedAdminFederalDecisionsRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
+  AuthenticatedAdminMissingRoute: typeof AuthenticatedAdminMissingRoute
   AuthenticatedAdminNotOfferedRoute: typeof AuthenticatedAdminNotOfferedRoute
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRoute
   AuthenticatedAdminOrganizationsRoute: typeof AuthenticatedAdminOrganizationsRoute
@@ -1076,6 +1097,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminFederalDecisionsRoute:
     AuthenticatedAdminFederalDecisionsRoute,
   AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
+  AuthenticatedAdminMissingRoute: AuthenticatedAdminMissingRoute,
   AuthenticatedAdminNotOfferedRoute: AuthenticatedAdminNotOfferedRoute,
   AuthenticatedAdminOperationsRoute: AuthenticatedAdminOperationsRoute,
   AuthenticatedAdminOrganizationsRoute: AuthenticatedAdminOrganizationsRoute,
