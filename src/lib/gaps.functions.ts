@@ -77,12 +77,20 @@ export const listMissingData = createServerFn({ method: "GET" })
     else if (data.gap === "staff") query = query.is("coaching_staff_url", null);
     else if (data.gap === "coach") query = query.is("head_coach_name", null);
     else if (data.gap === "site") query = query.is("athletic_website", null);
+    else if (data.gap === "quickwin")
+      query = query.is("head_coach_name", null).not("coaching_staff_url", "is", null);
+    else if (data.gap === "zero")
+      query = query
+        .is("head_coach_name", null)
+        .is("roster_url", null)
+        .is("coaching_staff_url", null);
     else
       query = query.or(
         "roster_url.is.null,coaching_staff_url.is.null,head_coach_name.is.null,athletic_website.is.null",
       );
 
     if (data.sport) query = query.eq("sport", data.sport);
+    if (data.level) query = query.eq("governing_body", data.level.split(" ")[0]);
 
     const { data: rows, error } = await query.limit(4000);
     if (error) throw new Error(error.message);
