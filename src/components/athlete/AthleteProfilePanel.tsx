@@ -128,6 +128,72 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
     setVideos(((athlete['video_links'] ?? []) as string[]).filter(Boolean));
   }, [athlete?.['id'], athlete]);
 
+  // Photos are kept private, so the card asks for a short-lived link each time.
+  const storedPhoto = (athlete?.['photo_path'] ?? null) as string | null;
+  useEffect(() => {
+    let live = true;
+    if (!storedPhoto) {
+      setPhotoUrl(null);
+      return;
+    }
+    supabase.storage
+      .from("athlete-photos")
+      .createSignedUrl(storedPhoto, 60 * 60)
+      .then(({ data: signed }) => {
+        if (live) setPhotoUrl(signed?.signedUrl ?? null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [storedPhoto]);
+
+  const pickPhoto = async (file: File | null | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("That picture is over 5MB — please choose a smaller one.");
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const path = `${athleteId}/photo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("athlete-photos")
+        .upload(path, file, { upsert: true, ...(file.type ? { contentType: file.type } : {}) });
+      if (upErr) throw new Error(upErr.message);
+      await setPhotoFn({ data: { athleteId, photoPath: path } });
+      await invalidate();
+      toast.success("Photo added");
+    } catch (err) {
+      const raw = (err as Error).message ?? "";
+      toast.error(
+        /row-level security|not authorized|permission/i.test(raw)
+          ? "You do not have permission to change this player's photo."
+          : raw || "The photo could not be saved.",
+      );
+    } finally {
+      setPhotoBusy(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  };
+
+  const removePhoto = async () => {
+    setPhotoBusy(true);
+    try {
+      await setPhotoFn({ data: { athleteId, photoPath: null } });
+      await invalidate();
+      toast.success("Photo removed");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
   const saveProfile = useMutation({
     mutationFn: async () => saveProfileFn({ data: { athleteId, ...form, videoLinks: videos } as any }),
     onSuccess: async () => {
