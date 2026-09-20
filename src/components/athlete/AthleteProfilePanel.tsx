@@ -217,6 +217,8 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
   const [metricValue, setMetricValue] = useState("");
   const [metricDate, setMetricDate] = useState("");
   const [metricSource, setMetricSource] = useState("manual");
+  const [metricOpen, setMetricOpen] = useState(false);
+
 
   const [eventOpen, setEventOpen] = useState(false);
   const [event, setEvent] = useState({
