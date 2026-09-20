@@ -53,15 +53,6 @@ type Row = {
   programs: { sport: string | null; athletic_website: string | null } | null;
 };
 
-type UnfoundRow = {
-  id: string;
-  university_id: string;
-  program_id: string | null;
-  discovery_type: Kind;
-  notes: string | null;
-  universities: { name: string; state: string | null; website_url?: string | null } | null;
-  programs: { sport: string | null } | null;
-};
 
 type Page<T> = { rows: T[]; total: number; page: number; totalPages: number };
 
