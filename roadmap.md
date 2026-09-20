@@ -44,5 +44,5 @@
 - [x] True-fit meter: academic Safety/Target/Reach from published bands, depth + senior turnover at the athlete's own position group, recruiting footprint by state — a school with no roster on file is labelled pending, never marked down or hidden
 
 ## Player photo + direct social links (2026-09-20)
-- [ ] Player photo upload on the card; empty state falls back to the org logo, then a plain silhouette
-- [ ] X / Instagram show as icon links straight to the handle, on the internal card and the shareable card
+- [x] Player photo upload on the card; empty state falls back to the org logo, then initials
+- [x] X / Instagram show as icon links straight to the handle, on the internal card and the shareable card
