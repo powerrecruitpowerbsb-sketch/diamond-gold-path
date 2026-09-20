@@ -330,13 +330,6 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
         ["NCAA / NAIA ID", athlete['eligibility_id'] ?? null],
       ],
     },
-    {
-      title: "Follow along",
-      rows: [
-        ["X", athlete['twitter_handle'] ?? null],
-        ["Instagram", athlete['instagram_handle'] ?? null],
-      ],
-    },
   ].map((group) => ({ ...group, rows: group.rows.filter(([, value]) => Boolean(value)) as [string, string][] }));
 
   const storedVideos = ((athlete['video_links'] ?? []) as string[]).filter(Boolean);
