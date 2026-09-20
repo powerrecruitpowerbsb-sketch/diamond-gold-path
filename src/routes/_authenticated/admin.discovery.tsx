@@ -188,9 +188,7 @@ function DiscoveryQueue() {
             that are plainly wrong so you only look at real decisions.
           </p>
         </div>
-        <p className="meta tabular-nums text-right">
-          {counts.data?.pending ?? "—"} TO CHECK · {counts.data?.unfound ?? "—"} NOT FOUND
-        </p>
+        <p className="meta tabular-nums text-right">{counts.data?.pending ?? "—"} TO CHECK</p>
       </div>
 
       <SectionCard
