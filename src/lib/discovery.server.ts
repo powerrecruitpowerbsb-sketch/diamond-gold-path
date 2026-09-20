@@ -841,17 +841,24 @@ export async function applyDiscoveredUrl(
   }
   const verdict = await verifyCandidateForInstitution(supabase, inst, row.discovered_url);
   if (!verdict.ok) {
-    // Refused, and the refusal is kept where a person can see it.
-    await supabase
-      .from("url_discovery_queue")
-      .update({
-        status: "pending_review",
-        notes: `Refused on save: ${verdict.evidence.detail}`,
-        match_evidence: verdict.evidence,
-      })
-      .eq("id", row.id);
-    throw new Error(`Refused: ${verdict.evidence.detail}`);
+    if (!human) {
+      // Refused, and the refusal is kept where a person can see it.
+      await supabase
+        .from("url_discovery_queue")
+        .update({
+          status: "pending_review",
+          notes: `Refused on save: ${verdict.evidence.detail}`,
+          match_evidence: verdict.evidence,
+        })
+        .eq("id", row.id);
+      throw new Error(`Refused: ${verdict.evidence.detail}`);
+    }
+    // A reviewer typed or confirmed this address themselves. Their decision
+    // stands, recorded, instead of being blocked by a check that only reads the
+    // school's own pages.
+    overrides.push(`A reviewer confirmed this address even though ${verdict.evidence.detail}`);
   }
+
 
   const evidence = verdict.evidence;
 
