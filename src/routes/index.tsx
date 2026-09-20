@@ -27,7 +27,15 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  loader: async () => await getPublicStats(),
+  // The front door must open even if the counts can't be read — a failed
+  // figure fetch shows blanks, never a broken page.
+  loader: async () => {
+    try {
+      return await getPublicStats();
+    } catch {
+      return { programs: 0, schools: 0, players: 0, sourcedFields: 0 };
+    }
+  },
   component: Index,
 });
 
