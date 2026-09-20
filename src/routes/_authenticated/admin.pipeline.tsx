@@ -6,7 +6,6 @@ import { Wrench } from "lucide-react";
 import { BuildChecklist } from "@/components/admin/BuildChecklist";
 import { PageHeader } from "@/components/console/PageHeader";
 import { RunningNow } from "@/components/admin/RunningNow";
-import { CrawlStatus } from "@/components/admin/CrawlStatus";
 import { countPendingChanges } from "@/lib/review.functions";
 import { countPendingDiscoveries } from "@/lib/discovery.functions";
 import { getPipelineStatus, listNonSchoolEntries } from "@/lib/pipeline.functions";
@@ -119,8 +118,6 @@ function Pipeline() {
           `${links.toLocaleString("en-US")} found pages waiting`,
         ]}
       />
-
-      <CrawlStatus />
 
       <RunningNow />
 

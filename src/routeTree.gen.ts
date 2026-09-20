@@ -32,6 +32,7 @@ import { Route as AuthenticatedAdminFederalDecisionsRouteImport } from './routes
 import { Route as AuthenticatedAdminHostsRouteImport } from './routes/_authenticated/admin.hosts'
 import { Route as AuthenticatedAdminMajorsRouteImport } from './routes/_authenticated/admin.majors'
 import { Route as AuthenticatedAdminNotOfferedRouteImport } from './routes/_authenticated/admin.not-offered'
+import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated/admin.operations'
 import { Route as AuthenticatedAdminOrganizationsRouteImport } from './routes/_authenticated/admin.organizations'
 import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated/admin.pipeline'
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
@@ -180,6 +181,12 @@ const AuthenticatedAdminNotOfferedRoute =
   AuthenticatedAdminNotOfferedRouteImport.update({
     id: '/not-offered',
     path: '/not-offered',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminOperationsRoute =
+  AuthenticatedAdminOperationsRouteImport.update({
+    id: '/operations',
+    path: '/operations',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminOrganizationsRoute =
@@ -368,6 +375,7 @@ export interface FileRoutesByFullPath {
   '/admin/hosts': typeof AuthenticatedAdminHostsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
+  '/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -419,6 +427,7 @@ export interface FileRoutesByTo {
   '/admin/hosts': typeof AuthenticatedAdminHostsRoute
   '/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
+  '/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -473,6 +482,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/hosts': typeof AuthenticatedAdminHostsRoute
   '/_authenticated/admin/majors': typeof AuthenticatedAdminMajorsRoute
   '/_authenticated/admin/not-offered': typeof AuthenticatedAdminNotOfferedRoute
+  '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/_authenticated/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
   '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -527,6 +537,7 @@ export interface FileRouteTypes {
     | '/admin/hosts'
     | '/admin/majors'
     | '/admin/not-offered'
+    | '/admin/operations'
     | '/admin/organizations'
     | '/admin/pipeline'
     | '/admin/reports'
@@ -578,6 +589,7 @@ export interface FileRouteTypes {
     | '/admin/hosts'
     | '/admin/majors'
     | '/admin/not-offered'
+    | '/admin/operations'
     | '/admin/organizations'
     | '/admin/pipeline'
     | '/admin/reports'
@@ -631,6 +643,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/hosts'
     | '/_authenticated/admin/majors'
     | '/_authenticated/admin/not-offered'
+    | '/_authenticated/admin/operations'
     | '/_authenticated/admin/organizations'
     | '/_authenticated/admin/pipeline'
     | '/_authenticated/admin/reports'
@@ -835,6 +848,13 @@ declare module '@tanstack/react-router' {
       path: '/not-offered'
       fullPath: '/admin/not-offered'
       preLoaderRoute: typeof AuthenticatedAdminNotOfferedRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/operations': {
+      id: '/_authenticated/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/organizations': {
@@ -1046,6 +1066,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminHostsRoute: typeof AuthenticatedAdminHostsRoute
   AuthenticatedAdminMajorsRoute: typeof AuthenticatedAdminMajorsRoute
   AuthenticatedAdminNotOfferedRoute: typeof AuthenticatedAdminNotOfferedRoute
+  AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRoute
   AuthenticatedAdminOrganizationsRoute: typeof AuthenticatedAdminOrganizationsRoute
   AuthenticatedAdminPipelineRoute: typeof AuthenticatedAdminPipelineRoute
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
@@ -1077,6 +1098,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminHostsRoute: AuthenticatedAdminHostsRoute,
   AuthenticatedAdminMajorsRoute: AuthenticatedAdminMajorsRoute,
   AuthenticatedAdminNotOfferedRoute: AuthenticatedAdminNotOfferedRoute,
+  AuthenticatedAdminOperationsRoute: AuthenticatedAdminOperationsRoute,
   AuthenticatedAdminOrganizationsRoute: AuthenticatedAdminOrganizationsRoute,
   AuthenticatedAdminPipelineRoute: AuthenticatedAdminPipelineRoute,
   AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
