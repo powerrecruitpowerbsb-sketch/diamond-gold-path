@@ -70,6 +70,10 @@ function AdminLayout() {
     (needs?.discovered ?? 0) +
     (needs?.review ?? 0);
 
+  const m = (missing ?? {}) as Record<string, number>;
+  const gaps = (m.roster ?? 0) + (m.staff ?? 0) + (m.coach ?? 0) + (m.site ?? 0);
+
+
   const sections: ConsoleNavSection[] = [
     {
       label: "Data operations",
