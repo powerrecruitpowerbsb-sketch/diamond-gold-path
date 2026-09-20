@@ -261,18 +261,39 @@ export async function institutionLinksTo(
   institutionWebsite: string,
   candidateDomain: string,
 ): Promise<boolean> {
+  const needle = candidateDomain.toLowerCase();
+  const read = async (target: string): Promise<boolean> => {
+    try {
+      const result = await safeFetch(target);
+      // The rendered fallback returns html: null and only fills markdown, so
+      // reading html alone saw nothing for every school whose homepage needs
+      // rendering and refused its correct athletics address.
+      const body = `${result?.html ?? ""}\n${result?.markdown ?? ""}`.trim();
+      if (!body) return false;
+      return body.toLowerCase().includes(needle);
+    } catch {
+      return false;
+    }
+  };
+
+  if (await read(institutionWebsite)) return true;
+
+  // Many root homepages only link to their own /athletics landing page, which is
+  // where the outbound athletics domain actually appears. Follow that one step
+  // before calling a correct address unproven.
+  let base: URL | null = null;
   try {
-    const result = await safeFetch(institutionWebsite);
-    // The rendered fallback returns html: null and only fills markdown, so
-    // reading html alone saw nothing for every school whose homepage needs
-    // rendering and refused its correct athletics address.
-    const body = `${result?.html ?? ""}\n${result?.markdown ?? ""}`.trim();
-    if (!body) return false;
-    return String(body).toLowerCase().includes(candidateDomain.toLowerCase());
+    base = new URL(institutionWebsite);
   } catch {
-    return false;
+    base = null;
   }
+  if (!base) return false;
+  for (const path of ["/athletics", "/athletics/", "/sports", "/athletics/index.html"]) {
+    if (await read(new URL(path, base.origin).toString())) return true;
+  }
+  return false;
 }
+
 
 /* ------------------------------------------------------------------ *
  * Tiebreaking between institutions that contend for the same address  *
