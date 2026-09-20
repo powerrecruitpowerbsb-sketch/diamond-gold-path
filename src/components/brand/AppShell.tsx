@@ -74,7 +74,6 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
 
   const primaryNav: NavItem[] = [
-    { to: "/", label: "Home", icon: Home },
     { to: "/search", label: "Search", icon: Search },
     ...(isOrgManager
       ? [
@@ -109,7 +108,6 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   ];
 
   const tabs = [
-    { to: "/", label: "Home", icon: Home, exact: true },
     { to: "/search", label: "Search", icon: Search, exact: false },
     ...(isStaff
       ? [{ to: "/admin", label: "Console", icon: Table2, exact: true }]
