@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export function OrgMark({
   className,
   size = 32,
-  fallbackLetter = "P",
+  fallbackLetter = "C",
   name,
   logoUrl,
 }: {
