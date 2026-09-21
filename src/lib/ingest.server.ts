@@ -579,11 +579,11 @@ export function mergeFieldProposals(rows: ProposalRow[]): ProposalRow[] {
 
 /** Gap-fill + official + high confidence = trusted enough to skip the queue. */
 export function isAutoApplicable(row: ProposalRow): boolean {
-  return Boolean(
-    row.gap_fill &&
-      row.source_type === "official" &&
-      (row.ai_confidence ?? 0) >= INGEST_POLICY.autoApplyConfidence,
-  );
+  if (row.source_type !== "official") return false;
+  const confidence = row.ai_confidence ?? 0;
+  if (row.gap_fill) return confidence >= INGEST_POLICY.autoApplyConfidence;
+  // Replacing a value we already hold is allowed only at near-certainty.
+  return confidence >= INGEST_POLICY.autoReplaceConfidence;
 }
 
 
