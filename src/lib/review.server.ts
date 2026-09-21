@@ -12,6 +12,7 @@ import {
   rosterVerdict,
   valuesEquivalent,
 } from "@/lib/data-quality";
+import { INGEST_POLICY } from "@/lib/ingest.server";
 import { markJucoTransfers, twoYearSchoolNames } from "@/lib/juco-transfer.server";
 import { hasUiText } from "@/lib/person-words";
 import { rejectionKey } from "@/lib/rejected-memory";
@@ -709,8 +710,21 @@ export function pendingVerdict(row: any): {
       const reason = evidence.reason ?? "the coach page could not be trusted";
       return { kind: evidence.severity === "flag" ? "needs_review" : "no_change", reason };
     }
+    // Replacing a coach we already hold: the school's own sport staff page,
+    // read with near-certainty, is taken as the new truth — coaches change
+    // constantly and a stale name is worse than a rare bad swap. Anything less
+    // certain still waits for a person.
     if (!isEmptyValue(field, current)) {
-      return { kind: "needs_review", reason: "this would replace a coach we already have" };
+      const confident =
+        row.source_type === "official" &&
+        (row.ai_confidence ?? 0) >= INGEST_POLICY.autoReplaceConfidence;
+      if (!confident) {
+        return { kind: "needs_review", reason: "this would replace a coach we already have" };
+      }
+      return {
+        kind: "auto_apply",
+        reason: "the school's own staff page names a new coach",
+      };
     }
   }
 
