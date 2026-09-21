@@ -448,6 +448,11 @@ export type ProposalRow = {
 export const INGEST_POLICY = {
   /** Gap-fills from an official source at or above this confidence apply without review. */
   autoApplyConfidence: 0.7,
+  /**
+   * Replacing a value we already hold (notably a head coach) needs near-certainty
+   * from the school's own page; below this a person still confirms it.
+   */
+  autoReplaceConfidence: 0.95,
   /** A four-year roster smaller than this almost certainly means an incomplete scrape. */
   minCredibleRoster: 15,
 };
