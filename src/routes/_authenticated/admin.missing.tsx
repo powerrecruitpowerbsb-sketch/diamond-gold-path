@@ -442,6 +442,7 @@ function MissingData() {
       ) : null}
 
       <FixDrawer
+        key={openRow?.id ?? "closed"}
         row={openRow}
         onClose={() => setOpenRow(null)}
         onChanged={async () => {
