@@ -233,7 +233,9 @@ export const saveAthleteMetric = createServerFn({ method: "POST" })
       recorded_on: nullable(data?.recordedOn),
       source,
       source_ref: nullable(data?.sourceRef),
-      verified: source !== "manual",
+      // The database decides: staff entries are verified, family entries are
+      // self-reported until a coach confirms them.
+      verified: false,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -469,5 +471,16 @@ export const getScoutCard = createServerFn({ method: "GET" })
     });
     const { data: card, error } = await client.rpc("athlete_scout_card", { _slug: data.slug });
     if (error) throw new Error(error.message);
-    return (card ?? null) as Record<string, any> | null;
+    const out = (card ?? null) as Record<string, any> | null;
+    // Uploaded clips live in private storage; only a card that is switched on
+    // to share comes back from the read above, so signing its clips is safe.
+    const videos = (out?.['videos'] ?? []) as { storage_path: string }[];
+    if (out && videos.length) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: signed } = await supabaseAdmin.storage
+        .from("athlete-videos")
+        .createSignedUrls(videos.map((v) => v.storage_path), 60 * 60 * 6);
+      out['videos'] = videos.map((v, i) => ({ ...v, url: signed?.[i]?.signedUrl ?? null }));
+    }
+    return out;
   });
