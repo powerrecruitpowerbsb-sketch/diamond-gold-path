@@ -7,7 +7,6 @@ import {
   BadgeCheck,
   CalendarDays,
   Check,
-  Copy,
   Eye,
   Film,
   GraduationCap,
@@ -23,6 +22,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { AthleteProfilePanel } from "@/components/athlete/AthleteProfilePanel";
 import { supabase } from "@/integrations/supabase/client";
 import {
   addAthleteVideo,
@@ -207,6 +207,11 @@ function HubBody({ hub }: { hub: any }) {
           <CoachCorner notes={hub.notes} events={hub.events} orgName={hub.orgName} />
         </div>
       </div>
+
+      <section id="profile" className="scroll-mt-24">
+        <p className="meta mb-2 text-org-accent">Your details</p>
+        <AthleteProfilePanel athleteId={String(athlete['id'])} />
+      </section>
     </div>
   );
 }
@@ -1018,4 +1023,3 @@ function shortDate(v: unknown) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-void Copy;
