@@ -110,6 +110,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   ];
 
   const tabs = [
+    ...(role === "player" ? [{ to: "/athlete", label: "Hub", icon: Home, exact: false }] : []),
     { to: "/search", label: "Search", icon: Search, exact: false },
     ...(isStaff
       ? [{ to: "/admin", label: "Console", icon: Table2, exact: true }]
