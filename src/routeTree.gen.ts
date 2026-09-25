@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAthleteRouteImport } from './routes/_authenticated/athlete'
 import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
@@ -89,6 +90,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAthleteRoute = AuthenticatedAthleteRouteImport.update({
+  id: '/athlete',
+  path: '/athlete',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCompareRoute = AuthenticatedCompareRouteImport.update({
@@ -360,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/athlete': typeof AuthenticatedAthleteRoute
   '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
@@ -412,6 +419,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/athlete': typeof AuthenticatedAthleteRoute
   '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
@@ -467,6 +475,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/athlete': typeof AuthenticatedAthleteRoute
   '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
@@ -522,6 +531,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/admin'
+    | '/athlete'
     | '/compare'
     | '/dashboard'
     | '/family'
@@ -574,6 +584,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/forgot-password'
     | '/reset-password'
+    | '/athlete'
     | '/compare'
     | '/dashboard'
     | '/family'
@@ -628,6 +639,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/_authenticated/admin'
+    | '/_authenticated/athlete'
     | '/_authenticated/compare'
     | '/_authenticated/dashboard'
     | '/_authenticated/family'
@@ -730,6 +742,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/athlete': {
+      id: '/_authenticated/athlete'
+      path: '/athlete'
+      fullPath: '/athlete'
+      preLoaderRoute: typeof AuthenticatedAthleteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/compare': {
@@ -1127,6 +1146,7 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedAthleteRoute: typeof AuthenticatedAthleteRoute
   AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
@@ -1145,6 +1165,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedAthleteRoute: AuthenticatedAthleteRoute,
   AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,

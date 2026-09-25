@@ -82,15 +82,25 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 /** A single headline measurable, big enough to read on a phone at a ballpark. */
 function MetricTile({ metric }: { metric: Record<string, any> }) {
   const key = String(metric["metric_key"]);
+  const verified = Boolean(metric["verified"]);
   return (
-    <div className="rounded-xl border border-border bg-surface-2 px-4 py-3">
+    <div
+      className={
+        verified
+          ? "rounded-xl border border-diamond-green/30 bg-diamond-green-tint px-4 py-3"
+          : "rounded-xl border border-border bg-surface-2 px-4 py-3"
+      }
+    >
       <p className={LABEL}>{metricLabel(key)}</p>
       <p className="font-display tabular mt-1 text-2xl font-bold text-foreground">
         {formatMetric(metric["value"], key)}
       </p>
-      <p className="meta mt-1 normal-case">
+      <p className={verified ? "meta mt-1 text-diamond-green" : "meta mt-1"}>
         {[
-          metricSourceLabel(String(metric["source"] ?? "manual")),
+          verified ? "Staff verified" : "Self-reported",
+          metric["source"] && metric["source"] !== "manual"
+            ? metricSourceLabel(String(metric["source"]))
+            : null,
           metric["recorded_on"] ? String(metric["recorded_on"]) : null,
         ]
           .filter(Boolean)
@@ -135,6 +145,7 @@ function ScoutCard() {
   const metrics = (card["metrics"] ?? []) as Record<string, any>[];
   const events = (card["events"] ?? []) as Record<string, any>[];
   const videos = (a["video_links"] ?? []) as string[];
+  const clips = ((card["videos"] ?? []) as Record<string, any>[]).filter((c) => c["url"]);
 
   const hometown = [a["home_city"], a["home_state"]].filter(Boolean).join(", ");
   const sport = String(a["sport"] ?? "baseball");
@@ -262,8 +273,31 @@ function ScoutCard() {
           </dl>
         </Panel>
 
+        {clips.length ? (
+          <Panel title="Highlights">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {clips.map((clip) => (
+                <figure key={clip["id"]} className="overflow-hidden rounded-xl border border-border bg-black">
+                  <video
+                    src={clip["url"]}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="aspect-video w-full bg-black"
+                  />
+                  {clip["title"] ? (
+                    <figcaption className="bg-surface-2 px-3 py-2 text-sm font-semibold text-graphite">
+                      {clip["title"]}
+                    </figcaption>
+                  ) : null}
+                </figure>
+              ))}
+            </div>
+          </Panel>
+        ) : null}
+
         {videos.length ? (
-          <Panel title="Video">
+          <Panel title="Video links">
             <ul className="grid gap-3 sm:grid-cols-2">
               {videos.map((link) => (
                 <li key={link}>

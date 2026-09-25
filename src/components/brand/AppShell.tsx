@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Database,
+  Home,
   LayoutDashboard,
   Lightbulb,
   Mail,
@@ -73,6 +74,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
 
   const primaryNav: NavItem[] = [
+    ...(role === "player" ? [{ to: "/athlete", label: "My hub", icon: Home }] : []),
     { to: "/search", label: "Search", icon: Search },
     ...(isOrgManager
       ? [
@@ -82,7 +84,8 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           { to: "/list", label: "College list", icon: ListChecks },
         ]
       : []),
-    ...(role === "parent" || role === "player"
+    ...(role === "player" ? [{ to: "/list", label: "My colleges", icon: ListChecks }] : []),
+    ...(role === "parent"
       ? [
           { to: "/list", label: "College list", icon: ListChecks },
           { to: "/family", label: "Family portal", icon: Database },
@@ -107,6 +110,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   ];
 
   const tabs = [
+    ...(role === "player" ? [{ to: "/athlete", label: "Hub", icon: Home, exact: false }] : []),
     { to: "/search", label: "Search", icon: Search, exact: false },
     ...(isStaff
       ? [{ to: "/admin", label: "Console", icon: Table2, exact: true }]
