@@ -156,6 +156,8 @@ export type Database = {
           updated_at: string
           value: number
           verified: boolean
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           created_at?: string
@@ -169,6 +171,8 @@ export type Database = {
           updated_at?: string
           value: number
           verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           created_at?: string
@@ -182,6 +186,8 @@ export type Database = {
           updated_at?: string
           value?: number
           verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -260,6 +266,53 @@ export type Database = {
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_videos: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          org_athlete_id: string
+          size_bytes: number | null
+          storage_path: string
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          org_athlete_id: string
+          size_bytes?: number | null
+          storage_path: string
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          org_athlete_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_videos_org_athlete_id_fkey"
+            columns: ["org_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "org_athletes"
             referencedColumns: ["id"]
           },
         ]
