@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.guard_metric_verification() FROM PUBLIC, anon, authenticated;
