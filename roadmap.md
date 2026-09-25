@@ -52,3 +52,9 @@
 ## Player photo + direct social links (2026-09-20)
 - [x] Player photo upload on the card; empty state falls back to the org logo, then initials
 - [x] X / Instagram show as icon links straight to the handle, on the internal card and the shareable card
+
+## Role-by-role build (2026-09-25)
+- [x] Step 1 Player: /athlete hub (readiness ring + checklist, share scout card, raw clip uploads, self-reported vs coach-verified measurables, college pipeline, coach notes/events); role landing pages; scout card plays clips + verified badges.
+- [ ] Step 2 Coach: roster "Unverified stats" alert with 1-click Verify (verifyAthleteMetric exists), recruiting status flags, team booklet.
+- [ ] Step 3 Parent portal polish. Step 4 Owner/Admin. Step 5 DB gaps + PWA/mobile.
+- [ ] REMIND USER: revisit True-Fit scoring — draft/portal turnover beyond seniors, generic "INF" rosters lumped (MIF vs CIF), relies on roster accuracy.
