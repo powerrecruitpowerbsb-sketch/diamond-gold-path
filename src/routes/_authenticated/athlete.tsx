@@ -209,7 +209,7 @@ function HubBody({ hub }: { hub: any }) {
       </div>
 
       <section id="profile" className="scroll-mt-24">
-        <p className="meta mb-2 text-org-accent">Your details</p>
+        <p className="meta mb-2 text-org-accent">Profile</p>
         <AthleteProfilePanel athleteId={String(athlete['id'])} />
       </section>
     </div>
@@ -315,7 +315,7 @@ function Hero({ hub, pct, next }: { hub: any; pct: number; next: any }) {
             ) : null}
           </div>
           <div className="md:hidden">
-            <p className="meta text-org-accent">{hub.orgName ?? "Recruiting hub"}</p>
+            <p className="meta text-org-accent">{hub.orgName ?? "Recruiting"}</p>
             <h1 className="font-display text-2xl leading-tight font-bold text-white">
               {athlete['name']}
             </h1>
@@ -325,7 +325,7 @@ function Hero({ hub, pct, next }: { hub: any; pct: number; next: any }) {
         {/* Identity */}
         <div className="min-w-0">
           <p className="meta hidden text-org-accent md:block">
-            {hub.orgName ?? "Recruiting hub"} · Recruiting hub
+            {hub.orgName ?? "Recruiting"}
           </p>
           <h1 className="font-display mt-1 hidden text-4xl leading-[1.05] font-bold tracking-tight text-white md:block lg:text-5xl">
             {athlete['name']}
@@ -390,7 +390,7 @@ function Hero({ hub, pct, next }: { hub: any; pct: number; next: any }) {
         <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:flex-col md:p-5 md:text-center">
           <Ring pct={pct} />
           <div className="md:max-w-[180px]">
-            <p className="meta text-white/60">Recruiting ready</p>
+            <p className="meta text-white/60">Readiness</p>
             {next ? (
               <a href={next.href} className="mt-1 block text-sm font-semibold text-white hover:underline">
                 Next: {next.label} <ArrowRight className="inline size-3.5" />
@@ -474,7 +474,7 @@ function Readiness({
   doneCount: number;
 }) {
   return (
-    <Panel eyebrow={`${doneCount} of ${checklist.length} done`} title="What coaches look for">
+    <Panel eyebrow={`${doneCount} of ${checklist.length} done`} title="Checklist">
       <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-track">
         <div
           className="h-full rounded-full bg-org-primary transition-[width] duration-700"
@@ -595,7 +595,7 @@ function VideoReel({
   const catLabel = (k: string) => VIDEO_CATEGORIES.find((c) => c.key === k)?.label ?? "Clip";
 
   return (
-    <Panel id="video" eyebrow={`${videos.length} clip${videos.length === 1 ? "" : "s"}`} title="Highlight reel">
+    <Panel id="video" eyebrow={`${videos.length} clip${videos.length === 1 ? "" : "s"}`} title="Highlights">
       {current?.url ? (
         <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
           <video
@@ -881,7 +881,7 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
     <Panel
       id="targets"
       eyebrow={`${total} active`}
-      title="My colleges"
+      title="Colleges"
       action={
         <Link
           to="/list"
@@ -968,7 +968,7 @@ function CoachCorner({
   orgName: string | null;
 }) {
   return (
-    <Panel eyebrow={orgName ?? "Your club"} title="From your coaches">
+    <Panel eyebrow={orgName ?? "Your club"} title="Coaches">
       {notes.length ? (
         <div className="space-y-3">
           {notes.map((n) => (
@@ -987,7 +987,7 @@ function CoachCorner({
       )}
 
       <div className="mt-5 border-t border-white/10 pt-4">
-        <p className="meta mb-2 text-steel">Up next</p>
+        <p className="meta mb-2 text-steel">Schedule</p>
         {events.length ? (
           <ul className="space-y-2">
             {events.map((e) => {
