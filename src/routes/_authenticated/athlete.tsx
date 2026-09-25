@@ -531,7 +531,7 @@ function VideoReel({
   linkVideos,
 }: {
   athleteId: string;
-  videos: Record<string, any>[];
+  videos: any[];
   linkVideos: string[];
 }) {
   const qc = useQueryClient();
@@ -543,9 +543,15 @@ function VideoReel({
   const [uploading, setUploading] = useState<string | null>(null);
   const [active, setActive] = useState(0);
 
-  const upload = async (file: File) => {
-    if (!file.type.startsWith("video/")) return toast.error("Pick a video file");
-    if (file.size > 100 * 1024 * 1024) return toast.error("Clips need to be under 100 MB");
+  const upload = async (file: File): Promise<void> => {
+    if (!file.type.startsWith("video/")) {
+      toast.error("Pick a video file");
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error("Clips need to be under 100 MB");
+      return;
+    }
     setUploading(file.name);
     try {
       const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
