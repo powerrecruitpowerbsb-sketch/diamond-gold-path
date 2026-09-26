@@ -52,7 +52,7 @@ type Ctx = { supabase: any; userId: string };
  * Resolves the caller's org + role. Every athlete call runs through this: the
  * roster is org-scoped data, so the boundary is server-side, not the nav.
  */
-async function requireOrgActor(context: Ctx) {
+export async function requireOrgActor(context: Ctx) {
   const [{ data: profile }, { data: roles }] = await Promise.all([
     context.supabase
       .from("users")
