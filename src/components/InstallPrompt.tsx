@@ -45,7 +45,7 @@ export function InstallPrompt() {
 
   const later = () => {
     const n = Number(localStorage.getItem(COUNT_KEY) ?? 0);
-    const days = SNOOZE_DAYS[Math.min(n, SNOOZE_DAYS.length - 1)];
+    const days = SNOOZE_DAYS[Math.min(n, SNOOZE_DAYS.length - 1)] ?? 30;
     localStorage.setItem(COUNT_KEY, String(n + 1));
     localStorage.setItem(KEY, String(Date.now() + days * 86_400_000));
     setOpen(false);
