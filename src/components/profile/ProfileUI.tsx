@@ -70,7 +70,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-xl border border-border bg-card", className)}>
+    <section className={cn("min-w-0 rounded-xl border border-border bg-card", className)}>
       {title ? (
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-4 py-3">
           <h2 className="font-display text-base font-bold text-graphite">{title}</h2>
@@ -94,7 +94,7 @@ export function FactList({
   columns?: 1 | 2;
 }) {
   return (
-    <dl className={cn("grid gap-x-8", columns === 2 ? "sm:grid-cols-2" : "")}>
+    <dl className={cn("grid min-w-0 gap-x-8 [&>*]:min-w-0", columns === 2 ? "sm:grid-cols-2" : "")}>
       {fields.map((field) => {
         const known = field.state.kind === "value";
         const host = hostOf(field.sourceUrl);
@@ -104,11 +104,11 @@ export function FactList({
             key={field.label}
             className="flex items-baseline justify-between gap-4 border-b border-border/70 py-2.5 last:border-0"
           >
-            <dt className="text-sm text-steel">
+            <dt className="max-w-[45%] shrink-0 text-sm text-steel">
               {field.label}
               {field.note ? <span className="meta mt-0.5 block">{field.note}</span> : null}
             </dt>
-            <dd className="min-w-0 text-right">
+            <dd className="min-w-0 flex-1 text-right break-words">
               <span
                 className={cn(
                   "tabular text-sm font-semibold",
