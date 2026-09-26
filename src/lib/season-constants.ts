@@ -10,3 +10,6 @@ export const ATHLETE_STATUS_LABEL: Record<AthleteStatus, string> = {
   graduated: "Graduated",
   departed: "Departed",
 };
+
+/** Travel-ball age brackets offered when creating teams (free text still allowed). */
+export const AGE_GROUPS = ["13U", "14U", "15U", "16U", "17U", "18U"] as const;

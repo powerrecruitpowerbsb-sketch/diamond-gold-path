@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AGE_GROUPS } from "@/lib/season-constants";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -339,8 +340,14 @@ function TeamManager({
               value={ageGroup}
               onChange={(event) => setAgeGroup(event.target.value)}
               placeholder="16U"
+              list="age-groups"
               className={`mt-1 ${FIELD}`}
             />
+            <datalist id="age-groups">
+              {AGE_GROUPS.map((group) => (
+                <option key={group} value={group} />
+              ))}
+            </datalist>
           </label>
           <button
             type="submit"
@@ -678,6 +685,7 @@ function RolloverWizard({
                 <input
                   value={team.ageGroup}
                   placeholder="Age group"
+                  list="age-groups"
                   onChange={(event) => {
                     const next = [...planTeams];
                     next[index] = { ...team, ageGroup: event.target.value };
