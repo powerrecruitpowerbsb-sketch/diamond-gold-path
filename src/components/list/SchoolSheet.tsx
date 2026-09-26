@@ -149,16 +149,19 @@ export function SchoolSheet({
         </SheetHeader>
 
         {entry ? (
-          <Tabs defaultValue={defaultTab ?? "overview"} className="px-5 py-5 sm:px-7">
+          <Tabs
+            defaultValue={
+              defaultTab === "email" ? "activity" : defaultTab === "academics" ? "overview" : (defaultTab ?? "overview")
+            }
+            className="px-5 py-5 sm:px-7"
+          >
             <TabsList className="sticky top-0 z-20 -mx-5 flex h-auto w-[calc(100%+2.5rem)] flex-nowrap justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-background/95 px-5 py-0 backdrop-blur [scrollbar-width:none] sm:-mx-7 sm:w-[calc(100%+3.5rem)] sm:px-7 [&::-webkit-scrollbar]:hidden">
               {(
                 [
-                  ["overview", "Overview"],
-                  ["activity", "Activity"],
-                  ["email", "Email"],
-                  ["academics", "Academics"],
-                  ["roster", "Roster"],
+                  ["overview", "School"],
                   ["fit", "Fit"],
+                  ["activity", "Track"],
+                  ["roster", "Roster"],
                   ["intel", "Intel"],
                   ["notes", "Notes"],
                 ] as [string, string][]
@@ -181,11 +184,8 @@ export function SchoolSheet({
             </TabsContent>
 
 
-            <TabsContent value="activity" className="pt-5">
+            <TabsContent value="activity" className="space-y-3 pt-5">
               <ActivityChips entryId={entry.id} />
-            </TabsContent>
-
-            <TabsContent value="email" className="pt-5">
               <OutreachComposer
                 programId={entry.programId}
                 school={entry.school}
@@ -199,8 +199,8 @@ export function SchoolSheet({
               {profile.isPending ? (
                 <p className="text-sm text-steel">Loading…</p>
               ) : (
-                <div className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-4">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <StatCard
                       label="Undergrads"
                       value={
