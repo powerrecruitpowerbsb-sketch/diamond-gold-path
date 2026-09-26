@@ -29,6 +29,7 @@ import { AuthButton } from "@/components/brand/AuthButton";
 import { supabase } from "@/integrations/supabase/client";
 import {
   addAthleteVideo,
+  createVideoUploadUrl,
   deleteAthleteVideo,
   getAthleteHub,
   VIDEO_CATEGORIES,
