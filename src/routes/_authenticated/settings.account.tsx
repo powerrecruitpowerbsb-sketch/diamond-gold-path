@@ -143,8 +143,14 @@ function PasswordCard() {
   const [busy, setBusy] = useState(false);
   const mismatch = confirm.length > 0 && pw !== confirm;
   const submit = async () => {
-    if (pw.length < 8) return toast.error("Use at least 8 characters");
-    if (pw !== confirm) return toast.error("Passwords don't match");
+    if (pw.length < 8) {
+      toast.error("Use at least 8 characters");
+      return;
+    }
+    if (pw !== confirm) {
+      toast.error("Passwords don't match");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
