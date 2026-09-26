@@ -52,7 +52,7 @@ const FIELD =
   "touch-target w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary";
 const LABEL = "font-mono text-[11px] tracking-wide text-steel uppercase";
 const CARD =
-  "rounded-xl border border-border bg-card p-5 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]";
+  "rounded-xl border border-border bg-card p-4 sm:p-5 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]";
 
 function SeasonsSettings() {
   const ctx = useSeasonContext();
@@ -324,7 +324,7 @@ function TeamManager({
           Teams in {detail?.season?.name ?? "this season"}
         </h2>
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="min-w-48 flex-1">
+          <label className="w-full min-w-0 flex-1 sm:min-w-48">
             <span className={LABEL}>Team name</span>
             <input
               required
@@ -680,7 +680,7 @@ function RolloverWizard({
                     next[index] = { ...team, name: event.target.value };
                     setTeams(next);
                   }}
-                  className={`max-w-56 ${FIELD}`}
+                  className={`w-full sm:max-w-56 ${FIELD}`}
                 />
                 <input
                   value={team.ageGroup}

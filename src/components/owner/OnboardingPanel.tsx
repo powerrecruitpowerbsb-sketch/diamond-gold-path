@@ -67,7 +67,7 @@ export function OnboardingPanel() {
           type="button"
           disabled={busy === s.inviteId}
           onClick={() => resend(s)}
-          className="text-xs font-semibold text-org-primary disabled:opacity-50"
+          className="touch-target px-1 text-xs font-semibold text-org-primary disabled:opacity-50"
         >
           Resend
         </button>
@@ -81,7 +81,7 @@ export function OnboardingPanel() {
   );
 
   return (
-    <section className="mt-6 rounded-xl border border-border bg-card p-5">
+    <section className="mt-6 rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-lg font-bold text-graphite">Onboarding</h2>
         <Link to="/roster/new" className="text-sm font-semibold text-org-primary">
@@ -95,7 +95,7 @@ export function OnboardingPanel() {
           <p className="mt-1 text-sm text-steel tabular-nums">
             {joined} joined · {invited} invited · {none} no email — across {rows.length} athletes
           </p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:flex">
             {(["missing", "invited", "all"] as Filter[]).map((f) => (
               <button
                 key={f}
@@ -113,12 +113,12 @@ export function OnboardingPanel() {
           {visible.length ? (
             <ul className="mt-3 divide-y divide-border/70">
               {visible.slice(0, 40).map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <Link to="/roster/$id" params={{ id: r.id }} className="text-sm font-semibold text-graphite">
+                <li key={r.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <Link to="/roster/$id" params={{ id: r.id }} className="min-w-0 truncate text-sm font-semibold text-graphite">
                     {r.name}
                     {r.gradYear ? <span className="ml-2 font-mono text-xs text-steel">{r.gradYear}</span> : null}
                   </Link>
-                  <span className="flex flex-wrap gap-3">
+                  <span className="flex flex-wrap gap-x-4 gap-y-2">
                     {chip("Player", r.player, r.id)}
                     {chip("Parent", r.parent, r.id)}
                   </span>
