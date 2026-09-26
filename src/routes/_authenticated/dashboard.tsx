@@ -131,7 +131,7 @@ function Dashboard() {
       </div>
 
       <WallShare />
-      <OnboardingPanel />
+      {ctx.canManage ? <OnboardingPanel /> : null}
       <ActionsPanel seasonId={ctx.seasonId} teamId={ctx.teamId} sport={sport} />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
