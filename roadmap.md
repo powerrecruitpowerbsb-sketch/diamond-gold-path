@@ -68,3 +68,6 @@
 - [ ] Schedule: field / opponent per game
 
 - [x] Phase 3: My Colleges redesign — elevated pipeline cards, coach picks, modern school drawer
+
+## Next after design pass (requested 2026-09-26)
+- [ ] True-Fit rework: rosters read wrong (e.g. Clemson 0 of 40 MIF), transfer flags misread, draft/portal turnover, MIF vs CIF lumping
