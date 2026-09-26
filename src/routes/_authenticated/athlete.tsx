@@ -535,6 +535,7 @@ function VideoReel({
 }) {
   const qc = useQueryClient();
   const addFn = useServerFn(addAthleteVideo);
+  const ticketFn = useServerFn(createVideoUploadUrl);
   const delFn = useServerFn(deleteAthleteVideo);
   const input = useRef<HTMLInputElement>(null);
   const [category, setCategory] = useState<string>("game");
@@ -547,6 +548,10 @@ function VideoReel({
       toast.error("Pick a video file");
       return;
     }
+    if (file.size === 0) {
+      toast.error("That video hasn't finished downloading to your phone yet — open it in Photos first, then try again");
+      return;
+    }
     if (file.size > 100 * 1024 * 1024) {
       toast.error("Clips need to be under 100 MB");
       return;
@@ -554,10 +559,10 @@ function VideoReel({
     setUploading(file.name);
     try {
       const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
-      const path = `${athleteId}/videos/${crypto.randomUUID()}.${ext}`;
+      const { path, token } = await ticketFn({ data: { athleteId, ext } });
       const { error } = await supabase.storage
         .from("athlete-videos")
-        .upload(path, file, { contentType: file.type, upsert: false });
+        .uploadToSignedUrl(path, token, file, { contentType: file.type || "video/mp4" });
       if (error) throw error;
       await addFn({
         data: {

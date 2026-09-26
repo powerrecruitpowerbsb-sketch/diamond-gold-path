@@ -129,6 +129,31 @@ export const getAthleteHub = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * A one-time upload ticket for a clip. Access is checked as the signed-in
+ * user first; only then does the server mint the signed URL.
+ */
+export const createVideoUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId: string; ext?: string | null }) => input)
+  .handler(async ({ context, data }) => {
+    const athleteId = str(data.athleteId);
+    if (!/^[0-9a-f-]{36}$/i.test(athleteId)) throw new Error("Unknown player");
+    const [{ data: own }, { data: linked }] = await Promise.all([
+      context.supabase.rpc("can_access_athlete", { _athlete_id: athleteId }),
+      context.supabase.rpc("is_linked_athlete", { _athlete_id: athleteId }),
+    ]);
+    if (!own && !linked) throw new Error("You can't add clips for this player");
+    const ext = (str(data.ext).toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4").slice(0, 5);
+    const path = `${athleteId}/videos/${crypto.randomUUID()}.${ext}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("athlete-videos")
+      .createSignedUploadUrl(path);
+    if (error || !signed) throw new Error(error?.message ?? "Could not start upload");
+    return { path, token: signed.token };
+  });
+
 export const addAthleteVideo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
