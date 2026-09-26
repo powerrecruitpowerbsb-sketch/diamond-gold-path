@@ -75,34 +75,73 @@ export function SchoolSheet({
     <Sheet open={open} onOpenChange={(next) => (next ? null : onClose())}>
       <SheetContent
         side="right"
-        className="w-full overflow-y-auto border-l border-border p-0 sm:max-w-none sm:w-3/4"
+        className="w-full overflow-y-auto border-l border-border p-0 sm:max-w-3xl"
       >
-        <SheetHeader className="stadium-gradient gap-0 px-5 py-6 sm:px-7 sm:py-7">
-          <p className="mb-2 font-mono text-[11px] font-medium tracking-[0.18em] text-org-accent uppercase">
-            {[entry?.sport, program['governing_body'], program['division']]
-              .filter(Boolean)
-              .join(" · ") || "School"}
-          </p>
-          <SheetTitle className="font-display text-[1.75rem] leading-[1.1] font-bold text-white sm:text-4xl">
-            {entry?.school ?? ""}
-          </SheetTitle>
-          <p className="mt-2 text-sm text-white/70">
-            {[
-              [university['city'], university['state']].filter(Boolean).join(", "),
-              program['conference'],
-              program['head_coach_name'],
-            ]
-              .filter(Boolean)
-              .join(" · ") || "Loading…"}
-          </p>
+        <SheetHeader className="stadium-gradient relative gap-0 overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px"
+            style={{ background: "linear-gradient(90deg, transparent, var(--org-primary), transparent)" }}
+            aria-hidden
+          />
+          <div className="flex items-start gap-4">
+            <span className="font-display grid size-14 shrink-0 place-items-center rounded-xl bg-org-primary text-lg font-bold text-org-primary-foreground shadow-[0_8px_24px_-10px_var(--org-primary)]">
+              {String(entry?.school ?? "")
+                .replace(/University|College|of|the|at/gi, "")
+                .split(/\s+/)
+                .filter(Boolean)
+                .map((w) => w[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase() || "C"}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap gap-1.5">
+                {[program['governing_body'], program['division']].filter(Boolean).length ? (
+                  <span className="rounded-md bg-white/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-white uppercase">
+                    {[program['governing_body'], program['division']].filter(Boolean).join(" ")}
+                  </span>
+                ) : null}
+                {entry?.sport ? (
+                  <span className="rounded-md border border-white/20 px-2 py-0.5 font-mono text-[10px] tracking-wide text-white/80 uppercase">
+                    {entry.sport}
+                  </span>
+                ) : null}
+              </div>
+              <SheetTitle className="font-display mt-2 text-[1.6rem] leading-[1.1] font-bold text-white sm:text-3xl">
+                {entry?.school ?? ""}
+              </SheetTitle>
+              <p className="mt-1.5 text-sm text-white/70">
+                {[
+                  [university['city'], university['state']].filter(Boolean).join(", "),
+                  program['conference'],
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "Loading…"}
+              </p>
+            </div>
+          </div>
+          <dl className="mt-5 grid grid-cols-3 gap-2">
+            {(
+              [
+                ["Net price", university['est_net_price'] ? money(university['est_net_price']) : "—"],
+                ["Roster", roster.length ? String(roster.length) : "—"],
+                ["Head coach", program['head_coach_name'] ? String(program['head_coach_name']) : "—"],
+              ] as [string, string][]
+            ).map(([k, v]) => (
+              <div key={k} className="min-w-0 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2">
+                <dt className="font-mono text-[10px] tracking-wide text-white/60 uppercase">{k}</dt>
+                <dd className="tabular truncate text-sm font-bold text-white">{v}</dd>
+              </div>
+            ))}
+          </dl>
           {entry ? (
-            <div className="mt-5">
+            <div className="mt-4">
               <Link
                 to="/programs/$id"
                 params={{ id: entry.programId }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/25 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
-                Go to full profile
+                Full profile
                 <ExternalLink className="size-3.5" aria-hidden />
               </Link>
             </div>
@@ -197,7 +236,7 @@ export function SchoolSheet({
                     />
                   </div>
                   <Panel title="The program">
-                    <dl className="grid gap-x-8 sm:grid-cols-2">
+                    <dl className="grid grid-cols-2 gap-2">
                       {(
                         [
                           ["Level", [program['governing_body'], program['division']].filter(Boolean).join(" ")],
@@ -211,10 +250,10 @@ export function SchoolSheet({
                       ).map(([label, value]) => (
                         <div
                           key={label}
-                          className="flex items-baseline justify-between gap-4 border-b border-border/70 py-2.5"
+                          className="min-w-0 rounded-lg border border-border bg-muted/30 px-3 py-2.5"
                         >
-                          <dt className="text-sm text-steel">{label}</dt>
-                          <dd className="text-sm font-semibold text-graphite">
+                          <dt className="meta text-steel">{label}</dt>
+                          <dd className="mt-0.5 truncate text-sm font-semibold text-graphite">
                             {value ? String(value) : <span className="font-normal italic text-steel/70">Not reported</span>}
                           </dd>
                         </div>

@@ -66,3 +66,5 @@
 - [x] Team scout packet (shareable/printable, QR)
 - [x] Coach picks with staff-only notes
 - [ ] Schedule: field / opponent per game
+
+- [x] Phase 3: My Colleges redesign — elevated pipeline cards, coach picks, modern school drawer

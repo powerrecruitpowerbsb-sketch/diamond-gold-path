@@ -203,15 +203,25 @@ export const searchPrograms = createServerFn({ method: "POST" })
       // Hundreds of programs carry tens of thousands of players between them, far
       // past the 1,000 rows one request returns — read every page or most schools
       // look as though they have no roster at all.
-      const roster = await fetchAllRows(
-        (from, to) =>
-          supabase
-            .from("roster_players")
-            .select(rosterCols)
-            .in("program_id", programIds)
-            .range(from, to) as any,
-        60000,
-      );
+      // Hundreds of ids in one address overflow the request line ("fetch
+      // failed"), so ask in small batches of programs.
+      const chunks: string[][] = [];
+      for (let i = 0; i < programIds.length; i += 150) chunks.push(programIds.slice(i, i + 150));
+      const roster = (
+        await Promise.all(
+          chunks.map((ids) =>
+            fetchAllRows(
+              (from, to) =>
+                supabase
+                  .from("roster_players")
+                  .select(rosterCols)
+                  .in("program_id", ids)
+                  .range(from, to) as any,
+              20000,
+            ),
+          ),
+        )
+      ).flat();
 
 
       const byProgram = new Map<string, Map<number, any[]>>();
@@ -334,25 +344,35 @@ export const searchPrograms = createServerFn({ method: "POST" })
 
     if (intelActive(f) && results.length > 0) {
       const ids = results.map((r) => r.id);
+      const idGroups: string[][] = [];
+      for (let i = 0; i < ids.length; i += 150) idGroups.push(ids.slice(i, i + 150));
       const [records, relationships] = await Promise.all([
-        fetchAllRows(
-          (from, to) =>
-            supabase
-              .from("recruiting_intelligence")
-              .select("program_id, field_type, structured_value, positions")
-              .in("program_id", ids)
-              .range(from, to),
-          40000,
-        ),
-        fetchAllRows(
-          (from, to) =>
-            supabase
-              .from("program_relationships")
-              .select("program_id, strength_label")
-              .in("program_id", ids)
-              .range(from, to),
-          40000,
-        ),
+        Promise.all(
+          idGroups.map((group) =>
+            fetchAllRows(
+              (from, to) =>
+                supabase
+                  .from("recruiting_intelligence")
+                  .select("program_id, field_type, structured_value, positions")
+                  .in("program_id", group)
+                  .range(from, to),
+              40000,
+            ),
+          ),
+        ).then((parts) => parts.flat()),
+        Promise.all(
+          idGroups.map((group) =>
+            fetchAllRows(
+              (from, to) =>
+                supabase
+                  .from("program_relationships")
+                  .select("program_id, strength_label")
+                  .in("program_id", group)
+                  .range(from, to),
+              40000,
+            ),
+          ),
+        ).then((parts) => parts.flat()),
       ]);
 
       const answers = new Map<string, Map<string, Set<string>>>();
