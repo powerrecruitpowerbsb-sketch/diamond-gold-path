@@ -64,5 +64,5 @@
 - [x] Flags: roster chips + filters (to verify, no colleges, no video, no numbers)
 - [x] Actions list on coach dashboard
 - [x] Team scout packet (shareable/printable, QR)
-- [ ] Coach picks with staff-only notes
+- [x] Coach picks with staff-only notes
 - [ ] Schedule: field / opponent per game
