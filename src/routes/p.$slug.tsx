@@ -22,8 +22,8 @@ export const Route = createFileRoute("/p/$slug")({
     ].filter(Boolean);
     const title = `${name} — recruiting profile`;
     const description = bits.length
-      ? `${name}: ${bits.join(" · ")}. Measurables, academics, video and upcoming events.`
-      : "Verified measurables, academics, video and upcoming events for a college recruit.";
+      ? `${name}: ${bits.join(" · ")}. Measurables, film and schedule.`
+      : "College recruit profile: measurables, academics, film and schedule.";
     return {
       meta: [
         { title },
@@ -267,7 +267,7 @@ function ScoutCard() {
           </Panel>
         ) : null}
 
-        <Panel title="Academics & eligibility">
+        <Panel title="Academics">
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <Fact label="GPA" value={a["gpa"] ? String(a["gpa"]) : null} />
             <Fact label="SAT" value={a["sat_score"] ? String(a["sat_score"]) : null} />
@@ -283,7 +283,7 @@ function ScoutCard() {
         </Panel>
 
         {clips.length ? (
-          <Panel title="Highlights">
+          <Panel title="Film">
             <ClipTheater
               clips={clips.map((c) => ({
                 id: String(c["id"]),
@@ -296,7 +296,7 @@ function ScoutCard() {
         ) : null}
 
         {videos.length ? (
-          <Panel title="Video links">
+          <Panel title="More film">
             <ul className="grid gap-3 sm:grid-cols-2">
               {videos.map((link) => (
                 <li key={link}>
@@ -318,7 +318,7 @@ function ScoutCard() {
         ) : null}
 
         {events.length ? (
-          <Panel title="Where to see this player">
+          <Panel title="Schedule">
             <ul className="space-y-2">
               {events.map((event, index) => (
                 <li
