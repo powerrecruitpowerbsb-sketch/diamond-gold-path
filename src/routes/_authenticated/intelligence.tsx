@@ -107,6 +107,12 @@ function Workstation() {
     staleBefore: "",
   });
 
+  // One sport switch for the whole app: follow the header's choice.
+  const { sport: globalSport } = useSportMode();
+  useEffect(() => {
+    setFilters((f) => (f.sport === globalSport ? f : { ...f, sport: globalSport }));
+  }, [globalSport]);
+
   const listFn = useServerFn(listIntelPrograms);
   const list = useQuery({
     queryKey: ["intel-list", filters],
@@ -272,26 +278,8 @@ function ProgramSwitcher({
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="border-b border-border p-3">
-        <div className="inline-flex w-full rounded-md border border-border p-0.5">
-          {(["baseball", "softball"] as const).map((sport) => (
-            <button
-              key={sport}
-              type="button"
-              onClick={() => set({ sport })}
-              className={cn(
-                "h-8 flex-1 rounded-sm text-sm font-semibold",
-                filters.sport === sport
-                  ? "bg-org-primary text-org-primary-foreground"
-                  : "text-steel hover:text-graphite",
-              )}
-            >
-              {sport === "baseball" ? "Baseball" : "Softball"}
-            </button>
-          ))}
-        </div>
-
         <input
-          className={cn(input, "mt-2 h-9")}
+          className={cn(input, "h-9")}
           value={filters.q}
           onChange={(e) => set({ q: e.target.value })}
           placeholder="Jump to a school…"
