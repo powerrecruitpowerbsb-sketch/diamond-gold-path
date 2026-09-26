@@ -561,10 +561,23 @@ function VideoReel({
     try {
       const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
       const { path, token } = await ticketFn({ data: { athleteId, ext } });
-      const { error } = await supabase.storage
-        .from("athlete-videos")
-        .uploadToSignedUrl(path, token, file, { contentType: file.type || "video/mp4" });
-      if (error) throw error;
+      // Raw binary PUT to the signed URL. The library's helper wraps the file in a
+      // multipart form, which the storage server drops for large phone videos.
+      const base = import.meta.env["VITE_SUPABASE_URL"];
+      const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+      const url = `${base}/storage/v1/object/upload/sign/athlete-videos/${path
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/")}?token=${encodeURIComponent(token)}`;
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "false", apikey: key },
+        body: file,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}) as Record<string, string>);
+        throw new Error(body.message || body.error || `Upload failed (${res.status})`);
+      }
       await addFn({
         data: {
           athleteId,

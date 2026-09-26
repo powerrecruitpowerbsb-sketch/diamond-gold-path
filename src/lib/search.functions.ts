@@ -1,3 +1,4 @@
+import { stateSpellings } from "@/lib/regions";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -143,7 +144,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
       if (f.q) query = query.ilike("universities.name", `%${f.q}%`);
       // Location: the region is a grouping of states from src/lib/regions.ts, never
       // the stored universities.region column, which is empty for all but 6 schools.
-      if (f.states.length > 0) query = query.in("universities.state", f.states);
+      if (f.states.length > 0) query = query.in("universities.state", stateSpellings(f.states));
       if (f.publicPrivate) query = query.eq("universities.public_private", f.publicPrivate);
       if (f.schoolSize) query = query.eq("universities.school_size_bucket", f.schoolSize);
       if (f.campusSetting) query = query.eq("universities.campus_setting", f.campusSetting);
@@ -155,6 +156,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
       };
       // Net price is what a family actually pays, and is the primary cost filter.
       range("universities.est_net_price", f.netPriceMin, f.netPriceMax);
+      range("universities.tuition_in_state", f.tuitionInMin, f.tuitionInMax);
       range("universities.tuition_out_state", f.tuitionMin, f.tuitionMax);
       range("universities.est_cost_of_attendance", f.coaMin, f.coaMax);
       range("universities.avg_sat", f.satMin, f.satMax);

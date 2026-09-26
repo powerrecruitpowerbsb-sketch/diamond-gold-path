@@ -45,6 +45,8 @@ export const searchParamsSchema = z.object({
   scholarships: fallback(z.string(), "").default(""),
   netPriceMin: fallback(z.number(), 0).default(0),
   netPriceMax: fallback(z.number(), 0).default(0),
+  tuitionInMin: fallback(z.number(), 0).default(0),
+  tuitionInMax: fallback(z.number(), 0).default(0),
   tuitionMin: fallback(z.number(), 0).default(0),
   tuitionMax: fallback(z.number(), 0).default(0),
   coaMin: fallback(z.number(), 0).default(0),
@@ -98,6 +100,8 @@ export const SEARCH_DEFAULTS = {
   scholarships: "",
   netPriceMin: 0,
   netPriceMax: 0,
+  tuitionInMin: 0,
+  tuitionInMax: 0,
   tuitionMin: 0,
   tuitionMax: 0,
   coaMin: 0,
@@ -145,6 +149,8 @@ export type SearchFilters = {
   scholarships: boolean | null;
   netPriceMin: number | null;
   netPriceMax: number | null;
+  tuitionInMin: number | null;
+  tuitionInMax: number | null;
   tuitionMin: number | null;
   tuitionMax: number | null;
   coaMin: number | null;
@@ -225,6 +231,8 @@ export function normalizeSearchInput(input: unknown): SearchFilters {
     scholarships: bool(at("scholarships")),
     netPriceMin: num(at("netPriceMin"), 0, 200000),
     netPriceMax: num(at("netPriceMax"), 0, 200000),
+    tuitionInMin: num(at("tuitionInMin"), 0, 200000),
+    tuitionInMax: num(at("tuitionInMax"), 0, 200000),
     tuitionMin: num(at("tuitionMin"), 0, 200000),
     tuitionMax: num(at("tuitionMax"), 0, 200000),
     coaMin: num(at("coaMin"), 0, 200000),
@@ -296,6 +304,8 @@ export function activeSecondaryCount(params: SearchParams): number {
     "academicBucket",
     "religious",
     "scholarships",
+    "tuitionInMin",
+    "tuitionInMax",
     "tuitionMin",
     "tuitionMax",
     "coaMin",

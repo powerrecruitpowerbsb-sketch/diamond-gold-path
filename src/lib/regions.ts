@@ -83,12 +83,33 @@ const STATE_REGION: Record<string, Region> = {
   VI: "Pacific",
 };
 
-/** Two-letter code for a stored state value, or null when there is none. */
+const STATE_NAMES: Record<string, string> = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado",
+  CT: "Connecticut", DE: "Delaware", DC: "District of Columbia", FL: "Florida", GA: "Georgia",
+  HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky",
+  LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota",
+  MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire",
+  NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota",
+  OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island",
+  SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont",
+  VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+  PR: "Puerto Rico", GU: "Guam", AS: "American Samoa", VI: "Virgin Islands", MP: "Northern Mariana Islands",
+};
+const NAME_TO_CODE: Record<string, string> = Object.fromEntries(
+  Object.entries(STATE_NAMES).map(([code, name]) => [name.toLowerCase(), code]),
+);
+
+/** Two-letter code for a stored state value (code or full name), or null when there is none. */
 export function stateCode(value: unknown): string | null {
-  const code = String(value ?? "")
-    .trim()
-    .toUpperCase();
-  return code.length === 2 && STATE_REGION[code] ? code : null;
+  const raw = String(value ?? "").trim();
+  const code = raw.toUpperCase();
+  if (code.length === 2 && STATE_REGION[code]) return code;
+  return NAME_TO_CODE[raw.toLowerCase()] ?? null;
+}
+
+/** Every spelling a state may be stored under, so a stray full name never hides a school. */
+export function stateSpellings(codes: string[]): string[] {
+  return codes.flatMap((c) => (STATE_NAMES[c] ? [c, STATE_NAMES[c]] : [c]));
 }
 
 /** The region a state belongs to, or null when the state is missing or unknown. */

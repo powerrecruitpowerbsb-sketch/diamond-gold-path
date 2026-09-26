@@ -1,3 +1,6 @@
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -543,7 +546,7 @@ function SearchScreen() {
             <FilterGroup
               title="Cost"
               hint="Net price, tuition, cost of attendance"
-              active={[params.netPriceMin, params.netPriceMax, params.tuitionMin, params.tuitionMax, params.coaMin, params.coaMax].filter(Boolean).length}
+              active={[params.netPriceMin, params.netPriceMax, params.tuitionInMin, params.tuitionInMax, params.tuitionMin, params.tuitionMax, params.coaMin, params.coaMax].filter(Boolean).length}
               defaultOpen
             >
               <Range
@@ -551,6 +554,12 @@ function SearchScreen() {
                 min={params.netPriceMin}
                 max={params.netPriceMax}
                 onChange={(netPriceMin, netPriceMax) => set({ netPriceMin, netPriceMax })}
+              />
+              <Range
+                label="Tuition (in state)" lo={0} hi={70000} step={1000} format={usd}
+                min={params.tuitionInMin}
+                max={params.tuitionInMax}
+                onChange={(tuitionInMin, tuitionInMax) => set({ tuitionInMin, tuitionInMax })}
               />
               <Range
                 label="Tuition (out of state)" lo={0} hi={70000} step={1000} format={usd}
@@ -572,11 +581,10 @@ function SearchScreen() {
               active={[params.majorId, params.satMin, params.satMax, params.actMin, params.actMax, params.acceptanceMin, params.acceptanceMax, params.academicBucket].filter(Boolean).length}
             >
               <Field label="Major offered">
-                <Select
+                <MajorPicker
                   value={params.majorId}
                   onChange={(value) => set({ majorId: value })}
-                  placeholder="Any major"
-                  options={(facets.data?.majors ?? []).map((m) => ({ value: m.id, label: m.name }))}
+                  majors={facets.data?.majors ?? []}
                 />
               </Field>
               <Range
@@ -1259,5 +1267,58 @@ function Range({
         ))}
       </SliderPrimitive.Root>
     </div>
+  );
+}
+
+function MajorPicker({
+  value,
+  onChange,
+  majors,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  majors: { id: string; name: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = majors.find((m) => m.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-left text-base md:text-sm"
+        >
+          <span className={selected ? "truncate" : "truncate text-muted-foreground"}>
+            {selected?.name ?? "Any major"}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[260px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Type a major — Business, Nursing…" />
+          <CommandList>
+            <CommandEmpty>No major matches that.</CommandEmpty>
+            <CommandGroup>
+              {value && (
+                <CommandItem value="__any" onSelect={() => { onChange(""); setOpen(false); }}>
+                  Any major
+                </CommandItem>
+              )}
+              {majors.map((m) => (
+                <CommandItem
+                  key={m.id}
+                  value={m.name}
+                  onSelect={() => { onChange(m.id); setOpen(false); }}
+                >
+                  <Check className={m.id === value ? "mr-2 h-4 w-4" : "mr-2 h-4 w-4 opacity-0"} />
+                  {m.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
