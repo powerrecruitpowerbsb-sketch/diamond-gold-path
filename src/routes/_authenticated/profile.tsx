@@ -150,8 +150,14 @@ function TranscriptCard({ athleteId }: { athleteId: string }) {
   };
 
   const upload = async (file: File) => {
-    if (!/pdf|image\//.test(file.type)) return toast.error("Upload a PDF or a photo of your transcript");
-    if (file.size > 10 * 1024 * 1024) return toast.error("Transcripts need to be under 10 MB");
+    if (!/pdf|image\//.test(file.type)) {
+      toast.error("Upload a PDF or a photo of your transcript");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Transcripts need to be under 10 MB");
+      return;
+    }
     setBusy(true);
     try {
       const ext = (file.name.split(".").pop() || "pdf").toLowerCase();

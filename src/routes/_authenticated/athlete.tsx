@@ -849,7 +849,8 @@ function Measurables({
             const series = history
               .filter((h) => h['metric_key'] === m['metric_key'] && Number.isFinite(Number(h['value'])))
               .sort((x, y) => String(x['recorded_on'] ?? x['created_at']).localeCompare(String(y['recorded_on'] ?? y['created_at'])));
-            const first = series.length > 1 ? Number(series[0]['value']) : null;
+            const head = series[0];
+            const first = series.length > 1 && head ? Number(head['value']) : null;
             const delta = first === null ? null : Number(m['value']) - first;
             const lowerBetter = Boolean(metricDef(m['metric_key'])?.lowerIsBetter);
             const improved = delta === null || delta === 0 ? null : lowerBetter ? delta < 0 : delta > 0;
@@ -879,7 +880,7 @@ function Measurables({
                   >
                     {improved ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
                     {delta > 0 ? "+" : ""}
-                    {Math.round(delta * 100) / 100} since {shortDate(series[0]['recorded_on'] ?? series[0]['created_at'])}
+                    {Math.round(delta * 100) / 100} since {shortDate(head?.['recorded_on'] ?? head?.['created_at'])}
                   </p>
                 ) : null}
                 <p
