@@ -239,7 +239,61 @@ function RosterScreen() {
         </p>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+      {!isPending && shown.length ? (
+        <ul className="mt-4 grid gap-2.5 md:hidden">
+          {shown.map((athlete) => {
+            const flags = flagsFor(athlete);
+            return (
+              <li key={athlete['id']}>
+                <Link
+                  to="/roster/$id"
+                  params={{ id: athlete['id'] }}
+                  className="block rounded-2xl border border-border bg-card p-4 active:bg-surface-2"
+                >
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <p className="truncate font-display text-lg font-bold text-graphite">
+                      {athlete['name']}
+                    </p>
+                    <span className="shrink-0 font-mono text-[11px] text-steel uppercase">
+                      {athlete['team_name'] ?? "Unassigned"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-steel tabular-nums">
+                    {[
+                      athlete['grad_year'] ? `Class of ${athlete['grad_year']}` : null,
+                      athlete['primary_position'],
+                      `${athlete['bats'] ?? "—"}/${athlete['throws'] ?? "—"}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  <div className="mt-2.5 flex flex-wrap gap-1">
+                    {flags.map((f) => (
+                      <span
+                        key={f}
+                        className={
+                          f === "unverified"
+                            ? "rounded-md border border-diamond-green/40 bg-diamond-green-tint px-1.5 py-0.5 text-[11px] font-bold text-diamond-green"
+                            : "rounded-md border border-seam-red/30 bg-seam-red-tint px-1.5 py-0.5 text-[11px] font-bold text-seam-red"
+                        }
+                      >
+                        {f === "unverified" ? `${athlete['unverified_count']} to verify` : FLAG_LABEL[f]}
+                      </span>
+                    ))}
+                    {flags.length === 0 ? (
+                      <span className="font-mono text-[11px] text-steel">Ready</span>
+                    ) : null}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+
+      <div
+        className={`mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)] ${!isPending && shown.length ? "hidden md:block" : ""}`}
+      >
         <div className="scroll-x"><table className="w-full text-left text-sm tabular-nums">
           <thead className="bg-surface-2 font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>
