@@ -189,8 +189,8 @@ function CollegeList() {
         <div>
           <h1 className="font-display text-3xl font-bold text-graphite">My Colleges</h1>
           <p className="mt-1 text-sm text-steel">
-            Every school on the list and the stage it's at. Staff, parents and the player can all
-            move a school along; every move is recorded.
+            Every school on the list, where it stands, and what your coaches think. Tap a stage to
+            filter; tap a school to open it.
           </p>
         </div>
         {data?.viewer.isAdminLevel ? (
@@ -227,22 +227,6 @@ function CollegeList() {
             </select>
           </label>
         ) : null}
-
-        <label className="text-sm">
-          <span className="meta block text-steel">Stage</span>
-          <select
-            value={stageFilter}
-            onChange={(event) => setStageFilter(event.target.value)}
-            className="touch-target mt-1 w-full rounded-lg border border-border bg-surface-2 px-2.5 text-sm font-medium text-graphite outline-none focus:border-org-accent"
-          >
-            <option value="all">All stages ({entries.length})</option>
-            {stages.map((stage) => (
-              <option key={String(stage['id'])} value={String(stage['id'])}>
-                {String(stage['name'])} ({countFor(String(stage['id']))})
-              </option>
-            ))}
-          </select>
-        </label>
 
         <label className="text-sm">
           <span className="meta block text-steel">Sport</span>

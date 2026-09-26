@@ -67,4 +67,4 @@
 - [x] Coach picks with staff-only notes
 - [ ] Schedule: field / opponent per game
 
-- [ ] Phase 3: My Colleges redesign — elevated pipeline cards, coach picks, modern school drawer
+- [x] Phase 3: My Colleges redesign — elevated pipeline cards, coach picks, modern school drawer
