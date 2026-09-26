@@ -35,7 +35,7 @@ import {
   POSITION_LABELS,
   STRENGTH_CHOICES,
 } from "@/lib/intel-fields";
-import { REGIONS, regionOfState, statesInRegion } from "@/lib/regions";
+import { REGIONS, allStates, regionOfState, stateName, statesInRegion } from "@/lib/regions";
 import { useSportMode } from "@/hooks/use-sport-mode";
 import { normalizeSport } from "@/lib/sport";
 import {
