@@ -260,13 +260,8 @@ export function SchoolSheet({
                       ))}
                     </dl>
                   </Panel>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="academics" className="pt-5">
-              <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-4">
+              <SectionLabel>Academics</SectionLabel>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <StatCard
                     label="SAT middle 50%"
                     value={
@@ -306,9 +301,10 @@ export function SchoolSheet({
                     }
                   />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-4">
+                <SectionLabel>Cost</SectionLabel>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <StatCard
-                    label="In-state tuition"
+                    label="In-state"
                     value={
                       university['tuition_in_state']
                         ? money(university['tuition_in_state'])
@@ -326,7 +322,7 @@ export function SchoolSheet({
                     verified
                   />
                   <StatCard
-                    label="Cost of attendance"
+                    label="Full cost"
                     value={
                       university['est_cost_of_attendance']
                         ? money(university['est_cost_of_attendance'])
@@ -334,29 +330,15 @@ export function SchoolSheet({
                     }
                     verified
                   />
-                  <StatCard
-                    label="Net price"
-                    value={
-                      university['est_net_price']
-                        ? money(university['est_net_price'])
-                        : "Not reported"
-                    }
-                    hint="Average after aid"
-                    verified
-                  />
                 </div>
-                <p className="meta">
-                  Figures come from the school's own reporting. Anything we don't hold says so.
-                </p>
-              </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="roster" className="pt-5">
               {roster.length === 0 ? (
                 <Panel title="Roster">
-                  <p className="text-sm text-steel">
-                    Not published by the school. The school keeps its place either way.
-                  </p>
+                  <p className="text-sm text-steel">Not published</p>
                 </Panel>
               ) : (
                 <div className="space-y-4">
