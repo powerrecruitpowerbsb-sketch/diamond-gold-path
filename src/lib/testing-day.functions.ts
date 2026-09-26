@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireOrgActor } from "@/lib/athletes.functions";
-import { METRIC_KEYS, metricUnit } from "@/lib/athlete-metrics";
+import { METRIC_KEYS, METRIC_SOURCE_LABEL, metricUnit } from "@/lib/athlete-metrics";
 
 /** Every active athlete in the org, for matching testing-sheet names. */
 export const listMatchableAthletes = createServerFn({ method: "GET" })
@@ -37,7 +37,9 @@ export const importTestingDay = createServerFn({ method: "POST" })
       entries: { athleteId: string; metricKey: string; value: number }[];
       recordedOn?: string | null;
       eventName?: string | null;
+      source?: string | null;
     }) => ({
+      source: Object.keys(METRIC_SOURCE_LABEL).includes(String(input?.source)) ? String(input?.source) : "other",
       entries: (Array.isArray(input?.entries) ? input.entries : [])
         .filter(
           (e) =>
@@ -58,7 +60,7 @@ export const importTestingDay = createServerFn({ method: "POST" })
       value: Number(e.value),
       unit: metricUnit(e.metricKey) || null,
       recorded_on: data.recordedOn,
-      source: "csv",
+      source: data.source,
       source_ref: data.eventName,
     }));
     let saved = 0;
