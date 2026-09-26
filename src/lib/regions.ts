@@ -99,17 +99,37 @@ const NAME_TO_CODE: Record<string, string> = Object.fromEntries(
   Object.entries(STATE_NAMES).map(([code, name]) => [name.toLowerCase(), code]),
 );
 
-/** Two-letter code for a stored state value (code or full name), or null when there is none. */
+// Older abbreviations some imports carry ("Tenn.", "N.Y."), matched so they never hide a school.
+const OLD_ABBREVS: Record<string, string[]> = {
+  AL: ["Ala."], AZ: ["Ariz."], AR: ["Ark."], CA: ["Calif.", "Cal."], CO: ["Colo."], CT: ["Conn."],
+  DE: ["Del."], DC: ["D.C."], FL: ["Fla."], GA: ["Ga."], IL: ["Ill.", "Ill"], IN: ["Ind."],
+  KS: ["Kan.", "Kans."], KY: ["Ky."], LA: ["La."], MD: ["Md."], MA: ["Mass."], MI: ["Mich."],
+  MN: ["Minn."], MS: ["Miss."], MO: ["Mo."], MT: ["Mont."], NE: ["Neb.", "Nebr."], NV: ["Nev."],
+  NH: ["N.H."], NJ: ["N.J."], NM: ["N.M."], NY: ["N.Y."], NC: ["N.C."], ND: ["N.D."], OK: ["Okla."],
+  OR: ["Ore.", "Oreg."], PA: ["Pa.", "Penn."], RI: ["R.I."], SC: ["S.C."], SD: ["S.D."],
+  TN: ["Tenn."], TX: ["Tex."], VT: ["Vt."], VA: ["Va."], WA: ["Wash."], WV: ["W.Va.", "W. Va."],
+  WI: ["Wis.", "Wisc."], WY: ["Wyo."],
+};
+const ABBREV_TO_CODE: Record<string, string> = Object.fromEntries(
+  Object.entries(OLD_ABBREVS).flatMap(([code, list]) => list.map((a) => [a.toLowerCase(), code])),
+);
+
+/** Two-letter code for a stored state value (code, full name, or old abbreviation), or null. */
 export function stateCode(value: unknown): string | null {
   const raw = String(value ?? "").trim();
   const code = raw.toUpperCase();
   if (code.length === 2 && STATE_REGION[code]) return code;
-  return NAME_TO_CODE[raw.toLowerCase()] ?? null;
+  return NAME_TO_CODE[raw.toLowerCase()] ?? ABBREV_TO_CODE[raw.toLowerCase()] ?? null;
 }
 
-/** Every spelling a state may be stored under, so a stray full name never hides a school. */
+/** Full name for a state code ("FL" → "Florida"); the code itself when unknown. */
+export function stateName(code: string): string {
+  return STATE_NAMES[code] ?? code;
+}
+
+/** Every spelling a state may be stored under, so a stray name never hides a school. */
 export function stateSpellings(codes: string[]): string[] {
-  return codes.flatMap((c) => (STATE_NAMES[c] ? [c, STATE_NAMES[c]] : [c]));
+  return codes.flatMap((c) => [c, ...(STATE_NAMES[c] ? [STATE_NAMES[c]] : []), ...(OLD_ABBREVS[c] ?? [])]);
 }
 
 /** The region a state belongs to, or null when the state is missing or unknown. */

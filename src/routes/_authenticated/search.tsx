@@ -239,9 +239,10 @@ function SearchScreen() {
 
   // Location is one control: a region, or states within it.
   const regionStates = params.region ? statesInRegion(params.region) : [];
-  const stateOptions = (facets.data?.states ?? []).filter(
-    (code) => regionStates.length === 0 || regionStates.includes(code),
-  );
+  // Every state is always listed (never waits on loading); a chosen region narrows to its states.
+  const stateOptions = (regionStates.length ? regionStates : allStates())
+    .slice()
+    .sort((a, b) => stateName(a).localeCompare(stateName(b)));
   const addLocation = (value: string) => {
     if (!value) return;
     if (REGIONS.includes(value as any)) {
@@ -488,7 +489,7 @@ function SearchScreen() {
               <optgroup label="States">
                 {stateOptions.map((code) => (
                   <option key={code} value={code}>
-                    {code}
+                    {stateName(code)} ({code})
                   </option>
                 ))}
               </optgroup>
