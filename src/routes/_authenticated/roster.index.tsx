@@ -110,15 +110,19 @@ function RosterScreen() {
               <CalendarRange className="size-4" aria-hidden /> Seasons &amp; teams
             </ActionLink>
           ) : null}
-          <ActionLink to="/roster/import" tone="secondary">
-            <Upload className="size-4" aria-hidden /> Import CSV
-          </ActionLink>
+          {ctx.canManage ? (
+            <ActionLink to="/roster/import" tone="secondary">
+              <Upload className="size-4" aria-hidden /> Import CSV
+            </ActionLink>
+          ) : null}
           <ActionLink to="/roster/testing" tone="secondary">
             <Upload className="size-4" aria-hidden /> Testing day
           </ActionLink>
-          <ActionLink to="/roster/new">
-            <Plus className="size-4" aria-hidden /> Add athlete
-          </ActionLink>
+          {ctx.canManage ? (
+            <ActionLink to="/roster/new">
+              <Plus className="size-4" aria-hidden /> Add athlete
+            </ActionLink>
+          ) : null}
         </div>
       </div>
 

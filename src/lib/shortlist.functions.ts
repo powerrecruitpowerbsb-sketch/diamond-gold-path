@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { regionOfState } from "@/lib/regions";
+import { requireOrgActor as requireStaffScope, scopedAthleteIds } from "@/lib/athletes.functions";
 
 
 const str = (value: unknown) => String(value ?? "").trim();
@@ -105,8 +106,14 @@ export const listAthletePicker = createServerFn({ method: "GET" })
     if (actor.isFamily) query = query.in("id", actor.familyAthleteIds);
     else if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
 
-    const { data: athletes, error } = await query;
+    const { data: rawAthletes, error } = await query;
     if (error) throw new Error(error.message);
+    let athletes = (rawAthletes ?? []) as Record<string, any>[];
+    if (!actor.isFamily) {
+      const staff = await requireStaffScope(context as any);
+      const scope = await scopedAthleteIds(context as any, staff.orgWideAccess);
+      if (scope) athletes = athletes.filter((a) => scope.has(a['id']));
+    }
 
     const ids = ((athletes ?? []) as { id: string }[]).map((a) => a.id);
     let saved: { org_athlete_id: string; program_id: string; status: string }[] = [];
@@ -246,6 +253,11 @@ export const getOrgDashboard = createServerFn({ method: "GET" })
     const { data: athleteRows, error } = await athleteQuery;
     if (error) throw new Error(error.message);
     let athletes = (athleteRows ?? []) as Record<string, any>[];
+    if (!actor.isFamily) {
+      const staff = await requireStaffScope(context as any);
+      const scope = await scopedAthleteIds(context as any, staff.orgWideAccess);
+      if (scope) athletes = athletes.filter((a) => scope.has(a['id']));
+    }
 
     // Season scoping is an assignment lookup, so an athlete's own record and
     // shortlist stay intact across every season they're in the program.

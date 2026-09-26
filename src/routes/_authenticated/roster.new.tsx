@@ -28,12 +28,28 @@ export const Route = createFileRoute("/_authenticated/roster/new")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: NewAthlete,
+  component: NewAthleteGate,
 });
 
 const FIELD =
   "touch-target w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary";
 const LABEL = "font-mono text-[11px] tracking-wide text-steel uppercase";
+
+function NewAthleteGate() {
+  const ctx = useSeasonContext();
+  if (ctx.isPending) return <AppShell right={<AuthButton />}><p className="text-sm text-steel">Loading…</p></AppShell>;
+  if (!ctx.canManage) {
+    return (
+      <AppShell right={<AuthButton />}>
+        <p className="rounded-xl border border-border bg-card p-4 text-sm text-graphite">
+          Only owners and admins can add players.{" "}
+          <Link to="/roster" className="font-semibold underline">Back to roster</Link>
+        </p>
+      </AppShell>
+    );
+  }
+  return <NewAthlete />;
+}
 
 function NewAthlete() {
   const saveFn = useServerFn(saveOrgAthlete);

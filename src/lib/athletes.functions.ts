@@ -56,7 +56,7 @@ export async function requireOrgActor(context: Ctx) {
   const [{ data: profile }, { data: roles }] = await Promise.all([
     context.supabase
       .from("users")
-      .select("id, name, organization_id")
+      .select("id, name, organization_id, org_wide_access")
       .eq("id", context.userId)
       .maybeSingle(),
     context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
@@ -66,7 +66,8 @@ export async function requireOrgActor(context: Ctx) {
   const { actingOrgId } = await import("@/lib/acting-org");
   // Curve Recruit staff inside an organization act on that organization.
   const acting = await actingOrgId(context, isSuperadmin);
-  const isManager = (roleList.includes("org_admin") || roleList.includes("org_owner")) || roleList.includes("org_staff");
+  const isOrgAdmin = roleList.includes("org_admin") || roleList.includes("org_owner");
+  const isManager = isOrgAdmin || roleList.includes("org_staff");
   const organizationId = acting ?? ((profile as { organization_id?: string | null } | null)?.organization_id ?? null);
 
   if (!isSuperadmin && !isManager) throw new Error("Forbidden: organization staff only");
@@ -75,8 +76,45 @@ export async function requireOrgActor(context: Ctx) {
   return {
     organizationId,
     isSuperadmin,
-    isOrgAdmin: (roleList.includes("org_admin") || roleList.includes("org_owner")),
+    isOrgAdmin,
+    orgWideAccess:
+      isSuperadmin ||
+      isOrgAdmin ||
+      Boolean((profile as { org_wide_access?: boolean } | null)?.org_wide_access),
   };
+}
+
+/**
+ * Coaches only see players on the teams they coach. Returns null when the
+ * caller sees the whole organization, otherwise the athlete ids they may see.
+ */
+export async function scopedAthleteIds(
+  context: Ctx,
+  orgWideAccess: boolean,
+): Promise<Set<string> | null> {
+  if (orgWideAccess) return null;
+  const [{ data: assigned }, { data: headed }] = await Promise.all([
+    context.supabase.from("team_coaches").select("team_id").eq("user_id", context.userId),
+    context.supabase.from("teams").select("id").eq("head_coach_user_id", context.userId),
+  ]);
+  const teamIds = Array.from(
+    new Set([
+      ...((assigned ?? []) as { team_id: string }[]).map((r) => r.team_id),
+      ...((headed ?? []) as { id: string }[]).map((r) => r.id),
+    ]),
+  );
+  if (!teamIds.length) return new Set();
+  const { data: rows } = await context.supabase
+    .from("team_athletes")
+    .select("org_athlete_id")
+    .in("team_id", teamIds);
+  return new Set(((rows ?? []) as { org_athlete_id: string }[]).map((r) => r.org_athlete_id));
+}
+
+function requireAdminActor(actor: { isSuperadmin: boolean; isOrgAdmin: boolean }) {
+  if (!actor.isSuperadmin && !actor.isOrgAdmin) {
+    throw new Error("Only owners and admins can add or remove players");
+  }
 }
 
 function normalizeAthlete(input: AthleteInput) {
@@ -212,7 +250,11 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
       assignments.map((row) => [row['org_athlete_id'] as string, row]),
     );
 
-    let athletes: Record<string, any>[] = ((rows ?? []) as Record<string, any>[]).map((athlete) => {
+    const scope = await scopedAthleteIds(context as any, actor.orgWideAccess);
+    const visibleRows = ((rows ?? []) as Record<string, any>[]).filter(
+      (a) => !scope || scope.has(a['id'] as string),
+    );
+    let athletes: Record<string, any>[] = visibleRows.map((athlete) => {
       const assignment = assignmentByAthlete.get(athlete['id'] as string);
       return {
         ...athlete,
@@ -268,6 +310,7 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
       gradYears,
       canEdit: true,
       isOrgAdmin: actor.isOrgAdmin,
+      canAdd: actor.isOrgAdmin || actor.isSuperadmin,
     };
   });
 
@@ -276,7 +319,9 @@ export const getOrgAthlete = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => ({ id: str(input?.id) }))
   .handler(async ({ context, data }) => {
-    await requireOrgActor(context as any);
+    const actor = await requireOrgActor(context as any);
+    const scope = await scopedAthleteIds(context as any, actor.orgWideAccess);
+    if (scope && !scope.has(data.id)) throw new Error("This player isn't on a team you coach");
 
     const { data: athlete, error } = await context.supabase
       .from("org_athletes")
@@ -333,6 +378,11 @@ export const saveOrgAthlete = createServerFn({ method: "POST" })
   .inputValidator((input: AthleteInput & { seasonId?: string | null; teamId?: string | null }) => input)
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
+    if (!data.id) requireAdminActor(actor);
+    else {
+      const scope = await scopedAthleteIds(context as any, actor.orgWideAccess);
+      if (scope && !scope.has(String(data.id))) throw new Error("This player isn't on a team you coach");
+    }
     const orgId = actor.organizationId;
     if (!orgId && !data.id) throw new Error("Select an organization before adding athletes");
     const result = await upsertAthlete(context as any, orgId ?? "", {
@@ -358,7 +408,7 @@ export const deleteOrgAthlete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => ({ id: str(input?.id) }))
   .handler(async ({ context, data }) => {
-    await requireOrgActor(context as any);
+    requireAdminActor(await requireOrgActor(context as any));
     const { error } = await context.supabase.from("org_athletes").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -451,6 +501,7 @@ export const importAthletes = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
+    requireAdminActor(actor);
     const orgId = actor.organizationId;
     if (!orgId) throw new Error("Select an organization before importing athletes");
 
