@@ -24,6 +24,7 @@ import { Route as AuthenticatedListRouteImport } from './routes/_authenticated/l
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as TeamTokenRouteImport } from './routes/team.$token'
+import { Route as WallTokenRouteImport } from './routes/wall.$token'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminArchiveRouteImport } from './routes/_authenticated/admin.archive'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
@@ -49,6 +50,7 @@ import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedRosterIdRouteImport } from './routes/_authenticated/roster.$id'
 import { Route as AuthenticatedRosterImportRouteImport } from './routes/_authenticated/roster.import'
 import { Route as AuthenticatedRosterNewRouteImport } from './routes/_authenticated/roster.new'
+import { Route as AuthenticatedRosterTestingRouteImport } from './routes/_authenticated/roster.testing'
 import { Route as AuthenticatedSettingsBrandingRouteImport } from './routes/_authenticated/settings.branding'
 import { Route as AuthenticatedSettingsSeasonsRouteImport } from './routes/_authenticated/settings.seasons'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings.team'
@@ -137,6 +139,11 @@ const PSlugRoute = PSlugRouteImport.update({
 const TeamTokenRoute = TeamTokenRouteImport.update({
   id: '/team/$token',
   path: '/team/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WallTokenRoute = WallTokenRouteImport.update({
+  id: '/wall/$token',
+  path: '/wall/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -282,6 +289,12 @@ const AuthenticatedRosterNewRoute = AuthenticatedRosterNewRouteImport.update({
   path: '/roster/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRosterTestingRoute =
+  AuthenticatedRosterTestingRouteImport.update({
+    id: '/roster/testing',
+    path: '/roster/testing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsBrandingRoute =
   AuthenticatedSettingsBrandingRouteImport.update({
     id: '/settings/branding',
@@ -381,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
   '/team/$token': typeof TeamTokenRoute
+  '/wall/$token': typeof WallTokenRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -404,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
   '/roster/new': typeof AuthenticatedRosterNewRoute
+  '/roster/testing': typeof AuthenticatedRosterTestingRoute
   '/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -435,6 +450,7 @@ export interface FileRoutesByTo {
   '/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
   '/team/$token': typeof TeamTokenRoute
+  '/wall/$token': typeof WallTokenRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -458,6 +474,7 @@ export interface FileRoutesByTo {
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
   '/roster/new': typeof AuthenticatedRosterNewRoute
+  '/roster/testing': typeof AuthenticatedRosterTestingRoute
   '/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -492,6 +509,7 @@ export interface FileRoutesById {
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
   '/team/$token': typeof TeamTokenRoute
+  '/wall/$token': typeof WallTokenRoute
   '/_authenticated/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -515,6 +533,7 @@ export interface FileRoutesById {
   '/_authenticated/roster/$id': typeof AuthenticatedRosterIdRoute
   '/_authenticated/roster/import': typeof AuthenticatedRosterImportRoute
   '/_authenticated/roster/new': typeof AuthenticatedRosterNewRoute
+  '/_authenticated/roster/testing': typeof AuthenticatedRosterTestingRoute
   '/_authenticated/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/_authenticated/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -549,6 +568,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/p/$slug'
     | '/team/$token'
+    | '/wall/$token'
     | '/admin/archive'
     | '/admin/audit'
     | '/admin/blocks'
@@ -572,6 +592,7 @@ export interface FileRouteTypes {
     | '/roster/$id'
     | '/roster/import'
     | '/roster/new'
+    | '/roster/testing'
     | '/settings/branding'
     | '/settings/seasons'
     | '/settings/team'
@@ -603,6 +624,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/p/$slug'
     | '/team/$token'
+    | '/wall/$token'
     | '/admin/archive'
     | '/admin/audit'
     | '/admin/blocks'
@@ -626,6 +648,7 @@ export interface FileRouteTypes {
     | '/roster/$id'
     | '/roster/import'
     | '/roster/new'
+    | '/roster/testing'
     | '/settings/branding'
     | '/settings/seasons'
     | '/settings/team'
@@ -659,6 +682,7 @@ export interface FileRouteTypes {
     | '/_authenticated/search'
     | '/p/$slug'
     | '/team/$token'
+    | '/wall/$token'
     | '/_authenticated/admin/archive'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/blocks'
@@ -682,6 +706,7 @@ export interface FileRouteTypes {
     | '/_authenticated/roster/$id'
     | '/_authenticated/roster/import'
     | '/_authenticated/roster/new'
+    | '/_authenticated/roster/testing'
     | '/_authenticated/settings/branding'
     | '/_authenticated/settings/seasons'
     | '/_authenticated/settings/team'
@@ -708,6 +733,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   PSlugRoute: typeof PSlugRoute
   TeamTokenRoute: typeof TeamTokenRoute
+  WallTokenRoute: typeof WallTokenRoute
   ApiPublicCollectionRunnerRoute: typeof ApiPublicCollectionRunnerRoute
   ApiPublicFederalRunnerRoute: typeof ApiPublicFederalRunnerRoute
   ApiPublicAthletePhotoSlugRoute: typeof ApiPublicAthletePhotoSlugRoute
@@ -818,6 +844,13 @@ declare module '@tanstack/react-router' {
       path: '/team/$token'
       fullPath: '/team/$token'
       preLoaderRoute: typeof TeamTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wall/$token': {
+      id: '/wall/$token'
+      path: '/wall/$token'
+      fullPath: '/wall/$token'
+      preLoaderRoute: typeof WallTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -993,6 +1026,13 @@ declare module '@tanstack/react-router' {
       path: '/roster/new'
       fullPath: '/roster/new'
       preLoaderRoute: typeof AuthenticatedRosterNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/roster/testing': {
+      id: '/_authenticated/roster/testing'
+      path: '/roster/testing'
+      fullPath: '/roster/testing'
+      preLoaderRoute: typeof AuthenticatedRosterTestingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings/branding': {
@@ -1177,6 +1217,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRosterIdRoute: typeof AuthenticatedRosterIdRoute
   AuthenticatedRosterImportRoute: typeof AuthenticatedRosterImportRoute
   AuthenticatedRosterNewRoute: typeof AuthenticatedRosterNewRoute
+  AuthenticatedRosterTestingRoute: typeof AuthenticatedRosterTestingRoute
   AuthenticatedSettingsBrandingRoute: typeof AuthenticatedSettingsBrandingRoute
   AuthenticatedSettingsSeasonsRoute: typeof AuthenticatedSettingsSeasonsRoute
   AuthenticatedSettingsTeamRoute: typeof AuthenticatedSettingsTeamRoute
@@ -1196,6 +1237,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRosterIdRoute: AuthenticatedRosterIdRoute,
   AuthenticatedRosterImportRoute: AuthenticatedRosterImportRoute,
   AuthenticatedRosterNewRoute: AuthenticatedRosterNewRoute,
+  AuthenticatedRosterTestingRoute: AuthenticatedRosterTestingRoute,
   AuthenticatedSettingsBrandingRoute: AuthenticatedSettingsBrandingRoute,
   AuthenticatedSettingsSeasonsRoute: AuthenticatedSettingsSeasonsRoute,
   AuthenticatedSettingsTeamRoute: AuthenticatedSettingsTeamRoute,
@@ -1213,6 +1255,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   PSlugRoute: PSlugRoute,
   TeamTokenRoute: TeamTokenRoute,
+  WallTokenRoute: WallTokenRoute,
   ApiPublicCollectionRunnerRoute: ApiPublicCollectionRunnerRoute,
   ApiPublicFederalRunnerRoute: ApiPublicFederalRunnerRoute,
   ApiPublicAthletePhotoSlugRoute: ApiPublicAthletePhotoSlugRoute,
