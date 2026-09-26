@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { ClipTheater, type TheaterClip } from "@/components/athlete/ClipTheater";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -615,32 +616,20 @@ function VideoReel({
   return (
     <Panel id="video" eyebrow={`${videos.length} clip${videos.length === 1 ? "" : "s"}`} title="Highlights">
       {current?.url ? (
-        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black">
-          <span className="absolute top-2 left-2 z-10 rounded-md bg-org-primary px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-org-primary-foreground uppercase">
-            {catLabel(current.category)}
-          </span>
-          <video
-            key={current.id}
-            src={`${current.url}#t=0.1`}
-            controls
-            playsInline
-            preload="metadata"
-            className="aspect-video w-full bg-black"
-          />
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-graphite">{current.title || "Clip"}</p>
-              <p className="meta text-steel">{catLabel(current.category)}</p>
-            </div>
+        <ClipTheater
+          clips={videos}
+          active={active}
+          onActiveChange={setActive}
+          actions={(clip) => (
             <button
-              onClick={() => confirm("Remove this clip?") && remove.mutate(current.id)}
+              onClick={() => confirm("Remove this clip?") && remove.mutate(clip.id)}
               className="touch-target grid place-items-center rounded-lg px-2 text-steel hover:text-seam-red"
               aria-label="Remove clip"
             >
               <Trash2 className="size-4" />
             </button>
-          </div>
-        </div>
+          )}
+        />
       ) : (
         <button
           onClick={() => input.current?.click()}
@@ -655,43 +644,6 @@ function VideoReel({
           </div>
         </button>
       )}
-
-      {videos.length > 1 ? (
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {videos.map((v, i) => (
-            <button
-              key={v.id}
-              onClick={() => setActive(i)}
-              className={cn(
-                "group relative aspect-video overflow-hidden rounded-lg border bg-black transition-all",
-                i === active
-                  ? "border-org-primary ring-2 ring-org-primary/40"
-                  : "border-white/10 hover:border-white/30",
-              )}
-              aria-label={`Play ${v.title || "clip"}`}
-            >
-              {v.url ? (
-                <video
-                  src={`${v.url}#t=0.5`}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="pointer-events-none size-full object-cover"
-                />
-              ) : null}
-              <span className="absolute top-1 left-1 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9.5px] font-bold tracking-wide text-white uppercase">
-                {catLabel(v.category)}
-              </span>
-              <span className="absolute inset-0 grid place-items-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-                <Play className="size-5 fill-white text-white" />
-              </span>
-              <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pt-3 pb-1 text-left text-[10px] font-semibold text-white">
-                {v.title || "Clip"}
-              </span>
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       {/* Upload bar */}
       <div className="mt-4 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 sm:grid-cols-[1fr_auto_auto]">

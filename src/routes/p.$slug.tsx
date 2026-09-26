@@ -4,6 +4,7 @@ import { CalendarDays, Mail, MapPin, Phone, PlayCircle } from "lucide-react";
 import { formatHeight, formatMetric, metricLabel, metricSourceLabel } from "@/lib/athlete-metrics";
 import { getScoutCard } from "@/lib/athlete-profile.functions";
 import { SocialLinks } from "@/components/athlete/SocialLinks";
+import { ClipTheater } from "@/components/athlete/ClipTheater";
 
 /**
  * The public scout card. A coach opens the link from an email with no account
@@ -275,24 +276,14 @@ function ScoutCard() {
 
         {clips.length ? (
           <Panel title="Highlights">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {clips.map((clip) => (
-                <figure key={clip["id"]} className="overflow-hidden rounded-xl border border-border bg-black">
-                  <video
-                    src={clip["url"]}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    className="aspect-video w-full bg-black"
-                  />
-                  {clip["title"] ? (
-                    <figcaption className="bg-surface-2 px-3 py-2 text-sm font-semibold text-graphite">
-                      {clip["title"]}
-                    </figcaption>
-                  ) : null}
-                </figure>
-              ))}
-            </div>
+            <ClipTheater
+              clips={clips.map((c) => ({
+                id: String(c["id"]),
+                url: c["url"] ?? null,
+                title: c["title"] ?? null,
+                category: c["category"] ?? null,
+              }))}
+            />
           </Panel>
         ) : null}
 
