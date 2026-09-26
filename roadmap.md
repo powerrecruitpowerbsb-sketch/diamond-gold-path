@@ -63,6 +63,6 @@
 - [x] Verify: Verify button on athlete numbers, roster "waiting for a coach check" alert
 - [x] Flags: roster chips + filters (to verify, no colleges, no video, no numbers)
 - [x] Actions list on coach dashboard
-- [ ] Team scout packet (shareable/printable, QR)
+- [x] Team scout packet (shareable/printable, QR)
 - [ ] Coach picks with staff-only notes
 - [ ] Schedule: field / opponent per game
