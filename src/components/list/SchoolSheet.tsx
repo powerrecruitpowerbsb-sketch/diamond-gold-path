@@ -352,13 +352,15 @@ export function SchoolSheet({
 
             <TabsContent value="intel" className="pt-4">
               <IntelligencePanel rows={intel} />
-              <Link
-                to="/intelligence"
-                search={{ programId: entry.programId }}
-                className="mt-3 inline-flex rounded-full border border-dashed border-border px-2.5 py-1 text-[12px] font-semibold text-steel hover:border-org-primary hover:text-graphite"
-              >
-                Edit in workstation
-              </Link>
+              {canEditIntel ? (
+                <Link
+                  to="/intelligence"
+                  search={{ programId: entry.programId }}
+                  className="mt-3 inline-flex rounded-full border border-dashed border-border px-2.5 py-1 text-[12px] font-semibold text-steel hover:border-org-primary hover:text-graphite"
+                >
+                  Edit in workstation
+                </Link>
+              ) : null}
             </TabsContent>
 
 
