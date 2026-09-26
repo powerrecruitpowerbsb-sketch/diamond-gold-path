@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { InvitePanel } from "@/components/admin/InvitePanel";
 import { AthleteProfilePanel } from "@/components/athlete/AthleteProfilePanel";
+import { CoachPicks } from "@/components/coach/CoachPicks";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { HelpTip } from "@/components/brand/HelpTip";
@@ -201,6 +202,10 @@ function AthleteDetail() {
               status is athlete-level and outlives every season. */}
           <div className="mt-6">
             <AthleteProfilePanel athleteId={id} canVerify />
+          </div>
+
+          <div className="mt-6">
+            <CoachPicks athleteId={id} />
           </div>
 
           <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">

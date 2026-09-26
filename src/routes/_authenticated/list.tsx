@@ -314,6 +314,14 @@ function CollegeList() {
                   ) : null}
                   <td className="px-3 py-1.5 font-semibold text-graphite">
                     {String(entry['school'])}
+                    {entry['coachPick'] ? (
+                      <span
+                        className="ml-2 rounded-md bg-org-primary/15 px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-org-primary uppercase"
+                        title={entry['coachMessage'] ? String(entry['coachMessage']) : undefined}
+                      >
+                        Coach pick · {String(entry['coachPick'])}
+                      </span>
+                    ) : null}
                     {highlightChips((entry['activityChips'] ?? []) as string[]).length ? (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {highlightChips((entry['activityChips'] ?? []) as string[]).map((chip) => (

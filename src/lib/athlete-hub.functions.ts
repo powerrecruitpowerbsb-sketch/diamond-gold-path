@@ -66,7 +66,7 @@ export const getAthleteHub = createServerFn({ method: "GET" })
       sb
         .from("athlete_saved_schools")
         .select(
-          "id, status, program_id, programs:program_id (id, sport, governing_body, division, universities:university_id (name, state))",
+          "id, status, program_id, recommended_by_name, coach_message, programs:program_id (id, sport, governing_body, division, universities:university_id (name, state))",
         )
         .eq("org_athlete_id", athleteId),
       sb

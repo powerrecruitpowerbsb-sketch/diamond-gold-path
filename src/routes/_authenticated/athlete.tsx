@@ -875,7 +875,10 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
       gb === "NCAA" ? String(p?.division ?? "NCAA").replace(/^Division\s*/i, "D") : gb || "Other";
     levels.set(label, (levels.get(label) ?? 0) + 1);
   }
-  const recent = saved.filter((r) => r['status'] !== "eliminated").slice(0, 4);
+  const recent = saved
+    .filter((r) => r['status'] !== "eliminated")
+    .sort((a, b) => Number(!!b['recommended_by_name']) - Number(!!a['recommended_by_name']))
+    .slice(0, 4);
 
   return (
     <Panel
@@ -932,6 +935,12 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
                   className="min-w-0 truncate text-sm font-medium text-graphite hover:text-org-primary"
                 >
                   {p?.universities?.name ?? "College"}
+                  {r['recommended_by_name'] ? (
+                    <span className="mt-0.5 block text-xs font-normal text-org-primary">
+                      Coach pick · {r['recommended_by_name']}
+                      {r['coach_message'] ? ` — “${r['coach_message']}”` : ""}
+                    </span>
+                  ) : null}
                 </Link>
                 <span className="shrink-0 font-mono text-[10px] tracking-wide text-steel uppercase">
                   {r['status']}
