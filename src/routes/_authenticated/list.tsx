@@ -291,7 +291,7 @@ function CollegeList() {
             return (
               <li
                 key={String(entry['id'])}
-                className="rounded-2xl border border-border bg-surface-raised p-4"
+                className="rounded-2xl border border-border surface-raised p-4"
               >
                 <button type="button" onClick={() => open("overview")} className="block w-full text-left">
                   {showingAll ? (
