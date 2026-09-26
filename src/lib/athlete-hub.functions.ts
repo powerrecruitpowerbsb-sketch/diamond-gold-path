@@ -283,3 +283,23 @@ export const setTranscript = createServerFn({ method: "POST" })
     if (old && old !== data.path) await sb.storage.from("athlete-docs").remove([old]);
     return { ok: true };
   });
+
+/** NCAA / NAIA Eligibility Center ID on its own, so saving it can't touch anything else. */
+export const setEligibilityId = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId: string; eligibilityId: string }) => ({
+    athleteId: str(input?.athleteId),
+    eligibilityId: str(input?.eligibilityId).slice(0, 40),
+  }))
+  .handler(async ({ context, data }) => {
+    if (data.eligibilityId && !/^[A-Za-z0-9-]{4,40}$/.test(data.eligibilityId)) {
+      throw new Error("An Eligibility Center ID is letters and numbers only");
+    }
+    const { error, count } = await context.supabase
+      .from("org_athletes")
+      .update({ eligibility_id: data.eligibilityId || null } as never, { count: "exact" })
+      .eq("id", data.athleteId);
+    if (error) throw new Error(error.message);
+    if (!count) throw new Error("You can't change this player's ID");
+    return { ok: true };
+  });
