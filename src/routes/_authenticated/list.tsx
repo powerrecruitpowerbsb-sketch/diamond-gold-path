@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { MessageSquare, Settings2 } from "lucide-react";
+import { MessageSquare, Settings2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
@@ -166,6 +166,20 @@ function CollegeList() {
     }
   };
 
+  const coachPicks = entries.filter((e) => e['coachPick']);
+  const stageIndex = (id: unknown) => stages.findIndex((st) => String(st['id']) === String(id));
+  const openSheet = (entry: Record<string, any>, tab: string) => {
+    setSheetTab(tab);
+    setOpenEntry({
+      id: String(entry['id']),
+      programId: String(entry['programId']),
+      school: String(entry['school']),
+      sport: (entry['sport'] ?? null) as string | null,
+      notes: (entry['notes'] ?? null) as string | null,
+      threadId: (entry['threadId'] ?? null) as string | null,
+      athleteId: (entry['athleteId'] ?? null) as string | null,
+    });
+  };
   const countFor = (stageId: string) => entries.filter((e) => e['stageId'] === stageId).length;
   const columns = COLUMNS.filter((column) => showingAll || !column.athleteOnly);
 
@@ -173,7 +187,7 @@ function CollegeList() {
     <AppShell right={<AuthButton />}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-graphite">College list</h1>
+          <h1 className="font-display text-3xl font-bold text-graphite">My Colleges</h1>
           <p className="mt-1 text-sm text-steel">
             Every school on the list and the stage it's at. Staff, parents and the player can all
             move a school along; every move is recorded.
@@ -260,6 +274,60 @@ function CollegeList() {
         </label>
       </div>
 
+      {entries.length > 0 ? (
+        <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          <StageTile
+            label="All"
+            count={entries.length}
+            active={stageFilter === "all"}
+            onClick={() => setStageFilter("all")}
+          />
+          {stages.map((stage, i) => (
+            <StageTile
+              key={String(stage['id'])}
+              label={String(stage['name'])}
+              count={countFor(String(stage['id']))}
+              step={i + 1}
+              active={stageFilter === String(stage['id'])}
+              onClick={() => setStageFilter(String(stage['id']))}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {!showingAll && coachPicks.length > 0 && stageFilter === "all" ? (
+        <section className="mt-6">
+          <h2 className="font-display flex items-center gap-2 text-lg font-bold text-graphite">
+            <Sparkles className="size-4 text-org-accent" aria-hidden /> Picks
+          </h2>
+          <ul className="mt-2 flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none]">
+            {coachPicks.map((entry) => (
+              <li key={String(entry['id'])} className="w-72 shrink-0 snap-start">
+                <button
+                  type="button"
+                  onClick={() => openSheet(entry, "overview")}
+                  className="h-full w-full rounded-xl border border-org-primary/40 bg-org-primary/10 p-4 text-left transition-colors hover:border-org-primary"
+                >
+                  <span className="font-mono text-[10px] tracking-[0.16em] text-org-accent uppercase">
+                    Coach pick · {String(entry['coachPick'])}
+                  </span>
+                  <span className="font-display mt-1 block truncate text-base font-bold text-graphite">
+                    {String(entry['school'])}
+                  </span>
+                  {entry['coachMessage'] ? (
+                    <span className="mt-2 line-clamp-3 block text-sm text-graphite/85 italic">
+                      “{String(entry['coachMessage'])}”
+                    </span>
+                  ) : (
+                    <span className="mt-2 block text-sm text-steel">Your coach thinks this is a fit.</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {list.isPending ? (
         <p className="mt-6 text-sm text-steel">Loading…</p>
       ) : list.error ? (
@@ -272,85 +340,119 @@ function CollegeList() {
         </p>
       ) : (
         <>
-        <ul className="mt-4 grid gap-3 md:hidden">
+        <ul className={cn("mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3", showingAll && "md:hidden")}>
           {filtered.map((entry) => {
-            const open = (tab: "overview" | "activity") => {
-              setSheetTab(tab);
-              setOpenEntry({
-                id: String(entry['id']),
-                programId: String(entry['programId']),
-                school: String(entry['school']),
-                sport: (entry['sport'] ?? null) as string | null,
-                notes: (entry['notes'] ?? null) as string | null,
-                threadId: (entry['threadId'] ?? null) as string | null,
-                athleteId: (entry['athleteId'] ?? null) as string | null,
-              });
-            };
-            const level =
-              [entry['governingBody'], entry['division']].filter(Boolean).join(" ") || "Not reported";
+            const level = [entry['governingBody'], entry['division']].filter(Boolean).join(" ");
+            const si = stageIndex(entry['stageId']);
+            const chips = highlightChips((entry['activityChips'] ?? []) as string[]);
+            const when = entry['lastMessageAt'] ?? entry['updatedAt'];
             return (
               <li
                 key={String(entry['id'])}
-                className="rounded-2xl border border-border surface-raised p-4"
+                className={cn(
+                  "flex flex-col rounded-2xl border surface-raised p-4 transition-colors",
+                  entry['coachPick'] ? "border-org-primary/50" : "border-border hover:border-org-primary/40",
+                )}
               >
-                <button type="button" onClick={() => open("overview")} className="block w-full text-left">
-                  {showingAll ? (
-                    <span className="font-mono text-[11px] tracking-wide text-steel uppercase">
-                      {String(entry['athleteName'] ?? "—")}
-                    </span>
-                  ) : null}
-                  <span className="block font-display text-lg font-bold leading-tight text-graphite">
-                    {String(entry['school'])}
-                  </span>
-                  <span className="mt-1 block font-mono text-[11px] tracking-wide text-steel uppercase">
-                    {[level, entry['conference'], entry['state'], entry['sport']]
+                <button type="button" onClick={() => openSheet(entry, "overview")} className="flex w-full items-start gap-3 text-left">
+                  <span className="font-display grid size-11 shrink-0 place-items-center rounded-lg bg-org-primary/15 text-sm font-bold text-org-primary">
+                    {String(entry['school'] ?? "")
+                      .replace(/University|College|of|the|at/gi, "")
+                      .split(/\s+/)
                       .filter(Boolean)
-                      .map(String)
-                      .join(" · ")}
+                      .map((w: string) => w[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase() || "C"}
                   </span>
-                  {entry['coachPick'] ? (
-                    <span className="mt-2 inline-block rounded-md bg-org-primary/15 px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-org-primary uppercase">
-                      Coach pick · {String(entry['coachPick'])}
+                  <span className="min-w-0 flex-1">
+                    {showingAll ? (
+                      <span className="block font-mono text-[10px] tracking-wide text-steel uppercase">
+                        {String(entry['athleteName'] ?? "—")}
+                      </span>
+                    ) : null}
+                    <span className="font-display block text-base leading-tight font-bold text-graphite">
+                      {String(entry['school'])}
                     </span>
-                  ) : null}
-                  {highlightChips((entry['activityChips'] ?? []) as string[]).length ? (
-                    <span className="mt-2 flex flex-wrap gap-1">
-                      {highlightChips((entry['activityChips'] ?? []) as string[]).map((chip) => (
-                        <span
-                          key={chip}
-                          className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", chipTone(chip))}
-                        >
-                          {activityChipLabel(chip)}
+                    <span className="mt-1.5 flex flex-wrap gap-1.5">
+                      {level ? (
+                        <span className="rounded-md bg-org-primary px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-org-primary-foreground uppercase">
+                          {level}
                         </span>
-                      ))}
+                      ) : null}
+                      {entry['conference'] ? (
+                        <span className="max-w-[170px] truncate rounded-md border border-border px-2 py-0.5 font-mono text-[10px] tracking-wide text-steel uppercase">
+                          {String(entry['conference'])}
+                        </span>
+                      ) : null}
+                      {entry['state'] ? (
+                        <span className="rounded-md border border-border px-2 py-0.5 font-mono text-[10px] tracking-wide text-steel uppercase">
+                          {String(entry['state'])}
+                        </span>
+                      ) : null}
                     </span>
-                  ) : null}
+                  </span>
                 </button>
-                <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                  <select
-                    value={String(entry['stageId'] ?? "")}
-                    aria-label={`Stage for ${String(entry['school'])}`}
-                    onChange={(event) =>
-                      move.mutate({ entryId: String(entry['id']), stageId: event.target.value })
-                    }
-                    className="touch-target min-w-0 rounded-lg border border-border bg-surface-2 px-2.5 text-sm font-medium text-graphite"
-                  >
-                    {stages.map((stage) => (
-                      <option key={String(stage['id'])} value={String(stage['id'])}>
-                        {String(stage['name'])}
-                      </option>
+
+                {entry['coachPick'] ? (
+                  <div className="mt-3 rounded-lg border border-org-primary/30 bg-org-primary/10 px-3 py-2">
+                    <p className="font-mono text-[10px] tracking-[0.14em] text-org-accent uppercase">
+                      Coach pick · {String(entry['coachPick'])}
+                    </p>
+                    {entry['coachMessage'] ? (
+                      <p className="mt-0.5 line-clamp-2 text-[13px] text-graphite/85">{String(entry['coachMessage'])}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {chips.length ? (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {chips.map((chip) => (
+                      <span key={chip} className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", chipTone(chip))}>
+                        {activityChipLabel(chip)}
+                      </span>
                     ))}
-                  </select>
-                  <Button variant="outline" className="touch-target" onClick={() => open("activity")}>
-                    {entry['threadId'] ? <MessageSquare className="mr-1 size-4" /> : null}
-                    Activity
-                  </Button>
+                  </div>
+                ) : null}
+
+                <div className="mt-auto pt-4">
+                  <div className="flex gap-1" aria-hidden>
+                    {stages.map((st, i) => (
+                      <span
+                        key={String(st['id'])}
+                        className={cn("h-1 flex-1 rounded-full", si >= 0 && i <= si ? "bg-org-primary" : "bg-muted")}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                    <select
+                      value={String(entry['stageId'] ?? "")}
+                      aria-label={`Stage for ${String(entry['school'])}`}
+                      onChange={(event) => move.mutate({ entryId: String(entry['id']), stageId: event.target.value })}
+                      className="touch-target min-w-0 rounded-lg border border-border bg-surface-2 px-2.5 text-sm font-medium text-graphite"
+                    >
+                      {stages.map((stage) => (
+                        <option key={String(stage['id'])} value={String(stage['id'])}>
+                          {String(stage['name'])}
+                        </option>
+                      ))}
+                    </select>
+                    <Button variant="outline" className="touch-target" onClick={() => openSheet(entry, "activity")}>
+                      {entry['threadId'] ? <MessageSquare className="mr-1 size-4" /> : null}
+                      Activity
+                    </Button>
+                  </div>
+                  {when ? (
+                    <p className="mt-2 text-[11px] text-steel">
+                      Last activity {new Date(String(when)).toLocaleDateString()}
+                    </p>
+                  ) : null}
                 </div>
               </li>
             );
           })}
         </ul>
-        <div className="mt-4 hidden max-h-[70vh] overflow-y-auto rounded-2xl border border-border md:block">
+        <div className={cn("mt-4 hidden max-h-[70vh] overflow-y-auto rounded-2xl border border-border", showingAll && "md:block")}>
           <div className="scroll-x"><table className="w-full text-sm">
             <caption className="sr-only">Saved schools</caption>
             <thead className="sticky top-0 bg-muted">
@@ -495,5 +597,39 @@ function CollegeList() {
         onClose={() => setOpenEntry(null)}
       />
     </AppShell>
+  );
+}
+
+function StageTile({
+  label,
+  count,
+  step,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  step?: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "rounded-xl border px-3 py-2.5 text-left transition-colors",
+        active ? "border-org-primary bg-org-primary/15" : "border-border bg-card hover:border-org-primary/40",
+      )}
+    >
+      <span className="block truncate font-mono text-[10px] tracking-wide text-steel uppercase">
+        {step ? `${step} · ` : ""}
+        {label}
+      </span>
+      <span className={cn("font-display tabular block text-2xl font-bold", active ? "text-org-primary" : "text-graphite")}>
+        {count}
+      </span>
+    </button>
   );
 }
