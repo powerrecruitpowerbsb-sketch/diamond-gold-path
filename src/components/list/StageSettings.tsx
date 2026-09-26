@@ -52,7 +52,7 @@ export function StageSettings() {
   return (
     <section className="mt-4 rounded border border-border bg-card p-4">
       <h2 className="meta text-steel">Stage names for this organization</h2>
-      <table className="mt-2 w-full text-sm">
+      <div className="scroll-x"><table className="mt-2 w-full text-sm">
         <caption className="sr-only">Continuum stages</caption>
         <tbody>
           {rows.map((stage) => (
@@ -102,7 +102,7 @@ export function StageSettings() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
 
       <form
         className="mt-3 flex flex-wrap items-end gap-2"

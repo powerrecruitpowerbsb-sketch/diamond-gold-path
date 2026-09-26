@@ -126,22 +126,22 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       accentColor={themed ? (branding?.accent ?? null) : null}
       sport={themed ? sport : null}
     >
-    <div className="min-h-screen bg-chalk pb-[76px] min-[680px]:pb-0">
+    <div className="min-h-screen bg-chalk pb-[calc(72px+env(safe-area-inset-bottom))] min-[680px]:pb-0">
       {actingOrg ? <ActingOrgBar name={actingOrg.name} /> : null}
 
       {/* Chrome: top nav on desktop, condensed bar + hamburger on mobile */}
       {/* Dark chrome, brand-lit: the club's color marks the active tab and the
           top hairline rather than flooding the whole bar. */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-navy-deep text-white shadow-[0_1px_0_color-mix(in_srgb,var(--org-primary)_40%,transparent)]">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
-          <Link to="/" className="touch-target flex items-center gap-2.5">
+      <header className="stadium-gradient sticky top-0 z-40 border-b border-white/10 text-white pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto flex max-w-7xl min-w-0 items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 sm:py-3">
+          <Link to="/" className="touch-target flex min-w-0 shrink-0 items-center gap-2.5">
             <OrgMark
               logoUrl={orgLogo ?? null}
               name={orgName ?? null}
               size={32}
               className={orgLogo ? "bg-white/10" : undefined}
             />
-            <span className="font-display text-lg font-bold text-white">Curve Recruit</span>
+            <span className="font-display hidden text-lg font-bold text-white min-[400px]:inline">Curve Recruit</span>
           </Link>
 
           {showSportSwitch ? (
@@ -181,8 +181,21 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
         </div>
 
         {menuOpen ? (
-          <div className="border-t border-white/10 bg-navy-deep px-4 py-2 sm:px-6">
+          <div className="max-h-[70vh] overflow-y-auto border-t border-white/10 bg-navy-deep px-4 py-2 sm:px-6">
             <div className="mx-auto flex max-w-7xl flex-col">
+              {primaryNav
+                .filter((item) => !tabs.some((tab) => tab.to === item.to))
+                .map((item) => (
+                  <Link
+                    key={`p-${item.to}`}
+                    to={item.to}
+                    onClick={() => setMenuOpen(false)}
+                    className="touch-target flex items-center gap-3 rounded-md px-2 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white min-[680px]:hidden"
+                  >
+                    <item.icon className="size-4" aria-hidden />
+                    {item.label}
+                  </Link>
+                ))}
               {overflowNav.map((item) => (
                 <Link
                   key={item.label}
@@ -200,21 +213,21 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
         ) : null}
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+      <main className="mx-auto min-w-0 max-w-7xl px-4 py-5 sm:px-6 sm:py-10">{children}</main>
 
       {/* Fixed bottom tab bar below ~680px */}
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-flow-col auto-cols-fr border-t border-border bg-card shadow-[0_-4px_20px_-8px_rgba(18,35,58,0.25)] min-[680px]:hidden"
+        className="safe-bottom fixed inset-x-0 bottom-0 z-40 grid grid-flow-col auto-cols-fr border-t border-border bg-surface-2/95 backdrop-blur-md min-[680px]:hidden"
       >
         {tabs.map((item, index) => (
           <Link
             key={`${item.label}-${index}`}
             to={item.to}
             className={cn(
-              "touch-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-semibold text-steel",
+              "touch-target relative flex flex-col items-center justify-center gap-1 py-2 font-mono text-[10px] tracking-wide uppercase text-steel",
             )}
-            activeProps={{ className: "text-org-accent-strong" }}
+            activeProps={{ className: "text-org-accent-strong before:absolute before:inset-x-5 before:top-0 before:h-0.5 before:rounded-full before:bg-org-accent" }}
             activeOptions={{ exact: item.exact }}
           >
             <item.icon className="size-5" aria-hidden />

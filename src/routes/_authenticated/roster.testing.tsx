@@ -279,7 +279,7 @@ function TestingDay() {
               ))}
             </div>
             <div className="mt-4 max-h-[60vh] overflow-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <div className="scroll-x"><table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="sticky top-0 bg-chalk font-mono text-[11px] text-steel uppercase">
                   <tr><th className="px-3 py-2">Row</th><th className="px-3 py-2">Sheet name</th><th className="px-3 py-2">Roster match</th><th className="px-3 py-2">Numbers</th></tr>
                 </thead>
@@ -307,7 +307,7 @@ function TestingDay() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
             <button type="button" disabled={saving || !counts.numbers} onClick={() => void commit()} className="touch-target mt-5 rounded-xl bg-seam-red px-5 text-sm font-semibold text-white disabled:opacity-60">
               {saving ? "Saving…" : `Save ${counts.numbers} numbers for ${counts.ready} players`}

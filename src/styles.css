@@ -288,3 +288,55 @@
   min-height: 44px;
   min-width: 44px;
 }
+
+/* ---- Player-card language, shared by every page ---- */
+
+/* The scout card panel: raised midnight plate, 16px corners. */
+@utility card-panel {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, white 5%, transparent) inset,
+    0 18px 40px -24px rgb(0 0 0 / 0.75);
+}
+
+/* The scout card field label: small mono caps in steel. */
+@utility label-caps {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+/* Wide tables scroll sideways inside their panel instead of the whole page. */
+@utility scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@layer base {
+  /* Never let a page scroll sideways on a phone. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+  img,
+  video {
+    max-width: 100%;
+  }
+  /* iOS zooms into any field under 16px — keep fields at 16px on phones. */
+  @media (max-width: 679px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}

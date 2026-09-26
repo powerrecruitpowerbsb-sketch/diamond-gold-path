@@ -272,7 +272,7 @@ function CollegeList() {
         </p>
       ) : (
         <div className="mt-4 max-h-[70vh] overflow-y-auto rounded border border-border">
-          <table className="w-full text-sm">
+          <div className="scroll-x"><table className="w-full text-sm">
             <caption className="sr-only">Saved schools</caption>
             <thead className="sticky top-0 bg-muted">
               <tr className="border-b border-border text-left">
@@ -404,7 +404,7 @@ function CollegeList() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
 
