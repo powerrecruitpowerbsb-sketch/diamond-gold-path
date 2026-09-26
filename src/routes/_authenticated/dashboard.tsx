@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/brand/EmptyState";
 import { OrgMark } from "@/components/brand/OrgMark";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { ActionsPanel } from "@/components/coach/ActionsPanel";
+import { OnboardingPanel } from "@/components/owner/OnboardingPanel";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
 import { useSportMode } from "@/hooks/use-sport-mode";
@@ -128,6 +129,7 @@ function Dashboard() {
         <SeasonTeamPicker ctx={ctx} />
       </div>
 
+      <OnboardingPanel />
       <ActionsPanel seasonId={ctx.seasonId} teamId={ctx.teamId} sport={sport} />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">

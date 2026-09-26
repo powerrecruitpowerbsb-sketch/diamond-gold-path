@@ -343,3 +343,61 @@ export const getFamilyPortal = createServerFn({ method: "GET" })
       })),
     };
   });
+
+/* ------------------------------------------------------------------ */
+/* Leadership onboarding board                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Per-athlete login status for players and parents: joined (linked account),
+ * invited (pending invite), or none. Drives the dashboard Onboarding panel.
+ */
+export const getOnboardingBoard = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const actor = await requireInviteActor(context as any);
+    const { data: athletes, error } = await context.supabase
+      .from("org_athletes")
+      .select("id, name, grad_year")
+      .eq("organization_id", actor.orgId)
+      .eq("status", "active")
+      .order("name", { ascending: true });
+    if (error) throw new Error(error.message);
+    const ids = ((athletes ?? []) as any[]).map((a) => a.id);
+    if (!ids.length) return { canInvite: actor.isSuperadmin || actor.isOrgAdmin, rows: [] };
+
+    const [{ data: links }, { data: invites }] = await Promise.all([
+      context.supabase
+        .from("athlete_family_links")
+        .select("org_athlete_id, relationship")
+        .in("org_athlete_id", ids),
+      context.supabase
+        .from("org_member_invites")
+        .select("id, org_athlete_id, invited_role, email, status, expires_at")
+        .eq("organization_id", actor.orgId)
+        .eq("status", "pending")
+        .in("org_athlete_id", ids),
+    ]);
+
+    type Slot = { state: "joined" | "invited" | "none"; inviteId?: string; email?: string };
+    const slot = (athleteId: string, role: "player" | "parent"): Slot => {
+      if (((links ?? []) as any[]).some((l) => l.org_athlete_id === athleteId && l.relationship === role)) {
+        return { state: "joined" };
+      }
+      const inv = ((invites ?? []) as any[]).find(
+        (i) => i.org_athlete_id === athleteId && i.invited_role === role,
+      );
+      return inv ? { state: "invited", inviteId: inv.id, email: inv.email } : { state: "none" };
+    };
+
+    return {
+      canInvite: actor.isSuperadmin || actor.isOrgAdmin,
+      rows: ((athletes ?? []) as any[]).map((a) => ({
+        id: a.id as string,
+        name: a.name as string,
+        gradYear: (a.grad_year ?? null) as number | null,
+        player: slot(a.id, "player"),
+        parent: slot(a.id, "parent"),
+      })),
+    };
+  });
