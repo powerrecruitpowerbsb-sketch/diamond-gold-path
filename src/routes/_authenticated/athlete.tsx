@@ -904,7 +904,7 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
         </Link>
       }
     >
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {counts.map((s, i) => (
           <div
             key={s.key}
