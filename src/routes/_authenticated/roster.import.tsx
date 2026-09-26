@@ -395,7 +395,7 @@ function ImportAthletes() {
               {counts.dupes} possible duplicate(s) · {counts.bad} row(s) with problems
             </p>
 
-            {counts.parents ? (
+            {counts.parents || counts.players ? (
               <label
                 className={`mt-3 flex w-fit cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
                   sendFamilyInvites
@@ -409,7 +409,7 @@ function ImportAthletes() {
                   onChange={(event) => setSendFamilyInvites(event.target.checked)}
                   className="size-4 accent-[var(--org-primary)]"
                 />
-                Email a parent invite to the {counts.parents} mapped address(es)
+                Email login invites to {counts.parents} parent and {counts.players} player address(es)
               </label>
             ) : null}
 
