@@ -355,7 +355,13 @@ export const getFamilyPortal = createServerFn({ method: "GET" })
 export const getOnboardingBoard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const actor = await requireInviteActor(context as any);
+    let actor: Awaited<ReturnType<typeof requireInviteActor>>;
+    try {
+      actor = await requireInviteActor(context as any);
+    } catch {
+      // No organization in view (e.g. Curve staff not acting as a club) or not staff: nothing to show.
+      return { canInvite: false, rows: [] };
+    }
     const { data: athletes, error } = await context.supabase
       .from("org_athletes")
       .select("id, name, grad_year")
