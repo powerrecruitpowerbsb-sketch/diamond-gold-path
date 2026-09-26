@@ -187,11 +187,8 @@ function CollegeList() {
     <AppShell right={<AuthButton />}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-graphite">My Colleges</h1>
-          <p className="mt-1 text-sm text-steel">
-            Every school on the list, where it stands, and what your coaches think. Tap a stage to
-            filter; tap a school to open it.
-          </p>
+          <p className="label-caps text-org-primary-strong">Pipeline</p>
+          <h1 className="font-display mt-1 text-4xl font-bold text-graphite">My Colleges</h1>
         </div>
         {data?.viewer.isAdminLevel ? (
           <Button
