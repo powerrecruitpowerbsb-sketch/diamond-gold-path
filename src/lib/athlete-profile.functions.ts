@@ -250,7 +250,17 @@ export const deleteAthleteMetric = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const EVENT_TYPES = ["tournament", "showcase", "camp", "game", "practice", "visit"] as const;
+export const EVENT_TYPES = [
+  "tournament",
+  "showcase",
+  "camp",
+  "game",
+  "high_school",
+  "scrimmage",
+  "practice",
+  "visit",
+  "other",
+] as const;
 
 export const saveScheduleEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

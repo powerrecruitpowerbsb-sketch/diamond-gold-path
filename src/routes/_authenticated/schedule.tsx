@@ -1,7 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, CalendarDays, ExternalLink, MapPin } from "lucide-react";
+import { ArrowLeft, CalendarDays, ExternalLink, MapPin, Plus, Trash2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { deleteScheduleEvent, saveScheduleEvent } from "@/lib/athlete-profile.functions";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
@@ -28,6 +34,7 @@ function SchedulePage() {
     queryKey: ["athlete-schedule"],
     queryFn: () => fn({ data: {} }),
   });
+  const [adding, setAdding] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const events = data?.events ?? [];
   const upcoming = events.filter((e) => String(e['end_date'] ?? e['start_date']) >= today);
@@ -51,8 +58,19 @@ function SchedulePage() {
             <ArrowLeft className="size-3.5" /> Hub
           </Link>
           <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-graphite">Schedule</h1>
-          <p className="mt-1 text-sm text-steel">Your club posts events here — they show up automatically.</p>
+          <p className="mt-1 text-sm text-steel">
+            Club events show up automatically. Add your own — high school games, showcases, camps, anything.
+          </p>
+          {data?.athleteId && !adding ? (
+            <Button className="mt-3" onClick={() => setAdding(true)}>
+              <Plus className="size-4" /> Add event
+            </Button>
+          ) : null}
         </div>
+
+        {adding && data?.athleteId ? (
+          <AddEventForm athleteId={data.athleteId} onDone={() => setAdding(false)} />
+        ) : null}
 
         {error ? (
           <p className="rounded-xl border border-seam-red/30 bg-seam-red-tint p-4 text-sm text-seam-red">
@@ -64,6 +82,11 @@ function SchedulePage() {
           <div className="surface-raised rounded-2xl border border-white/10 p-8 text-center">
             <CalendarDays className="mx-auto size-6 text-steel" />
             <p className="mt-2 text-sm text-steel">Nothing on the calendar yet.</p>
+            {data?.athleteId && !adding ? (
+              <Button variant="outline" className="mt-3" onClick={() => setAdding(true)}>
+                <Plus className="size-4" /> Add your first event
+              </Button>
+            ) : null}
           </div>
         ) : (
           [...months.entries()].map(([month, list]) => (
@@ -118,7 +141,9 @@ function EventRow({ e, next = false }: { e: Record<string, any>; next?: boolean 
             </span>
           ) : null}
           {e['event_type'] ? (
-            <span className="font-mono text-[10px] tracking-wide text-steel uppercase">{e['event_type']}</span>
+            <span className="font-mono text-[10px] tracking-wide text-steel uppercase">
+              {TYPE_LABEL[e['event_type']] ?? e['event_type']}
+            </span>
           ) : null}
         </div>
         <p className="truncate text-sm font-semibold text-graphite">{e['name']}</p>
@@ -131,6 +156,7 @@ function EventRow({ e, next = false }: { e: Record<string, any>; next?: boolean 
           {end ? ` · through ${end.toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}
         </p>
       </div>
+      {e['org_athlete_id'] ? <DeleteOwn id={e['id']} /> : null}
       {e['link_url'] ? (
         <a
           href={e['link_url']}
@@ -143,5 +169,139 @@ function EventRow({ e, next = false }: { e: Record<string, any>; next?: boolean 
         </a>
       ) : null}
     </li>
+  );
+}
+
+const TYPES = [
+  ["game", "Game"],
+  ["high_school", "High school"],
+  ["tournament", "Tournament"],
+  ["showcase", "Showcase"],
+  ["camp", "Camp"],
+  ["scrimmage", "Scrimmage"],
+  ["practice", "Practice"],
+  ["visit", "College visit"],
+  ["other", "Other"],
+] as const;
+const TYPE_LABEL: Record<string, string> = Object.fromEntries(TYPES);
+
+function AddEventForm({ athleteId, onDone }: { athleteId: string; onDone: () => void }) {
+  const qc = useQueryClient();
+  const save = useServerFn(saveScheduleEvent);
+  const [f, setF] = useState({
+    name: "",
+    eventType: "game",
+    startDate: "",
+    endDate: "",
+    venue: "",
+    city: "",
+    state: "",
+    linkUrl: "",
+    notes: "",
+  });
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const m = useMutation({
+    mutationFn: () => save({ data: { ...f, athleteId, endDate: f.endDate || null } }),
+    onSuccess: () => {
+      toast.success("Added to your schedule");
+      qc.invalidateQueries({ queryKey: ["athlete-schedule"] });
+      onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const field = "space-y-1";
+  const lbl = "meta text-steel";
+  return (
+    <form
+      className="surface-raised space-y-3 rounded-2xl border border-org-primary/40 p-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        m.mutate();
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="font-display text-lg font-bold text-graphite">New event</p>
+        <button type="button" onClick={onDone} aria-label="Close" className="touch-target text-steel">
+          <X className="size-4" />
+        </button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className={field + " sm:col-span-2"}>
+          <span className={lbl}>Name</span>
+          <Input required value={f.name} onChange={set("name")} placeholder="vs. Jesuit HS" />
+        </label>
+        <label className={field}>
+          <span className={lbl}>Type</span>
+          <select
+            value={f.eventType}
+            onChange={set("eventType")}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
+          >
+            {TYPES.map(([k, l]) => (
+              <option key={k} value={k}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={field}>
+          <span className={lbl}>Venue</span>
+          <Input value={f.venue} onChange={set("venue")} placeholder="Field or complex" />
+        </label>
+        <label className={field}>
+          <span className={lbl}>Start</span>
+          <Input required type="date" value={f.startDate} onChange={set("startDate")} />
+        </label>
+        <label className={field}>
+          <span className={lbl}>End (optional)</span>
+          <Input type="date" min={f.startDate} value={f.endDate} onChange={set("endDate")} />
+        </label>
+        <label className={field}>
+          <span className={lbl}>City</span>
+          <Input value={f.city} onChange={set("city")} />
+        </label>
+        <label className={field}>
+          <span className={lbl}>State</span>
+          <Input value={f.state} onChange={set("state")} maxLength={2} placeholder="CA" />
+        </label>
+        <label className={field + " sm:col-span-2"}>
+          <span className={lbl}>Website (optional)</span>
+          <Input type="url" value={f.linkUrl} onChange={set("linkUrl")} placeholder="https://" />
+        </label>
+        <label className={field + " sm:col-span-2"}>
+          <span className={lbl}>Notes</span>
+          <Textarea rows={2} value={f.notes} onChange={set("notes")} />
+        </label>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={m.isPending}>
+          {m.isPending ? "Saving…" : "Save event"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function DeleteOwn({ id }: { id: string }) {
+  const qc = useQueryClient();
+  const del = useServerFn(deleteScheduleEvent);
+  const m = useMutation({
+    mutationFn: () => del({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["athlete-schedule"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <button
+      type="button"
+      aria-label="Remove event"
+      disabled={m.isPending}
+      onClick={() => confirm("Remove this event?") && m.mutate()}
+      className="touch-target grid shrink-0 place-items-center px-2 text-steel hover:text-seam-red"
+    >
+      <Trash2 className="size-4" />
+    </button>
   );
 }
