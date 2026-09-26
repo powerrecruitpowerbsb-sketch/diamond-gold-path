@@ -450,7 +450,7 @@ function Panel({
   return (
     <section
       id={id}
-      className="card-panel relative scroll-mt-24 overflow-hidden p-5 sm:p-6"
+      className="card-panel relative scroll-mt-24 overflow-hidden rounded-2xl p-5 sm:p-6"
     >
       <span
         className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
