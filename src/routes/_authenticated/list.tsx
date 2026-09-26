@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { MessageSquare, Settings2, Sparkles } from "lucide-react";
@@ -623,15 +623,21 @@ function StageTile({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-xl border px-3 py-2.5 text-left transition-colors",
-        active ? "border-org-primary bg-org-primary/15" : "border-border bg-card hover:border-org-primary/40",
+        "relative overflow-hidden rounded-xl border px-3.5 py-3 text-left transition-colors",
+        active
+          ? "border-org-primary bg-org-primary-tint shadow-[0_10px_28px_-16px_var(--org-primary)]"
+          : "border-border bg-surface-2 hover:border-org-primary/50",
       )}
     >
-      <span className="block truncate text-xs font-medium text-steel" title={step ? `Step ${step}` : undefined}>
-        {label}
-      </span>
-      <span className={cn("font-display tabular block text-2xl font-bold", active ? "text-org-primary" : "text-graphite")}>
+      <span
+        className={cn("absolute inset-y-0 left-0 w-[3px]", active || count ? "bg-org-primary" : "bg-track")}
+        aria-hidden
+      />
+      <span className={cn("font-display tabular block text-3xl leading-none font-bold", active ? "text-org-primary-strong" : "text-graphite")}>
         {count}
+      </span>
+      <span className="label-caps mt-1.5 block truncate" title={step ? `Step ${step}` : undefined}>
+        {label}
       </span>
     </button>
   );
