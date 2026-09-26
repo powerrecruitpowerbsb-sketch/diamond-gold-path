@@ -481,12 +481,12 @@ function ProgramProfile() {
 
       {/* ---------------- OVERVIEW ---------------- */}
       {tab === "overview" ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Panel title="The school" meta={<LayerTag layer="verified" />}>
             <FactList fields={overviewFields} columns={1} />
           </Panel>
 
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <Panel title="The program" meta={<LayerTag layer="verified" />}>
               <FactList fields={levelFields} columns={1} />
             </Panel>
@@ -518,7 +518,7 @@ function ProgramProfile() {
 
       {/* ---------------- ACADEMICS ---------------- */}
       {tab === "academics" ? (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Acceptance rate"
@@ -579,7 +579,7 @@ function ProgramProfile() {
 
       {/* ---------------- COST ---------------- */}
       {tab === "cost" ? (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="In-state tuition"
@@ -618,7 +618,7 @@ function ProgramProfile() {
 
       {/* ---------------- ROSTER ---------------- */}
       {tab === "roster" ? (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {rosterRows.length === 0 ? (
             <Panel title="Roster" meta={latestSeason ? `${latestSeason} season` : "None on file"}>
               <p className="text-sm font-semibold text-graphite">
