@@ -851,8 +851,7 @@ function Measurables({
               .sort((x, y) => String(x['recorded_on'] ?? x['created_at']).localeCompare(String(y['recorded_on'] ?? y['created_at'])));
             const first = series.length > 1 ? Number(series[0]['value']) : null;
             const delta = first === null ? null : Number(m['value']) - first;
-            const lowerBetter = Boolean((metricDef(m['metric_key']) as any)?.lowerIsBetter) ||
-              /60|time|pop|home_to_first|dash/i.test(String(m['metric_key']));
+            const lowerBetter = Boolean(metricDef(m['metric_key'])?.lowerIsBetter);
             const improved = delta === null || delta === 0 ? null : lowerBetter ? delta < 0 : delta > 0;
             return (
               <div
@@ -968,27 +967,57 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
       ) : null}
 
       {recent.length ? (
-        <ul className="mt-4 divide-y divide-white/5">
+        <ul className="mt-4 space-y-2">
           {recent.map((r) => {
             const p = r['programs'] as any;
+            const name = String(p?.universities?.name ?? "College");
+            const gb = String(p?.governing_body ?? "");
+            const level =
+              gb === "NCAA" ? String(p?.division ?? "NCAA").replace(/^Division\s*/i, "D") : gb || null;
+            const mono = name
+              .replace(/University|College|of|the/gi, "")
+              .split(/\s+/)
+              .filter(Boolean)
+              .map((w) => w[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase();
+            const committed = r['status'] === "committed";
             return (
-              <li key={r['id']} className="flex items-center justify-between gap-3 py-2.5">
+              <li key={r['id']}>
                 <Link
                   to="/programs/$id"
                   params={{ id: r['program_id'] }}
-                  className="min-w-0 truncate text-sm font-medium text-graphite hover:text-org-primary"
+                  className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-2.5 transition-colors hover:border-org-primary/50 hover:bg-white/[0.04]"
                 >
-                  {p?.universities?.name ?? "College"}
-                  {r['recommended_by_name'] ? (
-                    <span className="mt-0.5 block text-xs font-normal text-org-primary">
-                      Coach pick · {r['recommended_by_name']}
-                      {r['coach_message'] ? ` — “${r['coach_message']}”` : ""}
+                  <span className="font-display grid size-10 shrink-0 place-items-center rounded-lg bg-org-primary/15 text-sm font-bold text-org-primary">
+                    {mono || "C"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-graphite group-hover:text-org-primary">
+                      {name}
                     </span>
-                  ) : null}
+                    <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-steel uppercase">
+                      {level ? <span>{level}</span> : null}
+                      {p?.universities?.state ? <span>· {p.universities.state}</span> : null}
+                    </span>
+                    {r['recommended_by_name'] ? (
+                      <span className="mt-1 block truncate text-xs text-org-accent">
+                        Coach pick · {r['recommended_by_name']}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-md px-2 py-1 font-mono text-[10px] font-bold tracking-wide uppercase",
+                      committed
+                        ? "bg-diamond-green-tint text-diamond-green"
+                        : "bg-white/[0.06] text-graphite",
+                    )}
+                  >
+                    {r['status']}
+                  </span>
                 </Link>
-                <span className="shrink-0 font-mono text-[10px] tracking-wide text-steel uppercase">
-                  {r['status']}
-                </span>
               </li>
             );
           })}
@@ -1020,58 +1049,119 @@ function CoachCorner({
   events: Record<string, any>[];
   orgName: string | null;
 }) {
+  const nextEvent = events[0] ?? null;
   return (
-    <Panel eyebrow={orgName ?? "Your club"} title="Coaches">
-      {notes.length ? (
-        <div className="space-y-3">
-          {notes.map((n) => (
-            <blockquote
-              key={n['id']}
-              className="relative rounded-xl border-l-2 border-org-accent bg-white/[0.03] py-3 pr-3 pl-4"
-            >
-              <MessageSquareQuote className="absolute top-3 right-3 size-4 text-white/15" />
-              <p className="text-sm leading-relaxed text-graphite">{n['note']}</p>
-              <p className="meta mt-2 text-steel">{shortDate(n['created_at'])}</p>
-            </blockquote>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-steel">Notes your coaches share with you will show up here.</p>
-      )}
+    <Panel
+      eyebrow={orgName ? `From ${orgName}` : "From your club"}
+      title="Coaches"
+      action={
+        <Link
+          to="/schedule"
+          className="touch-target inline-flex items-center gap-1 text-sm font-semibold text-org-primary"
+        >
+          Schedule <ArrowRight className="size-3.5" />
+        </Link>
+      }
+    >
+      {nextEvent ? (
+        <Link
+          to="/schedule"
+          className="mb-4 flex items-center gap-3 rounded-xl border border-org-primary/30 bg-org-primary/[0.08] p-3 hover:border-org-primary/60"
+        >
+          <DateTile date={String(nextEvent['start_date'])} />
+          <div className="min-w-0">
+            <p className="meta text-org-accent">Up next</p>
+            <p className="truncate text-sm font-semibold text-graphite">{nextEvent['name']}</p>
+            <p className="truncate text-xs text-steel">
+              {[nextEvent['venue'] || nextEvent['city'], nextEvent['state']].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+          {events.length > 1 ? (
+            <span className="ml-auto shrink-0 font-mono text-[10px] text-steel uppercase">
+              +{events.length - 1} more
+            </span>
+          ) : null}
+        </Link>
+      ) : null}
 
-      <div className="mt-5 border-t border-white/10 pt-4">
-        <p className="meta mb-2 text-steel">Schedule</p>
-        {events.length ? (
-          <ul className="space-y-2">
-            {events.map((e) => {
-              const d = new Date(`${e['start_date']}T12:00:00`);
-              return (
-                <li key={e['id']} className="flex items-center gap-3">
-                  <div className="grid w-12 shrink-0 place-items-center rounded-lg border border-white/10 py-1.5">
-                    <span className="font-mono text-[9.5px] text-org-accent uppercase">
-                      {d.toLocaleDateString(undefined, { month: "short" })}
-                    </span>
-                    <span className="font-display tabular text-lg leading-none font-bold text-graphite">
-                      {d.getDate()}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-graphite">{e['name']}</p>
-                    <p className="truncate text-xs text-steel">
-                      {[e['event_type'], e['venue'] || e['city'], e['state']].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="flex items-center gap-2 text-sm text-steel">
-            <CalendarDays className="size-4" /> Nothing on the calendar yet.
+      {notes.length ? (
+        <ul className="space-y-3">
+          {notes.map((n) => (
+            <li key={n['id']} className="flex gap-3">
+              <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-org-accent/15 text-org-accent">
+                <MessageSquareQuote className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1 rounded-xl rounded-tl-sm bg-white/[0.04] px-3.5 py-2.5">
+                <p className="text-sm leading-relaxed text-graphite">{n['note']}</p>
+                <p className="meta mt-1.5 text-steel">{shortDate(n['created_at'])}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-xl border border-dashed border-white/15 p-5 text-center">
+          <MessageSquareQuote className="mx-auto size-5 text-steel" />
+          <p className="mt-2 text-sm text-steel">
+            When your coaches share feedback with you, it shows up here.
           </p>
-        )}
-      </div>
+        </div>
+      )}
+      {!nextEvent ? (
+        <p className="mt-4 flex items-center gap-2 text-sm text-steel">
+          <CalendarDays className="size-4" /> Nothing on the calendar yet.
+        </p>
+      ) : null}
     </Panel>
+  );
+}
+
+export function DateTile({ date }: { date: string }) {
+  const d = new Date(`${date}T12:00:00`);
+  return (
+    <div className="grid w-12 shrink-0 place-items-center rounded-lg border border-white/10 bg-card py-1.5">
+      <span className="font-mono text-[9.5px] text-org-accent uppercase">
+        {d.toLocaleDateString(undefined, { month: "short" })}
+      </span>
+      <span className="font-display tabular text-lg leading-none font-bold text-graphite">{d.getDate()}</span>
+    </div>
+  );
+}
+
+function ProfileTeaser({ hub }: { hub: any }) {
+  const a = hub.athlete as Record<string, any>;
+  const rows: [string, string | null][] = [
+    ["School", a['high_school'] ?? null],
+    ["Club", a['club_team'] ?? null],
+    ["GPA", a['gpa'] != null ? String(a['gpa']) : null],
+    ["NCAA ID", a['eligibility_id'] ?? null],
+    ["Transcript", a['transcript_path'] ? "On file" : null],
+  ];
+  const missing = rows.filter(([, v]) => !v).length;
+  return (
+    <Link
+      to="/profile"
+      className="surface-raised group block rounded-2xl border border-white/10 p-5 transition-colors hover:border-org-primary/50 sm:p-6"
+    >
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="meta text-org-accent">{missing ? `${missing} to fill in` : "Complete"}</p>
+          <h2 className="font-display mt-1 text-xl font-bold tracking-tight text-graphite">Profile</h2>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-graphite group-hover:border-org-primary">
+          <Pencil className="size-3.5" /> Edit profile
+        </span>
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
+        {rows.map(([k, v]) => (
+          <div key={k} className="min-w-0">
+            <dt className="meta text-steel">{k}</dt>
+            <dd className={cn("truncate text-sm", v ? "font-semibold text-graphite" : "italic text-steel/70")}>
+              {v ?? "Add"}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </Link>
   );
 }
 
