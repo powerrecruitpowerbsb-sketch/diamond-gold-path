@@ -21,6 +21,8 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authenticated/intelligence'
 import { Route as AuthenticatedListRouteImport } from './routes/_authenticated/list'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as TeamTokenRouteImport } from './routes/team.$token'
@@ -124,6 +126,16 @@ const AuthenticatedIntelligenceRoute =
 const AuthenticatedListRoute = AuthenticatedListRouteImport.update({
   id: '/list',
   path: '/list',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
@@ -391,6 +403,8 @@ export interface FileRoutesByFullPath {
   '/family': typeof AuthenticatedFamilyRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/list': typeof AuthenticatedListRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
   '/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
   '/team/$token': typeof TeamTokenRoute
@@ -447,6 +461,8 @@ export interface FileRoutesByTo {
   '/family': typeof AuthenticatedFamilyRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/list': typeof AuthenticatedListRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
   '/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
   '/team/$token': typeof TeamTokenRoute
@@ -506,6 +522,8 @@ export interface FileRoutesById {
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/intelligence': typeof AuthenticatedIntelligenceRoute
   '/_authenticated/list': typeof AuthenticatedListRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
   '/team/$token': typeof TeamTokenRoute
@@ -565,6 +583,8 @@ export interface FileRouteTypes {
     | '/family'
     | '/intelligence'
     | '/list'
+    | '/profile'
+    | '/schedule'
     | '/search'
     | '/p/$slug'
     | '/team/$token'
@@ -621,6 +641,8 @@ export interface FileRouteTypes {
     | '/family'
     | '/intelligence'
     | '/list'
+    | '/profile'
+    | '/schedule'
     | '/search'
     | '/p/$slug'
     | '/team/$token'
@@ -679,6 +701,8 @@ export interface FileRouteTypes {
     | '/_authenticated/family'
     | '/_authenticated/intelligence'
     | '/_authenticated/list'
+    | '/_authenticated/profile'
+    | '/_authenticated/schedule'
     | '/_authenticated/search'
     | '/p/$slug'
     | '/team/$token'
@@ -823,6 +847,20 @@ declare module '@tanstack/react-router' {
       path: '/list'
       fullPath: '/list'
       preLoaderRoute: typeof AuthenticatedListRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/schedule': {
+      id: '/_authenticated/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/search': {
@@ -1212,6 +1250,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedIntelligenceRoute: typeof AuthenticatedIntelligenceRoute
   AuthenticatedListRoute: typeof AuthenticatedListRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedProgramsIdRoute: typeof AuthenticatedProgramsIdRoute
   AuthenticatedRosterIdRoute: typeof AuthenticatedRosterIdRoute
@@ -1232,6 +1272,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedIntelligenceRoute: AuthenticatedIntelligenceRoute,
   AuthenticatedListRoute: AuthenticatedListRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedProgramsIdRoute: AuthenticatedProgramsIdRoute,
   AuthenticatedRosterIdRoute: AuthenticatedRosterIdRoute,
