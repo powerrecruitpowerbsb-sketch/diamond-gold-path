@@ -330,16 +330,13 @@ function Hero({ hub, pct, next }: { hub: any; pct: number; next: any }) {
           <h1 className="font-display mt-1 hidden text-4xl leading-[1.05] font-bold tracking-tight text-white md:block lg:text-5xl">
             {athlete['name']}
           </h1>
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <p className="tabular mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-sm font-semibold tracking-wide text-white uppercase">
             {facts.map((f) => (
-              <span
-                key={f}
-                className="tabular rounded-md border border-white/15 bg-white/[0.06] px-2.5 py-1 font-mono text-[11px] tracking-wide text-white/85 uppercase"
-              >
+              <span key={f} className="whitespace-nowrap">
                 {f}
               </span>
             ))}
-          </div>
+          </p>
           <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/65">
             {athlete['high_school'] ? (
               <span className="inline-flex items-center gap-1.5">
