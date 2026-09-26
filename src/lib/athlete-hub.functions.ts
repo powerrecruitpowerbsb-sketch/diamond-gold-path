@@ -13,12 +13,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const str = (v: unknown) => String(v ?? "").trim();
 
 export const VIDEO_CATEGORIES = [
-  { key: "game", label: "Game at-bat" },
-  { key: "bp", label: "BP / exit velo" },
+  { key: "game", label: "Game" },
+  { key: "bp", label: "BP" },
   { key: "bullpen", label: "Bullpen" },
   { key: "fielding", label: "Fielding" },
   { key: "catching", label: "Catching" },
-  { key: "speed", label: "Speed / running" },
   { key: "other", label: "Other" },
 ] as const;
 
@@ -48,7 +47,7 @@ export const getAthleteHub = createServerFn({ method: "GET" })
         .select(
           "id, organization_id, name, sport, grad_year, primary_position, secondary_position, bats, throws, " +
             "high_school, club_team, home_city, home_state, height_inches, weight_lbs, gpa, sat_score, act_score, " +
-            "eligibility_id, athlete_email, video_links, photo_path, share_slug, share_enabled",
+            "eligibility_id, transcript_path, transcript_uploaded_at, athlete_email, video_links, photo_path, share_slug, share_enabled",
         )
         .eq("id", athleteId)
         .maybeSingle(),
@@ -192,5 +191,115 @@ export const verifyAthleteMetric = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!(row as any)?.verified) throw new Error("Only club staff can verify a number");
+    return { ok: true };
+  });
+
+async function resolveAthleteId(sb: any, userId: string, given: string | null) {
+  if (given) return given;
+  const { data: links } = await sb
+    .from("athlete_family_links")
+    .select("org_athlete_id")
+    .eq("user_id", userId)
+    .limit(1);
+  return (links?.[0] as any)?.org_athlete_id ?? null;
+}
+
+/** Every event on the player's calendar — their own and their teams'. */
+export const getAthleteSchedule = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId?: string | null } | undefined) => ({
+    athleteId: str(input?.athleteId) || null,
+  }))
+  .handler(async ({ context, data }) => {
+    const sb = context.supabase;
+    const athleteId = await resolveAthleteId(sb, context.userId, data.athleteId);
+    if (!athleteId) return { athleteId: null, events: [] as Record<string, any>[] };
+    const { data: teams } = await sb.from("team_athletes").select("team_id").eq("org_athlete_id", athleteId);
+    const teamIds = ((teams ?? []) as any[]).map((r) => r.team_id);
+    const filter = teamIds.length
+      ? `org_athlete_id.eq.${athleteId},team_id.in.(${teamIds.join(",")})`
+      : `org_athlete_id.eq.${athleteId}`;
+    const { data: events, error } = await sb
+      .from("schedule_events")
+      .select("*")
+      .or(filter)
+      .order("start_date", { ascending: true })
+      .limit(300);
+    if (error) throw new Error(error.message);
+    return { athleteId, events: (events ?? []) as Record<string, any>[] };
+  });
+
+/** The transcript on file, with a short-lived link to open it. */
+export const getTranscript = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId: string }) => ({ athleteId: str(input?.athleteId) }))
+  .handler(async ({ context, data }) => {
+    const { data: row } = await context.supabase
+      .from("org_athletes")
+      .select("transcript_path, transcript_uploaded_at")
+      .eq("id", data.athleteId)
+      .maybeSingle();
+    const path = (row as any)?.transcript_path as string | null;
+    if (!path) return { path: null, url: null, uploadedAt: null };
+    const { data: signed } = await context.supabase.storage
+      .from("athlete-docs")
+      .createSignedUrl(path, 60 * 30);
+    return {
+      path,
+      url: signed?.signedUrl ?? null,
+      uploadedAt: (row as any)?.transcript_uploaded_at ?? null,
+    };
+  });
+
+export const setTranscript = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId: string; path: string | null }) => ({
+    athleteId: str(input?.athleteId),
+    path: input?.path ? str(input.path) : null,
+  }))
+  .handler(async ({ context, data }) => {
+    if (data.path && !data.path.startsWith(`${data.athleteId}/`)) {
+      throw new Error("That file does not belong to this player");
+    }
+    const sb = context.supabase;
+    const { data: prev } = await sb
+      .from("org_athletes")
+      .select("transcript_path")
+      .eq("id", data.athleteId)
+      .maybeSingle();
+    const { error, count } = await sb
+      .from("org_athletes")
+      .update(
+        {
+          transcript_path: data.path,
+          transcript_uploaded_at: data.path ? new Date().toISOString() : null,
+        } as never,
+        { count: "exact" },
+      )
+      .eq("id", data.athleteId);
+    if (error) throw new Error(error.message);
+    if (!count) throw new Error("You can't change this player's transcript");
+    const old = (prev as any)?.transcript_path;
+    if (old && old !== data.path) await sb.storage.from("athlete-docs").remove([old]);
+    return { ok: true };
+  });
+
+/** NCAA / NAIA Eligibility Center ID on its own, so saving it can't touch anything else. */
+export const setEligibilityId = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { athleteId: string; eligibilityId: string }) => ({
+    athleteId: str(input?.athleteId),
+    eligibilityId: str(input?.eligibilityId).slice(0, 40),
+  }))
+  .handler(async ({ context, data }) => {
+    if (data.eligibilityId && !/^[A-Za-z0-9-]{4,40}$/.test(data.eligibilityId)) {
+      throw new Error("An Eligibility Center ID is letters and numbers only");
+    }
+    const { error, count } = await context.supabase
+      .from("org_athletes")
+      .update({ eligibility_id: data.eligibilityId || null } as never, { count: "exact" })
+      .eq("id", data.athleteId);
+    if (error) throw new Error(error.message);
+    if (!count) throw new Error("You can't change this player's ID");
     return { ok: true };
   });

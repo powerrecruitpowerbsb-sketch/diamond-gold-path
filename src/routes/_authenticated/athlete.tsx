@@ -9,6 +9,10 @@ import {
   Check,
   Eye,
   Film,
+  Pencil,
+  Play,
+  TrendingDown,
+  TrendingUp,
   GraduationCap,
   MapPin,
   MessageSquareQuote,
@@ -22,7 +26,6 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
-import { AthleteProfilePanel } from "@/components/athlete/AthleteProfilePanel";
 import { supabase } from "@/integrations/supabase/client";
 import {
   addAthleteVideo,
@@ -45,13 +48,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/athlete")({
   head: () => ({
     meta: [
-      { title: "My recruiting hub — Curve Recruit" },
+      { title: "Hub — Curve Recruit" },
       {
         name: "description",
         content:
           "Your scout card, measurables, video and college list in one place — with the next step always in view.",
       },
-      { property: "og:title", content: "My recruiting hub — Curve Recruit" },
+      { property: "og:title", content: "Hub — Curve Recruit" },
       {
         property: "og:description",
         content: "Scout card, measurables, video and college targets for a recruit.",
@@ -147,14 +150,14 @@ function HubBody({ hub }: { hub: any }) {
   const activeTargets = saved.filter((s) => s['status'] !== "eliminated");
 
   const checklist = [
-    { key: "photo", label: "Add a photo", done: Boolean(hub.photoUrl), href: "#profile" },
+    { key: "photo", label: "Add a photo", done: Boolean(hub.photoUrl), href: "/profile" },
     {
       key: "basics",
       label: "Grad year, position & school",
       done: Boolean(athlete['grad_year'] && athlete['primary_position'] && athlete['high_school']),
-      href: "#profile",
+      href: "/profile",
     },
-    { key: "gpa", label: "GPA on file", done: athlete['gpa'] != null, href: "#profile" },
+    { key: "gpa", label: "GPA on file", done: athlete['gpa'] != null, href: "/profile" },
     {
       key: "metrics",
       label: "At least 3 measurables",
@@ -172,7 +175,7 @@ function HubBody({ hub }: { hub: any }) {
       key: "ncaa",
       label: "NCAA Eligibility Center ID",
       done: Boolean(athlete['eligibility_id']),
-      href: "#profile",
+      href: "/profile",
     },
     {
       key: "targets",
@@ -199,19 +202,15 @@ function HubBody({ hub }: { hub: any }) {
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr] sm:gap-6">
         <div className="space-y-5 sm:space-y-6">
           <VideoReel athleteId={athlete['id']} videos={videos} linkVideos={linkVideos} />
-          <Measurables athlete={athlete} sport={sport} latest={latest} />
+          <Measurables athlete={athlete} sport={sport} latest={latest} history={metrics} />
         </div>
         <div className="space-y-5 sm:space-y-6">
+          <ProfileTeaser hub={hub} />
           <Readiness checklist={checklist} pct={pct} doneCount={doneCount} />
           <Targets saved={saved} />
           <CoachCorner notes={hub.notes} events={hub.events} orgName={hub.orgName} />
         </div>
       </div>
-
-      <section id="profile" className="scroll-mt-24">
-        <p className="meta mb-2 text-org-accent">Profile</p>
-        <AthleteProfilePanel athleteId={String(athlete['id'])} />
-      </section>
     </div>
   );
 }
@@ -597,10 +596,13 @@ function VideoReel({
   return (
     <Panel id="video" eyebrow={`${videos.length} clip${videos.length === 1 ? "" : "s"}`} title="Highlights">
       {current?.url ? (
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black">
+          <span className="absolute top-2 left-2 z-10 rounded-md bg-org-primary px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-org-primary-foreground uppercase">
+            {catLabel(current.category)}
+          </span>
           <video
             key={current.id}
-            src={current.url}
+            src={`${current.url}#t=0.1`}
             controls
             playsInline
             preload="metadata"
@@ -636,20 +638,37 @@ function VideoReel({
       )}
 
       {videos.length > 1 ? (
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
           {videos.map((v, i) => (
             <button
               key={v.id}
               onClick={() => setActive(i)}
               className={cn(
-                "shrink-0 rounded-lg border px-3 py-2 text-left transition-colors",
+                "group relative aspect-video overflow-hidden rounded-lg border bg-black transition-all",
                 i === active
-                  ? "border-org-primary bg-org-primary/10"
-                  : "border-white/10 hover:border-white/25",
+                  ? "border-org-primary ring-2 ring-org-primary/40"
+                  : "border-white/10 hover:border-white/30",
               )}
+              aria-label={`Play ${v.title || "clip"}`}
             >
-              <p className="max-w-[140px] truncate text-xs font-semibold text-graphite">{v.title || "Clip"}</p>
-              <p className="meta text-steel">{catLabel(v.category)}</p>
+              {v.url ? (
+                <video
+                  src={`${v.url}#t=0.5`}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="pointer-events-none size-full object-cover"
+                />
+              ) : null}
+              <span className="absolute top-1 left-1 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9.5px] font-bold tracking-wide text-white uppercase">
+                {catLabel(v.category)}
+              </span>
+              <span className="absolute inset-0 grid place-items-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+                <Play className="size-5 fill-white text-white" />
+              </span>
+              <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pt-3 pb-1 text-left text-[10px] font-semibold text-white">
+                {v.title || "Clip"}
+              </span>
             </button>
           ))}
         </div>
@@ -727,10 +746,12 @@ function Measurables({
   athlete,
   sport,
   latest,
+  history,
 }: {
   athlete: Record<string, any>;
   sport: ReturnType<typeof normalizeSport>;
   latest: Record<string, any>[];
+  history: Record<string, any>[];
 }) {
   const qc = useQueryClient();
   const saveFn = useServerFn(saveAthleteMetric);
@@ -825,6 +846,14 @@ function Measurables({
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {shown.map((m) => {
             const verified = Boolean(m['verified']);
+            const series = history
+              .filter((h) => h['metric_key'] === m['metric_key'] && Number.isFinite(Number(h['value'])))
+              .sort((x, y) => String(x['recorded_on'] ?? x['created_at']).localeCompare(String(y['recorded_on'] ?? y['created_at'])));
+            const head = series[0];
+            const first = series.length > 1 && head ? Number(head['value']) : null;
+            const delta = first === null ? null : Number(m['value']) - first;
+            const lowerBetter = Boolean(metricDef(m['metric_key'])?.lowerIsBetter);
+            const improved = delta === null || delta === 0 ? null : lowerBetter ? delta < 0 : delta > 0;
             return (
               <div
                 key={m['id']}
@@ -836,12 +865,27 @@ function Measurables({
                 )}
               >
                 <p className="meta truncate text-steel">{metricLabel(m['metric_key'])}</p>
-                <p className="font-display tabular mt-1.5 text-2xl leading-none font-bold text-graphite">
-                  {formatMetric(m['value'], m['metric_key'])}
-                </p>
+                <div className="mt-1.5 flex items-end justify-between gap-2">
+                  <p className="font-display tabular text-2xl leading-none font-bold text-graphite">
+                    {formatMetric(m['value'], m['metric_key'])}
+                  </p>
+                  {series.length > 1 ? <Spark values={series.map((h) => Number(h['value']))} /> : null}
+                </div>
+                {delta !== null && delta !== 0 ? (
+                  <p
+                    className={cn(
+                      "tabular mt-1.5 inline-flex items-center gap-1 text-xs font-semibold",
+                      improved ? "text-diamond-green" : "text-steel",
+                    )}
+                  >
+                    {improved ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
+                    {delta > 0 ? "+" : ""}
+                    {Math.round(delta * 100) / 100} since {shortDate(head?.['recorded_on'] ?? head?.['created_at'])}
+                  </p>
+                ) : null}
                 <p
                   className={cn(
-                    "mt-2 inline-flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
+                    "mt-2 flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
                     verified ? "text-diamond-green" : "text-steel",
                   )}
                 >
@@ -924,27 +968,57 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
       ) : null}
 
       {recent.length ? (
-        <ul className="mt-4 divide-y divide-white/5">
+        <ul className="mt-4 space-y-2">
           {recent.map((r) => {
             const p = r['programs'] as any;
+            const name = String(p?.universities?.name ?? "College");
+            const gb = String(p?.governing_body ?? "");
+            const level =
+              gb === "NCAA" ? String(p?.division ?? "NCAA").replace(/^Division\s*/i, "D") : gb || null;
+            const mono = name
+              .replace(/University|College|of|the/gi, "")
+              .split(/\s+/)
+              .filter(Boolean)
+              .map((w) => w[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase();
+            const committed = r['status'] === "committed";
             return (
-              <li key={r['id']} className="flex items-center justify-between gap-3 py-2.5">
+              <li key={r['id']}>
                 <Link
                   to="/programs/$id"
                   params={{ id: r['program_id'] }}
-                  className="min-w-0 truncate text-sm font-medium text-graphite hover:text-org-primary"
+                  className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-2.5 transition-colors hover:border-org-primary/50 hover:bg-white/[0.04]"
                 >
-                  {p?.universities?.name ?? "College"}
-                  {r['recommended_by_name'] ? (
-                    <span className="mt-0.5 block text-xs font-normal text-org-primary">
-                      Coach pick · {r['recommended_by_name']}
-                      {r['coach_message'] ? ` — “${r['coach_message']}”` : ""}
+                  <span className="font-display grid size-10 shrink-0 place-items-center rounded-lg bg-org-primary/15 text-sm font-bold text-org-primary">
+                    {mono || "C"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-graphite group-hover:text-org-primary">
+                      {name}
                     </span>
-                  ) : null}
+                    <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-steel uppercase">
+                      {level ? <span>{level}</span> : null}
+                      {p?.universities?.state ? <span>· {p.universities.state}</span> : null}
+                    </span>
+                    {r['recommended_by_name'] ? (
+                      <span className="mt-1 block truncate text-xs text-org-accent">
+                        Coach pick · {r['recommended_by_name']}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-md px-2 py-1 font-mono text-[10px] font-bold tracking-wide uppercase",
+                      committed
+                        ? "bg-diamond-green-tint text-diamond-green"
+                        : "bg-white/[0.06] text-graphite",
+                    )}
+                  >
+                    {r['status']}
+                  </span>
                 </Link>
-                <span className="shrink-0 font-mono text-[10px] tracking-wide text-steel uppercase">
-                  {r['status']}
-                </span>
               </li>
             );
           })}
@@ -976,58 +1050,135 @@ function CoachCorner({
   events: Record<string, any>[];
   orgName: string | null;
 }) {
+  const nextEvent = events[0] ?? null;
   return (
-    <Panel eyebrow={orgName ?? "Your club"} title="Coaches">
-      {notes.length ? (
-        <div className="space-y-3">
-          {notes.map((n) => (
-            <blockquote
-              key={n['id']}
-              className="relative rounded-xl border-l-2 border-org-accent bg-white/[0.03] py-3 pr-3 pl-4"
-            >
-              <MessageSquareQuote className="absolute top-3 right-3 size-4 text-white/15" />
-              <p className="text-sm leading-relaxed text-graphite">{n['note']}</p>
-              <p className="meta mt-2 text-steel">{shortDate(n['created_at'])}</p>
-            </blockquote>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-steel">Notes your coaches share with you will show up here.</p>
-      )}
+    <Panel
+      eyebrow={orgName ? `From ${orgName}` : "From your club"}
+      title="Coaches"
+      action={
+        <Link
+          to="/schedule"
+          className="touch-target inline-flex items-center gap-1 text-sm font-semibold text-org-primary"
+        >
+          Schedule <ArrowRight className="size-3.5" />
+        </Link>
+      }
+    >
+      {nextEvent ? (
+        <Link
+          to="/schedule"
+          className="mb-4 flex items-center gap-3 rounded-xl border border-org-primary/30 bg-org-primary/[0.08] p-3 hover:border-org-primary/60"
+        >
+          <DateTile date={String(nextEvent['start_date'])} />
+          <div className="min-w-0">
+            <p className="meta text-org-accent">Up next</p>
+            <p className="truncate text-sm font-semibold text-graphite">{nextEvent['name']}</p>
+            <p className="truncate text-xs text-steel">
+              {[nextEvent['venue'] || nextEvent['city'], nextEvent['state']].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+          {events.length > 1 ? (
+            <span className="ml-auto shrink-0 font-mono text-[10px] text-steel uppercase">
+              +{events.length - 1} more
+            </span>
+          ) : null}
+        </Link>
+      ) : null}
 
-      <div className="mt-5 border-t border-white/10 pt-4">
-        <p className="meta mb-2 text-steel">Schedule</p>
-        {events.length ? (
-          <ul className="space-y-2">
-            {events.map((e) => {
-              const d = new Date(`${e['start_date']}T12:00:00`);
-              return (
-                <li key={e['id']} className="flex items-center gap-3">
-                  <div className="grid w-12 shrink-0 place-items-center rounded-lg border border-white/10 py-1.5">
-                    <span className="font-mono text-[9.5px] text-org-accent uppercase">
-                      {d.toLocaleDateString(undefined, { month: "short" })}
-                    </span>
-                    <span className="font-display tabular text-lg leading-none font-bold text-graphite">
-                      {d.getDate()}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-graphite">{e['name']}</p>
-                    <p className="truncate text-xs text-steel">
-                      {[e['event_type'], e['venue'] || e['city'], e['state']].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="flex items-center gap-2 text-sm text-steel">
-            <CalendarDays className="size-4" /> Nothing on the calendar yet.
+      {notes.length ? (
+        <ul className="space-y-3">
+          {notes.map((n) => (
+            <li key={n['id']} className="flex gap-3">
+              <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-org-accent/15 text-org-accent">
+                <MessageSquareQuote className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1 rounded-xl rounded-tl-sm bg-white/[0.04] px-3.5 py-2.5">
+                <p className="text-sm leading-relaxed text-graphite">{n['note']}</p>
+                <p className="meta mt-1.5 text-steel">{shortDate(n['created_at'])}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-xl border border-dashed border-white/15 p-5 text-center">
+          <MessageSquareQuote className="mx-auto size-5 text-steel" />
+          <p className="mt-2 text-sm text-steel">
+            When your coaches share feedback with you, it shows up here.
           </p>
-        )}
-      </div>
+        </div>
+      )}
+      {!nextEvent ? (
+        <p className="mt-4 flex items-center gap-2 text-sm text-steel">
+          <CalendarDays className="size-4" /> Nothing on the calendar yet.
+        </p>
+      ) : null}
     </Panel>
+  );
+}
+
+function DateTile({ date }: { date: string }) {
+  const d = new Date(`${date}T12:00:00`);
+  return (
+    <div className="grid w-12 shrink-0 place-items-center rounded-lg border border-white/10 bg-card py-1.5">
+      <span className="font-mono text-[9.5px] text-org-accent uppercase">
+        {d.toLocaleDateString(undefined, { month: "short" })}
+      </span>
+      <span className="font-display tabular text-lg leading-none font-bold text-graphite">{d.getDate()}</span>
+    </div>
+  );
+}
+
+function ProfileTeaser({ hub }: { hub: any }) {
+  const a = hub.athlete as Record<string, any>;
+  const rows: [string, string | null][] = [
+    ["School", a['high_school'] ?? null],
+    ["Club", a['club_team'] ?? null],
+    ["GPA", a['gpa'] != null ? String(a['gpa']) : null],
+    ["NCAA ID", a['eligibility_id'] ?? null],
+    ["Transcript", a['transcript_path'] ? "On file" : null],
+  ];
+  const missing = rows.filter(([, v]) => !v).length;
+  return (
+    <Link
+      to="/profile"
+      className="surface-raised group block rounded-2xl border border-white/10 p-5 transition-colors hover:border-org-primary/50 sm:p-6"
+    >
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="meta text-org-accent">{missing ? `${missing} to fill in` : "Complete"}</p>
+          <h2 className="font-display mt-1 text-xl font-bold tracking-tight text-graphite">Profile</h2>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-graphite group-hover:border-org-primary">
+          <Pencil className="size-3.5" /> Edit profile
+        </span>
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
+        {rows.map(([k, v]) => (
+          <div key={k} className="min-w-0">
+            <dt className="meta text-steel">{k}</dt>
+            <dd className={cn("truncate text-sm", v ? "font-semibold text-graphite" : "italic text-steel/70")}>
+              {v ?? "Add"}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </Link>
+  );
+}
+
+function Spark({ values }: { values: number[] }) {
+  const w = 64;
+  const h = 22;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const pts = values
+    .map((v, i) => `${(i / (values.length - 1)) * w},${h - 2 - ((v - min) / span) * (h - 4)}`)
+    .join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0" aria-hidden>
+      <polyline points={pts} fill="none" stroke="var(--org-primary)" strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   );
 }
 

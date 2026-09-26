@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  CalendarDays,
   Database,
   Home,
   LayoutDashboard,
@@ -74,7 +75,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
 
   const primaryNav: NavItem[] = [
-    ...(role === "player" ? [{ to: "/athlete", label: "My hub", icon: Home }] : []),
+    ...(role === "player" ? [{ to: "/athlete", label: "Hub", icon: Home }] : []),
     { to: "/search", label: "Search", icon: Search },
     ...(isOrgManager
       ? [
@@ -84,7 +85,13 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           { to: "/list", label: "College list", icon: ListChecks },
         ]
       : []),
-    ...(role === "player" ? [{ to: "/list", label: "My colleges", icon: ListChecks }] : []),
+    ...(role === "player"
+      ? [
+          { to: "/list", label: "My Colleges", icon: ListChecks },
+          { to: "/profile", label: "Profile", icon: UserRound },
+          { to: "/schedule", label: "My Schedule", icon: CalendarDays },
+        ]
+      : []),
     ...(role === "parent"
       ? [
           { to: "/list", label: "College list", icon: ListChecks },
@@ -103,7 +110,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       ? [{ to: "/settings/branding", label: "Branding settings", icon: Palette }]
       : []),
 
-    ...(role === "parent" || role === "player"
+    ...(role === "parent"
       ? [{ to: "/family", label: "Family portal", icon: Database }]
       : []),
     { to: "/auth", label: "Account", icon: UserRound },
@@ -116,8 +123,10 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       ? [{ to: "/admin", label: "Console", icon: Table2, exact: true }]
       : isOrgManager
         ? [{ to: "/roster", label: "Roster", icon: Users, exact: false }]
-        : [{ to: "/list", label: "My list", icon: ListChecks, exact: false }]),
-    { to: "/auth", label: "Account", icon: UserRound, exact: false },
+        : [{ to: "/list", label: role === "player" ? "Colleges" : "My list", icon: ListChecks, exact: false }]),
+    role === "player"
+      ? { to: "/profile", label: "Profile", icon: UserRound, exact: false }
+      : { to: "/auth", label: "Account", icon: UserRound, exact: false },
   ];
 
   return (
