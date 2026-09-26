@@ -36,12 +36,24 @@ export const Route = createFileRoute("/_authenticated/roster/")({
   component: RosterScreen,
 });
 
-const SOURCE_LABELS: Record<string, string> = {
-  manual: "Manual",
-  csv: "CSV import",
-  handled: "Handled",
-  curve_testing: "Curve Testing",
+
+const FLAGS = ["unverified", "no_schools", "no_video", "no_numbers"] as const;
+type Flag = (typeof FLAGS)[number];
+const FLAG_LABEL: Record<Flag, string> = {
+  unverified: "To verify",
+  no_schools: "No colleges",
+  no_video: "No video",
+  no_numbers: "No numbers",
 };
+
+function flagsFor(a: Record<string, any>): Flag[] {
+  const out: Flag[] = [];
+  if ((a['unverified_count'] ?? 0) > 0) out.push("unverified");
+  if ((a['school_count'] ?? 0) === 0) out.push("no_schools");
+  if ((a['video_count'] ?? 0) === 0) out.push("no_video");
+  if ((a['metric_count'] ?? 0) === 0) out.push("no_numbers");
+  return out;
+}
 
 function RosterScreen() {
   const listFn = useServerFn(listOrgAthletes);
@@ -49,6 +61,7 @@ function RosterScreen() {
   const [q, setQ] = useState("");
   const [gradYear, setGradYear] = useState("");
   const [status, setStatus] = useState("active");
+  const [flag, setFlag] = useState<Flag | "">("");
 
   // The header switch decides which sport's players this roster shows.
   const { sport, setSport } = useSportMode();
@@ -66,6 +79,10 @@ function RosterScreen() {
       }),
     retry: false,
   });
+
+  const all = (data?.athletes ?? []) as Record<string, any>[];
+  const shown = flag ? all.filter((a) => flagsFor(a).includes(flag)) : all;
+  const unverifiedTotal = all.reduce((n, a) => n + (a['unverified_count'] ?? 0), 0);
 
   return (
     <AppShell right={<AuthButton />}>
@@ -131,6 +148,42 @@ function RosterScreen() {
 
 
 
+      {unverifiedTotal > 0 ? (
+        <button
+          type="button"
+          onClick={() => setFlag(flag === "unverified" ? "" : "unverified")}
+          className="mt-6 flex w-full items-center justify-between gap-3 rounded-xl border border-diamond-green/40 bg-diamond-green-tint px-4 py-3 text-left"
+        >
+          <span className="text-sm font-semibold text-diamond-green">
+            {unverifiedTotal} self-reported number{unverifiedTotal === 1 ? "" : "s"} waiting for a coach check
+          </span>
+          <span className="text-xs font-bold text-diamond-green underline">
+            {flag === "unverified" ? "Show all" : "Review"}
+          </span>
+        </button>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {(["", ...FLAGS] as const).map((f) => {
+          const count = f ? all.filter((a) => flagsFor(a).includes(f)).length : all.length;
+          return (
+            <button
+              key={f || "all"}
+              type="button"
+              aria-pressed={flag === f}
+              onClick={() => setFlag(f)}
+              className={
+                flag === f
+                  ? "min-h-9 rounded-full bg-org-primary px-3 text-xs font-semibold text-org-primary-foreground"
+                  : "min-h-9 rounded-full border border-border bg-card px-3 text-xs font-semibold text-steel"
+              }
+            >
+              {f ? FLAG_LABEL[f] : "All"} <span className="opacity-70">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
         <label className="relative flex min-w-56 flex-1 items-center">
           <SearchIcon className="pointer-events-none absolute left-3 size-4 text-steel" aria-hidden />
@@ -191,7 +244,7 @@ function RosterScreen() {
               <th className="px-4 py-3">Position</th>
               <th className="px-4 py-3">B/T</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Source</th>
+              <th className="px-4 py-3">Flags</th>
             </tr>
           </thead>
           <tbody>
@@ -201,7 +254,7 @@ function RosterScreen() {
                   Loading roster…
                 </td>
               </tr>
-            ) : (data?.athletes ?? []).length === 0 ? (
+            ) : shown.length === 0 ? (
               <tr>
                 <td colSpan={8} className="p-0">
                   <EmptyState
@@ -226,7 +279,7 @@ function RosterScreen() {
                 </td>
               </tr>
             ) : (
-              (data?.athletes ?? []).map((athlete) => (
+              shown.map((athlete) => (
                 <tr key={athlete['id']} className="border-t border-border/70 transition-colors hover:bg-surface-2/70">
                   <td className="px-4 py-3 font-semibold text-graphite">
                     <Link
@@ -257,9 +310,24 @@ function RosterScreen() {
                       (athlete['status'] ?? "active") as keyof typeof ATHLETE_STATUS_LABEL
                     ] ?? "Active"}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-steel">
-                    {SOURCE_LABELS[athlete['athlete_data_source'] as string] ??
-                      athlete['athlete_data_source']}
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {flagsFor(athlete).map((f) => (
+                        <span
+                          key={f}
+                          className={
+                            f === "unverified"
+                              ? "rounded-md border border-diamond-green/40 bg-diamond-green-tint px-1.5 py-0.5 text-[10px] font-bold text-diamond-green"
+                              : "rounded-md border border-seam-red/30 bg-seam-red-tint px-1.5 py-0.5 text-[10px] font-bold text-seam-red"
+                          }
+                        >
+                          {f === "unverified" ? `${athlete['unverified_count']} to verify` : FLAG_LABEL[f]}
+                        </span>
+                      ))}
+                      {flagsFor(athlete).length === 0 ? (
+                        <span className="font-mono text-[10px] text-steel">Ready</span>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))
