@@ -202,7 +202,7 @@ function HubBody({ hub }: { hub: any }) {
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr] sm:gap-6">
         <div className="space-y-5 sm:space-y-6">
           <VideoReel athleteId={athlete['id']} videos={videos} linkVideos={linkVideos} />
-          <Measurables athlete={athlete} sport={sport} latest={latest} />
+          <Measurables athlete={athlete} sport={sport} latest={latest} history={metrics} />
         </div>
         <div className="space-y-5 sm:space-y-6">
           <ProfileTeaser hub={hub} />
@@ -746,10 +746,12 @@ function Measurables({
   athlete,
   sport,
   latest,
+  history,
 }: {
   athlete: Record<string, any>;
   sport: ReturnType<typeof normalizeSport>;
   latest: Record<string, any>[];
+  history: Record<string, any>[];
 }) {
   const qc = useQueryClient();
   const saveFn = useServerFn(saveAthleteMetric);
@@ -844,6 +846,14 @@ function Measurables({
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {shown.map((m) => {
             const verified = Boolean(m['verified']);
+            const series = history
+              .filter((h) => h['metric_key'] === m['metric_key'] && Number.isFinite(Number(h['value'])))
+              .sort((x, y) => String(x['recorded_on'] ?? x['created_at']).localeCompare(String(y['recorded_on'] ?? y['created_at'])));
+            const first = series.length > 1 ? Number(series[0]['value']) : null;
+            const delta = first === null ? null : Number(m['value']) - first;
+            const lowerBetter = Boolean((metricDef(m['metric_key']) as any)?.lowerIsBetter) ||
+              /60|time|pop|home_to_first|dash/i.test(String(m['metric_key']));
+            const improved = delta === null || delta === 0 ? null : lowerBetter ? delta < 0 : delta > 0;
             return (
               <div
                 key={m['id']}
@@ -855,12 +865,27 @@ function Measurables({
                 )}
               >
                 <p className="meta truncate text-steel">{metricLabel(m['metric_key'])}</p>
-                <p className="font-display tabular mt-1.5 text-2xl leading-none font-bold text-graphite">
-                  {formatMetric(m['value'], m['metric_key'])}
-                </p>
+                <div className="mt-1.5 flex items-end justify-between gap-2">
+                  <p className="font-display tabular text-2xl leading-none font-bold text-graphite">
+                    {formatMetric(m['value'], m['metric_key'])}
+                  </p>
+                  {series.length > 1 ? <Spark values={series.map((h) => Number(h['value']))} /> : null}
+                </div>
+                {delta !== null && delta !== 0 ? (
+                  <p
+                    className={cn(
+                      "tabular mt-1.5 inline-flex items-center gap-1 text-xs font-semibold",
+                      improved ? "text-diamond-green" : "text-steel",
+                    )}
+                  >
+                    {improved ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
+                    {delta > 0 ? "+" : ""}
+                    {Math.round(delta * 100) / 100} since {shortDate(series[0]['recorded_on'] ?? series[0]['created_at'])}
+                  </p>
+                ) : null}
                 <p
                   className={cn(
-                    "mt-2 inline-flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
+                    "mt-2 flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
                     verified ? "text-diamond-green" : "text-steel",
                   )}
                 >
@@ -1047,6 +1072,22 @@ function CoachCorner({
         )}
       </div>
     </Panel>
+  );
+}
+
+function Spark({ values }: { values: number[] }) {
+  const w = 64;
+  const h = 22;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const pts = values
+    .map((v, i) => `${(i / (values.length - 1)) * w},${h - 2 - ((v - min) / span) * (h - 4)}`)
+    .join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0" aria-hidden>
+      <polyline points={pts} fill="none" stroke="var(--org-primary)" strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   );
 }
 
