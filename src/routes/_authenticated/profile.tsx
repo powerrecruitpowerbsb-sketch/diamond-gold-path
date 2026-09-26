@@ -46,7 +46,8 @@ function ProfilePage() {
           <Link to="/athlete" className="meta inline-flex items-center gap-1 text-steel hover:text-graphite">
             <ArrowLeft className="size-3.5" /> Hub
           </Link>
-          <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-graphite">Profile</h1>
+          <p className="meta mt-2 text-org-accent">Player</p>
+          <h1 className="font-display mt-1 text-3xl font-bold tracking-tight text-graphite">Profile</h1>
         </div>
         {error ? (
           <p className="rounded-xl border border-seam-red/30 bg-seam-red-tint p-4 text-sm text-seam-red">
@@ -55,7 +56,7 @@ function ProfilePage() {
         ) : isPending ? (
           <div className="h-64 animate-pulse rounded-2xl bg-card" />
         ) : !athlete ? (
-          <p className="text-sm text-steel">Your player card isn't linked yet. Ask your club for your invite.</p>
+          <p className="text-sm text-steel">No player card linked.</p>
         ) : (
           <>
             <div className="grid gap-5 md:grid-cols-2 sm:gap-6">
@@ -72,9 +73,15 @@ function ProfilePage() {
 
 function Card({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) {
   return (
-    <section className="surface-raised rounded-2xl border border-white/10 p-5 sm:p-6">
-      <p className="meta text-org-accent">{eyebrow}</p>
-      <h2 className="font-display mt-1 mb-4 text-xl font-bold tracking-tight text-graphite">{title}</h2>
+    <section className="card-panel relative overflow-hidden rounded-2xl p-5 sm:p-6">
+      <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-org-primary via-org-primary/70 to-transparent" />
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <h2 className="font-display flex items-center gap-2 text-lg font-bold uppercase tracking-wide text-graphite">
+          <span aria-hidden className="h-4 w-1 rounded-full bg-org-primary" />
+          {title}
+        </h2>
+        <span className="font-mono text-[11px] uppercase tracking-wider text-steel">{eyebrow}</span>
+      </div>
       {children}
     </section>
   );
@@ -93,7 +100,7 @@ function EligibilityCard({ athleteId, current }: { athleteId: string; current: s
     onError: (e: Error) => toast.error(e.message),
   });
   return (
-    <Card eyebrow={current ? "On file" : "Not added yet"} title="Eligibility">
+    <Card eyebrow={current ? "On file" : "Missing"} title="Eligibility">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -117,16 +124,14 @@ function EligibilityCard({ athleteId, current }: { athleteId: string; current: s
       <p className="mt-3 flex items-start gap-2 text-xs text-steel">
         <GraduationCap className="mt-0.5 size-3.5 shrink-0" />
         <span>
-          Don't have one? Register at{" "}
           <a
             href="https://web3.ncaa.org/ecwr3/"
             target="_blank"
             rel="noreferrer"
             className="font-semibold text-org-primary hover:underline"
           >
-            the NCAA Eligibility Center
-          </a>{" "}
-          — colleges will ask for it.
+            Register at the NCAA Eligibility Center
+          </a>
         </span>
       </p>
     </Card>
@@ -188,7 +193,7 @@ function TranscriptCard({ athleteId }: { athleteId: string }) {
   };
 
   return (
-    <Card eyebrow={data?.path ? "On file · only you and your club can see it" : "Private"} title="Transcript">
+    <Card eyebrow={data?.path ? "On file · Private" : "Private"} title="Transcript">
       {data?.path ? (
         <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
           <FileText className="size-5 shrink-0 text-org-primary" />
@@ -214,7 +219,7 @@ function TranscriptCard({ athleteId }: { athleteId: string }) {
           </button>
         </div>
       ) : (
-        <p className="text-sm text-steel">Upload your latest transcript as a PDF or a clear photo.</p>
+        <p className="font-mono text-[11px] uppercase tracking-wider text-steel">PDF or photo · 10 MB max</p>
       )}
       <button
         onClick={() => input.current?.click()}
