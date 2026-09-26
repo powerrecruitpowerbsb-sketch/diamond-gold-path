@@ -1115,7 +1115,7 @@ function CoachCorner({
   );
 }
 
-export function DateTile({ date }: { date: string }) {
+function DateTile({ date }: { date: string }) {
   const d = new Date(`${date}T12:00:00`);
   return (
     <div className="grid w-12 shrink-0 place-items-center rounded-lg border border-white/10 bg-card py-1.5">
