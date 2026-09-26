@@ -304,11 +304,13 @@ export const getFamilyPortal = createServerFn({ method: "GET" })
     const [{ data: athletes }, { data: saved }, { data: notes }] = await Promise.all([
       context.supabase
         .from("org_athletes")
-        .select("id, name, grad_year, primary_position, bats, throws")
+        .select("id, name, grad_year, primary_position, bats, throws, home_state, gpa, eligibility_id")
         .in("id", athleteIds),
       context.supabase
         .from("athlete_saved_schools")
-        .select("id, org_athlete_id, status, notes, program_id, activity_chips")
+        .select(
+          "id, org_athlete_id, status, notes, program_id, activity_chips, recommended_by_name, coach_message",
+        )
         .in("org_athlete_id", athleteIds),
       context.supabase
         .from("org_player_notes")
@@ -324,7 +326,7 @@ export const getFamilyPortal = createServerFn({ method: "GET" })
       const { data: programRows } = await context.supabase
         .from("programs")
         .select(
-          "id, sport, division, governing_body, conference, universities:university_id (name, city, state)",
+          "id, sport, division, governing_body, conference, universities:university_id (name, city, state, public_private, tuition_in_state, tuition_out_state, est_net_price, acceptance_rate)",
         )
         .in("id", programIds);
       programs = (programRows ?? []) as any[];
