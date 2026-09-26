@@ -207,7 +207,6 @@ function ScoutCard() {
                   a["bats"] || a["throws"]
                     ? `B/T ${String(a["bats"] ?? "–")}/${String(a["throws"] ?? "–")}`
                     : null,
-                  a["grad_year"] ? `Class of ${a["grad_year"]}` : null,
                   a["gpa"] ? `${a["gpa"]} GPA` : null,
                   positions.length ? positions.join(" / ") : null,
                 ].filter(Boolean) as string[];
