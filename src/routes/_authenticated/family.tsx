@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Eye } from "lucide-react";
 
 import { AthleteProfilePanel } from "@/components/athlete/AthleteProfilePanel";
+import { FamilyChecklist, FamilyFinances, FamilyTimeline } from "@/components/family/FamilyGuide";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { getFamilyPortal } from "@/lib/invites.functions";
@@ -134,12 +135,21 @@ function FamilyPortal() {
                   ))}
                 </dl>
 
-                <div className="mt-6">
+                <div className="mt-6 grid gap-4 lg:grid-cols-3">
+                  <FamilyTimeline gradYear={athlete['grad_year'] ?? null} />
+                  <FamilyChecklist athlete={athlete} savedCount={saved.length} />
+                  <FamilyFinances saved={saved} homeState={athlete['home_state'] ?? null} />
+                </div>
+
+                <h3 className="mt-6 font-mono text-[11px] tracking-wide text-steel uppercase">
+                  Athlete
+                </h3>
+                <div className="mt-2">
                   <AthleteProfilePanel athleteId={String(athlete['id'])} />
                 </div>
 
                 <h3 className="mt-6 font-mono text-[11px] tracking-wide text-steel uppercase">
-                  College list · {saved.length}
+                  Colleges · {saved.length}
                 </h3>
                 {saved.length === 0 ? (
                   <p className="mt-2 text-sm text-steel">No schools on the list yet.</p>
@@ -180,6 +190,18 @@ function FamilyPortal() {
                                       .filter(Boolean)
                                       .join(" · ") || "—"}
                                   </p>
+                                  {row['recommended_by_name'] ? (
+                                    <div className="mt-2 rounded-lg border border-org-primary/25 bg-org-primary/5 p-2">
+                                      <p className="text-[11px] font-bold text-org-primary uppercase">
+                                        Coach pick · {row['recommended_by_name']}
+                                      </p>
+                                      {row['coach_message'] ? (
+                                        <p className="mt-1 text-sm text-graphite">
+                                          {row['coach_message']}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
                                   {((row['activity_chips'] ?? []) as string[]).length ? (
                                     <span className="mt-2 flex flex-wrap gap-1">
                                       {((row['activity_chips'] ?? []) as string[]).map((chip) => (
@@ -205,7 +227,7 @@ function FamilyPortal() {
                 )}
 
                 <h3 className="mt-6 flex items-center gap-2 font-mono text-[11px] tracking-wide text-steel uppercase">
-                  <Eye className="size-3.5" aria-hidden /> Notes shared with you
+                  <Eye className="size-3.5" aria-hidden /> Notes
                 </h3>
                 {notes.length === 0 ? (
                   <p className="mt-2 text-sm text-steel">Nothing shared yet.</p>
