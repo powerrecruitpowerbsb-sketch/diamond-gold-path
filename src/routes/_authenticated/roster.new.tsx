@@ -112,9 +112,9 @@ function NewAthlete() {
 
       <form
         onSubmit={submit}
-        className="mt-4 max-w-2xl rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
+        className="mt-4 max-w-2xl rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
       >
-        <h1 className="font-display text-2xl font-bold text-graphite">Add & invite</h1>
+        <h1 className="font-display text-2xl font-bold text-graphite">Add</h1>
         <p className="mt-1 text-sm text-steel">Recorded as a manual entry.</p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -235,7 +235,7 @@ function NewAthlete() {
         <button
           type="submit"
           disabled={saving}
-          className="touch-target mt-6 inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
+          className="touch-target mt-6 inline-flex w-full items-center justify-center rounded-xl sm:w-auto bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save athlete"}
         </button>
