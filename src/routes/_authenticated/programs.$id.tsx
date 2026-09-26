@@ -558,14 +558,14 @@ function ProgramProfile() {
             {majorRows.length === 0 ? (
               <p className="text-sm text-steel">No majors are on file for this school yet.</p>
             ) : (
-              <div className="max-h-80 overflow-y-auto">
+              <div className="max-h-80 overflow-x-hidden overflow-y-auto">
                 {majorRows.map((major) => (
                   <div
                     key={major.id}
-                    className="flex items-center justify-between gap-3 border-b border-border/70 py-2 last:border-0"
+                    className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 border-b border-border/70 py-2 last:border-0"
                   >
-                    <span className="text-sm text-graphite">{major.name}</span>
-                    <span className="meta shrink-0">
+                    <span className="min-w-0 break-words text-sm text-graphite">{major.name}</span>
+                    <span className="meta sm:shrink-0">
                       {major.category ?? ""}
                       {major.completions === null ? "" : ` · ${major.completions} graduates`}
                     </span>
