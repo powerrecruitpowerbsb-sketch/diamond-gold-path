@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ImagePlus, Pencil, Play, Plus, Trash2 } from "lucide-react";
+import { BadgeCheck, ImagePlus, Pencil, Play, Plus, Trash2 } from "lucide-react";
+import { verifyAthleteMetric } from "@/lib/athlete-hub.functions";
 import { toast } from "sonner";
 
 import {
@@ -89,9 +90,10 @@ function formFrom(athlete: Record<string, any>): Record<string, string> {
   };
 }
 
-type Props = { athleteId: string; canEdit?: boolean };
+type Props = { athleteId: string; canEdit?: boolean; canVerify?: boolean };
 
-export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
+export function AthleteProfilePanel({ athleteId, canEdit = true, canVerify = false }: Props) {
+  const verifyFn = useServerFn(verifyAthleteMetric);
   const profileFn = useServerFn(getAthleteProfile);
   const saveProfileFn = useServerFn(saveAthleteProfile);
   const saveMetricFn = useServerFn(saveAthleteMetric);
@@ -666,6 +668,30 @@ export function AthleteProfilePanel({ athleteId, canEdit = true }: Props) {
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
+                    {row['verified'] ? (
+                      <p className="mt-2 inline-flex items-center gap-1 rounded-md border border-diamond-green/30 bg-diamond-green-tint px-1.5 py-0.5 text-[10px] font-bold text-diamond-green">
+                        <BadgeCheck className="size-3" aria-hidden /> Coach verified
+                      </p>
+                    ) : canVerify ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await verifyFn({ data: { id: String(row['id']) } });
+                            await invalidate();
+                            await queryClient.invalidateQueries({ queryKey: ["org-athletes"] });
+                            toast.success(`${metricLabel(key)} verified`);
+                          } catch (err) {
+                            toast.error((err as Error).message);
+                          }
+                        }}
+                        className="mt-2 inline-flex min-h-9 items-center gap-1 rounded-md border border-diamond-green/40 bg-card px-2 text-[11px] font-bold text-diamond-green hover:bg-diamond-green-tint"
+                      >
+                        <BadgeCheck className="size-3.5" aria-hidden /> Verify
+                      </button>
+                    ) : (
+                      <p className="mt-2 text-[10px] font-semibold text-steel">Self-reported</p>
+                    )}
                     {canEdit ? (
                       <button
                         type="button"

@@ -222,6 +222,32 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
       };
     });
 
+    // Recruiting readiness flags: what each player still needs before coaches look.
+    const ids = athletes.map((a) => a['id'] as string);
+    if (ids.length) {
+      const [{ data: metricRows }, { data: videoRows }, { data: schoolRows }] = await Promise.all([
+        context.supabase.from("athlete_metrics").select("org_athlete_id, verified").in("org_athlete_id", ids),
+        context.supabase.from("athlete_videos").select("org_athlete_id").in("org_athlete_id", ids),
+        context.supabase.from("athlete_saved_schools").select("org_athlete_id").in("org_athlete_id", ids),
+      ]);
+      const tally = (rows: any[] | null, pick?: (r: any) => boolean) => {
+        const m = new Map<string, number>();
+        for (const r of rows ?? []) if (!pick || pick(r)) m.set(r.org_athlete_id, (m.get(r.org_athlete_id) ?? 0) + 1);
+        return m;
+      };
+      const metricCount = tally(metricRows as any[]);
+      const unverified = tally(metricRows as any[], (r) => !r.verified);
+      const videos = tally(videoRows as any[]);
+      const schools = tally(schoolRows as any[]);
+      athletes = athletes.map((a) => ({
+        ...a,
+        metric_count: metricCount.get(a['id']) ?? 0,
+        unverified_count: unverified.get(a['id']) ?? 0,
+        video_count: videos.get(a['id']) ?? 0,
+        school_count: schools.get(a['id']) ?? 0,
+      }));
+    }
+
     if (data.teamId === "__unassigned") {
       athletes = athletes.filter((a) => !a['team_id']);
     } else if (data.teamId) {

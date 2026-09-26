@@ -58,3 +58,11 @@
 - [ ] Step 2 Coach: roster "Unverified stats" alert with 1-click Verify (verifyAthleteMetric exists), recruiting status flags, team booklet.
 - [ ] Step 3 Parent portal polish. Step 4 Owner/Admin. Step 5 DB gaps + PWA/mobile.
 - [ ] REMIND USER: revisit True-Fit scoring — draft/portal turnover beyond seniors, generic "INF" rosters lumped (MIF vs CIF), relies on roster accuracy.
+
+## Step 2 progress (Coach Workspace)
+- [x] Verify: Verify button on athlete numbers, roster "waiting for a coach check" alert
+- [x] Flags: roster chips + filters (to verify, no colleges, no video, no numbers)
+- [ ] Actions list on coach dashboard
+- [ ] Team scout packet (shareable/printable, QR)
+- [ ] Coach picks with staff-only notes
+- [ ] Schedule: field / opponent per game

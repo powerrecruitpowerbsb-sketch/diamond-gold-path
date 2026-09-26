@@ -200,7 +200,7 @@ function AthleteDetail() {
           {/* Season assignment + program status. Assignments are per season;
               status is athlete-level and outlives every season. */}
           <div className="mt-6">
-            <AthleteProfilePanel athleteId={id} />
+            <AthleteProfilePanel athleteId={id} canVerify />
           </div>
 
           <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
