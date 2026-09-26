@@ -22,8 +22,8 @@ export const Route = createFileRoute("/p/$slug")({
     ].filter(Boolean);
     const title = `${name} — recruiting profile`;
     const description = bits.length
-      ? `${name}: ${bits.join(" · ")}. Measurables, academics, video and upcoming events.`
-      : "Verified measurables, academics, video and upcoming events for a college recruit.";
+      ? `${name}: ${bits.join(" · ")}. Measurables, film and schedule.`
+      : "College recruit profile: measurables, academics, film and schedule.";
     return {
       meta: [
         { title },
@@ -43,11 +43,8 @@ export const Route = createFileRoute("/p/$slug")({
 function Missing() {
   return (
     <main className="mx-auto max-w-lg px-6 py-24 text-center">
-      <h1 className="font-display text-2xl font-bold text-foreground">This profile is not shared</h1>
-      <p className="mt-2 text-sm text-steel">
-        The link may have been turned off, or the address is slightly different. Ask the player or
-        their club for a fresh link.
-      </p>
+      <h1 className="font-display text-2xl font-bold text-foreground">Profile not shared</h1>
+      <p className="mt-2 text-sm text-steel">Ask the player or club for a new link.</p>
       <Link to="/" className="mt-6 inline-block text-sm font-semibold text-org-primary-strong">
         Curve Recruit
       </Link>
@@ -197,37 +194,47 @@ function ScoutCard() {
               <h1 className="font-display mt-2 text-[2.25rem] leading-[1.05] font-bold text-white sm:text-5xl">
                 {String(a["name"])}
               </h1>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                {positions.map((position) => (
-                  <span
-                    key={String(position)}
-                    className="rounded-md bg-white/12 px-2.5 py-1 text-xs font-bold tracking-wide text-white uppercase"
-                  >
-                    {String(position)}
-                  </span>
-                ))}
-                {a["bats"] || a["throws"] ? (
-                  <span className="rounded-md border border-white/25 px-2.5 py-1 font-mono text-xs text-white/85">
-                    B/T {String(a["bats"] ?? "–")}/{String(a["throws"] ?? "–")}
-                  </span>
-                ) : null}
-                {a["height_inches"] || a["weight_lbs"] ? (
-                  <span className="rounded-md border border-white/25 px-2.5 py-1 font-mono text-xs text-white/85">
-                    {[
-                      a["height_inches"] ? formatHeight(Number(a["height_inches"])) : null,
-                      a["weight_lbs"] ? `${a["weight_lbs"]} lb` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                ) : null}
-              </div>
-              {hometown || a["high_school"] ? (
-                <p className="mt-4 flex items-center gap-1.5 text-sm text-white/75">
-                  <MapPin className="size-4" aria-hidden />
-                  {[a["high_school"], hometown].filter(Boolean).join(" · ")}
-                </p>
-              ) : null}
+              {(() => {
+                const bio = [
+                  a["height_inches"] || a["weight_lbs"]
+                    ? [
+                        a["height_inches"] ? formatHeight(Number(a["height_inches"])) : null,
+                        a["weight_lbs"] ? `${a["weight_lbs"]} LBS` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : null,
+                  a["bats"] || a["throws"]
+                    ? `B/T ${String(a["bats"] ?? "–")}/${String(a["throws"] ?? "–")}`
+                    : null,
+                  a["gpa"] ? `${a["gpa"]} GPA` : null,
+                  positions.length ? positions.join(" / ") : null,
+                ].filter(Boolean) as string[];
+                const place = [
+                  a["high_school"] ? `${a["high_school"]}${a["home_state"] ? ` (${a["home_state"]})` : ""}` : null,
+                  a["club_team"] ?? null,
+                ].filter(Boolean);
+                return (
+                  <>
+                    {bio.length ? (
+                      <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-sm font-semibold tracking-wide text-white uppercase">
+                        {bio.map((b, i) => (
+                          <span key={b} className="flex items-center gap-3">
+                            {i > 0 ? <span className="text-white/35" aria-hidden>|</span> : null}
+                            {b}
+                          </span>
+                        ))}
+                      </p>
+                    ) : null}
+                    {place.length ? (
+                      <p className="mt-2 flex items-center gap-1.5 text-sm text-white/75">
+                        <MapPin className="size-4" aria-hidden />
+                        {place.join(" · ")}
+                      </p>
+                    ) : null}
+                  </>
+                );
+              })()}
               <SocialLinks
                 twitter={a["twitter_handle"]}
                 instagram={a["instagram_handle"]}
@@ -259,7 +266,7 @@ function ScoutCard() {
           </Panel>
         ) : null}
 
-        <Panel title="Academics & eligibility">
+        <Panel title="Academics">
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <Fact label="GPA" value={a["gpa"] ? String(a["gpa"]) : null} />
             <Fact label="SAT" value={a["sat_score"] ? String(a["sat_score"]) : null} />
@@ -275,7 +282,7 @@ function ScoutCard() {
         </Panel>
 
         {clips.length ? (
-          <Panel title="Highlights">
+          <Panel title="Film">
             <ClipTheater
               clips={clips.map((c) => ({
                 id: String(c["id"]),
@@ -288,7 +295,7 @@ function ScoutCard() {
         ) : null}
 
         {videos.length ? (
-          <Panel title="Video links">
+          <Panel title="More film">
             <ul className="grid gap-3 sm:grid-cols-2">
               {videos.map((link) => (
                 <li key={link}>
@@ -310,7 +317,7 @@ function ScoutCard() {
         ) : null}
 
         {events.length ? (
-          <Panel title="Where to see this player">
+          <Panel title="Schedule">
             <ul className="space-y-2">
               {events.map((event, index) => (
                 <li
