@@ -106,7 +106,7 @@ export function TrueFitPanel({
         </Card>
 
         <Card
-          title={depth.groupLabel ? `Depth at ${depth.groupLabel.toLowerCase()}` : "Roster depth"}
+          title={depth.groupLabel ? `Depth · ${depth.groupLabel}` : "Roster depth"}
           headline={depth.headline}
           detail={depth.detail}
           confidence={depth.confidence}
@@ -119,7 +119,7 @@ export function TrueFitPanel({
         </Card>
 
         <Card
-          title="Recruiting footprint"
+          title="Footprint"
           headline={footprint.headline}
           detail={footprint.detail}
           confidence={footprint.confidence}
