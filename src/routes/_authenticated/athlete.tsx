@@ -916,7 +916,7 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
             }}
           >
             <p className="font-display tabular text-2xl leading-none font-bold text-graphite">{s.n}</p>
-            <p className="mt-1 truncate font-mono text-[9.5px] tracking-wide text-steel uppercase">
+            <p className="mt-1 truncate text-[11px] font-medium text-steel">
               {s.label}
             </p>
           </div>
