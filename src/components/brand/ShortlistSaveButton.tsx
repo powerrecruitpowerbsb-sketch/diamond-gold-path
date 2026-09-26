@@ -101,7 +101,9 @@ export function ShortlistSaveButton({
   const label = savedStatus
     ? `Added · ${SHORTLIST_STATUS_LABEL[savedStatus]}`
     : athleteId
-      ? `Add to ${firstName ? `${firstName}'s list` : "list"}`
+      ? athleteName === "me"
+        ? "Add to my list"
+        : `Add to ${firstName ? `${firstName}'s list` : "list"}`
       : "Add to a list";
 
   return (
@@ -114,7 +116,7 @@ export function ShortlistSaveButton({
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (athleteId) void save(athleteId, athleteName);
+          if (athleteId) void save(athleteId, athleteName === "me" ? "your list" : athleteName);
           else setOpen(true);
         }}
         className={cn(

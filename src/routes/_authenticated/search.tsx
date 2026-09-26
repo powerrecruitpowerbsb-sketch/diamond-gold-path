@@ -3,7 +3,9 @@ import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { Columns3, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Columns3, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import * as SliderPrimitive from "@radix-ui/react-slider";
+import { useMyAccount } from "@/hooks/use-my-account";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { DisclosureButton } from "@/components/brand/ActionButton";
@@ -199,6 +201,17 @@ function SearchScreen() {
   const pickerAthletes = ((picker.data?.athletes ?? []) as Record<string, any>[]).filter(
     (row) => normalizeSport(row["sport"]) === params.sport,
   );
+  const { account } = useMyAccount();
+  const role = account?.primaryRole ?? null;
+  const isFamily = role === "player" || role === "parent";
+  // A player searches for themselves — no picker, their card is the context.
+  const ownAthleteId =
+    isFamily && pickerAthletes.length === 1 ? String(pickerAthletes[0]?.["id"] ?? "") : "";
+  useEffect(() => {
+    if (ownAthleteId && params.athleteId !== ownAthleteId) {
+      void navigate({ search: (prev: any) => ({ ...prev, athleteId: ownAthleteId }), replace: true });
+    }
+  }, [ownAthleteId, params.athleteId, navigate]);
   const contextAthlete = params.athleteId
     ? pickerAthletes.find((row) => row["id"] === params.athleteId) ?? null
     : null;
@@ -382,7 +395,12 @@ function SearchScreen() {
                 }`}
         </p>
 
-        {pickerAthletes.length > 0 ? (
+        {isFamily && contextAthlete ? (
+          <p className="mt-3 text-sm text-steel">
+            Saving to <span className="font-semibold text-graphite">{String(contextAthlete["name"])}</span>'s
+            college list.
+          </p>
+        ) : pickerAthletes.length > 0 && !(isFamily && pickerAthletes.length === 1) ? (
           <label className="mt-3 flex flex-wrap items-center gap-2 text-sm">
             <span className="meta text-steel">Adding to</span>
             <select
@@ -390,7 +408,7 @@ function SearchScreen() {
               onChange={(event) => set({ athleteId: event.target.value })}
               className="h-8 rounded border border-input bg-card px-2 text-sm"
             >
-              <option value="">Choose a player…</option>
+              <option value="">{isFamily ? "Choose your athlete…" : "Choose a player…"}</option>
               {pickerAthletes.map((athlete) => (
                 <option key={String(athlete["id"])} value={String(athlete["id"])}>
                   {String(athlete["name"])}
@@ -521,26 +539,38 @@ function SearchScreen() {
 
         {/* --------------- Everything else, in three plain groups --------------- */}
         {moreOpen ? (
-          <div className="mt-3 space-y-4 border-t border-border pt-3">
-            <FilterGroup title="Cost & academics">
+          <div className="mt-3 space-y-2 border-t border-border pt-3">
+            <FilterGroup
+              title="Cost"
+              hint="Net price, tuition, cost of attendance"
+              active={[params.netPriceMin, params.netPriceMax, params.tuitionMin, params.tuitionMax, params.coaMin, params.coaMax].filter(Boolean).length}
+              defaultOpen
+            >
               <Range
-                label="Net price ($ a family pays)"
+                label="Net price" lo={0} hi={80000} step={1000} format={usd}
                 min={params.netPriceMin}
                 max={params.netPriceMax}
                 onChange={(netPriceMin, netPriceMax) => set({ netPriceMin, netPriceMax })}
               />
               <Range
-                label="Tuition, out of state ($)"
+                label="Tuition (out of state)" lo={0} hi={70000} step={1000} format={usd}
                 min={params.tuitionMin}
                 max={params.tuitionMax}
                 onChange={(tuitionMin, tuitionMax) => set({ tuitionMin, tuitionMax })}
               />
               <Range
-                label="Total cost of attendance ($)"
+                label="Cost of attendance" lo={0} hi={95000} step={1000} format={usd}
                 min={params.coaMin}
                 max={params.coaMax}
                 onChange={(coaMin, coaMax) => set({ coaMin, coaMax })}
               />
+            </FilterGroup>
+
+            <FilterGroup
+              title="Academics"
+              hint="Major, SAT, ACT, acceptance rate"
+              active={[params.majorId, params.satMin, params.satMax, params.actMin, params.actMax, params.acceptanceMin, params.acceptanceMax, params.academicBucket].filter(Boolean).length}
+            >
               <Field label="Major offered">
                 <Select
                   value={params.majorId}
@@ -550,19 +580,19 @@ function SearchScreen() {
                 />
               </Field>
               <Range
-                label="SAT"
+                label="SAT" lo={400} hi={1600} step={10}
                 min={params.satMin}
                 max={params.satMax}
                 onChange={(satMin, satMax) => set({ satMin, satMax })}
               />
               <Range
-                label="ACT"
+                label="ACT" lo={1} hi={36} step={1}
                 min={params.actMin}
                 max={params.actMax}
                 onChange={(actMin, actMax) => set({ actMin, actMax })}
               />
               <Range
-                label="Acceptance rate (%)"
+                label="Acceptance rate" lo={0} hi={100} step={1} format={pct}
                 min={params.acceptanceMin}
                 max={params.acceptanceMax}
                 onChange={(acceptanceMin, acceptanceMax) => set({ acceptanceMin, acceptanceMax })}
@@ -577,9 +607,13 @@ function SearchScreen() {
               </Field>
             </FilterGroup>
 
-            <FilterGroup title="Roster & recruiting">
+            <FilterGroup
+              title="Roster"
+              hint="Size, openings by position, transfers, conference"
+              active={[params.rosterMin, params.rosterMax, params.positionGroup, params.seniorGroup, params.transferPctMin, params.transferPctMax, params.conference, params.scholarships].filter(Boolean).length}
+            >
               <Range
-                label="Roster size"
+                label="Roster size" lo={0} hi={80} step={1}
                 min={params.rosterMin}
                 max={params.rosterMax}
                 onChange={(rosterMin, rosterMax) => set({ rosterMin, rosterMax })}
@@ -596,20 +630,30 @@ function SearchScreen() {
                       label: POSITION_GROUP_LABELS[group],
                     }))}
                   />
-                  <input
-                    type="number"
+                  <select
                     value={params.positionMin || ""}
-                    placeholder="Min"
                     onChange={(event) => set({ positionMin: Number(event.target.value) || 0 })}
-                    className="tabular h-9 w-20 rounded border border-input bg-card px-2 text-sm"
-                  />
-                  <input
-                    type="number"
+                    className="h-9 w-28 shrink-0 rounded border border-input bg-card px-2 text-sm"
+                  >
+                    <option value="">Min</option>
+                    {Array.from({ length: 15 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        Min {n}
+                      </option>
+                    ))}
+                  </select>
+                  <select
                     value={params.positionMax || ""}
-                    placeholder="Max"
                     onChange={(event) => set({ positionMax: Number(event.target.value) || 0 })}
-                    className="tabular h-9 w-20 rounded border border-input bg-card px-2 text-sm"
-                  />
+                    className="h-9 w-28 shrink-0 rounded border border-input bg-card px-2 text-sm"
+                  >
+                    <option value="">Max</option>
+                    {Array.from({ length: 15 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        Max {n}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div>
@@ -624,17 +668,22 @@ function SearchScreen() {
                       label: POSITION_GROUP_LABELS[group],
                     }))}
                   />
-                  <input
-                    type="number"
+                  <select
                     value={params.seniorMin || ""}
-                    placeholder="At least"
                     onChange={(event) => set({ seniorMin: Number(event.target.value) || 0 })}
-                    className="tabular h-9 w-24 rounded border border-input bg-card px-2 text-sm"
-                  />
+                    className="h-9 w-28 shrink-0 rounded border border-input bg-card px-2 text-sm"
+                  >
+                    <option value="">At least</option>
+                    {Array.from({ length: 15 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        At least {n}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <Range
-                label="Transfer share of roster (%)"
+                label="Transfers on roster" lo={0} hi={100} step={1} format={pct}
                 min={params.transferPctMin}
                 max={params.transferPctMax}
                 onChange={(transferPctMin, transferPctMax) =>
@@ -662,7 +711,11 @@ function SearchScreen() {
               </Field>
             </FilterGroup>
 
-            <FilterGroup title="Campus & school fit">
+            <FilterGroup
+              title="Campus"
+              hint="Public or private, size, setting, religious"
+              active={[params.publicPrivate, params.schoolSize, params.campusSetting, params.religious].filter(Boolean).length}
+            >
               <Field label="Public / private">
                 <Select
                   value={params.publicPrivate}
@@ -700,7 +753,12 @@ function SearchScreen() {
               </Field>
             </FilterGroup>
 
-            <FilterGroup title="Our intelligence & fit">
+            {isFamily ? null : (
+            <FilterGroup
+              title="Intelligence"
+              hint="Your staff's notes on each program"
+              active={params.intel.length + params.intelPositions.length + (params.relationship ? 1 : 0)}
+            >
               {INTEL_CHOICE_FIELDS.map((field) => (
                 <Field key={field.key} label={field.label}>
                   <Select
@@ -769,6 +827,7 @@ function SearchScreen() {
                 </label>
               </div>
             </FilterGroup>
+            )}
 
             <Link
               to="/search"
@@ -797,7 +856,7 @@ function SearchScreen() {
         </div>
       ) : null}
 
-      {params.athleteId ? (
+      {params.athleteId && !isFamily ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 rounded border border-org-accent/40 bg-org-accent/10 p-3">
           <p className="text-sm text-graphite">
             Building the shortlist for{" "}
@@ -882,7 +941,7 @@ function SearchScreen() {
             </button>
           </div>
 
-          <ul className="mt-2 divide-y divide-border rounded-lg border border-border bg-card">
+          <ul className="mt-3 grid gap-3 md:grid-cols-2">
             {rows.map((row: any) => {
               const u = row.university ?? {};
               const selected = compare.isSelected(row.id);
@@ -915,62 +974,84 @@ function SearchScreen() {
                         openRow();
                       }
                     }}
-                    className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                    className="group flex h-full cursor-pointer flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-org-primary/60"
                   >
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate font-semibold text-org-primary">{u.name}</p>
-                        {fitActive ? (
-                          <Link
-                            to="/intelligence"
-                            search={{
-                              programId: row.id,
-                              ...(focusFieldKey ? { field: focusFieldKey } : {}),
-                            }}
-                            onClick={(event) => event.stopPropagation()}
-                            title="Open this program in the intelligence workstation"
-                            className={
-                              row.fit?.matched > 0
-                                ? "shrink-0 rounded-full border border-seam-red/50 bg-seam-red-tint px-2 py-0.5 text-[11px] font-semibold text-seam-red hover:bg-seam-red/15"
-                                : "shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-steel hover:border-org-primary hover:text-graphite"
-                            }
-                          >
-                            {row.fit?.matched > 0
-                              ? `Fits ${row.fit.matched} of ${row.fit.total}`
-                              : row.fit?.evaluated
-                                ? "No match on file"
-                                : "Not written up yet"}
-                          </Link>
-                        ) : null}
-
+                    <div className="flex items-start gap-3">
+                      <span className="font-display grid size-11 shrink-0 place-items-center rounded-lg bg-org-primary/15 text-sm font-bold text-org-primary">
+                        {String(u.name ?? "")
+                          .replace(/University|College|of|the|at/gi, "")
+                          .split(/\s+/)
+                          .filter(Boolean)
+                          .map((w: string) => w[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase() || "C"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-base font-bold text-graphite group-hover:text-org-primary">
+                          {u.name}
+                        </p>
+                        <p className="mt-0.5 truncate text-[12px] text-steel">
+                          {[u.city, u.state].filter(Boolean).join(", ") || NOT_REPORTED}
+                          {region ? ` · ${region}` : ""}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {[row.governing_body, row.division].filter(Boolean).length ? (
+                            <span className="rounded-md bg-org-primary px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-org-primary-foreground uppercase">
+                              {[row.governing_body, row.division].filter(Boolean).join(" ")}
+                            </span>
+                          ) : null}
+                          {row.conference ? (
+                            <span className="max-w-[200px] truncate rounded-md border border-border px-2 py-0.5 font-mono text-[10px] tracking-wide text-steel uppercase">
+                              {row.conference}
+                            </span>
+                          ) : null}
+                          {fitActive ? (
+                            <Link
+                              to="/intelligence"
+                              search={{
+                                programId: row.id,
+                                ...(focusFieldKey ? { field: focusFieldKey } : {}),
+                              }}
+                              onClick={(event) => event.stopPropagation()}
+                              className={
+                                row.fit?.matched > 0
+                                  ? "rounded-md border border-seam-red/50 bg-seam-red-tint px-2 py-0.5 text-[11px] font-semibold text-seam-red"
+                                  : "rounded-md border border-border px-2 py-0.5 text-[11px] font-semibold text-steel"
+                              }
+                            >
+                              {row.fit?.matched > 0
+                                ? `Fits ${row.fit.matched} of ${row.fit.total}`
+                                : row.fit?.evaluated
+                                  ? "No match on file"
+                                  : "Not written up yet"}
+                            </Link>
+                          ) : null}
+                        </div>
                       </div>
-                      <p className="mt-0.5 truncate text-[12px] text-steel">
-                        {meta.join(" · ") || NOT_REPORTED}
-                      </p>
-                      <p className="tabular mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[12px] text-graphite">
-                        <span>
-                          <span className="text-steel">Net price </span>
-                          {money(u.est_net_price)}
-                        </span>
-                        <span>
-                          <span className="text-steel">Roster </span>
-                          {row.roster?.size ? row.roster.size : NOT_REPORTED}
-                        </span>
-                        <span className="hidden sm:inline">
-                          <span className="text-steel">Enrolled </span>
-                          {number(u.undergrad_enrollment)}
-                        </span>
-                        <span className="hidden sm:inline">
-                          <span className="text-steel">SAT </span>
-                          {plain(u.avg_sat)}
-                        </span>
-                        <span className="hidden truncate md:inline">
-                          <span className="text-steel">Coach </span>
-                          {row.head_coach_name ?? "Not published by the school"}
-                        </span>
-                      </p>
                     </div>
 
+                    <dl className="tabular mt-4 grid grid-cols-4 gap-2 border-t border-border pt-3">
+                      {[
+                        ["Net price", money(u.est_net_price)],
+                        ["Roster", row.roster?.size ? String(row.roster.size) : "—"],
+                        ["Students", number(u.undergrad_enrollment)],
+                        ["SAT", plain(u.avg_sat)],
+                      ].map(([k, v]) => (
+                        <div key={k} className="min-w-0">
+                          <dt className="meta truncate text-steel">{k}</dt>
+                          <dd className="truncate text-sm font-bold text-graphite">
+                            {!v || v === NOT_REPORTED ? "—" : v}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <p className="min-w-0 truncate text-xs text-steel">
+                        Coach{" "}
+                        <span className="text-graphite">{row.head_coach_name ?? "not published"}</span>
+                      </p>
                     <div
                       className="flex shrink-0 items-center gap-2"
                       onClick={(event) => event.stopPropagation()}
@@ -978,7 +1059,11 @@ function SearchScreen() {
                       <ShortlistSaveButton
                         programId={row.id}
                         athleteId={params.athleteId || undefined}
-                        athleteName={(contextAthlete?.["name"] as string | undefined) ?? undefined}
+                        athleteName={
+                          role === "player"
+                            ? "me"
+                            : ((contextAthlete?.["name"] as string | undefined) ?? undefined)
+                        }
                       />
                       <button
                         type="button"
@@ -1004,6 +1089,7 @@ function SearchScreen() {
                         <Columns3 className="size-4" aria-hidden />
                       </button>
                     </div>
+                    </div>
                   </div>
                 </li>
               );
@@ -1026,16 +1112,52 @@ function SearchScreen() {
   );
 }
 
-function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function FilterGroup({
+  title,
+  hint,
+  active = 0,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  active?: number;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen || active > 0);
   return (
-    <section>
-      <h3 className="relative mb-2 border-b border-border pb-1 font-display text-sm font-bold text-org-primary after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-8 after:bg-org-accent">
-        {title}
-      </h3>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    <section className="overflow-hidden rounded-lg border border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted/40"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="font-display text-[15px] font-bold text-graphite">{title}</span>
+            {active > 0 ? (
+              <span className="tabular rounded-full bg-org-primary px-1.5 text-[11px] font-bold text-org-primary-foreground">
+                {active}
+              </span>
+            ) : null}
+          </span>
+          {hint ? <span className="block truncate text-xs text-steel">{hint}</span> : null}
+        </span>
+        <ChevronDown className={cn("size-4 shrink-0 text-steel transition-transform", open && "rotate-180")} />
+      </button>
+      {open ? (
+        <div className="grid gap-x-6 gap-y-4 border-t border-border px-3.5 py-4 sm:grid-cols-2 lg:grid-cols-3">
+          {children}
+        </div>
+      ) : null}
     </section>
   );
 }
+
+const usd = (n: number) => (n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`);
+const pct = (n: number) => `${n}%`;
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
 
@@ -1078,37 +1200,64 @@ function Range({
   label,
   min,
   max,
-  step,
+  lo,
+  hi,
+  step = 1,
+  format = (n: number) => n.toLocaleString("en-US"),
   onChange,
 }: {
   label: string;
   min: number;
   max: number;
+  lo: number;
+  hi: number;
   step?: number;
+  format?: (n: number) => string;
   onChange: (min: number, max: number) => void;
 }) {
+  // 0 in the URL means "no limit", which the slider shows as its end stop.
+  const committed: [number, number] = [min || lo, max || hi];
+  const [draft, setDraft] = useState<[number, number]>(committed);
+  useEffect(() => setDraft([min || lo, max || hi]), [min, max, lo, hi]);
+  const any = draft[0] <= lo && draft[1] >= hi;
+  const text = any
+    ? "Any"
+    : draft[0] <= lo
+      ? `Up to ${format(draft[1])}`
+      : draft[1] >= hi
+        ? `${format(draft[0])}+`
+        : `${format(draft[0])} – ${format(draft[1])}`;
   return (
     <div>
-      <span className="meta mb-1.5 block">{label.toUpperCase()}</span>
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          step={step ?? 1}
-          value={min || ""}
-          placeholder="Min"
-          onChange={(event) => onChange(Number(event.target.value) || 0, max)}
-          className="tabular h-9 w-full rounded border border-input bg-card px-2 text-sm outline-none focus:border-org-primary"
-        />
-        <span className="text-steel">–</span>
-        <input
-          type="number"
-          step={step ?? 1}
-          value={max || ""}
-          placeholder="Max"
-          onChange={(event) => onChange(min, Number(event.target.value) || 0)}
-          className="tabular h-9 w-full rounded border border-input bg-card px-2 text-sm outline-none focus:border-org-primary"
-        />
+      <div className="mb-2.5 flex items-baseline justify-between gap-2">
+        <span className="meta">{label.toUpperCase()}</span>
+        <span className={cn("tabular text-sm font-semibold", any ? "text-steel" : "text-org-primary")}>{text}</span>
       </div>
+      <SliderPrimitive.Root
+        min={lo}
+        max={hi}
+        step={step}
+        value={draft}
+        minStepsBetweenThumbs={1}
+        onValueChange={(v) => setDraft([v[0] ?? lo, v[1] ?? hi])}
+        onValueCommit={(v) => {
+          const a = v[0] ?? lo;
+          const b = v[1] ?? hi;
+          onChange(a <= lo ? 0 : a, b >= hi ? 0 : b);
+        }}
+        className="relative flex h-6 w-full touch-none items-center select-none"
+      >
+        <SliderPrimitive.Track className="relative h-1.5 grow overflow-hidden rounded-full bg-muted">
+          <SliderPrimitive.Range className="absolute h-full bg-org-primary" />
+        </SliderPrimitive.Track>
+        {[0, 1].map((i) => (
+          <SliderPrimitive.Thumb
+            key={i}
+            aria-label={`${label} ${i === 0 ? "minimum" : "maximum"}`}
+            className="block size-5 rounded-full border-2 border-org-primary bg-card shadow focus-visible:ring-2 focus-visible:ring-org-primary/40 focus-visible:outline-none"
+          />
+        ))}
+      </SliderPrimitive.Root>
     </div>
   );
 }
