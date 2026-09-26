@@ -114,10 +114,10 @@ function FamilyPortal() {
             return (
               <section
                 key={athlete['id']}
-                className="rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
+                className="rounded-2xl border border-border bg-card p-4 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)] sm:p-6"
               >
-                <h2 className="font-display text-2xl font-bold text-graphite">{athlete['name']}</h2>
-                <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-4">
+                <h2 className="font-display text-xl font-bold text-graphite sm:text-2xl">{athlete['name']}</h2>
+                <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 sm:gap-4">
                   {[
                     ["Grad year", athlete['grad_year'] ?? "—"],
                     ["Position", athlete['primary_position'] ?? "—"],
