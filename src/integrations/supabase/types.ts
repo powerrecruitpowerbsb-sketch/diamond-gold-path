@@ -289,6 +289,7 @@ export type Database = {
           id: string
           mime_type: string | null
           org_athlete_id: string
+          poster_path: string | null
           size_bytes: number | null
           storage_path: string
           title: string | null
@@ -301,6 +302,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           org_athlete_id: string
+          poster_path?: string | null
           size_bytes?: number | null
           storage_path: string
           title?: string | null
@@ -313,6 +315,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           org_athlete_id?: string
+          poster_path?: string | null
           size_bytes?: number | null
           storage_path?: string
           title?: string | null
@@ -1447,6 +1450,8 @@ export type Database = {
           sport: Database["public"]["Enums"]["sport"]
           status: Database["public"]["Enums"]["athlete_status"]
           throws: Database["public"]["Enums"]["throws_hand"] | null
+          transcript_path: string | null
+          transcript_uploaded_at: string | null
           twitter_handle: string | null
           updated_at: string
           video_links: string[]
@@ -1486,6 +1491,8 @@ export type Database = {
           sport?: Database["public"]["Enums"]["sport"]
           status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
+          transcript_path?: string | null
+          transcript_uploaded_at?: string | null
           twitter_handle?: string | null
           updated_at?: string
           video_links?: string[]
@@ -1525,6 +1532,8 @@ export type Database = {
           sport?: Database["public"]["Enums"]["sport"]
           status?: Database["public"]["Enums"]["athlete_status"]
           throws?: Database["public"]["Enums"]["throws_hand"] | null
+          transcript_path?: string | null
+          transcript_uploaded_at?: string | null
           twitter_handle?: string | null
           updated_at?: string
           video_links?: string[]
