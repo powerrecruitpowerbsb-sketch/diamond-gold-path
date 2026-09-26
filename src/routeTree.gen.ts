@@ -23,6 +23,7 @@ import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authent
 import { Route as AuthenticatedListRouteImport } from './routes/_authenticated/list'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
+import { Route as TeamTokenRouteImport } from './routes/team.$token'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminArchiveRouteImport } from './routes/_authenticated/admin.archive'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
@@ -131,6 +132,11 @@ const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
   path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamTokenRoute = TeamTokenRouteImport.update({
+  id: '/team/$token',
+  path: '/team/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -374,6 +380,7 @@ export interface FileRoutesByFullPath {
   '/list': typeof AuthenticatedListRoute
   '/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
+  '/team/$token': typeof TeamTokenRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -427,6 +434,7 @@ export interface FileRoutesByTo {
   '/list': typeof AuthenticatedListRoute
   '/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
+  '/team/$token': typeof TeamTokenRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -483,6 +491,7 @@ export interface FileRoutesById {
   '/_authenticated/list': typeof AuthenticatedListRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/p/$slug': typeof PSlugRoute
+  '/team/$token': typeof TeamTokenRoute
   '/_authenticated/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/blocks': typeof AuthenticatedAdminBlocksRoute
@@ -539,6 +548,7 @@ export interface FileRouteTypes {
     | '/list'
     | '/search'
     | '/p/$slug'
+    | '/team/$token'
     | '/admin/archive'
     | '/admin/audit'
     | '/admin/blocks'
@@ -592,6 +602,7 @@ export interface FileRouteTypes {
     | '/list'
     | '/search'
     | '/p/$slug'
+    | '/team/$token'
     | '/admin/archive'
     | '/admin/audit'
     | '/admin/blocks'
@@ -647,6 +658,7 @@ export interface FileRouteTypes {
     | '/_authenticated/list'
     | '/_authenticated/search'
     | '/p/$slug'
+    | '/team/$token'
     | '/_authenticated/admin/archive'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/blocks'
@@ -695,6 +707,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   PSlugRoute: typeof PSlugRoute
+  TeamTokenRoute: typeof TeamTokenRoute
   ApiPublicCollectionRunnerRoute: typeof ApiPublicCollectionRunnerRoute
   ApiPublicFederalRunnerRoute: typeof ApiPublicFederalRunnerRoute
   ApiPublicAthletePhotoSlugRoute: typeof ApiPublicAthletePhotoSlugRoute
@@ -798,6 +811,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$slug'
       fullPath: '/p/$slug'
       preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team/$token': {
+      id: '/team/$token'
+      path: '/team/$token'
+      fullPath: '/team/$token'
+      preLoaderRoute: typeof TeamTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -1192,6 +1212,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   PSlugRoute: PSlugRoute,
+  TeamTokenRoute: TeamTokenRoute,
   ApiPublicCollectionRunnerRoute: ApiPublicCollectionRunnerRoute,
   ApiPublicFederalRunnerRoute: ApiPublicFederalRunnerRoute,
   ApiPublicAthletePhotoSlugRoute: ApiPublicAthletePhotoSlugRoute,

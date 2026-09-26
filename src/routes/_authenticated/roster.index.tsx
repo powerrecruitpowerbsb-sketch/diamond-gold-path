@@ -9,6 +9,7 @@ import { ActionLink } from "@/components/brand/ActionButton";
 import { EmptyState } from "@/components/brand/EmptyState";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
+import { PacketShare } from "@/components/coach/PacketShare";
 import { useSeasonContext } from "@/hooks/use-season-context";
 import { useSportMode } from "@/hooks/use-sport-mode";
 import { getAthleteSportMix, listOrgAthletes } from "@/lib/athletes.functions";
@@ -144,6 +145,8 @@ function RosterScreen() {
       <div className="mt-6">
         <SeasonTeamPicker ctx={ctx} />
       </div>
+
+      {ctx.teamId && ctx.teamId !== "__unassigned" ? <PacketShare teamId={ctx.teamId} /> : null}
 
 
 
