@@ -4,6 +4,7 @@ import { CalendarDays, Mail, MapPin, Phone, PlayCircle } from "lucide-react";
 import { formatHeight, formatMetric, metricLabel, metricSourceLabel } from "@/lib/athlete-metrics";
 import { getScoutCard } from "@/lib/athlete-profile.functions";
 import { SocialLinks } from "@/components/athlete/SocialLinks";
+import { ClipTheater } from "@/components/athlete/ClipTheater";
 
 /**
  * The public scout card. A coach opens the link from an email with no account
