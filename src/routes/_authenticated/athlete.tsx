@@ -448,11 +448,22 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="surface-raised scroll-mt-24 rounded-2xl border border-white/10 p-5 sm:p-6">
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <p className="meta text-org-accent">{eyebrow}</p>
-          <h2 className="font-display mt-1 text-xl font-bold tracking-tight text-graphite">{title}</h2>
+    <section
+      id={id}
+      className="card-panel relative scroll-mt-24 overflow-hidden p-5 sm:p-6"
+    >
+      <span
+        className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
+        style={{ background: "linear-gradient(90deg, var(--org-primary), transparent 70%)" }}
+        aria-hidden
+      />
+      <div className="mb-5 flex items-end justify-between gap-3 border-b border-white/[0.07] pb-4">
+        <div className="flex items-stretch gap-3">
+          <span className="w-1 rounded-full bg-org-primary" aria-hidden />
+          <div>
+            <p className="label-caps text-org-primary-strong">{eyebrow}</p>
+            <h2 className="font-display mt-0.5 text-2xl font-bold tracking-tight text-graphite">{title}</h2>
+          </div>
         </div>
         {action}
       </div>
@@ -908,17 +919,20 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
         {counts.map((s, i) => (
           <div
             key={s.key}
-            className="rounded-lg border border-white/10 px-2 py-2.5 text-center"
+            className="relative overflow-hidden rounded-xl border border-white/10 bg-surface-1 px-3 py-3"
             style={{
               background: s.n
-                ? `color-mix(in oklab, var(${i === 3 ? "--diamond-green" : "--org-primary"}) ${10 + i * 6}%, transparent)`
+                ? `color-mix(in oklab, var(${i === 3 ? "--diamond-green" : "--org-primary"}) ${10 + i * 6}%, var(--surface-1))`
                 : undefined,
             }}
           >
-            <p className="font-display tabular text-2xl leading-none font-bold text-graphite">{s.n}</p>
-            <p className="mt-1 truncate text-[11px] font-medium text-steel">
-              {s.label}
-            </p>
+            <span
+              className="absolute inset-y-0 left-0 w-[3px]"
+              style={{ background: s.n ? `var(${i === 3 ? "--diamond-green" : "--org-primary"})` : "var(--track)" }}
+              aria-hidden
+            />
+            <p className="font-display tabular text-3xl leading-none font-bold text-graphite">{s.n}</p>
+            <p className="label-caps mt-1.5 truncate">{s.label}</p>
           </div>
         ))}
       </div>
