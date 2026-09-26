@@ -96,8 +96,7 @@ function FamilyPortal() {
         <div className="mt-6 rounded-xl border border-border bg-card p-8 text-center shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
           <p className="font-display text-lg font-bold text-graphite">No athlete linked yet</p>
           <p className="mt-1 text-sm text-steel">
-            Ask your organization's staff to send you a family invite — that's what connects this
-            account to your athlete.
+            Ask your club for a family invite.
           </p>
           <Link
             to="/search"

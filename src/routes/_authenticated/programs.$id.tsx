@@ -133,7 +133,7 @@ function ProgramProfile() {
         <div className="rounded border border-border bg-card p-8 text-center">
           <h1 className="font-display text-2xl font-bold text-graphite">Program not found</h1>
           <p className="mt-2 text-sm text-steel">
-            {isError ? (error as Error).message : "This program is not available to your account."}
+            {isError ? (error as Error).message : "Not available."}
           </p>
           <Link
             to="/search"
@@ -544,7 +544,7 @@ function ProgramProfile() {
 
           <Panel title="Majors" meta={`${majorRows.length} on file`}>
             {majorRows.length === 0 ? (
-              <p className="text-sm text-steel">No majors are on file for this school yet.</p>
+              <p className="text-sm text-steel">No majors on file.</p>
             ) : (
               <div className="max-h-80 overflow-x-hidden overflow-y-auto">
                 {majorRows.map((major) => (
@@ -611,13 +611,13 @@ function ProgramProfile() {
             <Panel title="Roster" meta={latestSeason ? `${latestSeason} season` : "None on file"}>
               <p className="text-sm font-semibold text-graphite">
                 {rosterBlocked
-                  ? "This school’s site blocks automated reading, so no roster has been collected."
-                  : "No roster is on file for this program yet."}
+                  ? "Roster blocked by school site."
+                  : "No roster on file."}
               </p>
               <p className="mt-1 text-sm text-steel">
                 {program.roster_url || program.athletic_website
-                  ? "The addresses we hold are below — you can read the roster directly on the school’s site."
-                  : "We don’t hold a roster or athletics address for this program yet."}
+                  ? "Links below."
+                  : "No links on file."}
               </p>
               <div className="mt-3">
                 {[
@@ -719,7 +719,7 @@ function ProgramProfile() {
       {tab === "links" ? (
         <Panel title="Official links">
           {officialLinks.length === 0 ? (
-            <p className="text-sm text-steel">No addresses are on file for this school.</p>
+            <p className="text-sm text-steel">No links on file.</p>
           ) : (
             officialLinks.map((row) => (
               <LinkRow key={row.label} label={row.label} url={String(row.url)} />

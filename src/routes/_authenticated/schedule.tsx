@@ -58,10 +58,8 @@ function SchedulePage() {
           <Link to="/athlete" className="meta inline-flex items-center gap-1 text-steel hover:text-graphite">
             <ArrowLeft className="size-3.5" /> Hub
           </Link>
-          <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-graphite">Schedule</h1>
-          <p className="mt-1 text-sm text-steel">
-            Club events show up automatically. Add your own — high school games, showcases, camps, anything.
-          </p>
+          <p className="meta mt-3 text-org-accent">Calendar</p>
+          <h1 className="font-display mt-1 text-3xl font-bold tracking-tight text-graphite">Schedule</h1>
           {data?.athleteId && !adding ? (
             <Button className="mt-3" onClick={() => setAdding(true)}>
               <Plus className="size-4" /> Add event
@@ -82,7 +80,7 @@ function SchedulePage() {
         ) : upcoming.length === 0 ? (
           <div className="surface-raised rounded-2xl border border-white/10 p-8 text-center">
             <CalendarDays className="mx-auto size-6 text-steel" />
-            <p className="mt-2 text-sm text-steel">Nothing on the calendar yet.</p>
+            <p className="mt-2 font-mono text-[11px] tracking-wide text-steel uppercase">No events</p>
             {data?.athleteId && !adding ? (
               <Button variant="outline" className="mt-3" onClick={() => setAdding(true)}>
                 <Plus className="size-4" /> Add your first event
@@ -92,7 +90,7 @@ function SchedulePage() {
         ) : (
           [...months.entries()].map(([month, list]) => (
             <section key={month}>
-              <p className="meta mb-2 text-org-accent">{month}</p>
+              <p className="meta mb-2 flex items-center gap-2 text-org-accent"><span className="h-3 w-1 rounded-full bg-org-primary" />{month}</p>
               <ul className="space-y-2">
                 {list.map((e, i) => (
                   <EventRow key={e['id']} e={e} next={month === [...months.keys()][0] && i === 0} />
@@ -124,7 +122,7 @@ function EventRow({ e, next = false }: { e: Record<string, any>; next?: boolean 
   return (
     <li
       className={cn(
-        "surface-raised flex items-center gap-4 rounded-xl border p-3.5",
+        "card-panel relative flex items-center gap-4 overflow-hidden rounded-xl border p-3.5 transition-[border-color,transform] duration-200 hover:-translate-y-0.5",
         next ? "border-org-primary/50" : "border-white/10",
       )}
     >
@@ -214,14 +212,14 @@ function AddEventForm({ athleteId, onDone }: { athleteId: string; onDone: () => 
   const lbl = "meta text-steel";
   return (
     <form
-      className="surface-raised space-y-3 rounded-2xl border border-org-primary/40 p-4"
+      className="card-panel relative space-y-3 overflow-hidden rounded-2xl border border-org-primary/40 p-4 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-org-primary"
       onSubmit={(e) => {
         e.preventDefault();
         m.mutate();
       }}
     >
       <div className="flex items-center justify-between">
-        <p className="font-display text-lg font-bold text-graphite">New event</p>
+        <p className="font-mono text-xs font-bold tracking-widest text-graphite uppercase">New event</p>
         <button type="button" onClick={onDone} aria-label="Close" className="touch-target text-steel">
           <X className="size-4" />
         </button>
