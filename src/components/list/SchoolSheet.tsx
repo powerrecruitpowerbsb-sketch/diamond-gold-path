@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -235,7 +235,7 @@ export function SchoolSheet({
                       hint={profile.data?.latestSeason ? String(profile.data.latestSeason) : null}
                     />
                   </div>
-                  <Panel title="The program">
+                  <Panel title="Program">
                     <dl className="grid grid-cols-2 gap-2">
                       {(
                         [
@@ -263,7 +263,7 @@ export function SchoolSheet({
               <SectionLabel>Academics</SectionLabel>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <StatCard
-                    label="SAT middle 50%"
+                    label="SAT"
                     value={
                       university['sat_total_25'] && university['sat_total_75']
                         ? `${university['sat_total_25']}–${university['sat_total_75']}`
@@ -272,7 +272,7 @@ export function SchoolSheet({
                     verified
                   />
                   <StatCard
-                    label="ACT middle 50%"
+                    label="ACT"
                     value={
                       university['act_25'] && university['act_75']
                         ? `${university['act_25']}–${university['act_75']}`
@@ -281,7 +281,7 @@ export function SchoolSheet({
                     verified
                   />
                   <StatCard
-                    label="Graduation rate"
+                    label="Grad rate"
                     value={
                       university['graduation_rate']
                         ? pct(university['graduation_rate'])
@@ -561,5 +561,14 @@ function NotesAndMessages({
         )}
       </section>
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-2 pt-3 font-display text-sm font-bold tracking-wide text-graphite uppercase">
+      <span className="h-3.5 w-1 rounded-full bg-org-primary" aria-hidden />
+      {children}
+    </h3>
   );
 }
