@@ -9,6 +9,7 @@ import { ActionButton, ActionLink } from "@/components/brand/ActionButton";
 import { EmptyState } from "@/components/brand/EmptyState";
 import { OrgMark } from "@/components/brand/OrgMark";
 import { AuthButton } from "@/components/brand/AuthButton";
+import { ActionsPanel } from "@/components/coach/ActionsPanel";
 import { SeasonTeamPicker } from "@/components/brand/SeasonTeamPicker";
 import { useSeasonContext } from "@/hooks/use-season-context";
 import { useSportMode } from "@/hooks/use-sport-mode";
@@ -126,6 +127,8 @@ function Dashboard() {
       <div className="mt-6">
         <SeasonTeamPicker ctx={ctx} />
       </div>
+
+      <ActionsPanel seasonId={ctx.seasonId} teamId={ctx.teamId} sport={sport} />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <BarCard
