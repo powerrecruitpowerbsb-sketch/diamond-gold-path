@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { StateSelect, POSITIONS, gradYearOptions } from "@/components/brand/StateSelect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
@@ -141,12 +142,7 @@ export function TeamSchedulePanel({ teamId, teamName }: { teamId: string; teamNa
           </label>
           <label className="block">
             <span className={label}>State</span>
-            <input
-              maxLength={2}
-              value={form.state}
-              onChange={(e) => setForm((v) => ({ ...v, state: e.target.value }))}
-              className={input}
-            />
+            <StateSelect value={form.state} onValueChange={(s) => setForm((v) => ({ ...v, state: s }))} className={input} />
           </label>
           <div className="sm:col-span-2">
             <button

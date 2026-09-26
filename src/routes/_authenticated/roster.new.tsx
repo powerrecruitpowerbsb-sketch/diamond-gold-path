@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { StateSelect, POSITIONS, gradYearOptions } from "@/components/brand/StateSelect";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -159,22 +160,21 @@ function NewAthlete() {
           </label>
           <label>
             <span className={LABEL}>Graduation year</span>
-            <input
-              inputMode="numeric"
-              value={form.gradYear}
-              onChange={(event) => set("gradYear")(event.target.value)}
-              placeholder="2027"
-              className={`mt-1 tabular-nums ${FIELD}`}
-            />
+            <select value={form.gradYear} onChange={(event) => set("gradYear")(event.target.value)} className={`mt-1 tabular-nums ${FIELD}`}>
+              <option value="">Choose a year</option>
+              {gradYearOptions().map((y) => (
+                <option key={y} value={String(y)}>{y}</option>
+              ))}
+            </select>
           </label>
           <label>
             <span className={LABEL}>Primary position</span>
-            <input
-              value={form.primaryPosition}
-              onChange={(event) => set("primaryPosition")(event.target.value)}
-              placeholder="RHP, SS, C…"
-              className={`mt-1 ${FIELD}`}
-            />
+            <select value={form.primaryPosition} onChange={(event) => set("primaryPosition")(event.target.value)} className={`mt-1 ${FIELD}`}>
+              <option value="">Choose a position</option>
+              {POSITIONS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </label>
           <label>
             <span className={LABEL}>Bats</span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { StateSelect, POSITIONS, gradYearOptions } from "@/components/brand/StateSelect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { BadgeCheck, ImagePlus, Pencil, Play, Plus, Trash2 } from "lucide-react";
@@ -1025,12 +1026,7 @@ export function AthleteProfilePanel({ athleteId, canEdit = true, canVerify = fal
             </label>
             <label className="block">
               <span className={labelClass}>State</span>
-              <input
-                maxLength={2}
-                value={event.state}
-                onChange={(e) => setEvent((v) => ({ ...v, state: e.target.value }))}
-                className={inputClass}
-              />
+              <StateSelect value={event.state} onValueChange={(s) => setEvent((v) => ({ ...v, state: s }))} className={inputClass} />
             </label>
             <label className="block sm:col-span-2">
               <span className={labelClass}>Link</span>

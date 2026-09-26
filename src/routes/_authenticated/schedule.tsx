@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { StateSelect, POSITIONS, gradYearOptions } from "@/components/brand/StateSelect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -262,7 +263,7 @@ function AddEventForm({ athleteId, onDone }: { athleteId: string; onDone: () => 
         </label>
         <label className={field}>
           <span className={lbl}>State</span>
-          <Input value={f.state} onChange={set("state")} maxLength={2} placeholder="CA" />
+          <StateSelect value={f.state} onValueChange={(v) => setF({ ...f, state: v })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" />
         </label>
         <label className={field + " sm:col-span-2"}>
           <span className={lbl}>Website (optional)</span>
