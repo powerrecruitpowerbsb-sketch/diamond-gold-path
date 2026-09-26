@@ -70,24 +70,29 @@ export function ActivityChips({
 
   if (!entryId) {
     return (
-      <p className="rounded border border-border p-4 text-sm text-steel">
-        Add this school to an athlete's list to start tracking activity.
+      <p className="rounded-xl border border-dashed border-border p-4 text-sm text-steel">
+        Add to My Colleges to track.
       </p>
     );
   }
 
   return (
-    <div className="space-y-5">
-      <p className="text-sm text-steel">
-        Tap anything that's happened. Coaches and family see the same picture, so there's no need
-        to ask where things stand.
-      </p>
-
+    <div className="space-y-3">
       {ACTIVITY_GROUPS.map((group) => (
-        <section key={group.id}>
-          <h4 className="meta text-steel">{group.title}</h4>
-          <p className="mt-0.5 text-xs text-steel">{group.hint}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+        <section
+          key={group.id}
+          className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm"
+        >
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-org-primary" aria-hidden />
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="font-display text-sm font-bold tracking-wide text-graphite uppercase">
+              {group.title}
+            </h4>
+            <span className="tabular font-mono text-[11px] text-steel">
+              {group.chips.filter((c) => chips.has(c.id)).length}/{group.chips.length}
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
             {group.chips.map((chip) => {
               const on = chips.has(chip.id);
               return (
