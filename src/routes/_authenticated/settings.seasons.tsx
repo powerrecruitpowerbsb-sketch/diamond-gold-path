@@ -742,7 +742,7 @@ function RolloverWizard({
             their record and shortlist history stay searchable either way.
           </p>
           <div className="mt-3 overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-left text-sm tabular-nums">
+            <div className="scroll-x"><table className="w-full text-left text-sm tabular-nums">
               <thead className="bg-chalk font-mono text-[11px] tracking-wide text-steel uppercase">
                 <tr>
                   <th className="px-3 py-2">Player</th>
@@ -801,7 +801,7 @@ function RolloverWizard({
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           <div className="mt-5 flex gap-2">

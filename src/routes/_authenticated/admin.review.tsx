@@ -810,7 +810,7 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
                                   {itemOpen ? "HIDE PLAYERS" : "SHOW PLAYERS"}
                                 </button>
                                 {itemOpen ? (
-                                  <table className="mt-2 w-full text-sm">
+                                  <div className="scroll-x"><table className="mt-2 w-full text-sm">
                                     <thead>
                                       <tr className="border-b border-border">
                                         <th className="py-1.5 pr-3 text-left text-steel">Name</th>
@@ -837,7 +837,7 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
                                         </tr>
                                       ))}
                                     </tbody>
-                                  </table>
+                                  </table></div>
                                 ) : null}
                               </div>
                             ) : (
@@ -850,7 +850,7 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
                                   {itemOpen ? "HIDE DETAILS" : "SHOW DETAILS"}
                                 </button>
                                 {itemOpen ? (
-                                  <table className="mt-2 w-full text-sm">
+                                  <div className="scroll-x"><table className="mt-2 w-full text-sm">
                                     <tbody>
                                       {Object.entries(
                                         (item.proposed_value ?? {}) as Record<string, unknown>,
@@ -872,7 +872,7 @@ export function ReviewQueuePanel({ programFilter }: { programFilter?: string }) 
                                           </tr>
                                         ))}
                                     </tbody>
-                                  </table>
+                                  </table></div>
                                 ) : null}
                               </div>
                             )}

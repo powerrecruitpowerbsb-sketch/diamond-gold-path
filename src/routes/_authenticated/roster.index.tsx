@@ -240,7 +240,7 @@ function RosterScreen() {
       ) : null}
 
       <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
-        <table className="w-full text-left text-sm tabular-nums">
+        <div className="scroll-x"><table className="w-full text-left text-sm tabular-nums">
           <thead className="bg-surface-2 font-mono text-[11px] tracking-wide text-steel uppercase">
             <tr>
               <th className="px-4 py-3">Name</th>
@@ -340,7 +340,7 @@ function RosterScreen() {
             )}
 
           </tbody>
-        </table>
+        </table></div>
       </div>
     </AppShell>
   );

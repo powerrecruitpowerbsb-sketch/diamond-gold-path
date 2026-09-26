@@ -188,7 +188,7 @@ export function IngestPanel({ programId }: { programId: string }) {
       ) : null}
 
       {history.length ? (
-        <table className="mt-5 w-full text-sm">
+        <div className="scroll-x"><table className="mt-5 w-full text-sm">
           <thead>
             <tr className="border-b border-border">
               <th className="py-2 pr-3 text-left text-steel">Run</th>
@@ -212,7 +212,7 @@ export function IngestPanel({ programId }: { programId: string }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       ) : null}
     </section>
   );
