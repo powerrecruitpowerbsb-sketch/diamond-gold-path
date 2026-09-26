@@ -607,8 +607,7 @@ function StageTile({
         active ? "border-org-primary bg-org-primary/15" : "border-border bg-card hover:border-org-primary/40",
       )}
     >
-      <span className="block truncate font-mono text-[10px] tracking-wide text-steel uppercase">
-        {step ? `${step} · ` : ""}
+      <span className="block truncate text-xs font-medium text-steel" title={step ? `Step ${step}` : undefined}>
         {label}
       </span>
       <span className={cn("font-display tabular block text-2xl font-bold", active ? "text-org-primary" : "text-graphite")}>
