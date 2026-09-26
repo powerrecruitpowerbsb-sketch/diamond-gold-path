@@ -204,12 +204,16 @@ export type Database = {
           activity_chips: string[]
           activity_notes: Json
           added_by_user_id: string | null
+          coach_message: string | null
           created_at: string
           id: string
           notes: string | null
           org_athlete_id: string
           org_stage_id: string | null
           program_id: string
+          recommended_at: string | null
+          recommended_by_name: string | null
+          recommended_by_user_id: string | null
           status: Database["public"]["Enums"]["saved_school_status"]
           updated_at: string
         }
@@ -217,12 +221,16 @@ export type Database = {
           activity_chips?: string[]
           activity_notes?: Json
           added_by_user_id?: string | null
+          coach_message?: string | null
           created_at?: string
           id?: string
           notes?: string | null
           org_athlete_id: string
           org_stage_id?: string | null
           program_id: string
+          recommended_at?: string | null
+          recommended_by_name?: string | null
+          recommended_by_user_id?: string | null
           status?: Database["public"]["Enums"]["saved_school_status"]
           updated_at?: string
         }
@@ -230,12 +238,16 @@ export type Database = {
           activity_chips?: string[]
           activity_notes?: Json
           added_by_user_id?: string | null
+          coach_message?: string | null
           created_at?: string
           id?: string
           notes?: string | null
           org_athlete_id?: string
           org_stage_id?: string | null
           program_id?: string
+          recommended_at?: string | null
+          recommended_by_name?: string | null
+          recommended_by_user_id?: string | null
           status?: Database["public"]["Enums"]["saved_school_status"]
           updated_at?: string
         }
@@ -2672,6 +2684,38 @@ export type Database = {
             columns: ["university_id"]
             isOneToOne: false
             referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_school_staff_notes: {
+        Row: {
+          created_at: string
+          note: string
+          saved_school_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          note: string
+          saved_school_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          note?: string
+          saved_school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_school_staff_notes_saved_school_id_fkey"
+            columns: ["saved_school_id"]
+            isOneToOne: true
+            referencedRelation: "athlete_saved_schools"
             referencedColumns: ["id"]
           },
         ]

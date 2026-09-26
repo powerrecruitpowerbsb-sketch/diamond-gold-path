@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.guard_coach_pick() FROM PUBLIC, anon, authenticated;
