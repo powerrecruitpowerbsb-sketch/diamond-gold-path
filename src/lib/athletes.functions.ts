@@ -438,6 +438,7 @@ export const importAthletes = createServerFn({ method: "POST" })
         action?: "create" | "update" | "skip";
         matchId?: string | null;
         parentEmail?: string | null;
+        playerEmail?: string | null;
         team?: string | null;
       })[];
       sendFamilyInvites?: boolean;
@@ -464,7 +465,11 @@ export const importAthletes = createServerFn({ method: "POST" })
 
     const wantsInvites =
       data.sendFamilyInvites &&
-      data.rows.some((row) => row.action !== "skip" && String(row.parentEmail ?? "").trim());
+      data.rows.some(
+        (row) =>
+          row.action !== "skip" &&
+          (String(row.parentEmail ?? "").trim() || String(row.playerEmail ?? "").trim()),
+      );
     const sendInviteCore = wantsInvites
       ? (await import("./invites.server")).sendInviteCore
       : null;
@@ -523,28 +528,28 @@ export const importAthletes = createServerFn({ method: "POST" })
       }
 
       // Same invite path as the athlete page — one service, three entry points.
-      const parentEmail = String(row.parentEmail ?? "").trim().toLowerCase();
-      if (sendInviteCore && athleteId && parentEmail) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(parentEmail)) {
-          inviteFailures.push({ row: i + 1, email: parentEmail, message: "not a valid email" });
-        } else {
-          try {
-            const result = await sendInviteCore({
-              actorUserId: context.userId,
-              orgId,
-              email: parentEmail,
-              role: "parent",
-              athleteId,
-              redirectTo: inviteRedirect(),
-            });
-            if (result.status === "sent") invited += 1;
-          } catch (error) {
-            inviteFailures.push({
-              row: i + 1,
-              email: parentEmail,
-              message: (error as Error).message,
-            });
-          }
+      const targets: { email: string; role: "parent" | "player" }[] = [
+        { email: String(row.parentEmail ?? "").trim().toLowerCase(), role: "parent" },
+        { email: String(row.playerEmail ?? "").trim().toLowerCase(), role: "player" },
+      ];
+      for (const target of targets) {
+        if (!sendInviteCore || !athleteId || !target.email) continue;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(target.email)) {
+          inviteFailures.push({ row: i + 1, email: target.email, message: "not a valid email" });
+          continue;
+        }
+        try {
+          const result = await sendInviteCore({
+            actorUserId: context.userId,
+            orgId,
+            email: target.email,
+            role: target.role,
+            athleteId,
+            redirectTo: inviteRedirect(),
+          });
+          if (result.status === "sent") invited += 1;
+        } catch (error) {
+          inviteFailures.push({ row: i + 1, email: target.email, message: (error as Error).message });
         }
       }
     }
