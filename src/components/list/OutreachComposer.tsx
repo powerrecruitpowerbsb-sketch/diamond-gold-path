@@ -165,17 +165,18 @@ export function OutreachComposer({
 
   if (!athleteId) {
     return (
-      <p className="rounded border border-border p-4 text-sm text-steel">
-        Pick a player to write to this program's coaches.
+      <p className="rounded-xl border border-dashed border-border p-4 text-sm text-steel">
+        Pick a player first.
       </p>
     );
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-      <section>
+    <div className="grid gap-3">
+      <section className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-org-primary" aria-hidden />
         <div className="flex items-center justify-between">
-          <h3 className="meta text-steel">Coaches at {school}</h3>
+          <h3 className="font-display text-sm font-bold tracking-wide text-graphite uppercase">Coaches</h3>
           {canEdit ? (
             <button
               type="button"
@@ -189,8 +190,7 @@ export function OutreachComposer({
 
         {headCoachName && !list.some((row) => row.coach_name === headCoachName) ? (
           <p className="mt-2 text-xs text-steel">
-            Published head coach: <span className="font-semibold text-graphite">{headCoachName}</span>{" "}
-            — we don't have an email for them yet.
+            Head coach <span className="font-semibold text-graphite">{headCoachName}</span> · no email
           </p>
         ) : null}
 
@@ -241,11 +241,9 @@ export function OutreachComposer({
           </form>
         ) : null}
 
-        <div className="mt-3 divide-y divide-border rounded border border-border">
+        <div className="mt-3 divide-y divide-border rounded-lg border border-border">
           {list.length === 0 ? (
-            <p className="p-3 text-sm text-steel">
-              No coach contacts saved yet for this school.
-            </p>
+            <p className="p-3 text-sm text-steel">No contacts</p>
           ) : (
             list.map((row) => (
               <div
@@ -284,8 +282,9 @@ export function OutreachComposer({
         </div>
       </section>
 
-      <section>
-        <h3 className="meta text-steel">The email</h3>
+      <section className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-org-primary" aria-hidden />
+        <h3 className="font-display text-sm font-bold tracking-wide text-graphite uppercase">Email</h3>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {SUBJECT_TEMPLATES.map((item) => (
             <button
@@ -327,8 +326,8 @@ export function OutreachComposer({
         />
 
         {!input.scoutCardUrl ? (
-          <p className="mt-2 text-xs text-steel">
-            Turn on the shareable profile on the player card to include a coach-ready link.
+          <p className="mt-2 font-mono text-[11px] tracking-wide text-steel uppercase">
+            Scout Card link off
           </p>
         ) : null}
 

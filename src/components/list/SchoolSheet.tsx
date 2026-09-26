@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -149,16 +149,19 @@ export function SchoolSheet({
         </SheetHeader>
 
         {entry ? (
-          <Tabs defaultValue={defaultTab ?? "overview"} className="px-5 py-5 sm:px-7">
+          <Tabs
+            defaultValue={
+              defaultTab === "email" ? "activity" : defaultTab === "academics" ? "overview" : (defaultTab ?? "overview")
+            }
+            className="px-5 py-5 sm:px-7"
+          >
             <TabsList className="sticky top-0 z-20 -mx-5 flex h-auto w-[calc(100%+2.5rem)] flex-nowrap justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-background/95 px-5 py-0 backdrop-blur [scrollbar-width:none] sm:-mx-7 sm:w-[calc(100%+3.5rem)] sm:px-7 [&::-webkit-scrollbar]:hidden">
               {(
                 [
-                  ["overview", "Overview"],
-                  ["activity", "Activity"],
-                  ["email", "Email"],
-                  ["academics", "Academics"],
-                  ["roster", "Roster"],
+                  ["overview", "School"],
                   ["fit", "Fit"],
+                  ["activity", "Track"],
+                  ["roster", "Roster"],
                   ["intel", "Intel"],
                   ["notes", "Notes"],
                 ] as [string, string][]
@@ -181,11 +184,8 @@ export function SchoolSheet({
             </TabsContent>
 
 
-            <TabsContent value="activity" className="pt-5">
+            <TabsContent value="activity" className="space-y-3 pt-5">
               <ActivityChips entryId={entry.id} />
-            </TabsContent>
-
-            <TabsContent value="email" className="pt-5">
               <OutreachComposer
                 programId={entry.programId}
                 school={entry.school}
@@ -199,8 +199,8 @@ export function SchoolSheet({
               {profile.isPending ? (
                 <p className="text-sm text-steel">Loading…</p>
               ) : (
-                <div className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-4">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <StatCard
                       label="Undergrads"
                       value={
@@ -235,7 +235,7 @@ export function SchoolSheet({
                       hint={profile.data?.latestSeason ? String(profile.data.latestSeason) : null}
                     />
                   </div>
-                  <Panel title="The program">
+                  <Panel title="Program">
                     <dl className="grid grid-cols-2 gap-2">
                       {(
                         [
@@ -260,15 +260,10 @@ export function SchoolSheet({
                       ))}
                     </dl>
                   </Panel>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="academics" className="pt-5">
-              <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-4">
+              <SectionLabel>Academics</SectionLabel>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <StatCard
-                    label="SAT middle 50%"
+                    label="SAT"
                     value={
                       university['sat_total_25'] && university['sat_total_75']
                         ? `${university['sat_total_25']}–${university['sat_total_75']}`
@@ -277,7 +272,7 @@ export function SchoolSheet({
                     verified
                   />
                   <StatCard
-                    label="ACT middle 50%"
+                    label="ACT"
                     value={
                       university['act_25'] && university['act_75']
                         ? `${university['act_25']}–${university['act_75']}`
@@ -286,7 +281,7 @@ export function SchoolSheet({
                     verified
                   />
                   <StatCard
-                    label="Graduation rate"
+                    label="Grad rate"
                     value={
                       university['graduation_rate']
                         ? pct(university['graduation_rate'])
@@ -306,9 +301,10 @@ export function SchoolSheet({
                     }
                   />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-4">
+                <SectionLabel>Cost</SectionLabel>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <StatCard
-                    label="In-state tuition"
+                    label="In-state"
                     value={
                       university['tuition_in_state']
                         ? money(university['tuition_in_state'])
@@ -326,7 +322,7 @@ export function SchoolSheet({
                     verified
                   />
                   <StatCard
-                    label="Cost of attendance"
+                    label="Full cost"
                     value={
                       university['est_cost_of_attendance']
                         ? money(university['est_cost_of_attendance'])
@@ -334,29 +330,15 @@ export function SchoolSheet({
                     }
                     verified
                   />
-                  <StatCard
-                    label="Net price"
-                    value={
-                      university['est_net_price']
-                        ? money(university['est_net_price'])
-                        : "Not reported"
-                    }
-                    hint="Average after aid"
-                    verified
-                  />
                 </div>
-                <p className="meta">
-                  Figures come from the school's own reporting. Anything we don't hold says so.
-                </p>
-              </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="roster" className="pt-5">
               {roster.length === 0 ? (
                 <Panel title="Roster">
-                  <p className="text-sm text-steel">
-                    Not published by the school. The school keeps its place either way.
-                  </p>
+                  <p className="text-sm text-steel">Not published</p>
                 </Panel>
               ) : (
                 <div className="space-y-4">
@@ -579,5 +561,14 @@ function NotesAndMessages({
         )}
       </section>
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-2 pt-3 font-display text-sm font-bold tracking-wide text-graphite uppercase">
+      <span className="h-3.5 w-1 rounded-full bg-org-primary" aria-hidden />
+      {children}
+    </h3>
   );
 }

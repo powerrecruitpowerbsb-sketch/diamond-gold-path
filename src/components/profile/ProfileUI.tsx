@@ -31,7 +31,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "relative rounded-xl border border-border bg-card p-4",
+        "relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm",
         verified && known && "border-diamond-green/30 bg-diamond-green-tint",
         className,
       )}
@@ -70,10 +70,11 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("min-w-0 rounded-xl border border-border bg-card", className)}>
+    <section className={cn("relative min-w-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm", className)}>
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-org-primary" aria-hidden />
       {title ? (
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-4 py-3">
-          <h2 className="font-display text-base font-bold text-graphite">{title}</h2>
+          <h2 className="font-display text-sm font-bold tracking-wide text-graphite uppercase">{title}</h2>
           {meta ? <div className="meta">{meta}</div> : null}
         </div>
       ) : null}
