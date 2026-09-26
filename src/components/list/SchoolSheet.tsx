@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, Flag, Send } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityChips } from "@/components/list/ActivityChips";
@@ -18,13 +18,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getProgramProfile } from "@/lib/search.functions";
-import {
-  getThread,
-  markThreadRead,
-  openThread,
-  reportThread,
-  sendMessage,
-} from "@/lib/messaging.functions";
 import { setEntryNotes } from "@/lib/continuum.functions";
 import { useMyAccount } from "@/hooks/use-my-account";
 import { isOrgManagerRole } from "@/lib/roles";
@@ -168,7 +161,7 @@ export function SchoolSheet({
                   ["activity", "Track"],
                   ["roster", "Roster"],
                   ["intel", "Intel"],
-                  ["notes", "Notes"],
+                  ["notes", "Journal"],
                 ] as [string, string][]
               ).map(([value, label]) => (
                 <TabsTrigger
@@ -385,7 +378,6 @@ export function SchoolSheet({
 
 function NotesAndMessages({
   entry,
-  athleteId,
   onSaved,
 }: {
   entry: SheetEntry;
@@ -393,180 +385,61 @@ function NotesAndMessages({
   onSaved: () => void;
 }) {
   const notesFn = useServerFn(setEntryNotes);
-  const openFn = useServerFn(openThread);
-  const threadFn = useServerFn(getThread);
-  const sendFn = useServerFn(sendMessage);
-  const readFn = useServerFn(markThreadRead);
-  const reportFn = useServerFn(reportThread);
-  const queryClient = useQueryClient();
-
   const [notes, setNotes] = useState(entry.notes ?? "");
-  const [threadId, setThreadId] = useState<string | null>(entry.threadId);
-  const [draft, setDraft] = useState("");
-  const bottom = useRef<HTMLDivElement | null>(null);
+  const [saved, setSaved] = useState(entry.notes ?? "");
 
   useEffect(() => {
     setNotes(entry.notes ?? "");
-    setThreadId(entry.threadId);
-  }, [entry.id, entry.notes, entry.threadId]);
+    setSaved(entry.notes ?? "");
+  }, [entry.id, entry.notes]);
 
-  const thread = useQuery({
-    queryKey: ["thread", threadId],
-    queryFn: () => threadFn({ data: { threadId: threadId! } }),
-    enabled: Boolean(threadId),
-    retry: false,
-  });
-
-  useEffect(() => {
-    if (threadId) readFn({ data: { threadId } }).catch(() => undefined);
-  }, [threadId, thread.data?.messages.length, readFn]);
-
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [thread.data?.messages.length]);
-
-  // Opening the tab also tops up the participant list, so a parent added to the
-  // athlete after the thread started still joins the conversation.
-  useEffect(() => {
-    if (threadId && athleteId) {
-      openFn({ data: { athleteId, programId: entry.programId } }).catch((error: Error) =>
-        console.error("thread sync failed", error.message),
-      );
-    }
-  }, [threadId, athleteId, entry.programId, openFn]);
-
-  const start = useMutation({
-    mutationFn: () => openFn({ data: { athleteId: athleteId ?? "", programId: entry.programId } }),
-    onSuccess: (result) => {
-      setThreadId(result.threadId);
+  const save = useMutation({
+    mutationFn: () => notesFn({ data: { entryId: entry.id as string, notes: notes || null } }),
+    onSuccess: () => {
+      setSaved(notes);
+      toast.success("Saved");
       onSaved();
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const send = useMutation({
-    mutationFn: () => sendFn({ data: { threadId: threadId!, body: draft } }),
-    onSuccess: () => {
-      setDraft("");
-      queryClient.invalidateQueries({ queryKey: ["thread", threadId] });
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
+  if (!entry.id) {
+    return (
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-1 bg-org-primary" aria-hidden />
+        <SectionLabel>Journal</SectionLabel>
+        <p className="mt-2 text-sm text-steel">Add to My Colleges to keep notes.</p>
+      </div>
+    );
+  }
 
-  const flag = useMutation({
-    mutationFn: (reason: string) => reportFn({ data: { threadId: threadId!, reason } }),
-    onSuccess: () => toast.success("Reported. Curve Recruit staff can see it."),
-    onError: (error: Error) => toast.error(error.message),
-  });
-
+  const dirty = notes !== saved;
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <section>
-        <h3 className="meta text-steel">Notes on this school</h3>
-        {entry.id ? (
-          <Textarea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            onBlur={() => {
-              if ((entry.notes ?? "") !== notes) {
-                notesFn({ data: { entryId: entry.id as string, notes: notes || null } })
-                  .then(() => {
-                    toast.success("Note saved");
-                    onSaved();
-                  })
-                  .catch((error: Error) => toast.error(error.message));
-              }
-            }}
-            rows={6}
-            className="mt-2"
-            placeholder="What you know about this school, and where things stand."
-          />
-        ) : (
-          <p className="mt-2 rounded border border-border p-4 text-sm text-steel">
-            Add this school to a player's list to keep notes on it.
-          </p>
-        )}
-      </section>
-
-      <section className="flex flex-col">
-        <div className="flex items-center justify-between">
-          <h3 className="meta text-steel">Conversation</h3>
-          {threadId ? (
-            <button
-              type="button"
-              className="flex items-center gap-1 text-xs font-semibold text-seam-red"
-              onClick={() => {
-                const reason = window.prompt("What's wrong with this conversation?");
-                if (reason) flag.mutate(reason);
-              }}
-            >
-              <Flag className="size-3" /> Report
-            </button>
-          ) : null}
-        </div>
-
-        {!threadId ? (
-          <div className="mt-2 rounded border border-border p-4">
-            <p className="text-sm text-steel">
-              No conversation about this school yet. A parent is always included.
-            </p>
-            <Button
-              className="touch-target mt-3"
-              disabled={!athleteId || start.isPending}
-              onClick={() => start.mutate()}
-            >
-              Start the conversation
-            </Button>
-          </div>
-        ) : (
-          <>
-            <p className="mt-1 text-xs text-steel">
-              {(thread.data?.participants ?? [])
-                .map((p) => `${p.name} (${String(p.role).replace("org_", "")})`)
-                .join(" · ") || "Loading…"}
-            </p>
-            <div className="mt-2 max-h-72 flex-1 space-y-3 overflow-y-auto rounded border border-border p-3">
-              {(thread.data?.messages ?? []).length === 0 ? (
-                <p className="text-sm text-steel">No messages yet.</p>
-              ) : (
-                (thread.data?.messages ?? []).map((message) => (
-                  <div key={message.id}>
-                    <p className="meta text-steel">
-                      {message.authorName} ·{" "}
-                      {new Date(message.createdAt as string).toLocaleString("en-US")}
-                      {message.editedAt ? " · corrected" : ""}
-                    </p>
-                    <p className="text-sm text-graphite">{message.body}</p>
-                    {message.bodyOriginal ? (
-                      <p className="text-xs text-steel">
-                        Originally: {String(message.bodyOriginal)}
-                      </p>
-                    ) : null}
-                  </div>
-                ))
-              )}
-              <div ref={bottom} />
-            </div>
-            <form
-              className="mt-2 flex gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (draft.trim()) send.mutate();
-              }}
-            >
-              <Textarea
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                rows={2}
-                placeholder="Write a message. Everything here is kept."
-              />
-              <Button type="submit" className="touch-target" disabled={send.isPending}>
-                <Send className="size-4" />
-              </Button>
-            </form>
-          </>
-        )}
-      </section>
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="absolute inset-x-0 top-0 h-1 bg-org-primary" aria-hidden />
+      <div className="flex items-center justify-between">
+        <SectionLabel>Journal</SectionLabel>
+        <span className="font-mono text-[10px] tracking-wide text-steel uppercase">
+          {save.isPending ? "Saving…" : dirty ? "Unsaved" : saved ? "Saved" : "Private"}
+        </span>
+      </div>
+      <Textarea
+        value={notes}
+        onChange={(event) => setNotes(event.target.value)}
+        onBlur={() => dirty && save.mutate()}
+        rows={10}
+        className="mt-3 min-h-56 resize-y bg-muted/30 text-[15px] leading-relaxed"
+        placeholder="Visits, calls, pros, cons…"
+      />
+      <div className="mt-3 flex justify-end">
+        <Button
+          className="touch-target"
+          disabled={!dirty || save.isPending}
+          onClick={() => save.mutate()}
+        >
+          Save
+        </Button>
+      </div>
     </div>
   );
 }
