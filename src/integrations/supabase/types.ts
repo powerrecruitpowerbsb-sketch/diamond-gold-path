@@ -1744,6 +1744,8 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_invoice_id: string | null
           stripe_invoice_url: string | null
+          wall_enabled: boolean
+          wall_token: string | null
         }
         Insert: {
           access_expires_at?: string | null
@@ -1765,6 +1767,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_invoice_id?: string | null
           stripe_invoice_url?: string | null
+          wall_enabled?: boolean
+          wall_token?: string | null
         }
         Update: {
           access_expires_at?: string | null
@@ -1786,6 +1790,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_invoice_id?: string | null
           stripe_invoice_url?: string | null
+          wall_enabled?: boolean
+          wall_token?: string | null
         }
         Relationships: [
           {
@@ -3940,6 +3946,7 @@ export type Database = {
       }
       team_packet: { Args: { _token: string }; Returns: Json }
       trigger_collection_runner: { Args: never; Returns: undefined }
+      wall_of_fame: { Args: { _token: string }; Returns: Json }
     }
     Enums: {
       athlete_data_source: "manual" | "csv" | "handled" | "curve_testing"
