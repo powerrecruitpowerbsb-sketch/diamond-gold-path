@@ -96,7 +96,7 @@ function Dashboard() {
   return (
     <AppShell right={<AuthButton />}>
       <section className="stadium-gradient overflow-hidden rounded-2xl px-5 py-8 sm:px-8 sm:py-10">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <OrgMark size={40} className="bg-white/10" />
           <p className="meta text-org-accent">RECRUITING ENGINE</p>
         </div>

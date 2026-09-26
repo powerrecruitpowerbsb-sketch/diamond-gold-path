@@ -28,9 +28,9 @@ export function WallShare() {
   }
 
   return (
-    <section className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+    <section className="mt-6 flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-center">
       <Trophy className="size-5 text-org-primary" aria-hidden />
-      <div className="min-w-48 flex-1">
+      <div className="min-w-0 flex-1">
         <h2 className="font-display text-base font-bold text-graphite">Commits</h2>
         <p className="text-xs text-steel">
           {data.commits} committed athlete{data.commits === 1 ? "" : "s"}.{" "}

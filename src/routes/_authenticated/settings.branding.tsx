@@ -205,7 +205,7 @@ function BrandingSettings() {
               ) : null}
             </section>
 
-            <section className="mt-6 grid gap-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)] sm:grid-cols-2">
+            <section className="mt-6 grid gap-6 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)] sm:grid-cols-2">
               <div>
                 <h2 className="font-mono text-[11px] tracking-wide text-steel uppercase">
                   Primary brand color
