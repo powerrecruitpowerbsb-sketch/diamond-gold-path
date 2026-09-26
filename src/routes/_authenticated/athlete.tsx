@@ -207,7 +207,9 @@ function HubBody({ hub }: { hub: any }) {
         </div>
         <div className="space-y-5 sm:space-y-6">
           <ProfileTeaser hub={hub} />
-          <Readiness checklist={checklist} pct={pct} doneCount={doneCount} />
+          {doneCount < checklist.length ? (
+            <Readiness checklist={checklist} pct={pct} doneCount={doneCount} />
+          ) : null}
           <Targets saved={saved} />
           <CoachCorner notes={hub.notes} events={hub.events} orgName={hub.orgName} />
         </div>
