@@ -111,23 +111,23 @@ export function SchoolSheet({
 
         {entry ? (
           <Tabs defaultValue={defaultTab ?? "overview"} className="px-5 py-5 sm:px-7">
-            <TabsList className="sticky top-0 z-20 -mx-5 h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto border-b border-border bg-background/95 px-5 py-0 backdrop-blur sm:-mx-7 sm:px-7">
+            <TabsList className="sticky top-0 z-20 -mx-5 flex h-auto w-[calc(100%+2.5rem)] flex-nowrap justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-background/95 px-5 py-0 backdrop-blur [scrollbar-width:none] sm:-mx-7 sm:w-[calc(100%+3.5rem)] sm:px-7 [&::-webkit-scrollbar]:hidden">
               {(
                 [
                   ["overview", "Overview"],
                   ["activity", "Activity"],
-                  ["email", "Email coach"],
-                  ["academics", "Academics & cost"],
+                  ["email", "Email"],
+                  ["academics", "Academics"],
                   ["roster", "Roster"],
-                  ["fit", "True fit"],
-                  ["intel", "Intelligence"],
-                  ["notes", "Notes & Messages"],
+                  ["fit", "Fit"],
+                  ["intel", "Intel"],
+                  ["notes", "Notes"],
                 ] as [string, string][]
               ).map(([value, label]) => (
                 <TabsTrigger
                   key={value}
                   value={value}
-                  className="touch-target rounded-none border-0 bg-transparent px-3 py-2.5 text-sm font-semibold whitespace-nowrap text-steel shadow-none data-[state=active]:bg-transparent data-[state=active]:text-org-primary data-[state=active]:shadow-[inset_0_-2px_0_0_var(--org-primary)]"
+                  className="touch-target shrink-0 flex-none rounded-none border-0 bg-transparent px-3 py-2.5 text-sm font-semibold whitespace-nowrap text-steel shadow-none data-[state=active]:bg-transparent data-[state=active]:text-org-primary data-[state=active]:shadow-[inset_0_-2px_0_0_var(--org-primary)]"
                 >
                   {label}
                 </TabsTrigger>

@@ -151,7 +151,7 @@ export function ProfileTabs({
   onSelect: (id: string) => void;
 }) {
   return (
-    <nav className="sticky top-0 z-20 -mx-4 mb-6 overflow-x-auto border-b border-border bg-background/95 px-4 backdrop-blur">
+    <nav className="sticky top-0 z-20 -mx-4 mb-6 overflow-x-auto border-b border-border bg-background/95 px-4 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="flex min-w-max gap-1">
         {tabs.map((tab) => {
           const on = tab.id === active;
@@ -161,7 +161,7 @@ export function ProfileTabs({
               type="button"
               onClick={() => onSelect(tab.id)}
               className={cn(
-                "touch-target relative px-3 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors",
+                "touch-target relative shrink-0 px-3 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors",
                 on ? "text-org-primary" : "text-steel hover:text-graphite",
               )}
             >
