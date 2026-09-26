@@ -553,3 +553,19 @@ export const listInvites = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
+export const updateMyName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { name: string }) => {
+    const name = String(d?.name ?? "").trim();
+    if (!name || name.length > 100) throw new Error("Enter a name (100 characters max)");
+    return { name };
+  })
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("users")
+      .update({ name: data.name })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

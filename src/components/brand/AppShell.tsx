@@ -113,7 +113,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
     ...(role === "parent"
       ? [{ to: "/family", label: "Family portal", icon: Database }]
       : []),
-    { to: "/auth", label: "Account", icon: UserRound },
+    { to: "/settings/account", label: "Account", icon: UserRound },
   ];
 
   const tabs = [
@@ -126,7 +126,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
         : [{ to: "/list", label: "Colleges", icon: ListChecks, exact: false }]),
     role === "player"
       ? { to: "/profile", label: "Profile", icon: UserRound, exact: false }
-      : { to: "/auth", label: "Account", icon: UserRound, exact: false },
+      : { to: "/settings/account", label: "Account", icon: UserRound, exact: false },
   ];
 
   return (
