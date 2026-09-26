@@ -126,8 +126,7 @@ function NoAthlete() {
       <p className="meta text-org-accent">Recruiting hub</p>
       <h1 className="font-display mt-3 text-3xl font-bold text-white">Your card isn't linked yet</h1>
       <p className="mx-auto mt-3 max-w-md text-sm text-white/70">
-        Ask your club's staff to send your player invite. Once it's accepted, your scout card,
-        numbers and college list show up right here.
+        Ask your club for your player invite.
       </p>
       <Link
         to="/search"
@@ -614,7 +613,7 @@ function VideoReel({
   const catLabel = (k: string) => VIDEO_CATEGORIES.find((c) => c.key === k)?.label ?? "Clip";
 
   return (
-    <Panel id="video" eyebrow={`${videos.length} clip${videos.length === 1 ? "" : "s"}`} title="Highlights">
+    <Panel id="video" eyebrow={`${videos.length} clip${videos.length === 1 ? "" : "s"}`} title="Film">
       {current?.url ? (
         <ClipTheater
           clips={videos}
@@ -640,7 +639,7 @@ function VideoReel({
               <Film className="size-6" />
             </div>
             <p className="font-display mt-3 text-lg font-bold text-graphite">Add your first clip</p>
-            <p className="mt-1 text-sm text-steel">Straight from your camera roll · up to 100 MB</p>
+            <p className="mt-1 text-sm text-steel">Up to 100 MB</p>
           </div>
         </button>
       )}
@@ -688,7 +687,7 @@ function VideoReel({
           <div className="h-1 overflow-hidden rounded-full bg-track">
             <div className="h-full w-1/3 animate-[pulse_1.2s_ease-in-out_infinite] rounded-full bg-org-primary" />
           </div>
-          <p className="meta mt-1.5 truncate text-steel">Uploading {uploading} — keep this screen open</p>
+          <p className="meta mt-1.5 truncate text-steel">Uploading {uploading} · keep this screen open</p>
         </div>
       ) : null}
 
@@ -803,15 +802,14 @@ function Measurables({
             {save.isPending ? "Saving…" : "Save"}
           </button>
           <p className="text-xs text-steel sm:col-span-4">
-            Numbers you enter show as <strong className="text-graphite">Self-reported</strong> until a
-            coach confirms them.
+            Shows as <strong className="text-graphite">Self-reported</strong> until a coach verifies it.
           </p>
         </form>
       ) : null}
 
       {shown.length === 0 ? (
         <p className="rounded-xl border border-dashed border-white/15 p-6 text-center text-sm text-steel">
-          Add your exit velo, 60 time or velocity — they're the first numbers a college coach checks.
+          Add your exit velo, 60 time or velo.
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
@@ -996,7 +994,7 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
         </ul>
       ) : (
         <p className="mt-4 text-sm text-steel">
-          No colleges yet. Aim for 10–25 across a few levels — reach, target and safety.
+          No colleges yet. Aim for 10–25.
         </p>
       )}
 
@@ -1074,7 +1072,7 @@ function CoachCorner({
         <div className="rounded-xl border border-dashed border-white/15 p-5 text-center">
           <MessageSquareQuote className="mx-auto size-5 text-steel" />
           <p className="mt-2 text-sm text-steel">
-            When your coaches share feedback with you, it shows up here.
+            No coach notes yet.
           </p>
         </div>
       )}

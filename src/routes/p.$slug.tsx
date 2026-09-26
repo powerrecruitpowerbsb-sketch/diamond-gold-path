@@ -217,12 +217,9 @@ function ScoutCard() {
                 return (
                   <>
                     {bio.length ? (
-                      <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-sm font-semibold tracking-wide text-white uppercase">
-                        {bio.map((b, i) => (
-                          <span key={b} className="flex items-center gap-3">
-                            {i > 0 ? <span className="text-white/35" aria-hidden>|</span> : null}
-                            {b}
-                          </span>
+                      <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-sm font-semibold tracking-wide text-white uppercase">
+                        {bio.map((b) => (
+                          <span key={b} className="whitespace-nowrap">{b}</span>
                         ))}
                       </p>
                     ) : null}
