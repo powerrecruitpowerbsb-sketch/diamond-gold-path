@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireOrgActor } from "@/lib/athletes.functions";
+import { requireOrgActor, scopedAthleteIds } from "@/lib/athletes.functions";
 import { METRIC_KEYS, METRIC_SOURCE_LABEL, metricUnit } from "@/lib/athlete-metrics";
 
 /** Every active athlete in the org, for matching testing-sheet names. */
@@ -18,7 +18,8 @@ export const listMatchableAthletes = createServerFn({ method: "GET" })
     if (actor.organizationId) query = query.eq("organization_id", actor.organizationId);
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return (data ?? []).map((a: any) => ({
+    const scope = await scopedAthleteIds(context as any, actor.orgWideAccess);
+    return (data ?? []).filter((a: any) => !scope || scope.has(a.id)).map((a: any) => ({
       id: a.id as string,
       name: a.name as string,
       gradYear: a.grad_year as number | null,

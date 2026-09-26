@@ -250,7 +250,11 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
       assignments.map((row) => [row['org_athlete_id'] as string, row]),
     );
 
-    let athletes: Record<string, any>[] = ((rows ?? []) as Record<string, any>[]).map((athlete) => {
+    const scope = await scopedAthleteIds(context as any, actor.orgWideAccess);
+    const visibleRows = ((rows ?? []) as Record<string, any>[]).filter(
+      (a) => !scope || scope.has(a['id'] as string),
+    );
+    let athletes: Record<string, any>[] = visibleRows.map((athlete) => {
       const assignment = assignmentByAthlete.get(athlete['id'] as string);
       return {
         ...athlete,
@@ -306,6 +310,7 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
       gradYears,
       canEdit: true,
       isOrgAdmin: actor.isOrgAdmin,
+      canAdd: actor.isOrgAdmin || actor.isSuperadmin,
     };
   });
 
@@ -314,7 +319,9 @@ export const getOrgAthlete = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => ({ id: str(input?.id) }))
   .handler(async ({ context, data }) => {
-    await requireOrgActor(context as any);
+    const actor = await requireOrgActor(context as any);
+    const scope = await scopedAthleteIds(context as any, actor.orgWideAccess);
+    if (scope && !scope.has(data.id)) throw new Error("This player isn't on a team you coach");
 
     const { data: athlete, error } = await context.supabase
       .from("org_athletes")
@@ -371,6 +378,11 @@ export const saveOrgAthlete = createServerFn({ method: "POST" })
   .inputValidator((input: AthleteInput & { seasonId?: string | null; teamId?: string | null }) => input)
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
+    if (!data.id) requireAdminActor(actor);
+    else {
+      const scope = await scopedAthleteIds(context as any, actor.orgWideAccess);
+      if (scope && !scope.has(String(data.id))) throw new Error("This player isn't on a team you coach");
+    }
     const orgId = actor.organizationId;
     if (!orgId && !data.id) throw new Error("Select an organization before adding athletes");
     const result = await upsertAthlete(context as any, orgId ?? "", {
@@ -396,7 +408,7 @@ export const deleteOrgAthlete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => ({ id: str(input?.id) }))
   .handler(async ({ context, data }) => {
-    await requireOrgActor(context as any);
+    requireAdminActor(await requireOrgActor(context as any));
     const { error } = await context.supabase.from("org_athletes").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -489,6 +501,7 @@ export const importAthletes = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const actor = await requireOrgActor(context as any);
+    requireAdminActor(actor);
     const orgId = actor.organizationId;
     if (!orgId) throw new Error("Select an organization before importing athletes");
 
