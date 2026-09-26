@@ -531,6 +531,7 @@ function SearchScreen() {
           <DisclosureButton
             open={moreOpen}
             count={secondaryCount}
+            className="w-full justify-center sm:w-auto"
             onClick={() => {
               setMoreOpen((open) => !open);
               set({ more: !moreOpen });
