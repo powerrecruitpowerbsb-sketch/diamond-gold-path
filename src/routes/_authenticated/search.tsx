@@ -389,7 +389,7 @@ function SearchScreen() {
         <h1 className="font-display text-3xl font-bold text-org-primary">Find a program</h1>
         <p className="mt-1.5 text-[15px] text-steel">
           {!searching
-            ? "Search 3,238 programs by name, location, or level."
+            ? "3,238 programs"
             : results.isPending
               ? "Searching…"
               : `${(results.data?.matches ?? rows.length).toLocaleString("en-US")} ${titleCase(
@@ -402,7 +402,7 @@ function SearchScreen() {
         {isFamily && contextAthlete ? (
           <p className="mt-3 text-sm text-steel">
             Saving to <span className="font-semibold text-graphite">{String(contextAthlete["name"])}</span>'s
-            college list.
+            list
           </p>
         ) : pickerAthletes.length > 0 && !(isFamily && pickerAthletes.length === 1) ? (
           <label className="mt-3 flex flex-wrap items-center gap-2 text-sm">
@@ -893,8 +893,8 @@ function SearchScreen() {
       {results.data?.unpublishedPositions ? (
         <p className="mt-3 rounded border border-border bg-muted/50 p-2.5 text-sm text-steel">
           {results.data.unpublishedPositions} team
-          {results.data.unpublishedPositions === 1 ? "" : "s"} left out of the position filter
-          because the school publishes no positions — not counted as zero.
+          {results.data.unpublishedPositions === 1 ? "" : "s"} hidden
+          · no positions published
         </p>
       ) : null}
 
