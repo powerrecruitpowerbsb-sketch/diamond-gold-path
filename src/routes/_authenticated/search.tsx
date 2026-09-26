@@ -431,7 +431,7 @@ function SearchScreen() {
             ))}
           </div>
 
-          <label className="min-w-[220px] flex-1">
+          <label className="w-full sm:w-auto sm:min-w-[220px] sm:flex-1">
             <span className="sr-only">School name</span>
             <div className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 focus-within:border-org-primary">
               <SearchIcon className="size-4 shrink-0 text-steel" aria-hidden />
@@ -444,7 +444,7 @@ function SearchScreen() {
             </div>
           </label>
 
-          <label className="w-[190px]">
+          <label className="w-full sm:w-[190px]">
             <span className="sr-only">Location</span>
             <select
               value=""
@@ -474,7 +474,7 @@ function SearchScreen() {
             </select>
           </label>
 
-          <label className="w-[150px]">
+          <label className="min-w-0 flex-1 sm:w-[150px] sm:flex-none">
             <span className="sr-only">Governing body</span>
             <select
               value={params.governingBody}
@@ -490,7 +490,7 @@ function SearchScreen() {
             </select>
           </label>
 
-          <label className="w-[140px]">
+          <label className="min-w-0 flex-1 sm:w-[140px] sm:flex-none">
             <span className="sr-only">Division</span>
             <select
               value={params.division}
