@@ -26,6 +26,8 @@ import {
   sendMessage,
 } from "@/lib/messaging.functions";
 import { setEntryNotes } from "@/lib/continuum.functions";
+import { useMyAccount } from "@/hooks/use-my-account";
+import { isOrgManagerRole } from "@/lib/roles";
 
 export type SheetEntry = {
   /** Null when the school is not on any list yet (opened straight from Search). */
@@ -57,6 +59,9 @@ export function SchoolSheet({
 }) {
   const profileFn = useServerFn(getProgramProfile);
   const queryClient = useQueryClient();
+  const { account } = useMyAccount();
+  const myRole = (account as any)?.primaryRole as string | undefined;
+  const canEditIntel = myRole === "superadmin" || isOrgManagerRole(myRole);
   const open = Boolean(entry);
 
   const profile = useQuery({
