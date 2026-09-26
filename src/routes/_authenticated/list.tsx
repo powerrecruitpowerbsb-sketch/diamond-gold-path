@@ -319,9 +319,18 @@ function CollegeList() {
           {(list.error as Error).message}
         </p>
       ) : filtered.length === 0 ? (
-        <p className="mt-6 rounded border border-border p-6 text-sm text-steel">
-          Nothing on the list for this filter yet. Add schools from Search.
-        </p>
+        <div className="card-panel mt-6 flex flex-col items-center px-6 py-12 text-center">
+          <span className="grid size-14 place-items-center rounded-full bg-org-primary-tint ring-1 ring-org-primary/40">
+            <Sparkles className="size-6 text-org-primary-strong" aria-hidden />
+          </span>
+          <p className="font-display mt-4 text-2xl font-bold text-graphite">Add your first school</p>
+          <Link
+            to="/search"
+            className="touch-target mt-5 inline-flex items-center rounded-xl bg-org-primary px-5 text-sm font-semibold text-org-primary-foreground"
+          >
+            Search colleges
+          </Link>
+        </div>
       ) : (
         <>
         <ul className={cn("mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3", showingAll && "md:hidden")}>
@@ -334,12 +343,17 @@ function CollegeList() {
               <li
                 key={String(entry['id'])}
                 className={cn(
-                  "flex flex-col rounded-2xl border surface-raised p-4 transition-colors",
-                  entry['coachPick'] ? "border-org-primary/50" : "border-border hover:border-org-primary/40",
+                  "card-panel group relative flex flex-col overflow-hidden p-5 transition-[border-color,transform] duration-200 hover:-translate-y-0.5",
+                  entry['coachPick'] ? "border-org-primary/60" : "hover:border-org-primary/50",
                 )}
               >
+                <span
+                  className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
+                  style={{ background: "linear-gradient(90deg, var(--org-primary), transparent 75%)" }}
+                  aria-hidden
+                />
                 <button type="button" onClick={() => openSheet(entry, "overview")} className="flex w-full items-start gap-3 text-left">
-                  <span className="font-display grid size-11 shrink-0 place-items-center rounded-lg bg-org-primary/15 text-sm font-bold text-org-primary">
+                  <span className="font-display grid size-12 shrink-0 place-items-center rounded-xl bg-org-primary-tint text-base font-bold text-org-primary-strong ring-1 ring-org-primary/40">
                     {String(entry['school'] ?? "")
                       .replace(/University|College|of|the|at/gi, "")
                       .split(/\s+/)
@@ -355,7 +369,7 @@ function CollegeList() {
                         {String(entry['athleteName'] ?? "—")}
                       </span>
                     ) : null}
-                    <span className="font-display block text-base leading-tight font-bold text-graphite">
+                    <span className="font-display block text-lg leading-tight font-bold text-graphite group-hover:text-org-primary-strong">
                       {String(entry['school'])}
                     </span>
                     <span className="mt-1.5 flex flex-wrap gap-1.5">
@@ -400,11 +414,17 @@ function CollegeList() {
                 ) : null}
 
                 <div className="mt-auto pt-4">
-                  <div className="flex gap-1" aria-hidden>
+                  <div className="flex items-center justify-between">
+                    <span className="label-caps">Stage</span>
+                    <span className="label-caps text-org-primary-strong">
+                      {si >= 0 ? `${si + 1} / ${stages.length}` : "—"}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex gap-1" aria-hidden>
                     {stages.map((st, i) => (
                       <span
                         key={String(st['id'])}
-                        className={cn("h-1 flex-1 rounded-full", si >= 0 && i <= si ? "bg-org-primary" : "bg-muted")}
+                        className={cn("h-1.5 flex-1 rounded-full", si >= 0 && i <= si ? "bg-org-primary" : "bg-track")}
                       />
                     ))}
                   </div>
