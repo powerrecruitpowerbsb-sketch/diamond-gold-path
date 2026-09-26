@@ -12,7 +12,7 @@ export function ActionsPanel({ seasonId, teamId, sport }: Props) {
   const listFn = useServerFn(listOrgAthletes);
   const { data, isPending } = useQuery({
     queryKey: ["org-athletes", "actions", seasonId, teamId, sport],
-    queryFn: () => listFn({ data: { status: "active", seasonId, teamId, sport } }),
+    queryFn: () => listFn({ data: { status: "active", seasonId: seasonId ?? "", teamId: teamId ?? "", sport: sport ?? "" } }),
     retry: false,
   });
   const athletes = (data?.athletes ?? []) as Record<string, any>[];
