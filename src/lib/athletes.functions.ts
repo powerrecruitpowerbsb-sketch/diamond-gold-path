@@ -56,7 +56,7 @@ export async function requireOrgActor(context: Ctx) {
   const [{ data: profile }, { data: roles }] = await Promise.all([
     context.supabase
       .from("users")
-      .select("id, name, organization_id")
+      .select("id, name, organization_id, org_wide_access")
       .eq("id", context.userId)
       .maybeSingle(),
     context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
@@ -66,7 +66,8 @@ export async function requireOrgActor(context: Ctx) {
   const { actingOrgId } = await import("@/lib/acting-org");
   // Curve Recruit staff inside an organization act on that organization.
   const acting = await actingOrgId(context, isSuperadmin);
-  const isManager = (roleList.includes("org_admin") || roleList.includes("org_owner")) || roleList.includes("org_staff");
+  const isOrgAdmin = roleList.includes("org_admin") || roleList.includes("org_owner");
+  const isManager = isOrgAdmin || roleList.includes("org_staff");
   const organizationId = acting ?? ((profile as { organization_id?: string | null } | null)?.organization_id ?? null);
 
   if (!isSuperadmin && !isManager) throw new Error("Forbidden: organization staff only");
@@ -75,8 +76,45 @@ export async function requireOrgActor(context: Ctx) {
   return {
     organizationId,
     isSuperadmin,
-    isOrgAdmin: (roleList.includes("org_admin") || roleList.includes("org_owner")),
+    isOrgAdmin,
+    orgWideAccess:
+      isSuperadmin ||
+      isOrgAdmin ||
+      Boolean((profile as { org_wide_access?: boolean } | null)?.org_wide_access),
   };
+}
+
+/**
+ * Coaches only see players on the teams they coach. Returns null when the
+ * caller sees the whole organization, otherwise the athlete ids they may see.
+ */
+export async function scopedAthleteIds(
+  context: Ctx,
+  orgWideAccess: boolean,
+): Promise<Set<string> | null> {
+  if (orgWideAccess) return null;
+  const [{ data: assigned }, { data: headed }] = await Promise.all([
+    context.supabase.from("team_coaches").select("team_id").eq("user_id", context.userId),
+    context.supabase.from("teams").select("id").eq("head_coach_user_id", context.userId),
+  ]);
+  const teamIds = Array.from(
+    new Set([
+      ...((assigned ?? []) as { team_id: string }[]).map((r) => r.team_id),
+      ...((headed ?? []) as { id: string }[]).map((r) => r.id),
+    ]),
+  );
+  if (!teamIds.length) return new Set();
+  const { data: rows } = await context.supabase
+    .from("team_athletes")
+    .select("org_athlete_id")
+    .in("team_id", teamIds);
+  return new Set(((rows ?? []) as { org_athlete_id: string }[]).map((r) => r.org_athlete_id));
+}
+
+function requireAdminActor(actor: { isSuperadmin: boolean; isOrgAdmin: boolean }) {
+  if (!actor.isSuperadmin && !actor.isOrgAdmin) {
+    throw new Error("Only owners and admins can add or remove players");
+  }
 }
 
 function normalizeAthlete(input: AthleteInput) {
