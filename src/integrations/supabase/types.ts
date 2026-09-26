@@ -3027,6 +3027,8 @@ export type Database = {
           id: string
           name: string
           organization_id: string
+          packet_enabled: boolean
+          packet_token: string | null
           season_id: string
           updated_at: string
         }
@@ -3037,6 +3039,8 @@ export type Database = {
           id?: string
           name: string
           organization_id: string
+          packet_enabled?: boolean
+          packet_token?: string | null
           season_id: string
           updated_at?: string
         }
@@ -3047,6 +3051,8 @@ export type Database = {
           id?: string
           name?: string
           organization_id?: string
+          packet_enabled?: boolean
+          packet_token?: string | null
           season_id?: string
           updated_at?: string
         }
@@ -3888,6 +3894,7 @@ export type Database = {
           season_year: number
         }[]
       }
+      team_packet: { Args: { _token: string }; Returns: Json }
       trigger_collection_runner: { Args: never; Returns: undefined }
     }
     Enums: {
