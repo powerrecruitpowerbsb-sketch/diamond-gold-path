@@ -193,7 +193,7 @@ export function FamilyFinances({ saved, homeState }: { saved: Row[]; homeState: 
           <ul className="mt-3 divide-y divide-border/70 text-sm">
             {rows.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2 py-2">
-                <span className="truncate text-graphite">
+                <span className="min-w-0 truncate text-graphite">
                   {r.name}
                   {r.inState ? (
                     <span className="ml-2 font-mono text-[11px] text-diamond-green">In-state</span>
