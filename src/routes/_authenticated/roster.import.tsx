@@ -41,6 +41,7 @@ type Field =
   | "bats"
   | "throws"
   | "parentEmail"
+  | "playerEmail"
   | "team";
 
 const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[] = [
@@ -56,6 +57,12 @@ const FIELDS: { key: Field; label: string; required: boolean; hints: string[] }[
     required: false,
     hints: ["parent email", "parent", "guardian", "email"],
   },
+  {
+    key: "playerEmail",
+    label: "Player email",
+    required: false,
+    hints: ["player email", "athlete email", "player e-mail"],
+  },
   { key: "team", label: "Team", required: false, hints: ["team", "roster", "squad"] },
 ];
 
@@ -69,6 +76,7 @@ type PreviewRow = {
   bats: string | null;
   throws: string | null;
   parentEmail: string | null;
+  playerEmail: string | null;
   team: string | null;
   errors: string[];
   matchId: string | null;
@@ -96,6 +104,7 @@ function ImportAthletes() {
     bats: "",
     throws: "",
     parentEmail: "",
+    playerEmail: "",
     team: "",
   });
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
@@ -173,6 +182,11 @@ function ImportAthletes() {
         errors.push(`unreadable parent email "${cell("parentEmail")}"`);
       }
 
+      const playerEmail = cell("playerEmail").toLowerCase();
+      if (playerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(playerEmail)) {
+        errors.push(`unreadable player email "${cell("playerEmail")}"`);
+      }
+
       return {
         index: i + 2,
         name,
@@ -182,6 +196,7 @@ function ImportAthletes() {
         bats: bats || null,
         throws: throws || null,
         parentEmail: parentEmail || null,
+        playerEmail: playerEmail || null,
         team: cell("team") || null,
         errors,
         matchId: null,
@@ -215,6 +230,7 @@ function ImportAthletes() {
       bad: rows.filter((r) => r.errors.length).length,
       dupes: rows.filter((r) => r.matchId).length,
       parents: rows.filter((r) => r.action !== "skip" && r.parentEmail).length,
+      players: rows.filter((r) => r.action !== "skip" && r.playerEmail).length,
     };
   }, [preview]);
 
@@ -234,6 +250,7 @@ function ImportAthletes() {
               bats: row.bats,
               throws: row.throws,
               parentEmail: row.parentEmail,
+              playerEmail: row.playerEmail,
               team: row.team,
               action: row.action,
               matchId: row.matchId,
@@ -406,6 +423,7 @@ function ImportAthletes() {
                     <th className="px-3 py-2">Pos</th>
                     <th className="px-3 py-2">B/T</th>
                     <th className="px-3 py-2">Parent email</th>
+                    <th className="px-3 py-2">Player email</th>
                     <th className="px-3 py-2">Status</th>
                     <th className="px-3 py-2">Action</th>
                   </tr>
@@ -425,6 +443,9 @@ function ImportAthletes() {
                       </td>
                       <td className="px-3 py-2 font-mono text-xs text-steel">
                         {row.parentEmail ?? "—"}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs text-steel">
+                        {row.playerEmail ?? "—"}
                       </td>
                       <td className="px-3 py-2 text-xs">
                         {row.errors.length ? (
