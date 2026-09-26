@@ -501,18 +501,6 @@ function ProgramProfile() {
               <FactList fields={coachFields} columns={1} />
             </Panel>
           </div>
-
-          <Panel title="Campus & culture" meta={<LayerTag layer="classification" />}>
-            <ClassificationTable rows={classificationRows} />
-          </Panel>
-
-          <Panel title="Facilities">
-            {program.facility_url ? (
-              <LinkRow label="Facilities page" url={String(program.facility_url)} />
-            ) : (
-              <p className="text-sm text-steel">No facilities page is published for this program.</p>
-            )}
-          </Panel>
         </div>
       ) : null}
 
