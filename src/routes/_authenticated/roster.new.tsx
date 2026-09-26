@@ -10,6 +10,7 @@ import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
 import { useSportMode } from "@/hooks/use-sport-mode";
 import { saveOrgAthlete } from "@/lib/athletes.functions";
+import { sendOrgInvite } from "@/lib/invites.functions";
 import { SPORTS, SPORT_LABEL } from "@/lib/sport";
 
 
@@ -36,6 +37,8 @@ const LABEL = "font-mono text-[11px] tracking-wide text-steel uppercase";
 
 function NewAthlete() {
   const saveFn = useServerFn(saveOrgAthlete);
+  const inviteFn = useServerFn(sendOrgInvite);
+  const [sendInvites, setSendInvites] = useState(true);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const ctx = useSeasonContext();
@@ -50,6 +53,8 @@ function NewAthlete() {
     bats: "",
     throws: "",
     sport: "",
+    playerEmail: "",
+    parentEmail: "",
   });
 
   const set = (key: keyof typeof form) => (value: string) =>
@@ -76,6 +81,21 @@ function NewAthlete() {
       await queryClient.invalidateQueries({ queryKey: ["season-detail"] });
       toast.success("Athlete added");
 
+      if (sendInvites) {
+        const targets = [
+          { email: form.playerEmail.trim(), role: "player" as const },
+          { email: form.parentEmail.trim(), role: "parent" as const },
+        ].filter((t) => t.email);
+        for (const t of targets) {
+          try {
+            const r = await inviteFn({ data: { email: t.email, role: t.role, athleteId: result.id } });
+            toast.success(r.message);
+          } catch (e) {
+            toast.error(`${t.email}: ${(e as Error).message}`);
+          }
+        }
+      }
+
       navigate({ to: "/roster/$id", params: { id: result.id } });
     } catch (error) {
       toast.error((error as Error).message);
@@ -94,7 +114,7 @@ function NewAthlete() {
         onSubmit={submit}
         className="mt-4 max-w-2xl rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]"
       >
-        <h1 className="font-display text-2xl font-bold text-graphite">Add an athlete</h1>
+        <h1 className="font-display text-2xl font-bold text-graphite">Add & invite</h1>
         <p className="mt-1 text-sm text-steel">Recorded as a manual entry.</p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -183,8 +203,34 @@ function NewAthlete() {
               </span>
             </label>
           ) : null}
+          <label>
+            <span className={LABEL}>Player email</span>
+            <input
+              type="email"
+              value={form.playerEmail}
+              onChange={(event) => set("playerEmail")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            />
+          </label>
+          <label>
+            <span className={LABEL}>Parent email</span>
+            <input
+              type="email"
+              value={form.parentEmail}
+              onChange={(event) => set("parentEmail")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-graphite sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={sendInvites}
+              onChange={(event) => setSendInvites(event.target.checked)}
+              className="size-4 accent-[var(--org-primary)]"
+            />
+            Email login invites so they can set up their accounts
+          </label>
         </div>
-
 
         <button
           type="submit"
