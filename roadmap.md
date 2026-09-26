@@ -71,3 +71,7 @@
 
 ## Next after design pass (requested 2026-09-26)
 - [ ] True-Fit rework: rosters read wrong (e.g. Clemson 0 of 40 MIF), transfer flags misread, draft/portal turnover, MIF vs CIF lumping
+
+## Deferred (user wants to think first)
+- [ ] Login / account-creation flow (magic-link invite → set password; no invite codes)
+- [ ] Welcome walkthrough
