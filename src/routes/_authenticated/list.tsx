@@ -192,7 +192,7 @@ function CollegeList() {
 
       {showStages ? <StageSettings /> : null}
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
         {data?.viewer.isStaff || (data?.athletes ?? []).length > 1 ? (
           <label className="text-sm">
             <span className="meta block text-steel">Athlete</span>
@@ -271,7 +271,86 @@ function CollegeList() {
           Nothing on the list for this filter yet. Add schools from Search.
         </p>
       ) : (
-        <div className="mt-4 max-h-[70vh] overflow-y-auto rounded border border-border">
+        <>
+        <ul className="mt-4 grid gap-3 md:hidden">
+          {filtered.map((entry) => {
+            const open = (tab: "overview" | "activity") => {
+              setSheetTab(tab);
+              setOpenEntry({
+                id: String(entry['id']),
+                programId: String(entry['programId']),
+                school: String(entry['school']),
+                sport: (entry['sport'] ?? null) as string | null,
+                notes: (entry['notes'] ?? null) as string | null,
+                threadId: (entry['threadId'] ?? null) as string | null,
+                athleteId: (entry['athleteId'] ?? null) as string | null,
+              });
+            };
+            const level =
+              [entry['governingBody'], entry['division']].filter(Boolean).join(" ") || "Not reported";
+            return (
+              <li
+                key={String(entry['id'])}
+                className="rounded-2xl border border-border surface-raised p-4"
+              >
+                <button type="button" onClick={() => open("overview")} className="block w-full text-left">
+                  {showingAll ? (
+                    <span className="font-mono text-[11px] tracking-wide text-steel uppercase">
+                      {String(entry['athleteName'] ?? "—")}
+                    </span>
+                  ) : null}
+                  <span className="block font-display text-lg font-bold leading-tight text-graphite">
+                    {String(entry['school'])}
+                  </span>
+                  <span className="mt-1 block font-mono text-[11px] tracking-wide text-steel uppercase">
+                    {[level, entry['conference'], entry['state'], entry['sport']]
+                      .filter(Boolean)
+                      .map(String)
+                      .join(" · ")}
+                  </span>
+                  {entry['coachPick'] ? (
+                    <span className="mt-2 inline-block rounded-md bg-org-primary/15 px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-org-primary uppercase">
+                      Coach pick · {String(entry['coachPick'])}
+                    </span>
+                  ) : null}
+                  {highlightChips((entry['activityChips'] ?? []) as string[]).length ? (
+                    <span className="mt-2 flex flex-wrap gap-1">
+                      {highlightChips((entry['activityChips'] ?? []) as string[]).map((chip) => (
+                        <span
+                          key={chip}
+                          className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", chipTone(chip))}
+                        >
+                          {activityChipLabel(chip)}
+                        </span>
+                      ))}
+                    </span>
+                  ) : null}
+                </button>
+                <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <select
+                    value={String(entry['stageId'] ?? "")}
+                    aria-label={`Stage for ${String(entry['school'])}`}
+                    onChange={(event) =>
+                      move.mutate({ entryId: String(entry['id']), stageId: event.target.value })
+                    }
+                    className="touch-target min-w-0 rounded-lg border border-border bg-surface-2 px-2.5 text-sm font-medium text-graphite"
+                  >
+                    {stages.map((stage) => (
+                      <option key={String(stage['id'])} value={String(stage['id'])}>
+                        {String(stage['name'])}
+                      </option>
+                    ))}
+                  </select>
+                  <Button variant="outline" className="touch-target" onClick={() => open("activity")}>
+                    {entry['threadId'] ? <MessageSquare className="mr-1 size-4" /> : null}
+                    Activity
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="mt-4 hidden max-h-[70vh] overflow-y-auto rounded-2xl border border-border md:block">
           <div className="scroll-x"><table className="w-full text-sm">
             <caption className="sr-only">Saved schools</caption>
             <thead className="sticky top-0 bg-muted">
@@ -406,6 +485,7 @@ function CollegeList() {
             </tbody>
           </table></div>
         </div>
+        </>
       )}
 
       <SchoolSheet
