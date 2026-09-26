@@ -385,9 +385,9 @@ function ProgramProfile() {
     { id: "academics", label: "Academics" },
     { id: "cost", label: "Cost" },
     { id: "roster", label: "Roster", count: rosterRows.length || null },
-    { id: "fit", label: "True fit" },
-    { id: "intel", label: "Intelligence", count: intelRows.length || null },
-    { id: "links", label: "Links & sources", count: officialLinks.length || null },
+    { id: "fit", label: "Fit" },
+    { id: "intel", label: "Intel", count: intelRows.length || null },
+    { id: "links", label: "Links", count: officialLinks.length || null },
   ];
 
   return (
