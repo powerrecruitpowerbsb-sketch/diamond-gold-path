@@ -9,6 +9,10 @@ import {
   Check,
   Eye,
   Film,
+  Pencil,
+  Play,
+  TrendingDown,
+  TrendingUp,
   GraduationCap,
   MapPin,
   MessageSquareQuote,
@@ -22,7 +26,6 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
-import { AthleteProfilePanel } from "@/components/athlete/AthleteProfilePanel";
 import { supabase } from "@/integrations/supabase/client";
 import {
   addAthleteVideo,
@@ -45,13 +48,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/athlete")({
   head: () => ({
     meta: [
-      { title: "My recruiting hub — Curve Recruit" },
+      { title: "Hub — Curve Recruit" },
       {
         name: "description",
         content:
           "Your scout card, measurables, video and college list in one place — with the next step always in view.",
       },
-      { property: "og:title", content: "My recruiting hub — Curve Recruit" },
+      { property: "og:title", content: "Hub — Curve Recruit" },
       {
         property: "og:description",
         content: "Scout card, measurables, video and college targets for a recruit.",
@@ -147,14 +150,14 @@ function HubBody({ hub }: { hub: any }) {
   const activeTargets = saved.filter((s) => s['status'] !== "eliminated");
 
   const checklist = [
-    { key: "photo", label: "Add a photo", done: Boolean(hub.photoUrl), href: "#profile" },
+    { key: "photo", label: "Add a photo", done: Boolean(hub.photoUrl), href: "/profile" },
     {
       key: "basics",
       label: "Grad year, position & school",
       done: Boolean(athlete['grad_year'] && athlete['primary_position'] && athlete['high_school']),
-      href: "#profile",
+      href: "/profile",
     },
-    { key: "gpa", label: "GPA on file", done: athlete['gpa'] != null, href: "#profile" },
+    { key: "gpa", label: "GPA on file", done: athlete['gpa'] != null, href: "/profile" },
     {
       key: "metrics",
       label: "At least 3 measurables",
@@ -172,7 +175,7 @@ function HubBody({ hub }: { hub: any }) {
       key: "ncaa",
       label: "NCAA Eligibility Center ID",
       done: Boolean(athlete['eligibility_id']),
-      href: "#profile",
+      href: "/profile",
     },
     {
       key: "targets",
@@ -202,16 +205,12 @@ function HubBody({ hub }: { hub: any }) {
           <Measurables athlete={athlete} sport={sport} latest={latest} />
         </div>
         <div className="space-y-5 sm:space-y-6">
+          <ProfileTeaser hub={hub} />
           <Readiness checklist={checklist} pct={pct} doneCount={doneCount} />
           <Targets saved={saved} />
           <CoachCorner notes={hub.notes} events={hub.events} orgName={hub.orgName} />
         </div>
       </div>
-
-      <section id="profile" className="scroll-mt-24">
-        <p className="meta mb-2 text-org-accent">Profile</p>
-        <AthleteProfilePanel athleteId={String(athlete['id'])} />
-      </section>
     </div>
   );
 }
@@ -597,10 +596,13 @@ function VideoReel({
   return (
     <Panel id="video" eyebrow={`${videos.length} clip${videos.length === 1 ? "" : "s"}`} title="Highlights">
       {current?.url ? (
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black">
+          <span className="absolute top-2 left-2 z-10 rounded-md bg-org-primary px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-org-primary-foreground uppercase">
+            {catLabel(current.category)}
+          </span>
           <video
             key={current.id}
-            src={current.url}
+            src={`${current.url}#t=0.1`}
             controls
             playsInline
             preload="metadata"
@@ -636,20 +638,37 @@ function VideoReel({
       )}
 
       {videos.length > 1 ? (
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
           {videos.map((v, i) => (
             <button
               key={v.id}
               onClick={() => setActive(i)}
               className={cn(
-                "shrink-0 rounded-lg border px-3 py-2 text-left transition-colors",
+                "group relative aspect-video overflow-hidden rounded-lg border bg-black transition-all",
                 i === active
-                  ? "border-org-primary bg-org-primary/10"
-                  : "border-white/10 hover:border-white/25",
+                  ? "border-org-primary ring-2 ring-org-primary/40"
+                  : "border-white/10 hover:border-white/30",
               )}
+              aria-label={`Play ${v.title || "clip"}`}
             >
-              <p className="max-w-[140px] truncate text-xs font-semibold text-graphite">{v.title || "Clip"}</p>
-              <p className="meta text-steel">{catLabel(v.category)}</p>
+              {v.url ? (
+                <video
+                  src={`${v.url}#t=0.5`}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="pointer-events-none size-full object-cover"
+                />
+              ) : null}
+              <span className="absolute top-1 left-1 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9.5px] font-bold tracking-wide text-white uppercase">
+                {catLabel(v.category)}
+              </span>
+              <span className="absolute inset-0 grid place-items-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+                <Play className="size-5 fill-white text-white" />
+              </span>
+              <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pt-3 pb-1 text-left text-[10px] font-semibold text-white">
+                {v.title || "Clip"}
+              </span>
             </button>
           ))}
         </div>
