@@ -50,6 +50,7 @@ import { Route as AuthenticatedRosterIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedRosterIdRouteImport } from './routes/_authenticated/roster.$id'
 import { Route as AuthenticatedRosterImportRouteImport } from './routes/_authenticated/roster.import'
 import { Route as AuthenticatedRosterNewRouteImport } from './routes/_authenticated/roster.new'
+import { Route as AuthenticatedRosterTestingRouteImport } from './routes/_authenticated/roster.testing'
 import { Route as AuthenticatedSettingsBrandingRouteImport } from './routes/_authenticated/settings.branding'
 import { Route as AuthenticatedSettingsSeasonsRouteImport } from './routes/_authenticated/settings.seasons'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings.team'
@@ -288,6 +289,12 @@ const AuthenticatedRosterNewRoute = AuthenticatedRosterNewRouteImport.update({
   path: '/roster/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRosterTestingRoute =
+  AuthenticatedRosterTestingRouteImport.update({
+    id: '/roster/testing',
+    path: '/roster/testing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsBrandingRoute =
   AuthenticatedSettingsBrandingRouteImport.update({
     id: '/settings/branding',
@@ -411,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
   '/roster/new': typeof AuthenticatedRosterNewRoute
+  '/roster/testing': typeof AuthenticatedRosterTestingRoute
   '/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -466,6 +474,7 @@ export interface FileRoutesByTo {
   '/roster/$id': typeof AuthenticatedRosterIdRoute
   '/roster/import': typeof AuthenticatedRosterImportRoute
   '/roster/new': typeof AuthenticatedRosterNewRoute
+  '/roster/testing': typeof AuthenticatedRosterTestingRoute
   '/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -524,6 +533,7 @@ export interface FileRoutesById {
   '/_authenticated/roster/$id': typeof AuthenticatedRosterIdRoute
   '/_authenticated/roster/import': typeof AuthenticatedRosterImportRoute
   '/_authenticated/roster/new': typeof AuthenticatedRosterNewRoute
+  '/_authenticated/roster/testing': typeof AuthenticatedRosterTestingRoute
   '/_authenticated/settings/branding': typeof AuthenticatedSettingsBrandingRoute
   '/_authenticated/settings/seasons': typeof AuthenticatedSettingsSeasonsRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -582,6 +592,7 @@ export interface FileRouteTypes {
     | '/roster/$id'
     | '/roster/import'
     | '/roster/new'
+    | '/roster/testing'
     | '/settings/branding'
     | '/settings/seasons'
     | '/settings/team'
@@ -637,6 +648,7 @@ export interface FileRouteTypes {
     | '/roster/$id'
     | '/roster/import'
     | '/roster/new'
+    | '/roster/testing'
     | '/settings/branding'
     | '/settings/seasons'
     | '/settings/team'
@@ -694,6 +706,7 @@ export interface FileRouteTypes {
     | '/_authenticated/roster/$id'
     | '/_authenticated/roster/import'
     | '/_authenticated/roster/new'
+    | '/_authenticated/roster/testing'
     | '/_authenticated/settings/branding'
     | '/_authenticated/settings/seasons'
     | '/_authenticated/settings/team'
@@ -1015,6 +1028,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRosterNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/roster/testing': {
+      id: '/_authenticated/roster/testing'
+      path: '/roster/testing'
+      fullPath: '/roster/testing'
+      preLoaderRoute: typeof AuthenticatedRosterTestingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings/branding': {
       id: '/_authenticated/settings/branding'
       path: '/settings/branding'
@@ -1197,6 +1217,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRosterIdRoute: typeof AuthenticatedRosterIdRoute
   AuthenticatedRosterImportRoute: typeof AuthenticatedRosterImportRoute
   AuthenticatedRosterNewRoute: typeof AuthenticatedRosterNewRoute
+  AuthenticatedRosterTestingRoute: typeof AuthenticatedRosterTestingRoute
   AuthenticatedSettingsBrandingRoute: typeof AuthenticatedSettingsBrandingRoute
   AuthenticatedSettingsSeasonsRoute: typeof AuthenticatedSettingsSeasonsRoute
   AuthenticatedSettingsTeamRoute: typeof AuthenticatedSettingsTeamRoute
@@ -1216,6 +1237,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRosterIdRoute: AuthenticatedRosterIdRoute,
   AuthenticatedRosterImportRoute: AuthenticatedRosterImportRoute,
   AuthenticatedRosterNewRoute: AuthenticatedRosterNewRoute,
+  AuthenticatedRosterTestingRoute: AuthenticatedRosterTestingRoute,
   AuthenticatedSettingsBrandingRoute: AuthenticatedSettingsBrandingRoute,
   AuthenticatedSettingsSeasonsRoute: AuthenticatedSettingsSeasonsRoute,
   AuthenticatedSettingsTeamRoute: AuthenticatedSettingsTeamRoute,

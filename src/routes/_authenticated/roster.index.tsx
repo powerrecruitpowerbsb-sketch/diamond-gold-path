@@ -113,6 +113,9 @@ function RosterScreen() {
           <ActionLink to="/roster/import" tone="secondary">
             <Upload className="size-4" aria-hidden /> Import CSV
           </ActionLink>
+          <ActionLink to="/roster/testing" tone="secondary">
+            <Upload className="size-4" aria-hidden /> Testing day
+          </ActionLink>
           <ActionLink to="/roster/new">
             <Plus className="size-4" aria-hidden /> Add athlete
           </ActionLink>
