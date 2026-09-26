@@ -168,18 +168,18 @@ function AthleteDetail() {
       ) : (
         <>
           {/* Recruit command header, same lit plate as the school pages. */}
-          <div className="stadium-gradient mt-4 overflow-hidden rounded-2xl px-5 py-7 sm:px-8 sm:py-9">
+          <div className="stadium-gradient mt-4 overflow-hidden rounded-2xl px-4 py-6 sm:px-8 sm:py-9">
             <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">
               {SPORT_LABEL[normalizeSport(athlete['sport'])]}
               {athlete['grad_year'] ? ` · Class of ${athlete['grad_year']}` : ""}
             </p>
-            <h1 className="font-display mt-2 text-[2rem] leading-[1.06] font-bold text-white sm:text-4xl">
+            <h1 className="font-display mt-2 break-words text-[1.75rem] leading-[1.06] font-bold text-white sm:text-4xl">
               {athlete['name']}
             </h1>
             <p className="meta mt-2 normal-case text-white/55">
               {String(athlete['athlete_data_source']).replace("_", " ")} entry
             </p>
-            <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-white/12 pt-6 text-sm sm:grid-cols-4">
+            <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/12 pt-6 text-sm sm:grid-cols-4">
               {[
                 ["Grad year", athlete['grad_year'] ?? "—"],
                 ["Position", athlete['primary_position'] ?? "—"],
@@ -208,8 +208,8 @@ function AthleteDetail() {
             <CoachPicks athleteId={id} />
           </div>
 
-          <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
-            <h2 className="font-display text-xl font-bold text-graphite">Seasons &amp; teams</h2>
+          <section className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+            <h2 className="font-display text-xl font-bold text-graphite">Seasons</h2>
             <div className="mt-4 grid gap-5 md:grid-cols-2">
               <div>
                 <p className="font-mono text-[11px] tracking-wide text-steel uppercase">
@@ -290,7 +290,7 @@ function AthleteDetail() {
                   {(history ?? []).map((row) => (
                     <li
                       key={row.assignmentId}
-                      className="flex items-center justify-between gap-2 rounded-md bg-chalk px-3 py-2 text-sm"
+                      className="flex min-w-0 items-center justify-between gap-2 rounded-md bg-chalk px-3 py-2 text-sm"
                     >
                       <span className="font-mono text-xs text-steel tabular-nums">
                         {row.seasonName}
@@ -378,9 +378,9 @@ function AthleteDetail() {
           </section>
 
           {/* Staff notes */}
-          <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+          <section className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
             <div className="flex items-center gap-1.5">
-              <h2 className="font-display text-xl font-bold text-graphite">Staff notes</h2>
+              <h2 className="font-display text-xl font-bold text-graphite">Notes</h2>
               <HelpTip label="About staff notes">
                 Notes are internal by default. Anything marked visible to the parent will appear in
                 their family account.

@@ -66,7 +66,7 @@ export function CoachPicks({ athleteId }: { athleteId: string }) {
   const formOpen = !!chosen || !!editing;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+    <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <h2 className="font-display text-xl font-bold text-graphite">Picks</h2>
       <p className="mt-1 text-sm text-steel">
         Put a college on this player's list. They see it marked "Coach pick" with your message.
@@ -114,7 +114,7 @@ export function CoachPicks({ athleteId }: { athleteId: string }) {
             <textarea value={staffNote} onChange={(e) => setStaffNote(e.target.value)} rows={2}
               className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-sm" />
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             <button type="button" disabled={busy} onClick={save}
               className="touch-target rounded-lg bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60">
               {editing ? "Save" : "Add as coach pick"}
@@ -128,7 +128,7 @@ export function CoachPicks({ athleteId }: { athleteId: string }) {
         <ul className="mt-5 divide-y divide-border">
           {picks.map((s) => (
             <li key={s.id} className="py-3">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 font-medium text-graphite">
                     <Star className="size-3.5 text-org-primary" /> {s.name}
@@ -139,7 +139,7 @@ export function CoachPicks({ athleteId }: { athleteId: string }) {
                     <p className="mt-1 inline-flex items-start gap-1 text-sm text-steel"><Lock className="mt-0.5 size-3.5 shrink-0" /> {s.staffNote}</p>
                   ) : null}
                 </div>
-                <div className="flex shrink-0 gap-3 text-sm">
+                <div className="flex shrink-0 gap-4 text-sm">
                   <button type="button" className="text-org-primary" onClick={() => {
                     setEditing(s.id); setMessage(s.message ?? ""); setStaffNote(s.staffNote ?? "");
                   }}>Edit</button>

@@ -53,7 +53,7 @@ export function ActionsPanel({ seasonId, teamId, sport }: Props) {
   ].filter((g) => g.rows.length > 0);
 
   return (
-    <section className="mt-6 rounded-xl border border-border bg-card p-5 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
+    <section className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
       <h2 className="font-display text-xl font-bold text-graphite">Actions</h2>
       {isPending ? (
         <p className="mt-3 text-sm text-steel">Loading…</p>
@@ -73,10 +73,10 @@ export function ActionsPanel({ seasonId, teamId, sport }: Props) {
                     <Link
                       to="/roster/$id"
                       params={{ id: a['id'] }}
-                      className="flex min-h-11 items-center gap-2 text-sm text-graphite hover:text-org-primary"
+                      className="flex min-h-11 min-w-0 items-center gap-2 text-sm text-graphite hover:text-org-primary"
                     >
-                      <span className="font-semibold">{a['name']}</span>
-                      <span className="ml-auto text-xs text-steel">{g.detail(a)}</span>
+                      <span className="truncate font-semibold">{a['name']}</span>
+                      <span className="ml-auto shrink-0 text-xs text-steel">{g.detail(a)}</span>
                       <ChevronRight className="size-4 text-steel" aria-hidden />
                     </Link>
                   </li>
