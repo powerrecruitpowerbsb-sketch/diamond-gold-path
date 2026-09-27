@@ -243,7 +243,7 @@ export function InvitePanel({
                       STATUS_STYLE[status] ?? STATUS_STYLE['revoked'],
                     )}
                   >
-                    {status}
+                    {status === "pending" ? "sent" : status}
                   </span>
                   <span className="font-mono text-[11px] text-steel">
                     sent {new Date(invite['created_at']).toLocaleDateString()}
