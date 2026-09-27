@@ -1,0 +1,1 @@
+CREATE POLICY "Superadmins file link conflicts" ON public.link_conflicts FOR INSERT TO authenticated WITH CHECK (public.is_superadmin());
