@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Roster transfer reading: bare "Last School"/unlabelled school names count as colleges only if they read as a college or match the schools directory (loadKnownColleges before readRoster). Why: bare high-school names ("Central") are indistinguishable from college short names ("Mercer").
