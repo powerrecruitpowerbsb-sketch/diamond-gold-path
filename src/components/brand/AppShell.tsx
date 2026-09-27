@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -78,7 +79,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   const fetchThreads = useServerFn(listMyThreads);
   const { data: inbox } = useQuery({
     queryKey: ["my-threads"],
-    queryFn: () => fetchThreads(),
+    queryFn: async () => ((await supabase.auth.getSession()).data.session ? fetchThreads() : null),
     enabled: Boolean(account),
     refetchInterval: 30_000,
     staleTime: 10_000,

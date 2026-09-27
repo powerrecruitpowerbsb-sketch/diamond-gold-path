@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -62,7 +63,7 @@ function MessagesPage() {
   const listFn = useServerFn(listMyThreads);
   const { data, isPending } = useQuery({
     queryKey: ["my-threads"],
-    queryFn: () => listFn(),
+    queryFn: async () => ((await supabase.auth.getSession()).data.session ? listFn() : null),
     refetchInterval: 15_000,
   });
   const [q, setQ] = useState("");
