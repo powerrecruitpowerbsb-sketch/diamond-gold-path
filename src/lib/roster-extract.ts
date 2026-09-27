@@ -351,8 +351,16 @@ function collegeOnly(value: string): string | null {
   const school = value.trim().replace(/^[:\s]+/, "").slice(0, 120);
   if (school.length < 3 || /^[-–—]$/.test(school)) return null;
   if (HIGH_SCHOOL_NAME.test(school)) return null;
+  // "Trenton, Mich. / Henry Ford CC": a hometown and a last school in one
+  // cell. That last school is as often a high school as a college, so only a
+  // name that reads as a college counts.
+  if (/\s\/\s/.test(school)) {
+    const last = school.split(/\s\/\s/).pop()!.trim();
+    return COLLEGE_NAME.test(last) && !HIGH_SCHOOL_NAME.test(last) ? last : null;
+  }
   return school;
 }
+const COLLEGE_NAME = /\b(college|university|univ\.?|c\.?c\.?|j\.?c\.?|state|tech|institute)\b/i;
 const JUCO_NAME = /\b(c\.?c\.?|community\s+college|junior\s+college|j\.?c\.?|juco|technical\s+college|state\s+college\s+of\s+florida)\b/i;
 function isJucoName(value: string | null): boolean {
   return Boolean(value && JUCO_NAME.test(value));
