@@ -18,16 +18,34 @@ export const Route = createFileRoute("/api/public/federal-runner")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { authenticateCronRequest } = await import("@/integrations/supabase/cron-auth");
-        const denied = await authenticateCronRequest(request);
-        if (denied) return denied;
-
         const { createClient } = await import("@supabase/supabase-js");
         const supabase = createClient(
           process.env["SUPABASE_URL"]!,
           process.env["SUPABASE_SERVICE_ROLE_KEY"]!,
           { auth: { persistSession: false, autoRefreshToken: false } },
         );
+
+        // Accept the stored runner key (used by the autopilot schedule) or the cron secret.
+        const bearer = /^Bearer ([^\s,]+)$/.exec(request.headers.get("authorization") ?? "")?.[1];
+        let authorized = false;
+        if (bearer) {
+          const { data: tokenRow } = await supabase
+            .from("collection_state")
+            .select("runner_token")
+            .eq("id", "singleton")
+            .maybeSingle();
+          const expected = (tokenRow as { runner_token?: string } | null)?.runner_token;
+          if (expected) {
+            const { timingSafeEqual, createHash } = await import("node:crypto");
+            const digest = (value: string) => createHash("sha256").update(value, "utf8").digest();
+            authorized = timingSafeEqual(digest(bearer), digest(String(expected)));
+          }
+        }
+        if (!authorized) {
+          const { authenticateCronRequest } = await import("@/integrations/supabase/cron-auth");
+          const denied = await authenticateCronRequest(request);
+          if (denied) return denied;
+        }
 
         const { leaseQueueItems, completeQueueItem, failQueueItem } = await import(
           "@/lib/ingest-queue.server"
