@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { BadgeCheck, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import curveMark from "@/assets/curve-mark-white.png.asset.json";
+import heroPitcher from "@/assets/hero-pitcher.jpg";
 import { supabase } from "@/integrations/supabase/client";
-import { getMyAccount, validateInviteCode } from "@/lib/admin.functions";
+import { getMyAccount } from "@/lib/admin.functions";
 import { routeForRole } from "@/lib/role-routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,16 +17,9 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — Curve Recruit" },
-      {
-        name: "description",
-        content:
-          "Sign in to Curve Recruit to research verified college baseball and softball program data.",
-      },
+      { name: "description", content: "Sign in to Curve Recruit." },
       { property: "og:title", content: "Sign in — Curve Recruit" },
-      {
-        property: "og:description",
-        content: "Access the Curve Recruit college baseball and softball research database.",
-      },
+      { property: "og:description", content: "Sign in to Curve Recruit." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -36,15 +30,9 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const account = useServerFn(getMyAccount);
-  const checkInvite = useServerFn(validateInviteCode);
-
-  const [mode, setMode] = useState<"signin" | "signup">("signin"); // signup is by email invite only
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [confirmSent, setConfirmSent] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -53,7 +41,7 @@ function AuthPage() {
         const me = await account();
         navigate({ to: routeForRole(me.primaryRole), replace: true });
       } catch {
-        /* stay on the sign-in screen */
+        /* stay */
       }
     });
   }, [account, navigate]);
@@ -62,29 +50,10 @@ function AuthPage() {
     event.preventDefault();
     setBusy(true);
     try {
-      if (mode === "signup") {
-        if (!name.trim()) throw new Error("Enter your name");
-        const invite = await checkInvite({ data: { code: inviteCode } });
-        if (!invite.valid) {
-          throw new Error("That invite code isn't valid. Ask your program admin for a current code.");
-        }
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { name: name.trim(), invite_code: inviteCode.trim() },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-        setConfirmSent(true);
-        toast.success(`Account created for ${invite.organizationName ?? "your organization"}`);
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        const me = await account();
-        navigate({ to: routeForRole(me.primaryRole), replace: true });
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      const me = await account();
+      navigate({ to: routeForRole(me.primaryRole), replace: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong");
     } finally {
@@ -92,134 +61,76 @@ function AuthPage() {
     }
   }
 
+  const field =
+    "mt-1.5 h-12 border-white/15 bg-white/5 text-base text-white placeholder:text-white/30 focus-visible:ring-org-accent";
+
   return (
-    <div className="min-h-screen bg-chalk">
-      <div className="stadium-gradient relative">
-        <div className="mx-auto max-w-6xl px-4 pt-8 pb-28 sm:px-6 sm:pt-10 sm:pb-36">
-          <Link to="/" className="inline-flex items-center gap-2.5">
-            <img src={curveMark.url} alt="" aria-hidden className="size-9 object-contain" />
-            <span className="font-display text-xl font-bold text-white">Curve Recruit</span>
-          </Link>
-          <h1 className="mt-8 max-w-xl font-display text-3xl font-bold text-white sm:text-4xl">
-            Verified college baseball and softball program research.
-          </h1>
-          <p className="mt-3 max-w-lg text-sm text-white/70">
-            Sourced school data, program detail, and Curve Recruit intelligence — in one place for
-            your staff and families.
-          </p>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-surface-0">
+      <div className="absolute inset-0 lg:left-1/2">
+        <img
+          src={heroPitcher}
+          alt="A college pitcher in his windup under stadium lights"
+          width={1280}
+          height={1600}
+          className="size-full object-cover object-top"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/80 to-surface-0/30 lg:bg-gradient-to-r lg:from-surface-0 lg:via-transparent lg:to-surface-0/40" />
       </div>
 
-      <div className="relative z-10 mx-auto -mt-20 max-w-md px-4 pb-16 sm:-mt-24 sm:px-6">
-        <div className="surface-raised rounded-2xl p-6 sm:p-7">
-          {confirmSent ? (
-            <div className="text-center">
-              <BadgeCheck className="mx-auto size-8 text-diamond-green" aria-hidden />
-              <h2 className="mt-3 font-display text-2xl font-bold text-graphite">Check your email</h2>
-              <p className="mt-2 text-sm text-steel">
-                We sent a confirmation link to <span className="font-semibold">{email}</span>. Confirm
-                it, then sign in.
-              </p>
+      <div className="relative z-10 flex min-h-screen flex-col px-6 py-8 sm:px-12 sm:py-12 lg:w-1/2 lg:stadium-gradient">
+        <Link to="/" className="inline-flex items-center gap-2.5 self-start">
+          <img src={curveMark.url} alt="" aria-hidden className="size-9 object-contain" />
+          <span className="font-display text-lg font-bold text-white">Curve Recruit</span>
+        </Link>
+
+        <div className="flex flex-1 flex-col justify-end lg:justify-center">
+          <div className="w-full max-w-sm">
+            <h1 className="font-display text-4xl font-bold text-white">Sign in</h1>
+
+            <form onSubmit={submit} className="mt-6 grid gap-4">
+              <div>
+                <Label htmlFor="email" className="text-white/70">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                  className={field}
+                />
+              </div>
+              <div>
+                <div className="flex items-baseline justify-between">
+                  <Label htmlFor="password" className="text-white/70">Password</Label>
+                  <Link to="/forgot-password" className="text-xs font-semibold text-white/60 hover:text-white">
+                    Forgot?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                  className={field}
+                />
+              </div>
               <Button
-                variant="outline"
-                className="mt-5 w-full touch-target"
-                onClick={() => {
-                  setConfirmSent(false);
-                  setMode("signin");
-                }}
+                type="submit"
+                disabled={busy}
+                className="touch-target mt-2 h-12 w-full bg-seam-red text-base font-semibold text-white hover:bg-seam-red/90"
               >
-                Back to sign in
+                {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+                Sign in
               </Button>
-            </div>
-          ) : (
-            <>
-              <h2 className="font-display text-2xl font-bold text-graphite">
-                {mode === "signin" ? "Welcome back" : "Join your program"}
-              </h2>
-              <p className="mt-1 text-sm text-steel">
-                {mode === "signin"
-                  ? "Use the email your program was set up with."
-                  : "You'll need the invite code from your program admin."}
-              </p>
+            </form>
 
-              <form onSubmit={submit} className="mt-5 grid gap-4">
-                {mode === "signup" ? (
-                  <div>
-                    <Label htmlFor="name">Full name</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      autoComplete="name"
-                      required
-                      className="mt-1.5"
-                    />
-                  </div>
-                ) : null}
-
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    autoComplete="email"
-                    required
-                    className="mt-1.5"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-baseline justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    {mode === "signin" ? (
-                      <Link
-                        to="/forgot-password"
-                        className="text-xs font-semibold text-org-primary hover:underline"
-                      >
-                        Forgot password?
-                      </Link>
-                    ) : null}
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                    minLength={8}
-                    required
-                    className="mt-1.5"
-                  />
-                </div>
-
-                {mode === "signup" ? (
-                  <div>
-                    <Label htmlFor="invite">Invite code</Label>
-                    <Input
-                      id="invite"
-                      value={inviteCode}
-                      onChange={(event) => setInviteCode(event.target.value)}
-                      placeholder="POWERBB-2026"
-                      required
-                      className="mt-1.5 font-mono"
-                    />
-                    <p className="meta mt-1.5">Codes are issued per organization by Curve Recruit staff.</p>
-                  </div>
-                ) : null}
-
-                <Button
-                  type="submit"
-                  disabled={busy}
-                  className="touch-target mt-1 w-full bg-seam-red text-white hover:bg-seam-red/90"
-                >
-                  {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-                  {mode === "signin" ? "Sign in" : "Create account"}
-                </Button>
-              </form>
-            </>
-          )}
+            <p className="mt-6 font-mono text-[11px] tracking-[0.15em] text-white/40 uppercase">
+              Invite only
+            </p>
+          </div>
         </div>
       </div>
     </div>
