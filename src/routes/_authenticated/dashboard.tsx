@@ -105,18 +105,18 @@ function Dashboard() {
         </h1>
         <p className="mt-3 max-w-2xl text-[15px] text-white/80">{"\n"}</p>
 
-        <dl className="mt-7 grid grid-cols-2 gap-3 border-t border-white/12 pt-6 sm:grid-cols-4">
+        <dl className="mt-5 grid grid-cols-4 gap-2 border-t border-white/12 pt-4 sm:mt-7 sm:gap-3 sm:pt-6">
           {[
             ["Athletes", totals?.athletes],
-            ["Schools saved", totals?.savedSchools],
+            ["Saved", totals?.savedSchools],
             ["Offers", totals?.offers],
             ["Commits", totals?.commits],
           ].map(([label, value]) => (
-            <div key={String(label)}>
-              <dt className="font-mono text-[11px] tracking-wide text-white/60 uppercase">
+            <div key={String(label)} className="min-w-0">
+              <dt className="truncate font-mono text-[10px] tracking-wide text-white/60 uppercase sm:text-[11px]">
                 {label}
               </dt>
-              <dd className="font-display text-2xl font-bold text-white tabular-nums">
+              <dd className="font-display text-xl font-bold text-white tabular-nums sm:text-2xl">
                 {isPending ? "—" : Number(value ?? 0)}
               </dd>
             </div>
@@ -124,7 +124,7 @@ function Dashboard() {
         </dl>
       </section>
 
-      <div className="mt-6">
+      <div className="sticky top-0 z-20 -mx-4 mt-4 bg-chalk/95 px-4 py-2 backdrop-blur-md sm:static sm:mx-0 sm:mt-6 sm:bg-transparent sm:p-0">
         <SeasonTeamPicker ctx={ctx} />
       </div>
 

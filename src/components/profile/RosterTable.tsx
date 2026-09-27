@@ -44,11 +44,13 @@ export function RosterTable({ rows }: { rows: RosterRow[] }) {
     return copy;
   }, [rows, sort]);
 
+  // Only show B / T when this school actually published it for this roster.
+  const handsPublished = rows.some((row) => row.bats || row.throws);
   const columns: { key: SortKey; header: string; numeric?: boolean }[] = [
     { key: "name", header: "Player" },
     { key: "position", header: "Pos" },
     { key: "class_year", header: "Class" },
-    { key: "bats", header: "B / T" },
+    ...(handsPublished ? [{ key: "bats" as SortKey, header: "B / T" }] : []),
     { key: "hometown", header: "Hometown" },
     { key: "home_state", header: "State" },
     { key: "transfer", header: "Transfer" },
@@ -103,9 +105,11 @@ export function RosterTable({ rows }: { rows: RosterRow[] }) {
               <td className="tabular h-[38px] px-3 py-1.5 align-middle text-graphite">
                 {row.class_year ?? blank}
               </td>
-              <td className="tabular h-[38px] px-3 py-1.5 align-middle text-graphite">
-                {row.bats || row.throws ? `${row.bats ?? "–"} / ${row.throws ?? "–"}` : blank}
-              </td>
+              {handsPublished ? (
+                <td className="tabular h-[38px] px-3 py-1.5 align-middle text-graphite">
+                  {row.bats || row.throws ? `${row.bats ?? "–"} / ${row.throws ?? "–"}` : blank}
+                </td>
+              ) : null}
               <td className="h-[38px] px-3 py-1.5 align-middle text-steel">
                 {row.hometown ?? blank}
               </td>

@@ -62,6 +62,7 @@ function FamilyPortal() {
 
   const allAthletes = (data?.athletes ?? []) as Record<string, any>[];
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [guide, setGuide] = useState<"timeline" | "checklist" | "finances">("timeline");
   const current = allAthletes.find((a) => a["id"] === selectedId) ?? allAthletes[0];
   const athletes = current ? [current] : [];
 
@@ -166,10 +167,32 @@ function FamilyPortal() {
                   ))}
                 </dl>
 
-                <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                  <FamilyTimeline gradYear={athlete['grad_year'] ?? null} />
-                  <FamilyChecklist athlete={athlete} savedCount={saved.length} />
-                  <FamilyFinances saved={saved} homeState={athlete['home_state'] ?? null} />
+                <div className="mt-6 flex gap-1 rounded-lg border border-border bg-card p-1 lg:hidden">
+                  {(["timeline", "checklist", "finances"] as const).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      aria-pressed={guide === k}
+                      onClick={() => setGuide(k)}
+                      className={cn(
+                        "touch-target flex-1 rounded-md text-xs font-semibold capitalize",
+                        guide === k ? "bg-org-primary text-org-primary-foreground" : "text-steel",
+                      )}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 grid gap-4 lg:mt-6 lg:grid-cols-3">
+                  <div className={cn(guide !== "timeline" && "hidden lg:block")}>
+                    <FamilyTimeline gradYear={athlete['grad_year'] ?? null} />
+                  </div>
+                  <div className={cn(guide !== "checklist" && "hidden lg:block")}>
+                    <FamilyChecklist athlete={athlete} savedCount={saved.length} />
+                  </div>
+                  <div className={cn(guide !== "finances" && "hidden lg:block")}>
+                    <FamilyFinances saved={saved} homeState={athlete['home_state'] ?? null} />
+                  </div>
                 </div>
 
                 <h3 className="mt-6 font-mono text-[11px] tracking-wide text-steel uppercase">
