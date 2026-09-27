@@ -68,7 +68,7 @@ export function NewConversation({
   });
 
   const start = useMutation({
-    mutationFn: (programId: string) => openFn({ data: { athleteId: athleteId!, programId } }),
+    mutationFn: (programId: string | null) => openFn({ data: { athleteId: athleteId!, programId } }),
     onSuccess: (r) => {
       onOpenChange(false);
       onStarted(r.threadId);
@@ -125,6 +125,14 @@ export function NewConversation({
             )
           ) : (
             <>
+              {debounced.length < 2 ? (
+                <Row
+                  disabled={start.isPending}
+                  onClick={() => start.mutate(null)}
+                  title="Recruiting strategy"
+                  meta="General · no school"
+                />
+              ) : null}
               <p className="px-3 pt-1 pb-2 font-mono text-[10px] tracking-[0.2em] text-steel uppercase">
                 {debounced.length >= 2 ? "Results" : "My Colleges"}
               </p>
