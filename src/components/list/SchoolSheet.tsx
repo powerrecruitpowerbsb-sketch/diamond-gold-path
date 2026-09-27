@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityChips } from "@/components/list/ActivityChips";
@@ -21,6 +21,7 @@ import { getProgramProfile } from "@/lib/search.functions";
 import { setEntryNotes } from "@/lib/continuum.functions";
 import { useMyAccount } from "@/hooks/use-my-account";
 import { isOrgManagerRole } from "@/lib/roles";
+import { openThread } from "@/lib/messaging.functions";
 
 export type SheetEntry = {
   /** Null when the school is not on any list yet (opened straight from Search). */
@@ -378,6 +379,7 @@ export function SchoolSheet({
 
 function NotesAndMessages({
   entry,
+  athleteId,
   onSaved,
 }: {
   entry: SheetEntry;
@@ -415,6 +417,8 @@ function NotesAndMessages({
 
   const dirty = notes !== saved;
   return (
+    <div className="space-y-4">
+    <DiscussButton programId={entry.programId} athleteId={entry.athleteId ?? athleteId} />
     <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="absolute inset-x-0 top-0 h-1 bg-org-primary" aria-hidden />
       <div className="flex items-center justify-between">
@@ -441,6 +445,23 @@ function NotesAndMessages({
         </Button>
       </div>
     </div>
+    </div>
+  );
+}
+
+function DiscussButton({ programId, athleteId }: { programId: string; athleteId: string | null }) {
+  const openFn = useServerFn(openThread);
+  const navigate = useNavigate();
+  const go = useMutation({
+    mutationFn: () => openFn({ data: { athleteId: athleteId as string, programId } }),
+    onSuccess: ({ threadId }) => navigate({ to: "/messages", search: { thread: threadId } }),
+    onError: (error: Error) => toast.error(error.message),
+  });
+  if (!athleteId) return null;
+  return (
+    <Button variant="outline" className="touch-target w-full justify-center gap-2" disabled={go.isPending} onClick={() => go.mutate()}>
+      <MessageSquare className="size-4" /> {go.isPending ? "Opening…" : "Discuss this school"}
+    </Button>
   );
 }
 

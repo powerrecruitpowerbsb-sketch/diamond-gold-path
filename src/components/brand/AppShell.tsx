@@ -11,6 +11,7 @@ import {
   Mail,
   ListChecks,
   Menu,
+  MessageSquare,
 
   Palette,
   Search,
@@ -25,6 +26,7 @@ import { OrgMark } from "@/components/brand/OrgMark";
 import { SportSwitch } from "@/components/brand/SportSwitch";
 import { useSportMode } from "@/hooks/use-sport-mode";
 import { getAthleteSportMix } from "@/lib/athletes.functions";
+import { listMyThreads } from "@/lib/messaging.functions";
 import { ActingOrgBar } from "@/components/brand/ActingOrgBar";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { useMyAccount } from "@/hooks/use-my-account";
@@ -73,6 +75,16 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   const showSportSwitch = orgSide;
   void sportMix;
 
+  const fetchThreads = useServerFn(listMyThreads);
+  const { data: inbox } = useQuery({
+    queryKey: ["my-threads"],
+    queryFn: () => fetchThreads(),
+    enabled: Boolean(account),
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  });
+  const unread = inbox?.unreadTotal ?? 0;
+
 
   const primaryNav: NavItem[] = [
     ...(role === "player" ? [{ to: "/athlete", label: "Hub", icon: Home }] : []),
@@ -99,6 +111,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
         ]
       : []),
 
+    ...(account ? [{ to: "/messages", label: "Messages", icon: MessageSquare }] : []),
     ...(isStaff ? [{ to: "/admin", label: "Console", icon: Table2 }] : []),
 
   ];
@@ -124,6 +137,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       : isOrgManager
         ? [{ to: "/roster", label: "Roster", icon: Users, exact: false }]
         : [{ to: "/list", label: "Colleges", icon: ListChecks, exact: false }]),
+    ...(account ? [{ to: "/messages", label: "Inbox", icon: MessageSquare, exact: false }] : []),
     role === "player"
       ? { to: "/profile", label: "Profile", icon: UserRound, exact: false }
       : { to: "/settings/account", label: "Account", icon: UserRound, exact: false },
@@ -171,6 +185,11 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
                 activeOptions={{ exact: item.to === "/" }}
               >
                 {item.label}
+                {item.to === "/messages" && unread ? (
+                  <span className="ml-1.5 grid min-w-5 place-items-center rounded-full bg-destructive px-1.5 font-mono text-[10px] font-bold text-destructive-foreground">
+                    {unread}
+                  </span>
+                ) : null}
               </Link>
             ))}
           </nav>
@@ -241,6 +260,11 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           >
             <item.icon className="size-5" aria-hidden />
             {item.label}
+            {item.to === "/messages" && unread ? (
+              <span className="absolute top-1.5 left-1/2 ml-2 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                {unread}
+              </span>
+            ) : null}
           </Link>
         ))}
       </nav>

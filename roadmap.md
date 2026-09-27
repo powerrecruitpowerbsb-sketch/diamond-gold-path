@@ -75,4 +75,4 @@
 ## Deferred (user wants to think first)
 - [ ] Login / account-creation flow (magic-link invite → set password; no invite codes)
 - [ ] Welcome walkthrough
-- [ ] Messages hub: standalone tab/page for players, parents, coaches (school threads moved out of drawer)
+- [x] Messages hub: standalone tab/page for players, parents, coaches (school threads moved out of drawer)
