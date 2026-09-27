@@ -81,16 +81,28 @@ function AdminLayout() {
 
   const sections: ConsoleNavSection[] = [
     {
-      label: "Data operations",
-      to: "/admin/operations",
+      label: "Start here",
+      items: [
+        { to: "/admin", label: "Command center", exact: true },
+        { to: "/admin/handbook", label: "Super admin handbook" },
+      ],
+    },
+    {
+      label: "Needs you",
       count: waiting || undefined,
       items: [
-        { to: "/admin/operations", label: "Overview & schedule", exact: true },
-        { to: "/admin/review", label: "Review queue", count: needs?.review },
-        { to: "/admin/federal-decisions", label: "School identity", count: needs?.identity },
         { to: "/admin/discovery", label: "Suggested addresses", count: needs?.discovered },
+        { to: "/admin/federal-decisions", label: "School identity", count: needs?.identity },
+        { to: "/admin/review", label: "Proposed changes", count: needs?.review },
         { to: "/admin/withheld", label: "Shared addresses", count: needs?.withheld },
         { to: "/admin/blocks", label: "Never propose again", count: needs?.blocks },
+      ],
+    },
+    {
+      label: "Crawler & upkeep",
+      items: [
+        { to: "/admin/operations", label: "Blocked & broken sites", exact: true },
+        { to: "/admin/tools", label: "Collection tools" },
       ],
     },
     {
