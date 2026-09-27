@@ -3881,6 +3881,7 @@ export type Database = {
         }[]
       }
       collection_watchdog: { Args: never; Returns: Json }
+      complete_my_invites: { Args: never; Returns: number }
       completion_counts: {
         Args: { _years: number[] }
         Returns: {
