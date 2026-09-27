@@ -79,61 +79,80 @@ export function NewConversation({
   const filteredAthletes = athletes.filter((a) => a.name.toLowerCase().includes(aq.trim().toLowerCase()));
   const list = debounced.length >= 2 ? schools.data?.results ?? [] : schools.data?.saved ?? [];
 
+  const canChange = athletes.length > 1;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-hidden p-0 sm:max-w-md">
         <div className="h-1 w-full bg-org-primary" />
         <DialogHeader className="px-5 pt-3">
-          <DialogTitle className="flex items-center gap-2 font-display text-xl font-bold text-org-primary">
-            {athlete && athletes.length > 1 ? (
-              <button type="button" onClick={() => setAthleteId(null)} aria-label="Back" className="text-steel hover:text-foreground">
-                <ArrowLeft className="size-4" />
-              </button>
-            ) : null}
-            New message
-          </DialogTitle>
-          <p className="font-mono text-[10px] tracking-[0.2em] text-steel uppercase">
-            {athlete ? `${athlete.name} · School` : "Player"}
-          </p>
+          <DialogTitle className="font-display text-xl font-bold text-org-primary">New message</DialogTitle>
         </DialogHeader>
 
-        <div className="px-5 pb-2">
-          <div className="relative">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-steel" aria-hidden />
-            {athlete ? (
-              <Input autoFocus value={sq} onChange={(e) => setSq(e.target.value)} placeholder="Search any school" className="pl-9" aria-label="Search schools" />
-            ) : (
-              <Input autoFocus value={aq} onChange={(e) => setAq(e.target.value)} placeholder="Search players" className="pl-9" aria-label="Search players" />
-            )}
-          </div>
-        </div>
-
-        <div className="max-h-[55vh] overflow-y-auto px-2 pb-4">
-          {!athlete ? (
-            picker.isPending ? (
-              <Loading />
-            ) : filteredAthletes.length === 0 ? (
-              <Empty text="No players" />
-            ) : (
-              <ul>
-                {filteredAthletes.map((a) => (
-                  <li key={a.id}>
-                    <Row onClick={() => setAthleteId(a.id)} title={a.name} meta={[a.primary_position, a.grad_year ? `’${String(a.grad_year).slice(2)}` : null, a.sport].filter(Boolean).join(" · ")} />
-                  </li>
-                ))}
-              </ul>
-            )
+        <div className="max-h-[70vh] overflow-y-auto px-5 pb-5">
+          {/* Player */}
+          <p className="pb-2 font-mono text-[10px] tracking-[0.2em] text-steel uppercase">Player</p>
+          {athlete ? (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+              <span className="min-w-0">
+                <span className="block truncate font-semibold">{athlete.name}</span>
+                <span className="block truncate font-mono text-[10px] tracking-wide text-steel uppercase">
+                  {athleteMeta(athlete)}
+                </span>
+              </span>
+              {canChange ? (
+                <button
+                  type="button"
+                  onClick={() => { setAthleteId(null); setSq(""); }}
+                  className="shrink-0 text-xs font-semibold text-org-primary hover:underline"
+                >
+                  Change
+                </button>
+              ) : null}
+            </div>
           ) : (
             <>
-              {debounced.length < 2 ? (
-                <Row
-                  disabled={start.isPending}
-                  onClick={() => start.mutate(null)}
-                  title="Recruiting strategy"
-                  meta="General · no school"
-                />
-              ) : null}
-              <p className="px-3 pt-1 pb-2 font-mono text-[10px] tracking-[0.2em] text-steel uppercase">
+              <div className="relative">
+                <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-steel" aria-hidden />
+                <Input autoFocus value={aq} onChange={(e) => setAq(e.target.value)} placeholder="Search or pick a player" className="pl-9" aria-label="Search players" />
+              </div>
+              <div className="mt-1 max-h-64 overflow-y-auto rounded-md border border-border">
+                {picker.isPending ? (
+                  <Loading />
+                ) : filteredAthletes.length === 0 ? (
+                  <Empty text="No players" />
+                ) : (
+                  <ul>
+                    {filteredAthletes.map((a) => (
+                      <li key={a.id}>
+                        <Row onClick={() => setAthleteId(a.id)} title={a.name} meta={athleteMeta(a)} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
+
+          {athlete ? (
+            <>
+              <button
+                type="button"
+                disabled={start.isPending}
+                onClick={() => start.mutate(null)}
+                className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-org-primary px-4 font-semibold text-org-primary-foreground hover:bg-org-primary/90 disabled:opacity-60"
+              >
+                {start.isPending && start.variables === null ? <Loader2 className="size-4 animate-spin" /> : null}
+                General conversation
+              </button>
+              <p className="mt-1 text-center text-[11px] text-steel">With {athlete.name.split(" ")[0]} and family</p>
+
+              <p className="pt-5 pb-2 font-mono text-[10px] tracking-[0.2em] text-steel uppercase">Or about a college</p>
+              <div className="relative">
+                <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-steel" aria-hidden />
+                <Input value={sq} onChange={(e) => setSq(e.target.value)} placeholder="Search any school" className="pl-9" aria-label="Search schools" />
+              </div>
+              <p className="px-1 pt-3 pb-1 font-mono text-[10px] tracking-[0.2em] text-steel uppercase">
                 {debounced.length >= 2 ? "Results" : "My Colleges"}
               </p>
               {schools.isPending ? (
@@ -141,7 +160,7 @@ export function NewConversation({
               ) : list.length === 0 ? (
                 <Empty text={debounced.length >= 2 ? "No schools found" : "No saved schools — search above"} />
               ) : (
-                <ul>
+                <ul className="-mx-2">
                   {list.map((s) => (
                     <li key={s.id}>
                       <Row
@@ -156,11 +175,15 @@ export function NewConversation({
                 </ul>
               )}
             </>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
   );
+}
+
+function athleteMeta(a: Athlete) {
+  return [a.primary_position, a.grad_year ? `’${String(a.grad_year).slice(2)}` : null, a.sport].filter(Boolean).join(" · ");
 }
 
 function Row({ title, meta, onClick, disabled, busy }: { title: string; meta?: string; onClick: () => void; disabled?: boolean; busy?: boolean }) {

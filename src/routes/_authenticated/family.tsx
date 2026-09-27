@@ -62,6 +62,7 @@ function FamilyPortal() {
 
   const allAthletes = (data?.athletes ?? []) as Record<string, any>[];
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [guide, setGuide] = useState<"timeline" | "checklist" | "finances">("timeline");
   const current = allAthletes.find((a) => a["id"] === selectedId) ?? allAthletes[0];
   const athletes = current ? [current] : [];
 
