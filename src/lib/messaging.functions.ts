@@ -25,15 +25,20 @@ async function actor(context: Ctx) {
   };
 }
 
-/** Names for the people on a thread; unreadable rows read as "Member". */
-async function nameMap(context: Ctx, ids: string[]) {
+/**
+ * Display names for people on threads the caller can already see. The ids
+ * come from rows RLS returned to the caller, so only names (never emails or
+ * other profile fields) are read with the server client.
+ */
+async function nameMap(_context: Ctx, ids: string[]) {
   const unique = Array.from(new Set(ids.filter(Boolean)));
   if (!unique.length) return new Map<string, string>();
-  const { data } = await context.supabase.from("users").select("id, name, email").in("id", unique);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.from("users").select("id, name").in("id", unique);
   return new Map(
     ((data ?? []) as Record<string, any>[]).map((u) => [
       u['id'] as string,
-      (u['name'] || u['email'] || "Member") as string,
+      ((u['name'] as string | null)?.trim() || "Member") as string,
     ]),
   );
 }
