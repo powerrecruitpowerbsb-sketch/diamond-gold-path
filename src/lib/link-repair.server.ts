@@ -37,7 +37,7 @@ export type WithholdInput = {
  * Returns nothing — there is no failure path that removes data.
  */
 export async function withholdLink(supabase: any, input: WithholdInput): Promise<void> {
-  await supabase.from("link_conflicts").insert({
+  const { error: conflictError } = await supabase.from("link_conflicts").insert({
     program_id: input.programId,
     university_id: input.universityId,
     field: input.field,
@@ -48,6 +48,9 @@ export async function withholdLink(supabase: any, input: WithholdInput): Promise
     status: "withheld",
     detail: input.reason,
   });
+  if (conflictError) {
+    console.error("[withholdLink] could not file link conflict", conflictError.message);
+  }
 
   // The archive is the record of every change, reversible by run id. Nothing was
   // blanked, so prior and new value are the same address; restoring a row means
