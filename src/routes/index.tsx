@@ -11,13 +11,13 @@ import heroPitcher from "@/assets/hero-dual.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Curve Recruit — College Baseball & Softball Recruiting Research" },
+      { title: "Curve Recruit — Recruiting, Made Transparent" },
       {
         name: "description",
         content:
           "Sign in to Curve Recruit to research college baseball and softball programs with verified academic, athletic and cost data.",
       },
-      { property: "og:title", content: "Curve Recruit — Recruiting Research Platform" },
+      { property: "og:title", content: "Curve Recruit — Recruiting, Made Transparent" },
       {
         property: "og:description",
         content:
