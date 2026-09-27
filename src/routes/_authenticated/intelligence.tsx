@@ -1061,7 +1061,7 @@ function RelationshipBlock({
     <section className="mt-2">
       <div className="divide-y divide-border">
         <ChipPickRow
-          title="Relationship strength"
+          title="Relationship Strength"
           hint={canRate ? "pick one" : "admins set this"}
           single
           disabled={!canRate}
@@ -1070,7 +1070,7 @@ function RelationshipBlock({
           onToggle={(value) => setStrength(strength === value ? "" : value)}
         />
         <ChipPickRow
-          title="Placed players here before"
+          title="Placed Players Before"
           single
           choices={[
             { value: "yes", label: "Yes" },
@@ -1080,7 +1080,7 @@ function RelationshipBlock({
           onToggle={(value) => setPlaced(placed === value ? "" : value)}
         />
         <ChipPickRow
-          title="Our contact on their staff"
+          title="Our contact(s) on their staff"
           choices={CONTACT_ROLE_CHOICES}
           values={contactRoles}
           onToggle={(value) => toggle(contactRoles, setContactRoles, value)}
@@ -1089,7 +1089,7 @@ function RelationshipBlock({
           onNote={setContactNote}
         />
         <ChipPickRow
-          title="Program stability"
+          title="Program Stability"
           choices={STABILITY_CHOICES}
           values={stabilityTags}
           onToggle={(value) => toggle(stabilityTags, setStabilityTags, value)}
