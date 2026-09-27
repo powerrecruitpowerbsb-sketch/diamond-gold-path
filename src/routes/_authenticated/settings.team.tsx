@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/settings/team")({
     ],
   }),
   validateSearch: (s: Record<string, unknown>): { tab?: "staff" | "families" | "teams" } =>
-    s.tab === "families" || s.tab === "teams" || s.tab === "staff" ? { tab: s.tab } : {},
+    s["tab"] === "families" || s["tab"] === "teams" || s["tab"] === "staff" ? { tab: s["tab"] } : {},
   component: ClubManagement,
 });
 
