@@ -423,7 +423,7 @@ function SearchScreen() {
             <span className="text-xs text-steel">
               {params.athleteId
                 ? "Every row adds to this player's list."
-                : "Pick a player once and every row adds to their list."}
+                : "Pick a player and Add to their Record."}
             </span>
           </label>
         ) : null}
