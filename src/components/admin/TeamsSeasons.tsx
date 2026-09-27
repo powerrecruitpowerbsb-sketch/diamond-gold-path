@@ -241,6 +241,35 @@ function TeamManager({
   const assignFn = useServerFn(assignAthleteToTeam);
   const [teamName, setTeamName] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
+  const [bulkText, setBulkText] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const bulkRows = useMemo(() => {
+    const seen = new Set<string>();
+    return bulkText
+      .split(/\n+/)
+      .map((l) => l.trim().slice(0, 80))
+      .filter((l) => l && !seen.has(l.toLowerCase()) && seen.add(l.toLowerCase()))
+      .map((name) => ({ name, ageGroup: (name.match(/\b(\d{1,2}U)\b/i)?.[1] ?? "").toUpperCase() }));
+  }, [bulkText]);
+
+  async function addTeamsBulk() {
+    setBulkBusy(true);
+    let ok = 0;
+    const failed: string[] = [];
+    for (const r of bulkRows) {
+      try {
+        await saveTeamFn({ data: { seasonId, name: r.name, ageGroup: r.ageGroup } });
+        ok++;
+      } catch {
+        failed.push(r.name);
+      }
+    }
+    setBulkBusy(false);
+    setBulkText(failed.join("\n"));
+    await onChanged();
+    if (ok) toast.success(`Created ${ok} team${ok === 1 ? "" : "s"}`);
+    if (failed.length) toast.error(`Couldn't add: ${failed.join(", ")}`);
+  }
 
   const teams = detail?.teams ?? [];
   const staff = detail?.staff ?? [];
@@ -298,6 +327,38 @@ function TeamManager({
             <Plus className="size-4" aria-hidden /> Add team
           </button>
         </div>
+        <details className="mt-4 rounded-lg border border-border p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-graphite">
+            Add several teams at once
+          </summary>
+          <p className="mt-2 text-xs text-steel">One team per line. Age group is read from the name (e.g. 16U).</p>
+          <textarea
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            rows={6}
+            placeholder={"14U Navy\n15U Black\n16U Red\n17U Prime"}
+            className="mt-2 w-full rounded-lg border border-border bg-card p-3 text-sm text-graphite outline-none focus:border-org-primary"
+          />
+          {bulkRows.length ? (
+            <ul className="mt-2 flex flex-wrap gap-1.5">
+              {bulkRows.map((r, i) => (
+                <li key={i} className="rounded-full border border-border px-2.5 py-1 text-xs text-graphite">
+                  {r.name}
+                  {r.ageGroup ? <span className="ml-1 font-mono text-steel">{r.ageGroup}</span> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <button
+            type="button"
+            disabled={!bulkRows.length || bulkBusy}
+            onClick={addTeamsBulk}
+            className="touch-target mt-3 inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-50"
+          >
+            <Plus className="size-4" aria-hidden />
+            {bulkBusy ? "Adding…" : `Add ${bulkRows.length || ""} teams`}
+          </button>
+        </details>
       </form>
 
       {unassigned.length && teams.length ? (
