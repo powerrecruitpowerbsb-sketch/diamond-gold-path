@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Flag, MessageSquare, Search, Send } from "lucide-react";
+import { ArrowLeft, Flag, MessageSquare, Plus, Search, Send } from "lucide-react";
+import { NewConversation } from "@/components/messages/NewConversation";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/brand/AppShell";
@@ -65,6 +66,8 @@ function MessagesPage() {
     refetchInterval: 15_000,
   });
   const [q, setQ] = useState("");
+  const [composeOpen, setComposeOpen] = useState(false);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<"all" | "unread" | "mine">("all");
 
   const threads = useMemo(() => {
@@ -87,9 +90,15 @@ function MessagesPage() {
           <p className="font-mono text-[10px] tracking-[0.2em] text-steel uppercase">Inbox</p>
           <h1 className="font-display text-3xl font-bold text-org-primary">Messages</h1>
         </div>
-        {oversight ? (
-          <span className="font-mono text-[10px] tracking-wide text-steel uppercase">Org-wide view</span>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {oversight ? (
+            <span className="hidden font-mono text-[10px] tracking-wide text-steel uppercase sm:inline">Org-wide view</span>
+          ) : null}
+          <Button size="sm" onClick={() => setComposeOpen(true)}>
+            <Plus className="size-4" /> New
+          </Button>
+        </div>
+        <NewConversation open={composeOpen} onOpenChange={setComposeOpen} onStarted={(id) => { qc.invalidateQueries({ queryKey: ["my-threads"] }); open(id); }} />
       </div>
 
       <div className="grid overflow-hidden rounded-xl border border-border bg-card shadow-sm md:h-[calc(100vh-15rem)] md:min-h-[520px] md:grid-cols-[340px_minmax(0,1fr)]">
@@ -139,9 +148,8 @@ function MessagesPage() {
               <div className="p-8 text-center">
                 <MessageSquare className="mx-auto size-6 text-steel" aria-hidden />
                 <p className="mt-3 font-display text-lg font-bold text-org-primary">No conversations</p>
-                <p className="mt-1 text-sm text-steel">Start one from a school in the college list.</p>
-                <Button asChild variant="outline" size="sm" className="mt-4">
-                  <Link to="/list">College list</Link>
+                <Button size="sm" className="mt-4" onClick={() => setComposeOpen(true)}>
+                  <Plus className="size-4" /> New message
                 </Button>
               </div>
             ) : (
