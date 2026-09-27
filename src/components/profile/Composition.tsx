@@ -364,22 +364,15 @@ export function RosterComposition({
           />
         </Block>
 
-        <Block title="Batting side" note={gap(rows, "bats")}>
-          <Split
-            left={{
-              label: "Right-handed",
-              value: bats ? rows.filter((row) => row.bats === "R").length : null,
-            }}
-            right={{
-              label: "Left-handed",
-              value: bats ? rows.filter((row) => row.bats === "L").length : null,
-            }}
-            extra={{
-              label: "Switch hitters",
-              value: bats ? rows.filter((row) => row.bats === "S").length : null,
-            }}
-          />
-        </Block>
+        {bats ? (
+          <Block title="Batting side" note={gap(rows, "bats")}>
+            <Split
+              left={{ label: "Right-handed", value: rows.filter((row) => row.bats === "R").length }}
+              right={{ label: "Left-handed", value: rows.filter((row) => row.bats === "L").length }}
+              extra={{ label: "Switch hitters", value: rows.filter((row) => row.bats === "S").length }}
+            />
+          </Block>
+        ) : null}
 
         <Block title="Class years" note={gap(rows, "class_year")}>
           <div>

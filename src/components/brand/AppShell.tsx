@@ -132,6 +132,10 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
   const tabs = [
     ...(role === "player" ? [{ to: "/athlete", label: "Hub", icon: Home, exact: false }] : []),
+    ...(role === "parent" ? [{ to: "/family", label: "Family", icon: Home, exact: false }] : []),
+    ...(!isStaff && isOrgManager
+      ? [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: false }]
+      : []),
     { to: "/search", label: "Search", icon: Search, exact: false },
     ...(isStaff
       ? [{ to: "/admin", label: "Console", icon: Table2, exact: true }]
