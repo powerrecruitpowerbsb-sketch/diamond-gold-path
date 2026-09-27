@@ -360,10 +360,6 @@ function collegeOnly(value: string): string | null {
   }
   // "Travel Team: Turnin2" under Previous School is a club, not a college.
   if (/\b(travel|club)\s+team\b|:/i.test(school)) return null;
-  // On pages whose table rows arrive split, the previous-school column can
-  // pick up a major ("Kinesiology"). With the schools directory loaded, a
-  // value must read as a college or be one.
-  if (knownColleges && !COLLEGE_NAME.test(school) && !JUCO_NAME.test(school) && !isKnownCollege(school)) return null;
   return school;
 }
 /**
@@ -438,6 +434,27 @@ function isKnownCollege(school: string): boolean {
  * reads as a high school never counts; a name that reads as a college, or is a
  * known college, does. Anything else is treated as a high school.
  */
+/**
+ * On pages whose table rows arrive split, the previous-school column can pick
+ * up the neighbouring column ("Kinesiology", "Communication"). When almost none
+ * of a page's previous schools read as a college, the column was misread and
+ * none of them count.
+ */
+function dropMisreadPreviousSchools(players: PlayerRow[]): void {
+  if (!knownColleges) return;
+  const named = players.filter((p) => p.previous_school);
+  if (named.length < 5) return;
+  const recognised = named.filter(
+    (p) => COLLEGE_NAME.test(p.previous_school!) || JUCO_NAME.test(p.previous_school!) || isKnownCollege(p.previous_school!),
+  ).length;
+  if (recognised / named.length >= 0.3) return;
+  for (const p of named) {
+    p.previous_school = null;
+    p.is_transfer = false;
+    p.is_juco_transfer = false;
+  }
+}
+
 function applyUnlabelledSchools(found: Map<PlayerRow, string>): void {
   for (const [row, school] of found) {
     if (HIGH_SCHOOL_NAME.test(school)) continue;
@@ -1208,6 +1225,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     if (lastSchool && !previousSchool) tableSchools.set(players[players.length - 1]!, lastSchool);
   }
   applyUnlabelledSchools(tableSchools);
+  dropMisreadPreviousSchools(players);
 
   // Card-style pages carry no table; read them the other way and keep whichever
   // pass found the fuller squad — and, on a tie, the pass that read more about
