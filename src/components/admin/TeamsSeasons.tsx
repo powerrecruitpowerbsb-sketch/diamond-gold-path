@@ -454,36 +454,89 @@ function TeamManager({
         </div>
       ))}
 
-      {unassigned.length ? (
-        <div className={CARD}>
-          <p className={LABEL}>Unassigned · {unassigned.length}</p>
-          <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
-            {unassigned.map((athlete) => (
-              <li key={athlete.athleteId} className="flex items-center justify-between gap-2 rounded-md bg-chalk px-2 py-1.5 text-sm">
-                <span className="min-w-0 truncate font-medium text-graphite">
-                  {athlete.name}
-                  <span className="ml-2 font-mono text-[11px] text-steel">{athlete.gradYear ?? "—"}</span>
-                </span>
-                <select
-                  value=""
-                  aria-label={`Assign ${athlete.name}`}
-                  onChange={async (event) => {
-                    if (!event.target.value) return;
-                    await assignFn({ data: { athleteId: athlete.athleteId, seasonId, teamId: event.target.value } });
-                    await onChanged();
-                  }}
-                  className="min-h-9 rounded-md border border-border bg-card px-2 text-xs font-semibold text-graphite"
-                >
-                  <option value="">Assign to…</option>
-                  {teams.map((t: any) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+    </div>
+  );
+}
+
+function UnassignedTray({
+  unassigned,
+  teams,
+  onAssign,
+}: {
+  unassigned: Detail["unassigned"];
+  teams: any[];
+  onAssign: (ids: string[], teamId: string) => Promise<void>;
+}) {
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const list = unassigned.filter((a) =>
+    `${a.name} ${a.gradYear ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()),
+  );
+  const toggle = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  return (
+    <div className={cn(CARD, "border-seam-red/40")}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className={cn(LABEL, "text-seam-red")}>Unassigned · {unassigned.length}</p>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name or class"
+          className="min-h-9 w-full rounded-md border border-border bg-card px-3 text-sm sm:w-56"
+        />
+      </div>
+      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((a) => (
+          <li key={a.athleteId}>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md bg-chalk px-2 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={picked.has(a.athleteId)}
+                onChange={() => toggle(a.athleteId)}
+                className="size-4 accent-[var(--org-primary)]"
+              />
+              <span className="min-w-0 truncate font-medium text-graphite">{a.name}</span>
+              <span className="ml-auto font-mono text-[11px] text-steel">{a.gradYear ?? "—"}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setPicked(picked.size === list.length ? new Set() : new Set(list.map((a) => a.athleteId)))}
+          className="text-xs font-semibold text-steel hover:text-graphite"
+        >
+          {picked.size === list.length && list.length ? "Clear" : "Select all"}
+        </button>
+        <select
+          value=""
+          disabled={!picked.size || busy}
+          onChange={async (e) => {
+            if (!e.target.value) return;
+            setBusy(true);
+            try {
+              await onAssign([...picked], e.target.value);
+              toast.success(`${picked.size} assigned`);
+              setPicked(new Set());
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="touch-target ml-auto rounded-lg bg-org-primary px-3 text-sm font-semibold text-org-primary-foreground disabled:opacity-50"
+        >
+          <option value="">{picked.size ? `Assign ${picked.size} to…` : "Select players"}</option>
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
