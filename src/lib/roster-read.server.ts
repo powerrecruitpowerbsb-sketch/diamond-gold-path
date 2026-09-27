@@ -13,7 +13,7 @@
  * assumption.
  */
 
-import { parseRoster, type PlayerRow, type RosterShape } from "@/lib/roster-extract";
+import { parseRoster, setKnownColleges, type PlayerRow, type RosterShape } from "@/lib/roster-extract";
 import { canonicalSeasonYear } from "@/lib/season";
 
 export type RosterReader = "structural" | "ai";
@@ -79,6 +79,27 @@ function asPlayers(rows: PlayerRow[]) {
     bats_raw: row.bats_raw,
     throws_raw: row.throws_raw,
   }));
+}
+
+let collegesLoadedAt = 0;
+/**
+ * Load the schools directory into the roster reader so a bare "Last School"
+ * like "Mercer" is recognised as a college. Cached for an hour per worker.
+ */
+export async function loadKnownColleges(supabase: any): Promise<void> {
+  if (Date.now() - collegesLoadedAt < 3_600_000) return;
+  const names: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from("universities").select("name, campus_name").range(from, from + 999);
+    if (error) return;
+    for (const row of data ?? []) {
+      if (row.name) names.push(row.name);
+      if (row.campus_name) names.push(row.campus_name);
+    }
+    if (!data || data.length < 1000) break;
+  }
+  setKnownColleges(names);
+  collegesLoadedAt = Date.now();
 }
 
 export async function readRoster(

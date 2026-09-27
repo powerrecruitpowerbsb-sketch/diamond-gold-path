@@ -20,7 +20,7 @@ import {
 import { canonicalSeasonYear, currentSeasonYear } from "@/lib/season";
 import { verifyPageIdentity } from "@/lib/page-identity";
 import { safeFetch, type SafeFetchResult } from "@/lib/safe-fetch.server";
-import { readRoster } from "@/lib/roster-read.server";
+import { readRoster, loadKnownColleges } from "@/lib/roster-read.server";
 import { readCoaches } from "@/lib/coach-read.server";
 import { coachPathCandidates } from "@/lib/coach-path";
 import { checkRosterSource, recordRefusal, sourceDomain } from "@/lib/roster-provenance.server";
@@ -805,6 +805,7 @@ export async function ingestProgram(
           detail: rows.length ? `${rows.length} field(s) proposed` : "nothing new found on this page",
         });
       } else {
+        await loadKnownColleges(supabase);
         const read = await readRoster(markdown, String(program["sport"] ?? ""), {
           fallback: extractRoster,
         });
