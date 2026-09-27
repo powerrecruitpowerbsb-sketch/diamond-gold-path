@@ -28,20 +28,10 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  // The front door must open even if the counts can't be read — a failed
-  // figure fetch shows blanks, never a broken page.
-  loader: async () => {
-    try {
-      return await getPublicStats();
-    } catch {
-      return { programs: 0, schools: 0, players: 0, sourcedFields: 0 };
-    }
-  },
   component: Index,
 });
 
 function Index() {
-  const stats = Route.useLoaderData();
   const navigate = useNavigate();
   const { account, signedIn } = useMyAccount();
 
@@ -51,14 +41,6 @@ function Index() {
       navigate({ to: routeForRole(account.primaryRole), replace: true });
     }
   }, [signedIn, account, navigate]);
-
-  const fmt = (value: number) => value.toLocaleString("en-US");
-  const figures = [
-    { label: "Programs", value: fmt(stats.programs) },
-    { label: "Schools", value: fmt(stats.schools) },
-    { label: "Roster entries", value: fmt(stats.players) },
-    { label: "Sourced fields", value: fmt(stats.sourcedFields) },
-  ];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface-0">
@@ -81,30 +63,34 @@ function Index() {
         </div>
 
         <div className="flex flex-1 flex-col justify-end pb-4 lg:justify-center lg:pb-0">
-          <p className="mb-3 font-mono text-[11px] font-medium tracking-[0.2em] text-org-accent uppercase">
+          <p className="mb-4 flex items-center gap-3 font-mono text-[11px] font-medium tracking-[0.25em] text-org-accent uppercase">
+            <span className="h-px w-8 bg-org-accent" />
             Baseball &amp; softball
           </p>
-          <h1 className="max-w-xl font-display text-[2.6rem] leading-[1.03] font-bold text-white sm:text-[3.4rem]">
-            Recruit on verified data.
+          <h1 className="max-w-xl font-display text-[2.8rem] leading-[1.02] font-bold text-white sm:text-[3.8rem]">
+            Recruiting,
+            <br />
+            Made <span className="text-seam-red">Transparent.</span>
           </h1>
+          <p className="mt-5 max-w-md text-base leading-relaxed text-white/70 italic sm:text-lg">
+            Connecting organizations, players, and families with clarity at every step.
+          </p>
 
           <Button
             asChild
-            className="touch-target mt-7 w-full bg-seam-red px-8 text-base font-semibold text-white hover:bg-seam-red/90 sm:w-auto sm:self-start"
+            className="touch-target mt-8 w-full bg-seam-red px-8 text-base font-semibold text-white hover:bg-seam-red/90 sm:w-auto sm:self-start"
           >
             <Link to="/auth">Sign in</Link>
           </Button>
 
-          <dl className="mt-10 grid max-w-lg grid-cols-4 gap-3 border-t border-white/12 pt-6">
-            {figures.map((figure) => (
-              <div key={figure.label}>
-                <dd className="tabular font-display text-lg font-bold text-white sm:text-[1.75rem]">
-                  {figure.value}
-                </dd>
-                <dt className="meta mt-0.5 text-[10px] text-white/50 sm:text-xs">{figure.label}</dt>
-              </div>
+          <ul className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-white/12 pt-6">
+            {["Organizations", "Players", "Families"].map((label, index) => (
+              <li key={label}>
+                <span className="font-mono text-[10px] text-org-accent">0{index + 1}</span>
+                <p className="mt-1 font-display text-sm font-semibold text-white sm:text-base">{label}</p>
+              </li>
             ))}
-          </dl>
+          </ul>
         </div>
       </div>
     </div>
