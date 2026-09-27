@@ -30,7 +30,13 @@ export function useMyAccount() {
 
   const query = useQuery({
     queryKey: ["my-account"],
-    queryFn: () => accountFn(),
+    // Re-check the session at fetch time: refetches (sign-out, token expiry,
+    // global invalidations) can fire before hasSession flips to false.
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return null;
+      return accountFn();
+    },
     enabled: hasSession === true,
     retry: false,
   });
