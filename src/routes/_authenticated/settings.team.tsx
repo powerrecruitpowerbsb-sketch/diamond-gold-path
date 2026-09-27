@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/settings/team")({
 
 const TABS = [
   { id: "staff", label: "Staff" },
-  { id: "families", label: "Families" },
+  { id: "families", label: "Players & Families" },
 ] as const;
 
 const CARD =
@@ -40,9 +40,9 @@ function ClubManagement() {
   return (
     <AppShell right={<AuthButton />}>
       <div className="stadium-gradient rounded-2xl px-5 py-7 sm:px-8">
-        <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">Club</p>
+        <p className="font-mono text-[11px] tracking-[0.18em] text-org-accent uppercase">YOUR HUB FOR INVITES</p>
         <h1 className="font-display mt-2 text-[2rem] leading-tight font-bold text-white sm:text-4xl">
-          Management
+          Club Management
         </h1>
       </div>
 
@@ -75,9 +75,9 @@ function ClubManagement() {
             <StaffDirectory />
             <InvitePanel
               title="Invite staff"
-              description="Paste one or many emails."
+              description="Enter email(s) below"
               roles={[
-                { value: "org_staff", label: "Coach", hint: "Sees the teams you assign." },
+                { value: "org_staff", label: "Coach", hint: "" },
                 { value: "org_admin", label: "Admin", hint: "Runs invites, teams and seasons." },
               ]}
               peopleLabel="Accounts"
