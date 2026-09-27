@@ -24,6 +24,7 @@ import {
 } from "@/lib/seasons.functions";
 
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 
 const FIELD =
@@ -60,22 +61,29 @@ export function TeamsSeasonsPanel() {
     );
   }
 
+  const teamCount = detail?.teams?.length ?? 0;
+  const rostered = (detail?.teams ?? []).reduce((n: number, t: any) => n + t.athletes.length, 0);
+  const unassignedCount = detail?.unassigned?.length ?? 0;
+
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[300px_1fr]">
+    <div className="mt-6 space-y-5">
       <SeasonList ctx={ctx} onChanged={refresh} onRollover={setRolloverFrom} />
+      {ctx.seasonId && detail ? (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Teams", value: teamCount, tone: "text-graphite" },
+            { label: "Rostered", value: rostered, tone: "text-diamond-green" },
+            { label: "Unassigned", value: unassignedCount, tone: unassignedCount ? "text-seam-red" : "text-steel" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className={LABEL}>{s.label}</p>
+              <p className={cn("font-display text-2xl font-bold tabular-nums", s.tone)}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="min-w-0">
-        {rolloverFrom ? (
-          <RolloverWizard
-            fromSeasonId={rolloverFrom}
-            fromSeasonName={ctx.seasons.find((s) => s.id === rolloverFrom)?.name ?? ""}
-            onClose={() => setRolloverFrom(null)}
-            onDone={async (seasonId) => {
-              setRolloverFrom(null);
-              await refresh();
-              ctx.setSeasonId(seasonId);
-            }}
-          />
-        ) : !ctx.seasonId ? (
+        {!ctx.seasonId ? (
           <div className={CARD}><p className="text-sm text-steel">Create a season to start building teams.</p></div>
         ) : isPending ? (
           <div className={CARD}><p className="text-sm text-steel">Loading teams…</p></div>
@@ -83,6 +91,23 @@ export function TeamsSeasonsPanel() {
           <TeamManager seasonId={ctx.seasonId} detail={detail} onChanged={refresh} />
         )}
       </div>
+      <Dialog open={Boolean(rolloverFrom)} onOpenChange={(o) => !o && setRolloverFrom(null)}>
+        <DialogContent className="max-h-[90dvh] max-w-3xl overflow-y-auto">
+          <DialogTitle className="sr-only">Start new season</DialogTitle>
+          {rolloverFrom ? (
+            <RolloverWizard
+              fromSeasonId={rolloverFrom}
+              fromSeasonName={ctx.seasons.find((s) => s.id === rolloverFrom)?.name ?? ""}
+              onClose={() => setRolloverFrom(null)}
+              onDone={async (seasonId) => {
+                setRolloverFrom(null);
+                await refresh();
+                ctx.setSeasonId(seasonId);
+              }}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -121,110 +146,78 @@ function SeasonList({
     }
   }
 
+  const season = ctx.seasons.find((s) => s.id === ctx.seasonId);
+  const [adding, setAdding] = useState(false);
+  const btn = "touch-target inline-flex items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-semibold text-graphite hover:bg-chalk";
+
   return (
     <div className={CARD}>
-      <h2 className="font-display text-lg font-bold text-graphite">Seasons</h2>
-
-      <ul className="mt-3 space-y-2">
-        {ctx.seasons.map((season) => (
-          <li
-            key={season.id}
-            className={cn(
-              "rounded-lg border p-3",
-              season.id === ctx.seasonId
-                ? "border-org-primary bg-org-primary/5"
-                : "border-border bg-card",
-            )}
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-0 flex-1 sm:max-w-xs">
+          <span className={LABEL}>Season</span>
+          <select
+            value={ctx.seasonId ?? ""}
+            onChange={(e) => ctx.setSeasonId(e.target.value)}
+            className={`mt-1 ${FIELD} font-semibold`}
           >
-            <div className="flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => ctx.setSeasonId(season.id)}
-                className="text-left text-sm font-semibold text-graphite hover:text-org-primary"
-              >
-                {season.name}
-              </button>
-              {season.isActive ? (
-                <span className="rounded-md bg-diamond-green-tint px-2 py-0.5 font-mono text-[10px] tracking-wide text-diamond-green uppercase">
-                  Active
-                </span>
-              ) : season.isArchived ? (
-                <span className="rounded-md bg-chalk px-2 py-0.5 font-mono text-[10px] tracking-wide text-steel uppercase">
-                  Archived
-                </span>
-              ) : null}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              {!season.isActive ? (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await activateFn({ data: { id: season.id } });
-                    await onChanged();
-                    toast.success(`${season.name} is now the active season`);
-                  }}
-                  className="rounded-md border border-border px-2 py-1 font-semibold text-graphite hover:bg-chalk"
-                >
-                  Make active
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={async () => {
-                  await archiveFn({ data: { id: season.id, archived: !season.isArchived } });
-                  await onChanged();
-                }}
-                className="rounded-md border border-border px-2 py-1 font-semibold text-graphite hover:bg-chalk"
-              >
-                {season.isArchived ? "Unarchive" : "Archive"}
-              </button>
-              <button
-                type="button"
-                onClick={() => onRollover(season.id)}
-                className="inline-flex items-center gap-1 rounded-md bg-seam-red px-2 py-1 font-semibold text-white hover:opacity-95"
-              >
-                Roll forward <ArrowRight className="size-3" aria-hidden />
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (
-                    !window.confirm(
-                      `Delete ${season.name}? Its teams and roster assignments are removed. Athletes, shortlists and notes are kept.`,
-                    )
-                  )
-                    return;
-                  await deleteFn({ data: { id: season.id } });
-                  await onChanged();
-                }}
-                className="rounded-md border border-seam-red/40 px-2 py-1 font-semibold text-seam-red hover:bg-seam-red-tint"
-              >
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <form onSubmit={create} className="mt-4 border-t border-border pt-4">
-        <label>
-          <span className={LABEL}>New season name</span>
-          <input
-            required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="2027"
-            className={`mt-1 ${FIELD}`}
-          />
+            {ctx.seasons.length === 0 ? <option value="">No seasons yet</option> : null}
+            {ctx.seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}{s.isActive ? " · Active" : s.isArchived ? " · Archived" : ""}
+              </option>
+            ))}
+          </select>
         </label>
-        <button
-          type="submit"
-          disabled={busy}
-          className="touch-target mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
-        >
-          <Plus className="size-4" aria-hidden /> Add season
-        </button>
-      </form>
+        {season ? (
+          season.isActive ? (
+            <span className="mb-2.5 rounded-md bg-diamond-green-tint px-2 py-0.5 font-mono text-[10px] tracking-wide text-diamond-green uppercase">Active</span>
+          ) : season.isArchived ? (
+            <span className="mb-2.5 rounded-md bg-chalk px-2 py-0.5 font-mono text-[10px] tracking-wide text-steel uppercase">Archived</span>
+          ) : null
+        ) : null}
+        <div className="flex flex-wrap gap-2 sm:ml-auto">
+          {season && !season.isActive ? (
+            <button type="button" className={btn} onClick={async () => {
+              await activateFn({ data: { id: season.id } });
+              await onChanged();
+              toast.success(`${season.name} is now the active season`);
+            }}>Make active</button>
+          ) : null}
+          {season ? (
+            <button type="button" className={btn} onClick={async () => {
+              await archiveFn({ data: { id: season.id, archived: !season.isArchived } });
+              await onChanged();
+            }}>{season.isArchived ? "Unarchive" : "Archive"}</button>
+          ) : null}
+          {season ? (
+            <button type="button" className={cn(btn, "border-seam-red/40 text-seam-red hover:bg-seam-red-tint")} onClick={async () => {
+              if (!window.confirm(`Delete ${season.name}? Its teams and roster assignments are removed. Athletes, shortlists and notes are kept.`)) return;
+              await deleteFn({ data: { id: season.id } });
+              await onChanged();
+            }}><Trash2 className="size-3.5" aria-hidden /></button>
+          ) : null}
+          <button type="button" className={btn} onClick={() => setAdding((v) => !v)}>
+            <Plus className="size-3.5" aria-hidden /> New season
+          </button>
+          {season ? (
+            <button type="button" onClick={() => onRollover(season.id)} className="touch-target inline-flex items-center gap-1.5 rounded-lg bg-seam-red px-3 text-xs font-semibold text-white hover:opacity-95">
+              Roll forward <ArrowRight className="size-3.5" aria-hidden />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {adding || ctx.seasons.length === 0 ? (
+        <form onSubmit={async (e) => { await create(e); setAdding(false); }} className="mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4">
+          <label className="min-w-0 flex-1 sm:max-w-xs">
+            <span className={LABEL}>New season name</span>
+            <input required value={name} onChange={(event) => setName(event.target.value)} placeholder="2027" className={`mt-1 ${FIELD}`} />
+          </label>
+          <button type="submit" disabled={busy} className="touch-target inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60">
+            <Plus className="size-4" aria-hidden /> Add season
+          </button>
+        </form>
+      ) : null}
     </div>
   );
 }
@@ -307,6 +300,17 @@ function TeamManager({
         </div>
       </form>
 
+      {unassigned.length && teams.length ? (
+        <UnassignedTray
+          unassigned={unassigned}
+          teams={teams}
+          onAssign={async (ids, teamId) => {
+            for (const athleteId of ids) await assignFn({ data: { athleteId, seasonId, teamId } });
+            await onChanged();
+          }}
+        />
+      ) : null}
+
       {teams.length === 0 ? (
         <div className={CARD}>
           <p className="text-sm text-steel">No teams in this season yet.</p>
@@ -341,53 +345,63 @@ function TeamManager({
             </button>
           </div>
 
-          <div className="mt-4">
-            <TeamSchedulePanel teamId={team.id} teamName={team.name} />
-          </div>
-
           <div className="mt-4 grid gap-5 md:grid-cols-2">
             <div>
-              <p className={LABEL}>Assigned coaches</p>
-              <p className="mt-1 text-xs text-steel">
-                A coach only sees athletes on the teams checked here, unless they have organization-wide
-                access.
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                {staff.length === 0 ? (
-                  <li className="text-sm text-steel">No staff accounts yet.</li>
+              <p className={LABEL}>Coaches</p>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {team.coaches.length === 0 ? (
+                  <span className="text-sm text-steel">None yet</span>
                 ) : null}
-                {staff.map((member) => {
-                  const assigned = team.coaches.some((c) => c.userId === member.id);
+                {team.coaches.map((c: any) => {
+                  const member = staff.find((m) => m.id === c.userId);
                   return (
-                    <li key={member.id}>
-                      <label className="flex items-center gap-2 text-sm text-graphite">
-                        <input
-                          type="checkbox"
-                          checked={assigned}
-                          onChange={async (event) => {
-                            await coachFn({
-                              data: {
-                                teamId: team.id,
-                                userId: member.id,
-                                assigned: event.target.checked,
-                              },
-                            });
-                            await onChanged();
-                          }}
-                          className="size-4 accent-[var(--org-primary)]"
-                        />
-                        {member.name}
-                        {member.orgWideAccess ? (
-                          <span className="rounded bg-org-accent/20 px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-graphite uppercase">
-                            Org-wide
-                          </span>
-                        ) : null}
-                      </label>
-                    </li>
+                    <span key={c.userId} className="inline-flex items-center gap-1 rounded-full border border-org-primary/40 bg-org-primary/10 py-1 pr-1 pl-3 text-xs font-semibold text-graphite">
+                      {member?.name ?? c.name ?? "Coach"}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${member?.name ?? "coach"}`}
+                        onClick={async () => {
+                          await coachFn({ data: { teamId: team.id, userId: c.userId, assigned: false } });
+                          await onChanged();
+                        }}
+                        className="grid size-5 place-items-center rounded-full text-steel hover:bg-seam-red-tint hover:text-seam-red"
+                      >
+                        ✕
+                      </button>
+                    </span>
                   );
                 })}
-              </ul>
+                {staff.some((m) => !team.coaches.some((c: any) => c.userId === m.id)) ? (
+                  <select
+                    value=""
+                    aria-label={`Add coach to ${team.name}`}
+                    onChange={async (e) => {
+                      if (!e.target.value) return;
+                      await coachFn({ data: { teamId: team.id, userId: e.target.value, assigned: true } });
+                      await onChanged();
+                      toast.success("Coach added");
+                    }}
+                    className="min-h-8 rounded-full border border-dashed border-border bg-card px-3 text-xs font-semibold text-steel"
+                  >
+                    <option value="">+ Add coach</option>
+                    {staff
+                      .filter((m) => !team.coaches.some((c: any) => c.userId === m.id))
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}{m.orgWideAccess ? " (org-wide)" : ""}
+                        </option>
+                      ))}
+                  </select>
+                ) : null}
+              </div>
+              <details className="mt-4 rounded-lg border border-border">
+                <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-graphite">Schedule</summary>
+                <div className="border-t border-border p-3">
+                  <TeamSchedulePanel teamId={team.id} teamName={team.name} />
+                </div>
+              </details>
             </div>
+
 
             <div>
               <p className={LABEL}>Roster</p>
@@ -451,36 +465,89 @@ function TeamManager({
         </div>
       ))}
 
-      {unassigned.length ? (
-        <div className={CARD}>
-          <p className={LABEL}>Unassigned · {unassigned.length}</p>
-          <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
-            {unassigned.map((athlete) => (
-              <li key={athlete.athleteId} className="flex items-center justify-between gap-2 rounded-md bg-chalk px-2 py-1.5 text-sm">
-                <span className="min-w-0 truncate font-medium text-graphite">
-                  {athlete.name}
-                  <span className="ml-2 font-mono text-[11px] text-steel">{athlete.gradYear ?? "—"}</span>
-                </span>
-                <select
-                  value=""
-                  aria-label={`Assign ${athlete.name}`}
-                  onChange={async (event) => {
-                    if (!event.target.value) return;
-                    await assignFn({ data: { athleteId: athlete.athleteId, seasonId, teamId: event.target.value } });
-                    await onChanged();
-                  }}
-                  className="min-h-9 rounded-md border border-border bg-card px-2 text-xs font-semibold text-graphite"
-                >
-                  <option value="">Assign to…</option>
-                  {teams.map((t: any) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+    </div>
+  );
+}
+
+function UnassignedTray({
+  unassigned,
+  teams,
+  onAssign,
+}: {
+  unassigned: Detail["unassigned"];
+  teams: any[];
+  onAssign: (ids: string[], teamId: string) => Promise<void>;
+}) {
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const list = unassigned.filter((a) =>
+    `${a.name} ${a.gradYear ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()),
+  );
+  const toggle = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  return (
+    <div className={cn(CARD, "border-seam-red/40")}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className={cn(LABEL, "text-seam-red")}>Unassigned · {unassigned.length}</p>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name or class"
+          className="min-h-9 w-full rounded-md border border-border bg-card px-3 text-sm sm:w-56"
+        />
+      </div>
+      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((a) => (
+          <li key={a.athleteId}>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md bg-chalk px-2 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={picked.has(a.athleteId)}
+                onChange={() => toggle(a.athleteId)}
+                className="size-4 accent-[var(--org-primary)]"
+              />
+              <span className="min-w-0 truncate font-medium text-graphite">{a.name}</span>
+              <span className="ml-auto font-mono text-[11px] text-steel">{a.gradYear ?? "—"}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setPicked(picked.size === list.length ? new Set() : new Set(list.map((a) => a.athleteId)))}
+          className="text-xs font-semibold text-steel hover:text-graphite"
+        >
+          {picked.size === list.length && list.length ? "Clear" : "Select all"}
+        </button>
+        <select
+          value=""
+          disabled={!picked.size || busy}
+          onChange={async (e) => {
+            if (!e.target.value) return;
+            setBusy(true);
+            try {
+              await onAssign([...picked], e.target.value);
+              toast.success(`${picked.size} assigned`);
+              setPicked(new Set());
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="touch-target ml-auto rounded-lg bg-org-primary px-3 text-sm font-semibold text-org-primary-foreground disabled:opacity-50"
+        >
+          <option value="">{picked.size ? `Assign ${picked.size} to…` : "Select players"}</option>
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
