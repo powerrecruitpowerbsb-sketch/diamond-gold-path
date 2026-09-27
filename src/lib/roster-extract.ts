@@ -660,6 +660,9 @@ function parseCards(input: string[]): PlayerRow[] {
     let scannedTo = Math.max(index, nameAt);
     for (let ahead = start; ahead < Math.min(start + 8, lines.length); ahead += 1) {
       const next = lines[ahead]!;
+      // Sidearm cards close with "Full Bio for …" and the next opens with
+      // "Jersey Number …" — never read past either into a neighbour's card.
+      if (ahead > start && /^\s*(full bio for|expand for more info|jersey number)\b/i.test(next)) break;
       // The next player's block may open with his position rather than his
       // number; stop there so nothing is borrowed across the boundary.
       const following = (lines[ahead + 1] ?? "").trim();
