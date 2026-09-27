@@ -38,7 +38,7 @@ function AuthPage() {
   const account = useServerFn(getMyAccount);
   const checkInvite = useServerFn(validateInviteCode);
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin") // signup via email invite only;
+  const [mode, setMode] = useState<"signin" | "signup">("signin"); // signup is by email invite only
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
