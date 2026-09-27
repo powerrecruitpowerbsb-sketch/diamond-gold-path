@@ -38,7 +38,7 @@ function AuthPage() {
   const account = useServerFn(getMyAccount);
   const checkInvite = useServerFn(validateInviteCode);
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">("signin") // signup via email invite only;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -133,23 +133,6 @@ function AuthPage() {
             </div>
           ) : (
             <>
-              <div className="mb-5 grid grid-cols-2 gap-1 rounded-md bg-muted p-1">
-                {(["signin", "signup"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setMode(option)}
-                    className={
-                      mode === option
-                        ? "rounded-[9px] bg-card py-2 text-sm font-semibold text-org-primary shadow-sm"
-                        : "rounded-[9px] py-2 text-sm font-medium text-steel"
-                    }
-                  >
-                    {option === "signin" ? "Sign in" : "Create account"}
-                  </button>
-                ))}
-              </div>
-
               <h2 className="font-display text-2xl font-bold text-graphite">
                 {mode === "signin" ? "Welcome back" : "Join your program"}
               </h2>
