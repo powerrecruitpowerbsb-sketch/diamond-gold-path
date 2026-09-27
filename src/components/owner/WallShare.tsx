@@ -34,7 +34,7 @@ export function WallShare() {
         <h2 className="font-display text-base font-bold text-graphite">Commits</h2>
         <p className="text-xs text-steel">
           {data.commits} committed athlete{data.commits === 1 ? "" : "s"}.{" "}
-          {url ? "Your Wall of Fame is live." : "Share them on a public Wall of Fame with school logos."}
+          {url ? "Your Wall of Fame is live." : "Crete a shareable public Wall of Fame with school logos."}
         </p>
       </div>
       {url ? (
