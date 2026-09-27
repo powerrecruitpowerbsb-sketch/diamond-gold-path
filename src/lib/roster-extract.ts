@@ -329,7 +329,7 @@ const COLUMN_WORDS: Array<[RosterAttribute, RegExp]> = [
   ["hometown", /^(hometown|home\s?town|hometown\s*\/.*|hometown\s*\(.*\)|hometown\/high school|hometown \/ last school)$/i],
   ["bats", /^(b|bats|bat|b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i],
   ["throws", /^(t|throws|throw|b\s*[/-]\s*t|bats\s*[/-]\s*throws|pos\s*\/\s*b-?t)\.?$/i],
-  ["transfer", /^((previous|last|prior|former)\s+(school|college|institution)|transfer(red)?(\s+from)?|junior\s+college|juco|jc)$/i],
+  ["transfer", /^((previous|prior|former)\s+(school|college|institution)|transfer(red)?(\s+from)?|junior\s+college|juco|jc)$/i],
 ];
 
 /** Headers that carry bats and throws in one cell. */
@@ -339,7 +339,24 @@ const THROWS_HEADER = /^(t|throws|throw)\.?$/i;
 
 /** A column naming where the player came from — the transfer signal. */
 const PREVIOUS_SCHOOL_HEADER =
-  /^((previous|last|prior|former)\s+(school|college|institution)|transfer(red)?(\s+from)?|junior\s+college|juco|jc)$/i;
+  /^((previous|prior|former)\s+(school|college|institution)|transfer(red)?(\s+from)?|junior\s+college|juco|jc)$/i;
+
+/**
+ * "Last School" on Sidearm pages is the high school, not a college. A
+ * previous-school value that reads like a high school or prep academy is
+ * never a college transfer.
+ */
+const HIGH_SCHOOL_NAME = /\b(h\.?s\.?|high\s+school|academy|prep(aratory)?|christian\s+school|secondary)\b/i;
+function collegeOnly(value: string): string | null {
+  const school = value.trim().replace(/^[:\s]+/, "").slice(0, 120);
+  if (school.length < 3 || /^[-–—]$/.test(school)) return null;
+  if (HIGH_SCHOOL_NAME.test(school)) return null;
+  return school;
+}
+const JUCO_NAME = /\b(c\.?c\.?|community\s+college|junior\s+college|j\.?c\.?|juco|technical\s+college|state\s+college\s+of\s+florida)\b/i;
+function isJucoName(value: string | null): boolean {
+  return Boolean(value && JUCO_NAME.test(value));
+}
 
 /** A class or note cell that says "transfer" outright. */
 const TRANSFER_TOKEN = /^(tr|transf(er)?|xfer|transfer\s+student)\.?$/i;
@@ -771,9 +788,12 @@ function parseCards(input: string[]): PlayerRow[] {
 
       // "Previous School Chipola College" on a card is the transfer signal.
       const labelPrevious = next.match(
-        /\b(?:previous|last|prior|former)\s+(?:school|college|institution)\s*:?\s+(.+?)(?:\s+(?:hometown|high school|position|class)\b|$)/i,
+        /\b(?:previous|prior|former)\s+(?:school|college|institution)\s*:?\s*(?:(?:previous|prior|former)\s+(?:school|college|institution)\s*:?\s*)?(.+?)(?:\s+(?:hometown|high school|last school|position|class|full bio)\b|$)/i,
       );
-      if (labelPrevious) previousSchool = previousSchool ?? labelPrevious[1]!.trim().slice(0, 120);
+      if (labelPrevious) {
+        const school = collegeOnly(labelPrevious[1]!);
+        if (school) previousSchool = previousSchool ?? school;
+      }
       if (JUCO_TOKEN.test(next.trim())) juco = true;
       if (TRANSFER_TOKEN.test(next.trim())) transfer = true;
 
@@ -820,7 +840,7 @@ function parseCards(input: string[]): PlayerRow[] {
       home_country: place.country,
       previous_school: previousSchool,
       is_transfer: transfer || juco || Boolean(previousSchool),
-      is_juco_transfer: juco,
+      is_juco_transfer: juco || isJucoName(previousSchool),
       bats,
       throws: throwsHand,
       position_raw: positionRaw,
@@ -946,7 +966,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
         const school = rowText(cell).trim();
         // A dash or a blank means "not a transfer", not an unnamed school.
         if (school && !/^[-–—]$/.test(school) && school.length >= 4 && !PREVIOUS_SCHOOL_HEADER.test(school)) {
-          previousSchool = school.slice(0, 120);
+          previousSchool = collegeOnly(school);
           continue;
         }
       }
@@ -1049,7 +1069,7 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       // A named previous school IS a transfer; the junior-college half is only
       // ever set on an explicit signal, never guessed from the school's name.
       is_transfer: transfer || juco || Boolean(previousSchool),
-      is_juco_transfer: juco,
+      is_juco_transfer: juco || isJucoName(previousSchool),
       bats,
       throws: throwsHand,
       position_raw: positionRaw,
