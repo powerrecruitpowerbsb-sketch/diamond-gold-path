@@ -192,11 +192,61 @@ export async function repairProgramLink(
     return { ok: false, message: `That address did not open (${page.failure_category ?? "no answer"}). Nothing was saved.` };
   }
 
+  // A hand-checked address wins: if another school holds it, that school's
+  // copy was the mistake, so it is cleared before this one is saved.
+  const key = (u: string | null) =>
+    (u ?? "").toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "");
+  const hostOf = (u: string | null) => key(u).split("/")[0].split("?")[0].split(":")[0];
+  const { data: self } = await supabase
+    .from("programs")
+    .select("university_id")
+    .eq("id", input.programId)
+    .single();
+  const wantedKey = input.field === "athletic_website" ? hostOf(input.url) : key(input.url);
+  const { data: candidates } = await supabase
+    .from("programs")
+    .select(`id, university_id, ${input.field}, universities(name)`)
+    .neq("university_id", self?.university_id ?? "")
+    .ilike(input.field, `%${hostOf(input.url)}%`);
+  const holders = ((candidates ?? []) as any[]).filter((p) => {
+    const value = p[input.field] as string | null;
+    return input.field === "athletic_website" ? hostOf(value) === wantedKey : key(value) === wantedKey;
+  });
+  for (const holder of holders) {
+    const { error: clearError } = await supabase
+      .from("programs")
+      .update({ [input.field]: null })
+      .eq("id", holder.id);
+    if (clearError) throw new Error(clearError.message);
+  }
+
   const { error } = await supabase
     .from("programs")
     .update({ [input.field]: input.url })
     .eq("id", input.programId);
   if (error) throw new Error(error.message);
+
+  const { data: after } = await supabase
+    .from("programs")
+    .select(input.field)
+    .eq("id", input.programId)
+    .single();
+  if (key((after as any)?.[input.field] ?? null) !== key(input.url)) {
+    return {
+      ok: false,
+      message: "Another school still claims that address, so it was set aside for review. Nothing was saved.",
+    };
+  }
+  await supabase
+    .from("link_conflicts")
+    .update({ status: "resolved" })
+    .eq("program_id", input.programId)
+    .eq("field", input.field)
+    .in("status", ["pending", "withheld"]);
+  const movedFrom = holders
+    .map((h) => h.universities?.name)
+    .filter(Boolean)
+    .join(", ");
 
   const health = await supabase
     .from("link_health")
@@ -214,7 +264,12 @@ export async function repairProgramLink(
     .select("id");
   if (health.error) throw new Error(health.error.message);
 
-  return { ok: true, message: "The page opened, so the new address is saved. Read it now to pull the data in." };
+  return {
+    ok: true,
+    message: movedFrom
+      ? `Saved. It was wrongly attached to ${movedFrom}, so it was removed there. Read it now to pull the data in.`
+      : "The page opened, so the new address is saved. Read it now to pull the data in.",
+  };
 }
 
 export type RefreshCycle = {
