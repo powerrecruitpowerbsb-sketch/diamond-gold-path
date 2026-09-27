@@ -334,53 +334,63 @@ function TeamManager({
             </button>
           </div>
 
-          <div className="mt-4">
-            <TeamSchedulePanel teamId={team.id} teamName={team.name} />
-          </div>
-
           <div className="mt-4 grid gap-5 md:grid-cols-2">
             <div>
-              <p className={LABEL}>Assigned coaches</p>
-              <p className="mt-1 text-xs text-steel">
-                A coach only sees athletes on the teams checked here, unless they have organization-wide
-                access.
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                {staff.length === 0 ? (
-                  <li className="text-sm text-steel">No staff accounts yet.</li>
+              <p className={LABEL}>Coaches</p>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {team.coaches.length === 0 ? (
+                  <span className="text-sm text-steel">None yet</span>
                 ) : null}
-                {staff.map((member) => {
-                  const assigned = team.coaches.some((c) => c.userId === member.id);
+                {team.coaches.map((c: any) => {
+                  const member = staff.find((m) => m.id === c.userId);
                   return (
-                    <li key={member.id}>
-                      <label className="flex items-center gap-2 text-sm text-graphite">
-                        <input
-                          type="checkbox"
-                          checked={assigned}
-                          onChange={async (event) => {
-                            await coachFn({
-                              data: {
-                                teamId: team.id,
-                                userId: member.id,
-                                assigned: event.target.checked,
-                              },
-                            });
-                            await onChanged();
-                          }}
-                          className="size-4 accent-[var(--org-primary)]"
-                        />
-                        {member.name}
-                        {member.orgWideAccess ? (
-                          <span className="rounded bg-org-accent/20 px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-graphite uppercase">
-                            Org-wide
-                          </span>
-                        ) : null}
-                      </label>
-                    </li>
+                    <span key={c.userId} className="inline-flex items-center gap-1 rounded-full border border-org-primary/40 bg-org-primary/10 py-1 pr-1 pl-3 text-xs font-semibold text-graphite">
+                      {member?.name ?? c.name ?? "Coach"}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${member?.name ?? "coach"}`}
+                        onClick={async () => {
+                          await coachFn({ data: { teamId: team.id, userId: c.userId, assigned: false } });
+                          await onChanged();
+                        }}
+                        className="grid size-5 place-items-center rounded-full text-steel hover:bg-seam-red-tint hover:text-seam-red"
+                      >
+                        ✕
+                      </button>
+                    </span>
                   );
                 })}
-              </ul>
+                {staff.some((m) => !team.coaches.some((c: any) => c.userId === m.id)) ? (
+                  <select
+                    value=""
+                    aria-label={`Add coach to ${team.name}`}
+                    onChange={async (e) => {
+                      if (!e.target.value) return;
+                      await coachFn({ data: { teamId: team.id, userId: e.target.value, assigned: true } });
+                      await onChanged();
+                      toast.success("Coach added");
+                    }}
+                    className="min-h-8 rounded-full border border-dashed border-border bg-card px-3 text-xs font-semibold text-steel"
+                  >
+                    <option value="">+ Add coach</option>
+                    {staff
+                      .filter((m) => !team.coaches.some((c: any) => c.userId === m.id))
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}{m.orgWideAccess ? " (org-wide)" : ""}
+                        </option>
+                      ))}
+                  </select>
+                ) : null}
+              </div>
+              <details className="mt-4 rounded-lg border border-border">
+                <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-graphite">Schedule</summary>
+                <div className="border-t border-border p-3">
+                  <TeamSchedulePanel teamId={team.id} teamName={team.name} />
+                </div>
+              </details>
             </div>
+
 
             <div>
               <p className={LABEL}>Roster</p>
