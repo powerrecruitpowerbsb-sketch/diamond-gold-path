@@ -159,7 +159,7 @@ function Workstation() {
   return (
     <AppShell right={<AuthButton />}>
       <PageHeader
-        title="Intelligence workstation"
+        title="Intelligence Workstation"
         description="Pick a program, write it up, move to the next."
         counts={[
           `${rows.length} in view`,
