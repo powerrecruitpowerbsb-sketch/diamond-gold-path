@@ -5,7 +5,7 @@
  */
 
 import { extractRoster, scrape } from "@/lib/ingest.server";
-import { readRoster } from "@/lib/roster-read.server";
+import { readRoster, loadKnownColleges } from "@/lib/roster-read.server";
 import { rosterKeepable } from "@/lib/data-quality";
 import { replaceRoster } from "@/lib/review.server";
 
@@ -141,6 +141,7 @@ export async function recheckRosterSizes(
     let reader = "structural";
     try {
       // Same reader the crawl uses: structural first, AI only on an empty read.
+      await loadKnownColleges(supabase);
       const extracted = await readRoster(markdown, sport, { fallback: extractRoster });
       reader = extracted.reader;
       read = extracted.diagnostics.read;

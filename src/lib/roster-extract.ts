@@ -346,7 +346,7 @@ const PREVIOUS_SCHOOL_HEADER =
  * previous-school value that reads like a high school or prep academy is
  * never a college transfer.
  */
-const HIGH_SCHOOL_NAME = /\b(h\.?s\.?|high\s+school|academy|prep(aratory)?|christian\s+school|secondary)\b/i;
+const HIGH_SCHOOL_NAME = /\b(h\.?s\.?|high(\s+school)?|academy|prep(aratory)?|christian(\s+school)?|catholic|secondary|school|collegiate\s+(school|institute)|early\s+college|lycée|gymnasium)\b/i;
 function collegeOnly(value: string): string | null {
   const school = value.trim().replace(/^[:\s]+/, "").slice(0, 120);
   if (school.length < 3 || /^[-–—]$/.test(school)) return null;
@@ -358,9 +358,114 @@ function collegeOnly(value: string): string | null {
     const last = school.split(/\s\/\s/).pop()!.trim();
     return COLLEGE_NAME.test(last) && !HIGH_SCHOOL_NAME.test(last) ? last : null;
   }
+  // "Travel Team: Turnin2" under Previous School is a club, not a college.
+  if (/\b(travel|club)\s+team\b|:/i.test(school)) return null;
   return school;
 }
-const COLLEGE_NAME = /\b(college|university|univ\.?|c\.?c\.?|j\.?c\.?|state|tech|institute)\b/i;
+/**
+ * The school in "Town, St. School Class." — the text after the hometown and
+ * before a trailing class year. Null when the line is not shaped that way.
+ */
+function schoolBetweenHometownAndClass(line: string): string | null {
+  const match = line
+    .trim()
+    .match(/^[A-Za-z .'’-]{2,40},\s*[A-Za-z]{1,20}(?:\.[A-Za-z]{1,20})*\.?\s+(.+?)\s+\*?(redshirt\s+[A-Za-z]+|r-?[A-Za-z]{2}\.?|[A-Za-z]{2,9}\.?)$/i);
+  if (!match || !classYear(match[2]!)) return null;
+  const school = match[1]!.replace(/[*\s]+$/, "").trim();
+  if (school.length < 3 || school.length > 60 || /\d/.test(school)) return null;
+  return school;
+}
+
+/**
+ * Decide which unlabelled schools are colleges. A name that reads as a high
+ * school never counts; a name that reads as a college always does. A bare
+ * name ("Georgia", "Mercer") counts only on pages that mark their high schools
+ * explicitly ("Frankenmuth HS") — there, an unmarked school is the college.
+ */
+function lastSchoolValue(value: string): string | null {
+  const school = value.trim().replace(/^[:\s]+/, "").replace(/\s+/g, " ").slice(0, 80);
+  if (school.length < 3 || /^[-–—]+$/.test(school) || /^(n\/?a|none)$/i.test(school)) return null;
+  // "Hoover HS / Alabama": the college is the last stop.
+  const parts = school.split(/\s\/\s/);
+  return parts[parts.length - 1]!.trim() || null;
+}
+
+/**
+ * Short names of real colleges ("Georgia", "Mercer", "App State"), loaded from
+ * the schools directory before a roster run. A bare school name counts as a
+ * college only when it is on this list — "Central" or "Daviess County" are
+ * high schools, and there is no way to tell from the words alone.
+ */
+let knownColleges: Set<string> | null = null;
+export function collegeKey(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/\b(the|university|univ|of|college|at)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+export function setKnownColleges(names: Iterable<string> | null): void {
+  if (!names) {
+    knownColleges = null;
+    return;
+  }
+  const keys = new Set<string>();
+  for (const name of names) {
+    // "University of Tennessee-Knoxville" is "Tennessee" on a roster.
+    for (const variant of [name, name.split(/\s*[-–—,]\s*/)[0]!]) {
+      const key = collegeKey(variant);
+      if (key.length >= 3) keys.add(key);
+    }
+  }
+  knownColleges = keys;
+}
+function isKnownCollege(school: string): boolean {
+  if (!knownColleges) return false;
+  // "Santa Clara/San Jose State": any named stop that is a college counts.
+  return school.split(/\s*\/\s*/).some((part) => {
+    const key = collegeKey(part);
+    return key.length >= 3 && knownColleges!.has(key);
+  });
+}
+
+/**
+ * Decide which unlabelled or "Last School" values are colleges. A name that
+ * reads as a high school never counts; a name that reads as a college, or is a
+ * known college, does. Anything else is treated as a high school.
+ */
+/**
+ * On pages whose table rows arrive split, the previous-school column can pick
+ * up the neighbouring column ("Kinesiology", "Communication"). When almost none
+ * of a page's previous schools read as a college, the column was misread and
+ * none of them count.
+ */
+function dropMisreadPreviousSchools(players: PlayerRow[]): void {
+  if (!knownColleges) return;
+  const named = players.filter((p) => p.previous_school);
+  if (named.length < 5) return;
+  const recognised = named.filter(
+    (p) => COLLEGE_NAME.test(p.previous_school!) || JUCO_NAME.test(p.previous_school!) || isKnownCollege(p.previous_school!),
+  ).length;
+  if (recognised / named.length >= 0.3) return;
+  for (const p of named) {
+    p.previous_school = null;
+    p.is_transfer = false;
+    p.is_juco_transfer = false;
+  }
+}
+
+function applyUnlabelledSchools(found: Map<PlayerRow, string>): void {
+  for (const [row, school] of found) {
+    if (HIGH_SCHOOL_NAME.test(school)) continue;
+    if (!COLLEGE_NAME.test(school) && !isKnownCollege(school)) continue;
+    row.previous_school = school;
+    row.is_transfer = true;
+    if (isJucoName(school)) row.is_juco_transfer = true;
+  }
+}
+
+const COLLEGE_NAME = /\b(college|university|univ\.?|c\.?c\.?|j\.?c\.?|state|st\.|tech|institute)\b|^(uc|cal|csu|cc)\s/i;
 const JUCO_NAME = /\b(c\.?c\.?|community\s+college|junior\s+college|j\.?c\.?|juco|technical\s+college|state\s+college\s+of\s+florida)\b/i;
 function isJucoName(value: string | null): boolean {
   return Boolean(value && JUCO_NAME.test(value));
@@ -594,6 +699,9 @@ function parseCards(input: string[]): PlayerRow[] {
   const lines = cardLines(input);
 
   const rows: PlayerRow[] = [];
+  // "Stockbridge, Ga. Georgia So." — a school printed between the hometown and
+  // the class with no label. Judged page-wide once every card is read.
+  const unlabelledSchools = new Map<PlayerRow, string>();
   // A name line belongs to one player only: pages that list the squad twice
   // otherwise read each player once per reading order.
   const usedNames = new Set<number>();
@@ -645,6 +753,7 @@ function parseCards(input: string[]): PlayerRow[] {
     let classRaw: string | null = null;
     let batsRaw: string | null = null;
     let throwsRaw: string | null = null;
+    let unlabelledSchool: string | null = null;
 
     // Some pages print the position ABOVE the jersey number ("Outfield / 1 /
     // Seth Perkins"). Scanning forward only, the position read was the one
@@ -799,7 +908,7 @@ function parseCards(input: string[]): PlayerRow[] {
 
       // "Previous School Chipola College" on a card is the transfer signal.
       const labelPrevious = next.match(
-        /\b(?:previous|prior|former)\s+(?:school|college|institution)\s*:?\s*(?:(?:previous|prior|former)\s+(?:school|college|institution)\s*:?\s*)?(.+?)(?:\s+(?:hometown|high school|last school|position|class|full bio)\b|$)/i,
+        /\b(?:previous|prior|former)\s+(?:school|college|institution)\s*:?\s*(?:(?:previous|prior|former)\s+(?:school|college|institution)\s*:?\s*)?(.+?)(?:\s+(?:hometown|high school|last school|position|class|major|full bio)\b|$)/i,
       );
       if (labelPrevious) {
         const school = collegeOnly(labelPrevious[1]!);
@@ -830,6 +939,13 @@ function parseCards(input: string[]): PlayerRow[] {
           classRaw = classRaw ?? trailing![1]!.trim();
         }
       }
+      // Sidearm's "Last School" is the player's most recent school: a high
+      // school for most, the college for a transfer. Judged page-wide.
+      const labelLast = next.match(/\blast\s+school\s*:?\s*(.+?)(?:\s+(?:hometown|high school|previous school|position|class|major|full bio)\b|$)/i);
+      if (labelLast && !unlabelledSchool) unlabelledSchool = lastSchoolValue(labelLast[1]!);
+      if (!unlabelledSchool && !/:/.test(next)) {
+        unlabelledSchool = schoolBetweenHometownAndClass(next);
+      }
 
 
 
@@ -859,7 +975,10 @@ function parseCards(input: string[]): PlayerRow[] {
       bats_raw: batsRaw,
       throws_raw: throwsRaw,
     });
+    if (unlabelledSchool && !previousSchool) unlabelledSchools.set(rows[rows.length - 1]!, unlabelledSchool);
   }
+
+  applyUnlabelledSchools(unlabelledSchools);
 
   // Some pages publish the squad twice in two arrangements (a card view and a
   // list view), which read as two rows per player. Keep one row per name and
@@ -905,6 +1024,10 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
   let throwsColumn = -1;
   // The previous/last school column, read as the transfer signal.
   let previousSchoolColumn = -1;
+  // A "Last School" column, or a hometown column that also carries it.
+  let lastSchoolColumn = -1;
+  let hometownCarriesSchool = false;
+  const tableSchools = new Map<PlayerRow, string>();
   // Where the header put position and class, so the page's wording is kept even
   // when our mapper does not recognise it — that is how an unknown wording gets
   // counted instead of vanishing.
@@ -940,6 +1063,9 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     if (headerClass >= 0) classColumn = headerClass;
     const headerPrevious = cells.findIndex((cell) => PREVIOUS_SCHOOL_HEADER.test(cell));
     if (headerPrevious >= 0) previousSchoolColumn = headerPrevious;
+    const headerLast = cells.findIndex((cell) => /^(last\s+school|high\s+school\s*\/\s*(previous|last)\s+school)$/i.test(cell));
+    if (headerLast >= 0) lastSchoolColumn = headerLast;
+    if (headerHometown >= 0) hometownCarriesSchool = /school/i.test(cells[headerHometown]!);
 
     let name: string | null = null;
     let number: string | null = null;
@@ -958,9 +1084,17 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
     let classRaw: string | null = null;
     let batsRaw: string | null = null;
     let throwsRaw: string | null = null;
+    let lastSchool: string | null = null;
 
     for (const [cellIndex, cell] of cells.entries()) {
       if (!cell) continue;
+      if (cellIndex === lastSchoolColumn && cellIndex !== previousSchoolColumn && !lastSchool) {
+        lastSchool = lastSchoolValue(rowText(cell));
+        if (lastSchool) continue;
+      }
+      if (cellIndex === hometownColumn && hometownCarriesSchool && !lastSchool && /\s\/\s/.test(cell)) {
+        lastSchool = lastSchoolValue(rowText(cell).split(/\s\/\s/).pop()!);
+      }
       if (cellIndex === positionColumn && !positionRaw) positionRaw = cell.trim().slice(0, 60);
       if (cellIndex === classColumn && !classRaw) classRaw = cell.trim().slice(0, 60);
       // Where the page came from: an outright "TR"/"JUCO" cell, and the
@@ -1088,7 +1222,10 @@ export function parseRoster(text: string | null | undefined, sport?: string | nu
       bats_raw: batsRaw,
       throws_raw: throwsRaw,
     });
+    if (lastSchool && !previousSchool) tableSchools.set(players[players.length - 1]!, lastSchool);
   }
+  applyUnlabelledSchools(tableSchools);
+  dropMisreadPreviousSchools(players);
 
   // Card-style pages carry no table; read them the other way and keep whichever
   // pass found the fuller squad — and, on a tie, the pass that read more about
