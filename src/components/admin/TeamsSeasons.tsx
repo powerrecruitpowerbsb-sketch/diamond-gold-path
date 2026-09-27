@@ -146,110 +146,78 @@ function SeasonList({
     }
   }
 
+  const season = ctx.seasons.find((s) => s.id === ctx.seasonId);
+  const [adding, setAdding] = useState(false);
+  const btn = "touch-target inline-flex items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-semibold text-graphite hover:bg-chalk";
+
   return (
     <div className={CARD}>
-      <h2 className="font-display text-lg font-bold text-graphite">Seasons</h2>
-
-      <ul className="mt-3 space-y-2">
-        {ctx.seasons.map((season) => (
-          <li
-            key={season.id}
-            className={cn(
-              "rounded-lg border p-3",
-              season.id === ctx.seasonId
-                ? "border-org-primary bg-org-primary/5"
-                : "border-border bg-card",
-            )}
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-0 flex-1 sm:max-w-xs">
+          <span className={LABEL}>Season</span>
+          <select
+            value={ctx.seasonId ?? ""}
+            onChange={(e) => ctx.setSeasonId(e.target.value)}
+            className={`mt-1 ${FIELD} font-semibold`}
           >
-            <div className="flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => ctx.setSeasonId(season.id)}
-                className="text-left text-sm font-semibold text-graphite hover:text-org-primary"
-              >
-                {season.name}
-              </button>
-              {season.isActive ? (
-                <span className="rounded-md bg-diamond-green-tint px-2 py-0.5 font-mono text-[10px] tracking-wide text-diamond-green uppercase">
-                  Active
-                </span>
-              ) : season.isArchived ? (
-                <span className="rounded-md bg-chalk px-2 py-0.5 font-mono text-[10px] tracking-wide text-steel uppercase">
-                  Archived
-                </span>
-              ) : null}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              {!season.isActive ? (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await activateFn({ data: { id: season.id } });
-                    await onChanged();
-                    toast.success(`${season.name} is now the active season`);
-                  }}
-                  className="rounded-md border border-border px-2 py-1 font-semibold text-graphite hover:bg-chalk"
-                >
-                  Make active
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={async () => {
-                  await archiveFn({ data: { id: season.id, archived: !season.isArchived } });
-                  await onChanged();
-                }}
-                className="rounded-md border border-border px-2 py-1 font-semibold text-graphite hover:bg-chalk"
-              >
-                {season.isArchived ? "Unarchive" : "Archive"}
-              </button>
-              <button
-                type="button"
-                onClick={() => onRollover(season.id)}
-                className="inline-flex items-center gap-1 rounded-md bg-seam-red px-2 py-1 font-semibold text-white hover:opacity-95"
-              >
-                Roll forward <ArrowRight className="size-3" aria-hidden />
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (
-                    !window.confirm(
-                      `Delete ${season.name}? Its teams and roster assignments are removed. Athletes, shortlists and notes are kept.`,
-                    )
-                  )
-                    return;
-                  await deleteFn({ data: { id: season.id } });
-                  await onChanged();
-                }}
-                className="rounded-md border border-seam-red/40 px-2 py-1 font-semibold text-seam-red hover:bg-seam-red-tint"
-              >
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <form onSubmit={create} className="mt-4 border-t border-border pt-4">
-        <label>
-          <span className={LABEL}>New season name</span>
-          <input
-            required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="2027"
-            className={`mt-1 ${FIELD}`}
-          />
+            {ctx.seasons.length === 0 ? <option value="">No seasons yet</option> : null}
+            {ctx.seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}{s.isActive ? " · Active" : s.isArchived ? " · Archived" : ""}
+              </option>
+            ))}
+          </select>
         </label>
-        <button
-          type="submit"
-          disabled={busy}
-          className="touch-target mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
-        >
-          <Plus className="size-4" aria-hidden /> Add season
-        </button>
-      </form>
+        {season ? (
+          season.isActive ? (
+            <span className="mb-2.5 rounded-md bg-diamond-green-tint px-2 py-0.5 font-mono text-[10px] tracking-wide text-diamond-green uppercase">Active</span>
+          ) : season.isArchived ? (
+            <span className="mb-2.5 rounded-md bg-chalk px-2 py-0.5 font-mono text-[10px] tracking-wide text-steel uppercase">Archived</span>
+          ) : null
+        ) : null}
+        <div className="flex flex-wrap gap-2 sm:ml-auto">
+          {season && !season.isActive ? (
+            <button type="button" className={btn} onClick={async () => {
+              await activateFn({ data: { id: season.id } });
+              await onChanged();
+              toast.success(`${season.name} is now the active season`);
+            }}>Make active</button>
+          ) : null}
+          {season ? (
+            <button type="button" className={btn} onClick={async () => {
+              await archiveFn({ data: { id: season.id, archived: !season.isArchived } });
+              await onChanged();
+            }}>{season.isArchived ? "Unarchive" : "Archive"}</button>
+          ) : null}
+          {season ? (
+            <button type="button" className={cn(btn, "border-seam-red/40 text-seam-red hover:bg-seam-red-tint")} onClick={async () => {
+              if (!window.confirm(`Delete ${season.name}? Its teams and roster assignments are removed. Athletes, shortlists and notes are kept.`)) return;
+              await deleteFn({ data: { id: season.id } });
+              await onChanged();
+            }}><Trash2 className="size-3.5" aria-hidden /></button>
+          ) : null}
+          <button type="button" className={btn} onClick={() => setAdding((v) => !v)}>
+            <Plus className="size-3.5" aria-hidden /> New season
+          </button>
+          {season ? (
+            <button type="button" onClick={() => onRollover(season.id)} className="touch-target inline-flex items-center gap-1.5 rounded-lg bg-seam-red px-3 text-xs font-semibold text-white hover:opacity-95">
+              Roll forward <ArrowRight className="size-3.5" aria-hidden />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {adding || ctx.seasons.length === 0 ? (
+        <form onSubmit={async (e) => { await create(e); setAdding(false); }} className="mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4">
+          <label className="min-w-0 flex-1 sm:max-w-xs">
+            <span className={LABEL}>New season name</span>
+            <input required value={name} onChange={(event) => setName(event.target.value)} placeholder="2027" className={`mt-1 ${FIELD}`} />
+          </label>
+          <button type="submit" disabled={busy} className="touch-target inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60">
+            <Plus className="size-4" aria-hidden /> Add season
+          </button>
+        </form>
+      ) : null}
     </div>
   );
 }
