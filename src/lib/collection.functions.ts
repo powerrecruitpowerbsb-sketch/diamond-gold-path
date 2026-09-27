@@ -196,18 +196,25 @@ export const recrawlProgram = createServerFn({ method: "POST" })
     await assertSuperadmin(context as any);
     if (!/^[0-9a-f-]{36}$/i.test(data.programId)) throw new Error("Pick a team first");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("ingest_queue").upsert(
-      {
+    const { data: prog } = await supabaseAdmin.from("programs").select("university_id").eq("id", data.programId).maybeSingle();
+    if (!prog) throw new Error("That team was not found");
+    const reset = { status: "pending", attempts: 0, leased_at: null, updated_at: new Date().toISOString() };
+    const { data: updated, error: upError } = await supabaseAdmin
+      .from("ingest_queue")
+      .update(reset as any)
+      .eq("program_id", data.programId)
+      .eq("stage", "program_scrape")
+      .select("id");
+    if (upError) throw new Error("Could not queue that team");
+    if (!updated?.length) {
+      const { error } = await supabaseAdmin.from("ingest_queue").insert({
+        ...reset,
         program_id: data.programId,
+        university_id: (prog as any).university_id,
         stage: "program_scrape",
-        status: "pending",
-        attempts: 0,
-        leased_at: null,
-        updated_at: new Date().toISOString(),
-      } as any,
-      { onConflict: "program_id,stage" },
-    );
-    if (error) throw new Error("Could not queue that team");
+      } as any);
+      if (error) throw new Error("Could not queue that team");
+    }
     const { markCollectionStarted } = await import("@/lib/collection.server");
     const { data: st } = await supabaseAdmin.from("collection_state").select("is_running").eq("id", "singleton").maybeSingle();
     if (!(st as any)?.is_running) {
