@@ -137,6 +137,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       : isOrgManager
         ? [{ to: "/roster", label: "Roster", icon: Users, exact: false }]
         : [{ to: "/list", label: "Colleges", icon: ListChecks, exact: false }]),
+    ...(account ? [{ to: "/messages", label: "Inbox", icon: MessageSquare, exact: false }] : []),
     role === "player"
       ? { to: "/profile", label: "Profile", icon: UserRound, exact: false }
       : { to: "/settings/account", label: "Account", icon: UserRound, exact: false },
