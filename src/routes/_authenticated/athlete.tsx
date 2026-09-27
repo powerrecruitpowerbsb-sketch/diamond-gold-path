@@ -1035,8 +1035,8 @@ function CoachCorner({
   const nextEvent = events[0] ?? null;
   return (
     <Panel
-      eyebrow={orgName ? `From ${orgName}` : "From your club"}
-      title="Coaches"
+      eyebrow="POWER BASEBALL"
+      title="Upcoming Events & Notes"
       action={
         <Link
           to="/schedule"
