@@ -260,6 +260,11 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           >
             <item.icon className="size-5" aria-hidden />
             {item.label}
+            {item.to === "/messages" && unread ? (
+              <span className="absolute top-1.5 left-1/2 ml-2 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                {unread}
+              </span>
+            ) : null}
           </Link>
         ))}
       </nav>
