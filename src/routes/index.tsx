@@ -6,7 +6,7 @@ import { useMyAccount } from "@/hooks/use-my-account";
 import { routeForRole } from "@/lib/role-routes";
 import { Button } from "@/components/ui/button";
 import curveMark from "@/assets/curve-mark-white.png.asset.json";
-import heroPitcher from "@/assets/hero-pitcher.jpg";
+import heroPitcher from "@/assets/hero-dual.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -69,7 +69,7 @@ function Index() {
           alt="A college pitcher in his windup under stadium lights"
           width={1280}
           height={1600}
-          className="size-full object-cover object-top"
+          className="size-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/70 to-surface-0/20 lg:bg-gradient-to-r lg:from-surface-0 lg:via-transparent lg:to-surface-0/40" />
       </div>

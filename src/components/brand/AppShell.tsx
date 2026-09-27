@@ -118,7 +118,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
   const overflowNav: NavItem[] = [
     ...(isStaff ? [{ to: "/admin/universities", label: "College database", icon: Database }] : []),
-    ...(isAdminLevel(role) || actingOrg ? [{ to: "/settings/team", label: "Team & invites", icon: Mail }] : []),
+    ...(isAdminLevel(role) || actingOrg ? [{ to: "/settings/team", label: "Club", icon: Mail }] : []),
     ...(isOrgOwner
       ? [{ to: "/settings/branding", label: "Branding settings", icon: Palette }]
       : []),
