@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 // page, send the browser to sign in. Public server functions are unaffected
 // because the check only runs when there is no session AND we are on a
 // signed-in page.
-const PUBLIC_PATHS = /^\/($|auth|forgot-password|reset-password|p\/|wall|packet|api\/)/;
+const PUBLIC_PATHS = /^\/($|auth|forgot-password|reset-password|p\/|wall\/|team\/|api\/)/;
 const requireSessionInBrowser = createMiddleware({ type: "function" }).client(async ({ next }) => {
   if (typeof window !== "undefined" && !PUBLIC_PATHS.test(window.location.pathname)) {
     const { data } = await supabase.auth.getSession();
