@@ -258,7 +258,6 @@ export const listOrgAthletes = createServerFn({ method: "GET" })
       const assignment = assignmentByAthlete.get(athlete['id'] as string);
       return {
         ...athlete,
-        team_id: (assignment?.['team_id'] ?? null) as string | null,
         team_name: (assignment?.['teams']?.name ?? null) as string | null,
         team_id: (assignment?.['team_id'] ?? null) as string | null,
         jersey_number: (assignment?.['jersey_number'] ?? null) as string | null,

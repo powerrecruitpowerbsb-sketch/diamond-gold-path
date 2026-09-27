@@ -82,7 +82,7 @@ export const openThread = createServerFn({ method: "POST" })
         .insert({
           organization_id: (athlete as any).organization_id,
           org_athlete_id: data.athleteId,
-          program_id: data.programId,
+          program_id: data.programId as string,
           created_by: me.userId,
         })
         .select("id")
