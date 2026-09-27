@@ -21,7 +21,7 @@ import {
 import { isAdminLevel, isOrgManagerRole, roleLabel } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
-type Search = { thread?: string };
+type Search = { thread?: string | undefined };
 
 export const Route = createFileRoute("/_authenticated/messages")({
   validateSearch: (s: Record<string, unknown>): Search => ({
