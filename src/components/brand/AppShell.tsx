@@ -94,7 +94,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
           { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
           { to: "/intelligence", label: "Intelligence", icon: Lightbulb },
           { to: "/roster", label: "Roster", icon: Users },
-          { to: "/list", label: "College list", icon: ListChecks },
+          { to: "/list", label: "Recruit", icon: ListChecks },
         ]
       : []),
     ...(role === "player"
@@ -106,7 +106,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       : []),
     ...(role === "parent"
       ? [
-          { to: "/list", label: "College list", icon: ListChecks },
+          { to: "/list", label: "Recruit", icon: ListChecks },
           { to: "/family", label: "Family portal", icon: Database },
         ]
       : []),
