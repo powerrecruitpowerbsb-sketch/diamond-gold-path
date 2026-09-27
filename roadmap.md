@@ -76,3 +76,8 @@
 - [ ] Login / account-creation flow (magic-link invite → set password; no invite codes)
 - [ ] Welcome walkthrough
 - [x] Messages hub: standalone tab/page for players, parents, coaches (school threads moved out of drawer)
+
+## Super admin overhaul (2026-09-27)
+- [x] Command center at /admin: running now, autopilot (on/off, run now, one-team refresh), needs-you inbox
+- [x] Super admin handbook at /admin/handbook (job, freshness, weekly routine, season calendar, fixes, rules)
+- [x] Autopilot: daily 08:00 UTC check queues due rosters (6 mo) + school facts (yearly) and starts the runner; school-facts runner every 10 min when work is waiting

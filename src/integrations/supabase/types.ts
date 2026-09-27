@@ -498,6 +498,9 @@ export type Database = {
       collection_state: {
         Row: {
           auto_advance: boolean
+          autopilot_last_note: string | null
+          autopilot_last_run: string | null
+          autopilot_on: boolean
           created_at: string
           current_wave: string | null
           discovery_per_tick: number
@@ -519,6 +522,9 @@ export type Database = {
         }
         Insert: {
           auto_advance?: boolean
+          autopilot_last_note?: string | null
+          autopilot_last_run?: string | null
+          autopilot_on?: boolean
           created_at?: string
           current_wave?: string | null
           discovery_per_tick?: number
@@ -540,6 +546,9 @@ export type Database = {
         }
         Update: {
           auto_advance?: boolean
+          autopilot_last_note?: string | null
+          autopilot_last_run?: string | null
+          autopilot_on?: boolean
           created_at?: string
           current_wave?: string | null
           discovery_per_tick?: number
@@ -3852,6 +3861,9 @@ export type Database = {
     Functions: {
       active_season_id: { Args: never; Returns: string }
       athlete_scout_card: { Args: { _slug: string }; Returns: Json }
+      autopilot_run_now: { Args: never; Returns: Json }
+      autopilot_set: { Args: { _on: boolean }; Returns: undefined }
+      autopilot_tick: { Args: never; Returns: Json }
       can_access_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       can_see_thread: { Args: { _thread_id: string }; Returns: boolean }
       coaches_team: { Args: { _team_id: string }; Returns: boolean }
@@ -3892,6 +3904,7 @@ export type Database = {
           schools_queued: number
         }[]
       }
+      federal_tick: { Args: never; Returns: undefined }
       has_org_wide_access: { Args: never; Returns: boolean }
       has_role: {
         Args: {

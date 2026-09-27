@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Roster transfer reading: bare "Last School"/unlabelled school names count as colleges only if they read as a college or match the schools directory (loadKnownColleges before readRoster). Why: bare high-school names ("Central") are indistinguishable from college short names ("Mercer").
+- Autopilot: pg_cron `curve-recruit-autopilot` (daily, autopilot_tick) queues due refreshes and starts the collection runner; `curve-recruit-federal` (10 min, federal_tick) posts to /api/public/federal-runner with the stored runner key. Why: refreshes must run with no one signed in.
