@@ -567,7 +567,6 @@ function WorkPanels({
       text: "Recruiting",
       fields: INTEL_FIELDS.filter((f) => f.group === "recruiting"),
     },
-    { key: "notes", text: "Notes", fields: INTEL_FIELDS.filter((f) => f.group === "notes") },
   ];
   // Arriving from a search tag opens the panel that holds that answer.
   const focusGroup = focusField ? INTEL_FIELD_MAP[focusField]?.group ?? null : null;

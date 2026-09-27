@@ -366,11 +366,11 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
     choices: [...CHOICES.development],
   },
 
-  // ---- Notes: the evidence, staff only unless shared on purpose -----------
+  // ---- Staff-only recruiting reads (moved from the retired Notes tab) ------
   {
     key: "coaching_staff_reputation",
-    label: "Coaching staff reputation",
-    group: "notes",
+    label: "Coaching Staff Reputation",
+    group: "recruiting",
     kind: "choice",
     audience: "org",
     multi: true,
@@ -387,8 +387,8 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "roster_needs",
-    label: "Roster needs",
-    group: "notes",
+    label: "Roster Needs",
+    group: "recruiting",
     kind: "choice",
     audience: "org",
     multi: true,
@@ -396,8 +396,8 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "current_priorities",
-    label: "Current priorities",
-    group: "notes",
+    label: "Current Priorities",
+    group: "recruiting",
     kind: "choice",
     audience: "org",
     multi: true,
@@ -405,8 +405,8 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "graduation_needs",
-    label: "Graduation needs by position",
-    group: "notes",
+    label: "Graduation Needs by Position",
+    group: "recruiting",
     kind: "grad_needs",
     audience: "org",
     help: "Positions graduating, and the year.",
