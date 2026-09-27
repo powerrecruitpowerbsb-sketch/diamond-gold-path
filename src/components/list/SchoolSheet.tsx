@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, MessageSquare } from "lucide-react";
+import { ChevronLeft, ExternalLink, MessageSquare, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityChips } from "@/components/list/ActivityChips";
@@ -74,8 +74,25 @@ export function SchoolSheet({
     <Sheet open={open} onOpenChange={(next) => (next ? null : onClose())}>
       <SheetContent
         side="right"
-        className="w-full overflow-y-auto border-l border-border p-0 sm:max-w-3xl"
+        className="w-full overflow-y-auto border-l border-border p-0 sm:max-w-3xl [&>button:last-child]:hidden"
       >
+        <div className="sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-background/95 px-2 py-1 pt-[max(0.25rem,env(safe-area-inset-top))] backdrop-blur">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-graphite hover:bg-muted"
+          >
+            <ChevronLeft className="size-5" aria-hidden /> Back
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="grid size-11 place-items-center rounded-lg text-graphite hover:bg-muted"
+          >
+            <X className="size-5" aria-hidden />
+          </button>
+        </div>
         <SheetHeader className="stadium-gradient relative gap-0 overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
           <div
             className="pointer-events-none absolute inset-x-0 top-0 h-px"
