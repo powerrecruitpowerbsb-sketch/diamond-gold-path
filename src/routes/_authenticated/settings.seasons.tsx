@@ -478,27 +478,16 @@ function TeamManager({
               </ul>
 
               {unassigned.length ? (
-                <label className="mt-3 block">
-                  <span className={LABEL}>Add athlete to {team.name}</span>
-                  <select
-                    value=""
-                    onChange={async (event) => {
-                      const athleteId = event.target.value;
-                      if (!athleteId) return;
+                <AddPlayers
+                  teamName={team.name}
+                  unassigned={unassigned}
+                  onAdd={async (ids) => {
+                    for (const athleteId of ids) {
                       await assignFn({ data: { athleteId, seasonId, teamId: team.id } });
-                      await onChanged();
-                    }}
-                    className={`mt-1 ${FIELD}`}
-                  >
-                    <option value="">Select an athlete…</option>
-                    {unassigned.map((athlete) => (
-                      <option key={athlete.athleteId} value={athlete.athleteId}>
-                        {athlete.name}
-                        {athlete.gradYear ? ` (${athlete.gradYear})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    }
+                    await onChanged();
+                  }}
+                />
               ) : null}
             </div>
           </div>
@@ -507,10 +496,32 @@ function TeamManager({
 
       {unassigned.length ? (
         <div className={CARD}>
-          <p className={LABEL}>Not on a team this season</p>
-          <p className="mt-2 text-sm text-steel">
-            {unassigned.map((a) => a.name).join(", ")}
-          </p>
+          <p className={LABEL}>Unassigned · {unassigned.length}</p>
+          <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+            {unassigned.map((athlete) => (
+              <li key={athlete.athleteId} className="flex items-center justify-between gap-2 rounded-md bg-chalk px-2 py-1.5 text-sm">
+                <span className="min-w-0 truncate font-medium text-graphite">
+                  {athlete.name}
+                  <span className="ml-2 font-mono text-[11px] text-steel">{athlete.gradYear ?? "—"}</span>
+                </span>
+                <select
+                  value=""
+                  aria-label={`Assign ${athlete.name}`}
+                  onChange={async (event) => {
+                    if (!event.target.value) return;
+                    await assignFn({ data: { athleteId: athlete.athleteId, seasonId, teamId: event.target.value } });
+                    await onChanged();
+                  }}
+                  className="min-h-9 rounded-md border border-border bg-card px-2 text-xs font-semibold text-graphite"
+                >
+                  <option value="">Assign to…</option>
+                  {teams.map((t: any) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
     </div>
@@ -823,6 +834,63 @@ function RolloverWizard({
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function AddPlayers({
+  teamName,
+  unassigned,
+  onAdd,
+}: {
+  teamName: string;
+  unassigned: { athleteId: string; name: string; gradYear?: number | null }[];
+  onAdd: (ids: string[]) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  if (!open)
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-3 min-h-9 rounded-md border border-dashed border-border px-3 text-xs font-semibold text-org-primary">
+        + Add players
+      </button>
+    );
+  return (
+    <div className="mt-3 rounded-md border border-border p-2">
+      <p className={LABEL}>Add to {teamName}</p>
+      <ul className="mt-1 max-h-48 space-y-1 overflow-y-auto">
+        {unassigned.map((a) => (
+          <li key={a.athleteId}>
+            <label className="flex items-center gap-2 text-sm text-graphite">
+              <input
+                type="checkbox"
+                checked={picked.includes(a.athleteId)}
+                onChange={(e) =>
+                  setPicked((p) => (e.target.checked ? [...p, a.athleteId] : p.filter((x) => x !== a.athleteId)))
+                }
+                className="size-4 accent-[var(--org-primary)]"
+              />
+              {a.name}
+              <span className="font-mono text-[11px] text-steel">{a.gradYear ?? ""}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          disabled={!picked.length || busy}
+          onClick={async () => {
+            setBusy(true);
+            try { await onAdd(picked); setPicked([]); setOpen(false); } finally { setBusy(false); }
+          }}
+          className="min-h-9 rounded-md bg-org-primary px-3 text-xs font-semibold text-org-primary-foreground disabled:opacity-50"
+        >
+          {busy ? "Adding…" : `Add ${picked.length || ""}`}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className="min-h-9 px-2 text-xs text-steel">Cancel</button>
+      </div>
     </div>
   );
 }
