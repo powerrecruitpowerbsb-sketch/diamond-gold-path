@@ -63,14 +63,14 @@ function Index() {
         </div>
 
         <div className="flex flex-1 flex-col justify-end pb-4 lg:justify-center lg:pb-0">
-          <p className="mb-4 flex items-center gap-3 font-mono text-[11px] font-medium tracking-[0.25em] text-org-accent uppercase">
-            <span className="h-px w-8 bg-org-accent" />
+          <p className="mb-4 flex items-center gap-3 font-mono text-[11px] font-medium tracking-[0.25em] text-org-primary-strong uppercase">
+            <span className="h-px w-8 bg-org-primary" />
             Baseball &amp; softball
           </p>
           <h1 className="max-w-xl font-display text-[2.8rem] leading-[1.02] font-bold text-white sm:text-[3.8rem]">
             Recruiting,
             <br />
-            Made <span className="text-seam-red">Transparent.</span>
+            Made <span className="text-org-primary">Transparent.</span>
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-white/70 italic sm:text-lg">
             Connecting organizations, players, and families with clarity at every step.
@@ -78,7 +78,7 @@ function Index() {
 
           <Button
             asChild
-            className="touch-target mt-8 w-full bg-seam-red px-8 text-base font-semibold text-white hover:bg-seam-red/90 sm:w-auto sm:self-start"
+            className="touch-target mt-8 w-full bg-org-primary px-8 text-base font-semibold text-org-primary-foreground hover:bg-org-primary/90 sm:w-auto sm:self-start"
           >
             <Link to="/auth">Sign in</Link>
           </Button>
