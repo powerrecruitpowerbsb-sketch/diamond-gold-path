@@ -200,6 +200,8 @@ function HubBody({ hub }: { hub: any }) {
     <div className="space-y-5 sm:space-y-6">
       <Hero hub={hub} pct={pct} next={next} />
 
+      <Targets saved={saved} />
+
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr] sm:gap-6">
         <div className="space-y-5 sm:space-y-6">
           <VideoReel athleteId={athlete['id']} videos={videos} linkVideos={linkVideos} />
@@ -210,7 +212,6 @@ function HubBody({ hub }: { hub: any }) {
           {doneCount < checklist.length ? (
             <Readiness checklist={checklist} pct={pct} doneCount={doneCount} />
           ) : null}
-          <Targets saved={saved} />
           <CoachCorner notes={hub.notes} events={hub.events} orgName={hub.orgName} />
         </div>
       </div>
@@ -950,7 +951,7 @@ function Targets({ saved }: { saved: Record<string, any>[] }) {
       ) : null}
 
       {recent.length ? (
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {recent.map((r) => {
             const p = r['programs'] as any;
             const name = String(p?.universities?.name ?? "College");
