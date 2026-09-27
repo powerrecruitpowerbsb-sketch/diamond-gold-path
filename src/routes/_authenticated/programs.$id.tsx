@@ -24,7 +24,6 @@ import {
 } from "@/components/profile/ProfileUI";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
-import { TrueFitPanel } from "@/components/profile/TrueFitPanel";
 import { useMyAccount } from "@/hooks/use-my-account";
 import { getProgramProfile } from "@/lib/search.functions";
 import { listAthletePicker } from "@/lib/shortlist.functions";
@@ -385,7 +384,6 @@ function ProgramProfile() {
     { id: "academics", label: "Academics" },
     { id: "cost", label: "Cost" },
     { id: "roster", label: "Roster", count: rosterRows.length || null },
-    { id: "fit", label: "Fit" },
     { id: "intel", label: "Intel", count: intelRows.length || null },
     { id: "links", label: "Links", count: officialLinks.length || null },
   ];
@@ -670,15 +668,6 @@ function ProgramProfile() {
         </div>
       ) : null}
 
-      {/* ---------------- TRUE FIT ---------------- */}
-      {tab === "fit" ? (
-        <Panel
-          title="True fit"
-          meta={athleteId ? "For the selected athlete" : "Pick an athlete"}
-        >
-          <TrueFitPanel programId={id} athleteId={athleteId ?? null} />
-        </Panel>
-      ) : null}
 
       {/* ---------------- INTELLIGENCE ---------------- */}
       {tab === "intel" ? (
