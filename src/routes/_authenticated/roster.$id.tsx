@@ -2,7 +2,9 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, MessageSquare, Plus, Trash2, X } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { openThread } from "@/lib/messaging.functions";
 import { toast } from "sonner";
 
 import { InvitePanel } from "@/components/admin/InvitePanel";
@@ -200,6 +202,8 @@ function AthleteDetail() {
 
           {/* Season assignment + program status. Assignments are per season;
               status is athlete-level and outlives every season. */}
+          <MessageFamily athleteId={id} />
+
           <div className="mt-6">
             <AthleteProfilePanel athleteId={id} canVerify />
           </div>
@@ -215,7 +219,11 @@ function AthleteDetail() {
                 <p className="font-mono text-[11px] tracking-wide text-steel uppercase">
                   {ctx.season?.name ?? "Current season"} team
                 </p>
-                {ctx.hasSeasons ? (
+                {ctx.hasSeasons && !ctx.canManage ? (
+                  <p className="mt-1 text-sm font-semibold text-graphite">
+                    {(history ?? []).find((row) => row.seasonId === ctx.seasonId)?.teamName ?? "Unassigned"}
+                  </p>
+                ) : ctx.hasSeasons ? (
                   <select
                     value={
                       (history ?? []).find((row) => row.seasonId === ctx.seasonId)?.teamId ?? ""
@@ -253,6 +261,11 @@ function AthleteDetail() {
                 <p className="mt-4 font-mono text-[11px] tracking-wide text-steel uppercase">
                   Program status
                 </p>
+                {!ctx.canManage ? (
+                  <p className="mt-1 text-sm font-semibold text-graphite">
+                    {ATHLETE_STATUS_LABEL[(athlete['status'] ?? "active") as AthleteStatus] ?? "Active"}
+                  </p>
+                ) : (
                 <select
                   value={(athlete['status'] ?? "active") as string}
                   onChange={async (event) => {
@@ -274,6 +287,7 @@ function AthleteDetail() {
                     </option>
                   ))}
                 </select>
+                )}
                 <p className="mt-1 text-xs text-steel">
                   Graduated and departed players keep their full shortlist and note history.
                 </p>
@@ -482,6 +496,7 @@ function AthleteDetail() {
             </ul>
           </section>
 
+          {ctx.canManage ? (
           <InvitePanel
             athleteId={id}
             title="Family access"
@@ -493,6 +508,7 @@ function AthleteDetail() {
             peopleLabel="Linked family accounts"
             emptyPeople="No family accounts linked yet."
           />
+          ) : null}
         </>
       )}
     </AppShell>
@@ -570,5 +586,32 @@ function ShortlistCard({
         </select>
       </label>
     </li>
+  );
+}
+
+/** Coaches and admins open the family's recruiting-strategy conversation in one tap. */
+function MessageFamily({ athleteId }: { athleteId: string }) {
+  const openFn = useServerFn(openThread);
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const res = (await openFn({ data: { athleteId, programId: null } })) as any;
+          const thread = res?.threadId ?? res?.id ?? res;
+          navigate({ to: "/messages", search: { thread } as any });
+        } catch (err) {
+          toast.error((err as Error).message);
+          setBusy(false);
+        }
+      }}
+      className="touch-target mt-4 inline-flex items-center gap-2 rounded-xl bg-org-primary px-4 text-sm font-semibold text-org-primary-foreground disabled:opacity-60"
+    >
+      <MessageSquare className="size-4" aria-hidden /> {busy ? "Opening…" : "Message family"}
+    </button>
   );
 }
