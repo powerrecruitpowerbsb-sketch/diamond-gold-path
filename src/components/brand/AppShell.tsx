@@ -31,7 +31,7 @@ import { ActingOrgBar } from "@/components/brand/ActingOrgBar";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { useMyAccount } from "@/hooks/use-my-account";
 import { useOrgBranding } from "@/hooks/use-org-branding";
-import { isOrgManagerRole, isOwnerRole } from "@/lib/roles";
+import { isAdminLevel, isOrgManagerRole, isOwnerRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 
@@ -118,7 +118,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
 
   const overflowNav: NavItem[] = [
     ...(isStaff ? [{ to: "/admin/universities", label: "College database", icon: Database }] : []),
-    ...(isOrgManager ? [{ to: "/settings/team", label: "Team & invites", icon: Mail }] : []),
+    ...(isAdminLevel(role) || actingOrg ? [{ to: "/settings/team", label: "Team & invites", icon: Mail }] : []),
     ...(isOrgOwner
       ? [{ to: "/settings/branding", label: "Branding settings", icon: Palette }]
       : []),

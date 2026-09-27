@@ -49,20 +49,23 @@ async function nameMap(_context: Ctx, ids: string[]) {
  */
 export const openThread = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { athleteId: string; programId: string }) => ({
+  .inputValidator((input: { athleteId: string; programId?: string | null }) => ({
     athleteId: str(input?.athleteId),
-    programId: str(input?.programId),
+    programId: input?.programId ? str(input.programId) : null,
   }))
   .handler(async ({ context, data }) => {
     const me = await actor(context as any);
-    if (!data.athleteId || !data.programId) throw new Error("Missing athlete or school");
+    if (!data.athleteId) throw new Error("Missing athlete");
 
-    const { data: existing } = await context.supabase
+    // No school = the athlete's general recruiting-strategy conversation.
+    let existingQuery = context.supabase
       .from("message_threads")
       .select("id")
-      .eq("org_athlete_id", data.athleteId)
-      .eq("program_id", data.programId)
-      .maybeSingle();
+      .eq("org_athlete_id", data.athleteId);
+    existingQuery = data.programId
+      ? existingQuery.eq("program_id", data.programId)
+      : existingQuery.is("program_id", null);
+    const { data: existing } = await existingQuery.limit(1).maybeSingle();
 
     let threadId = (existing as any)?.id as string | undefined;
 
@@ -79,7 +82,7 @@ export const openThread = createServerFn({ method: "POST" })
         .insert({
           organization_id: (athlete as any).organization_id,
           org_athlete_id: data.athleteId,
-          program_id: data.programId,
+          program_id: data.programId as string,
           created_by: me.userId,
         })
         .select("id")
@@ -349,7 +352,7 @@ export const listMyThreads = createServerFn({ method: "GET" })
         id: t['id'] as string,
         athleteId: t['org_athlete_id'] as string,
         athlete: (t['org_athletes']?.name ?? "Player") as string,
-        school: (t['programs']?.universities?.name ?? "School") as string,
+        school: (t['programs']?.universities?.name ?? (t['program_id'] ? "School" : "Recruiting strategy")) as string,
         sport: (t['programs']?.sport ?? null) as string | null,
         closed: Boolean(t['is_closed']),
         lastAt: (last?.['created_at'] ?? t['last_message_at'] ?? t['created_at']) as string,

@@ -228,14 +228,16 @@ function Dashboard() {
                 >
                   Clear filters
                 </ActionButton>
-              ) : (
+              ) : ctx.canManage ? (
                 <ActionLink to="/roster/new">Add your first athlete</ActionLink>
-              )
+              ) : null
             }
           >
             {stageFilter || term || gradYear
               ? "No athlete matches what you picked."
-              : "Add a player and their college board starts here."}
+              : ctx.canManage
+                ? "Add a player and their college board starts here."
+                : "No players on your teams yet. An admin assigns them."}
           </EmptyState>
         ) : (
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -13,6 +13,9 @@ import { PacketShare } from "@/components/coach/PacketShare";
 import { useSeasonContext } from "@/hooks/use-season-context";
 import { useSportMode } from "@/hooks/use-sport-mode";
 import { getAthleteSportMix, listOrgAthletes } from "@/lib/athletes.functions";
+import { assignAthleteToTeam } from "@/lib/seasons.functions";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { ATHLETE_STATUS_LABEL } from "@/lib/season-constants";
 import { normalizeSport, SPORT_LABEL, SPORTS } from "@/lib/sport";
 
@@ -326,19 +329,21 @@ function RosterScreen() {
                     headline={q || gradYear ? "Nobody matches yet" : "Start your roster"}
                     className="border-0"
                     action={
-                      <>
+                      ctx.canManage ? <>
                         <ActionLink to="/roster/new">
                           <Plus className="size-4" aria-hidden /> Add athlete
                         </ActionLink>
                         <ActionLink to="/roster/import" tone="secondary">
                           <Upload className="size-4" aria-hidden /> Import CSV
                         </ActionLink>
-                      </>
+                      </> : null
                     }
                   >
                     {q || gradYear
                       ? "Try a different name or grad year."
-                      : "Add your players and their college boards start here."}
+                      : ctx.canManage
+                        ? "Add your players and their college boards start here."
+                        : "No players on your teams yet. An admin assigns them."}
                   </EmptyState>
                 </td>
               </tr>
@@ -360,8 +365,12 @@ function RosterScreen() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-graphite">
-                    {athlete['team_name'] ?? (
-                      <span className="font-mono text-xs text-steel">Unassigned</span>
+                    {ctx.canManage && ctx.hasSeasons && !ctx.season?.isArchived ? (
+                      <TeamSelect athlete={athlete} />
+                    ) : (
+                      athlete['team_name'] ?? (
+                        <span className="font-mono text-xs text-steel">Unassigned</span>
+                      )
                     )}
                   </td>
                   <td className="px-4 py-3 text-graphite">{athlete['grad_year'] ?? "—"}</td>
@@ -401,5 +410,40 @@ function RosterScreen() {
         </table></div>
       </div>
     </AppShell>
+  );
+}
+
+/** Admins move a player between teams right from the roster row. */
+function TeamSelect({ athlete }: { athlete: Record<string, any> }) {
+  const ctx = useSeasonContext();
+  const assignFn = useServerFn(assignAthleteToTeam);
+  const qc = useQueryClient();
+  const current =
+    ctx.teams.find((t) => t.name === athlete['team_name'])?.id ?? (athlete['team_id'] as string | undefined) ?? "";
+  return (
+    <select
+      aria-label={`Team for ${athlete['name']}`}
+      value={current}
+      onChange={async (event) => {
+        try {
+          await assignFn({
+            data: { athleteId: athlete['id'], seasonId: ctx.seasonId, teamId: event.target.value || null },
+          });
+          await qc.invalidateQueries({ queryKey: ["org-athletes"] });
+          await qc.invalidateQueries({ queryKey: ["season-detail"] });
+          toast.success("Team updated");
+        } catch (err) {
+          toast.error((err as Error).message);
+        }
+      }}
+      className="min-h-9 rounded-md border border-border bg-card px-2 text-sm text-graphite"
+    >
+      <option value="">Unassigned</option>
+      {ctx.teams.map((team) => (
+        <option key={team.id} value={team.id}>
+          {team.name}
+        </option>
+      ))}
+    </select>
   );
 }

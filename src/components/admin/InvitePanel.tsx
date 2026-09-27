@@ -70,9 +70,19 @@ export function InvitePanel({
     event.preventDefault();
     setBusy(true);
     try {
-      const result = await sendFn({ data: { email, role: role as any, athleteId } });
-      if (result.status === "sent") toast.success(result.message);
-      else toast.info(result.message);
+      // Several addresses at once: comma, space or new line separated.
+      const emails = Array.from(new Set(email.split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean)));
+      let sent = 0;
+      for (const one of emails) {
+        try {
+          const result = await sendFn({ data: { email: one, role: role as any, athleteId } });
+          if (result.status === "sent") sent++;
+          else toast.info(result.message);
+        } catch (error) {
+          toast.error(`${one}: ${(error as Error).message}`);
+        }
+      }
+      if (sent) toast.success(`${sent} invite${sent === 1 ? "" : "s"} sent`);
       setEmail("");
       await invalidate();
     } catch (error) {
@@ -98,13 +108,13 @@ export function InvitePanel({
       ) : (
         <form onSubmit={submit} className="mt-4 flex flex-wrap items-end gap-3">
           <label className="min-w-[220px] flex-1 text-sm">
-            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Email</span>
+            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Emails</span>
             <input
-              type="email"
+              type="text"
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="name@example.com"
+              placeholder="one@example.com, two@example.com"
               className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary"
             />
           </label>
