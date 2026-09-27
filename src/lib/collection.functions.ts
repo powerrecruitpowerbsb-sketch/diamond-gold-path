@@ -224,3 +224,36 @@ export const recrawlProgram = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+/** Name search for the single-team refresh box. */
+export const findTeamsForRecrawl = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { q: string }) => ({ q: String(input?.q ?? "").trim().slice(0, 80) }))
+  .handler(async ({ context, data }) => {
+    await assertSuperadmin(context as any);
+    if (data.q.length < 2) return [];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const safe = data.q.replace(/[%_,()]/g, " ");
+    const { data: schools } = await supabaseAdmin
+      .from("universities")
+      .select("id, name, state")
+      .ilike("name", `%${safe}%`)
+      .limit(8);
+    const ids = (schools ?? []).map((s: any) => s.id);
+    if (!ids.length) return [];
+    const { data: programs } = await supabaseAdmin
+      .from("programs")
+      .select("id, sport, university_id, roster_refresh_due_at, offering_status")
+      .in("university_id", ids)
+      .neq("offering_status", "not_offered");
+    const byId = new Map((schools ?? []).map((s: any) => [s.id, s]));
+    return clean(
+      (programs ?? []).map((p: any) => ({
+        id: p.id as string,
+        sport: p.sport as string,
+        school: (byId.get(p.university_id) as any)?.name as string,
+        state: (byId.get(p.university_id) as any)?.state as string | null,
+        nextRefresh: p.roster_refresh_due_at as string | null,
+      })),
+    );
+  });
