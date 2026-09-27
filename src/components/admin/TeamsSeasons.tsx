@@ -175,7 +175,7 @@ function SeasonList({
             <span className="mb-2.5 rounded-md bg-chalk px-2 py-0.5 font-mono text-[10px] tracking-wide text-steel uppercase">Archived</span>
           ) : null
         ) : null}
-        <div className="flex flex-wrap gap-2 sm:ml-auto">
+        <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap [&>button]:justify-center">
           {season && !season.isActive ? (
             <button type="button" className={btn} onClick={async () => {
               await activateFn({ data: { id: season.id } });
@@ -194,7 +194,7 @@ function SeasonList({
               if (!window.confirm(`Delete ${season.name}? Its teams and roster assignments are removed. Athletes, shortlists and notes are kept.`)) return;
               await deleteFn({ data: { id: season.id } });
               await onChanged();
-            }}><Trash2 className="size-3.5" aria-hidden /></button>
+            }} aria-label="Delete season"><Trash2 className="size-3.5" aria-hidden /> Delete</button>
           ) : null}
           <button type="button" className={btn} onClick={() => setAdding((v) => !v)}>
             <Plus className="size-3.5" aria-hidden /> New season
