@@ -85,7 +85,7 @@ function MessagesPage() {
 
   return (
     <AppShell right={<AuthButton />}>
-      <div className="mb-4 flex items-end justify-between gap-3">
+      <div className={cn("mb-4 flex items-end justify-between gap-3", activeId && "hidden md:flex")}>
         <div className="min-w-0">
           <p className="font-mono text-[10px] tracking-[0.2em] text-steel uppercase">Inbox</p>
           <h1 className="font-display text-3xl font-bold text-org-primary">Messages</h1>
@@ -204,7 +204,7 @@ function MessagesPage() {
         </aside>
 
         {/* Conversation */}
-        <section className={cn("flex min-h-0 flex-col", !activeId && "hidden md:flex")}>
+        <section className={cn("flex min-h-0 min-w-0 flex-col", activeId ? "fixed inset-0 z-50 h-dvh bg-card pt-[env(safe-area-inset-top)] md:static md:z-auto md:h-auto md:pt-0" : "hidden md:flex")}>
           {activeId ? (
             <Conversation key={activeId} threadId={activeId} onBack={() => open()} canReport />
           ) : (
@@ -288,16 +288,16 @@ function Conversation({ threadId, onBack, canReport }: { threadId: string; onBac
       </header>
 
       {data ? (
-        <div className="flex flex-wrap gap-1.5 border-b border-border px-4 py-2">
+        <div className="flex gap-1.5 overflow-x-auto border-b border-border px-4 py-2 [scrollbar-width:none]">
           {data.participants.map((p) => (
-            <span key={p.id} className="rounded-full border border-border px-2 py-0.5 text-[11px] text-steel">
+            <span key={p.id} className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-steel">
               {p.name} · {roleLabel(p.role)}
             </span>
           ))}
         </div>
       ) : null}
 
-      <div className="min-h-[50vh] flex-1 space-y-3 overflow-y-auto bg-muted/20 px-4 py-4 md:min-h-0">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-muted/20 px-4 py-4 md:min-h-0">
         {isPending ? (
           <div className="h-24 animate-pulse rounded-md bg-muted" />
         ) : error ? (
@@ -307,12 +307,12 @@ function Conversation({ threadId, onBack, canReport }: { threadId: string; onBac
         ) : (
           data!.messages.map((m) => (
             <div key={m.id} className={cn("group flex flex-col", m.mine ? "items-end" : "items-start")}>
-              <span className="mb-1 font-mono text-[10px] tracking-wide text-steel uppercase">
+              <span className="mb-1 max-w-full truncate font-mono text-[10px] tracking-wide text-steel uppercase">
                 {m.mine ? "You" : m.authorName} · {timeAgo(m.createdAt)}
               </span>
               <div
                 className={cn(
-                  "max-w-[85%] rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm",
+                  "max-w-[85%] min-w-0 break-words [overflow-wrap:anywhere] rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm",
                   m.mine
                     ? "rounded-br-sm bg-org-primary text-org-primary-foreground"
                     : "rounded-bl-sm border border-border bg-card",
@@ -324,7 +324,7 @@ function Conversation({ threadId, onBack, canReport }: { threadId: string; onBac
                 <button
                   type="button"
                   onClick={() => report.mutate(m.id)}
-                  className="mt-1 hidden items-center gap-1 text-[11px] text-steel hover:text-destructive group-hover:flex"
+                  className="mt-1 flex items-center gap-1 text-[11px] text-steel hover:text-destructive md:hidden md:group-hover:flex"
                 >
                   <Flag className="size-3" /> Report
                 </button>
@@ -336,7 +336,7 @@ function Conversation({ threadId, onBack, canReport }: { threadId: string; onBac
       </div>
 
       <form
-        className="flex items-end gap-2 border-t border-border bg-card p-3"
+        className="flex items-end gap-2 border-t border-border bg-card p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3"
         onSubmit={(e) => {
           e.preventDefault();
           if (draft.trim()) send.mutate();
@@ -353,7 +353,7 @@ function Conversation({ threadId, onBack, canReport }: { threadId: string; onBac
           }}
           rows={1}
           placeholder="Message"
-          className="max-h-40 min-h-11 resize-none text-[15px]"
+          className="max-h-40 min-h-11 min-w-0 flex-1 resize-none text-base md:text-[15px]"
         />
         <Button type="submit" size="icon" className="size-11 shrink-0" disabled={!draft.trim() || send.isPending} aria-label="Send">
           <Send className="size-4" />
