@@ -481,8 +481,14 @@ export async function safeFetch(url: string, options: SafeFetchOptions = {}): Pr
       };
     }
 
-    // A confirmed firewall challenge ends the read here. Rendering cannot solve a
-    // human check, so the host is written down and left alone from now on.
+    // A firewall challenge on the plain request still earns one rendered read:
+    // PrestoSports' Amazon challenge refuses plain requests but lets the
+    // rendering service through on about half of junior-college sites. Only a
+    // challenge that also stops the render quarantines the host.
+    if (last.protection && !useRendered) {
+      method = "rendered";
+      continue;
+    }
     if (last.protection) {
       noteProtection(url, last.protection);
       return {
