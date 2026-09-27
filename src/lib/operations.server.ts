@@ -196,7 +196,7 @@ export async function repairProgramLink(
   // copy was the mistake, so it is cleared before this one is saved.
   const key = (u: string | null) =>
     (u ?? "").toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "");
-  const hostOf = (u: string | null) => key(u).split("/")[0].split("?")[0].split(":")[0];
+  const hostOf = (u: string | null) => key(u).split(/[/?:]/)[0] ?? "";
   const { data: self } = await supabase
     .from("programs")
     .select("university_id")
