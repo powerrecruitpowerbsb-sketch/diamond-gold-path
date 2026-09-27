@@ -372,3 +372,40 @@ const joinThreadIfNeeded = async (context: Ctx, threadId: string) => {
     .from("thread_participants")
     .insert({ thread_id: threadId, user_id: context.userId, participant_role: me.role, removable: true });
 };
+
+/* ------------------------------------------------------------------ */
+/* New conversation: school lookup                                     */
+/* ------------------------------------------------------------------ */
+
+export const newThreadSchools = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { ids?: string[]; q?: string; sport?: string | null }) => ({
+    ids: Array.isArray(input?.ids) ? input.ids.slice(0, 150).map(String) : [],
+    q: str(input?.q).slice(0, 80),
+    sport: str(input?.sport) || null,
+  }))
+  .handler(async ({ context, data }) => {
+    const shape = (rows: any[]) =>
+      rows.map((p) => ({
+        id: p.id as string,
+        name: (p.universities?.name ?? "School") as string,
+        state: (p.universities?.state ?? null) as string | null,
+        sport: p.sport as string,
+        division: (p.division ?? p.governing_body ?? null) as string | null,
+      }));
+    const cols = "id, sport, division, governing_body, universities!inner(name, state)";
+    const saved = data.ids.length
+      ? shape(((await context.supabase.from("programs").select(cols).in("id", data.ids)).data ?? []) as any[])
+      : [];
+    let results: ReturnType<typeof shape> = [];
+    if (data.q.length >= 2) {
+      let q = context.supabase
+        .from("programs")
+        .select(cols)
+        .ilike("universities.name", `%${data.q.replace(/[%_,]/g, " ")}%`)
+        .limit(25);
+      if (data.sport === "baseball" || data.sport === "softball") q = q.eq("sport", data.sport);
+      results = shape(((await q).data ?? []) as any[]);
+    }
+    return { saved, results };
+  });
