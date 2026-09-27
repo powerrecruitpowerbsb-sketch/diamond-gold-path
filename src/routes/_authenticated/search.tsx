@@ -196,7 +196,7 @@ function SearchScreen() {
   const { sport: sportMode, setSport } = useSportMode();
   useEffect(() => {
     if (params.sport !== sportMode) {
-      void navigate({ search: (prev: any) => ({ ...prev, sport: sportMode }), replace: true });
+      void navigate({ search: (prev: any) => ({ ...prev, sport: sportMode }), replace: true, resetScroll: false });
     }
   }, [sportMode, params.sport, navigate]);
 
@@ -212,7 +212,7 @@ function SearchScreen() {
     isFamily && pickerAthletes.length === 1 ? String(pickerAthletes[0]?.["id"] ?? "") : "";
   useEffect(() => {
     if (ownAthleteId && params.athleteId !== ownAthleteId) {
-      void navigate({ search: (prev: any) => ({ ...prev, athleteId: ownAthleteId }), replace: true });
+      void navigate({ search: (prev: any) => ({ ...prev, athleteId: ownAthleteId }), replace: true, resetScroll: false });
     }
   }, [ownAthleteId, params.athleteId, navigate]);
   const contextAthlete = params.athleteId
