@@ -1,4 +1,4 @@
-# Diamond Prospector
+# Curve Recruit
 
 I'm building "Power Recruit," a college baseball and softball recruiting research platform. Before building any screens, set up the following foundation.
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -59,7 +60,10 @@ function FamilyPortal() {
     );
   }
 
-  const athletes = (data?.athletes ?? []) as Record<string, any>[];
+  const allAthletes = (data?.athletes ?? []) as Record<string, any>[];
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const current = allAthletes.find((a) => a["id"] === selectedId) ?? allAthletes[0];
+  const athletes = current ? [current] : [];
 
   return (
     <AppShell right={<AuthButton />}>
@@ -92,7 +96,7 @@ function FamilyPortal() {
 
       {isPending ? (
         <p className="mt-6 text-sm text-steel">Loading…</p>
-      ) : athletes.length === 0 ? (
+      ) : allAthletes.length === 0 ? (
         <div className="mt-6 rounded-xl border border-border bg-card p-8 text-center shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
           <p className="font-display text-lg font-bold text-graphite">No athlete linked yet</p>
           <p className="mt-1 text-sm text-steel">
@@ -107,6 +111,34 @@ function FamilyPortal() {
         </div>
       ) : (
         <div className="mt-6 space-y-6">
+          {allAthletes.length > 1 ? (
+            <div
+              role="tablist"
+              aria-label="Choose an athlete"
+              className="sticky top-2 z-10 -mx-1 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-card/95 p-1.5 backdrop-blur"
+            >
+              {allAthletes.map((a) => {
+                const active = a["id"] === current?.["id"];
+                return (
+                  <button
+                    key={a["id"]}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setSelectedId(String(a["id"]))}
+                    className={cn(
+                      "touch-target shrink-0 rounded-xl px-4 text-sm font-semibold whitespace-nowrap",
+                      active
+                        ? "bg-org-primary text-org-primary-foreground"
+                        : "text-steel hover:text-graphite",
+                    )}
+                  >
+                    {String(a["name"]).split(" ")[0]}
+                    {a["grad_year"] ? ` · ${a["grad_year"]}` : ""}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           {athletes.map((athlete) => {
             const saved = (athlete['savedSchools'] ?? []) as Record<string, any>[];
             const notes = (athlete['notes'] ?? []) as Record<string, any>[];
