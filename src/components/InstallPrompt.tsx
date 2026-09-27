@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Share, X } from "lucide-react";
+import { ArrowDown, Plus, Share, X } from "lucide-react";
+import { useOrgBranding } from "@/hooks/use-org-branding";
 
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,10 @@ export function InstallPrompt() {
   const [open, setOpen] = useState(false);
   const [ios, setIos] = useState(false);
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
+  const [guide, setGuide] = useState(false);
+  const { branding } = useOrgBranding();
+  const b = branding as { logoUrl?: string | null; name?: string | null } | null | undefined;
+  const logo = b?.logoUrl || "/favicon.png";
 
   useEffect(() => {
     if (window.self !== window.top || isStandalone()) return;
@@ -60,6 +65,15 @@ export function InstallPrompt() {
     setOpen(false);
   };
 
+  const openShare = async () => {
+    setGuide(true);
+    try {
+      if (navigator.share) await navigator.share({ title: document.title, url: window.location.origin });
+    } catch {
+      /* user closed the sheet */
+    }
+  };
+
   if (!open || (!ios && !deferred)) return null;
 
   return (
@@ -74,29 +88,40 @@ export function InstallPrompt() {
           <X className="size-4" />
         </button>
         <div className="flex items-center gap-3 pr-6">
-          <img src="/icon-192.png" alt="" width={44} height={44} className="size-11 rounded-xl" />
+          <img src={logo} alt="" width={44} height={44} className="size-11 rounded-xl bg-card object-contain" onError={(e) => { e.currentTarget.src = "/favicon.png"; }} />
           <div>
             <p className="label-caps text-org-primary-strong">Home screen</p>
-            <p className="font-display text-base font-bold text-graphite">Add Curve Recruit</p>
+            <p className="font-display text-base font-bold text-graphite">Add {b?.name || "Curve Recruit"}</p>
           </div>
         </div>
         {ios ? (
-          <p className="mt-3 flex flex-wrap items-center gap-1 text-sm text-steel">
-            Tap <Share className="size-4 text-graphite" aria-label="Share" /> then{" "}
-            <span className="font-semibold text-graphite">Add to Home Screen</span>
-          </p>
+          <ol className="mt-3 space-y-2 text-sm text-steel">
+            <li className="flex items-center gap-2">
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-org-primary font-mono text-[11px] font-bold text-org-primary-foreground">1</span>
+              Tap <Share className="size-4 text-graphite" aria-label="Share" /> <span className="font-semibold text-graphite">Share</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-org-primary font-mono text-[11px] font-bold text-org-primary-foreground">2</span>
+              Tap <Plus className="size-4 rounded-sm border border-graphite text-graphite" aria-hidden />
+              <span className="font-semibold text-graphite">Add to Home Screen</span>
+            </li>
+          </ol>
         ) : null}
         <div className="mt-3 flex gap-2">
-          {!ios ? (
-            <Button onClick={install} className="flex-1 bg-org-primary text-org-primary-foreground">
-              Install
-            </Button>
-          ) : null}
-          <Button variant="ghost" onClick={later} className={ios ? "w-full" : ""}>
+          <Button onClick={ios ? openShare : install} className="flex-1 bg-org-primary text-org-primary-foreground">
+            {ios ? "Open Share menu" : "Add to Home Screen"}
+          </Button>
+          <Button variant="ghost" onClick={later}>
             Later
           </Button>
         </div>
       </div>
+      {ios && guide ? (
+        <div className="mt-2 flex flex-col items-center text-org-primary-strong" aria-hidden>
+          <span className="font-mono text-[10px] tracking-wide uppercase">Or use Share below</span>
+          <ArrowDown className="size-6 animate-bounce" />
+        </div>
+      ) : null}
     </div>
   );
 }
