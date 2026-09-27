@@ -193,6 +193,7 @@ export const sendMessage = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     if (!data.body) throw new Error("Write something first");
+    await joinThreadIfNeeded(context as any, data.threadId);
     const { data: row, error } = await context.supabase
       .from("messages")
       .insert({ thread_id: data.threadId, author_user_id: context.userId, body: data.body })
@@ -300,3 +301,74 @@ export const resolveThreadReport = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/* ------------------------------------------------------------------ */
+/* Messages hub: every conversation this account can see               */
+/* ------------------------------------------------------------------ */
+
+export const listMyThreads = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: threads, error } = await context.supabase
+      .from("message_threads")
+      .select(
+        "id, org_athlete_id, program_id, is_closed, last_message_at, created_at, org_athletes(name), programs(sport, universities(name)), thread_participants(user_id, last_read_at)",
+      )
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(300);
+    if (error) throw new Error(error.message);
+    const rows = (threads ?? []) as Record<string, any>[];
+    const ids = rows.map((t) => t['id'] as string);
+
+    let msgs: Record<string, any>[] = [];
+    if (ids.length) {
+      const { data } = await context.supabase
+        .from("messages")
+        .select("thread_id, author_user_id, body, created_at")
+        .in("thread_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(3000);
+      msgs = (data ?? []) as Record<string, any>[];
+    }
+    const names = await nameMap(context as any, msgs.map((m) => m['author_user_id'] as string));
+
+    const list = rows.map((t) => {
+      const mine = ((t['thread_participants'] ?? []) as any[]).find((p) => p.user_id === context.userId);
+      const lastRead = mine?.last_read_at ? new Date(mine.last_read_at).getTime() : 0;
+      const tm = msgs.filter((m) => m['thread_id'] === t['id']);
+      const last = tm[0];
+      const unread = mine
+        ? tm.filter((m) => m['author_user_id'] !== context.userId && new Date(m['created_at']).getTime() > lastRead).length
+        : 0;
+      return {
+        id: t['id'] as string,
+        athleteId: t['org_athlete_id'] as string,
+        athlete: (t['org_athletes']?.name ?? "Player") as string,
+        school: (t['programs']?.universities?.name ?? "School") as string,
+        sport: (t['programs']?.sport ?? null) as string | null,
+        closed: Boolean(t['is_closed']),
+        lastAt: (last?.['created_at'] ?? t['last_message_at'] ?? t['created_at']) as string,
+        preview: (last?.['body'] ?? "") as string,
+        lastAuthor: last ? (last['author_user_id'] === context.userId ? "You" : names.get(last['author_user_id']) ?? "Member") : null,
+        unread,
+        participating: Boolean(mine),
+      };
+    });
+    list.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
+    return { threads: list, unreadTotal: list.reduce((s, t) => s + t.unread, 0) };
+  });
+
+/** Staff who reply to a thread they were not on join it (removable). */
+const joinThreadIfNeeded = async (context: Ctx, threadId: string) => {
+  const { data } = await context.supabase
+    .from("thread_participants")
+    .select("id")
+    .eq("thread_id", threadId)
+    .eq("user_id", context.userId)
+    .maybeSingle();
+  if (data) return;
+  const me = await actor(context);
+  await context.supabase
+    .from("thread_participants")
+    .insert({ thread_id: threadId, user_id: context.userId, participant_role: me.role, removable: true });
+};
