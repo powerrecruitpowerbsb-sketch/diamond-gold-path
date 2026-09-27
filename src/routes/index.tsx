@@ -84,10 +84,9 @@ function Index() {
           </Button>
 
           <ul className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-white/12 pt-6">
-            {["Organizations", "Players", "Families"].map((label, index) => (
+            {["Organizations", "Players", "Families"].map((label) => (
               <li key={label}>
-                <span className="font-mono text-[10px] text-org-accent">{"\n"}</span>
-                <p className="mt-1 font-display text-sm font-semibold text-white sm:text-base">{label}</p>
+                <p className="font-display text-sm font-semibold text-white sm:text-base">{label}</p>
               </li>
             ))}
           </ul>
