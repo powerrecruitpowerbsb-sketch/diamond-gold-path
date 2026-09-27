@@ -51,7 +51,7 @@ function ClubManagement() {
         </h1>
       </div>
 
-      <div className="mt-6 flex max-w-full overflow-x-auto rounded-lg sm:inline-flex border border-border bg-card p-1">
+      <div className="mt-6 grid grid-cols-3 rounded-lg border border-border bg-card p-1 sm:inline-flex">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -59,7 +59,7 @@ function ClubManagement() {
             aria-pressed={tab === t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "touch-target shrink-0 whitespace-nowrap rounded-md px-4 text-sm font-semibold",
+              "touch-target min-w-0 rounded-md px-2 text-xs leading-tight font-semibold sm:px-4 sm:text-sm sm:whitespace-nowrap",
               tab === t.id ? "bg-org-primary text-org-primary-foreground" : "text-steel hover:text-graphite",
             )}
           >

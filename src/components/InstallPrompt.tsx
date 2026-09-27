@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, Plus, Share, X } from "lucide-react";
+import { useRouterState } from "@tanstack/react-router";
 import { useOrgBranding } from "@/hooks/use-org-branding";
 
 import { Button } from "@/components/ui/button";
 
 const KEY = "curve.install.snoozedUntil";
-const FIRST_DELAY_MS = 4000;
+const FIRST_DELAY_MS = 20000;
 const SNOOZE_DAYS = [3, 7, 14, 30];
 const COUNT_KEY = "curve.install.dismissals";
 
@@ -25,6 +26,7 @@ export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [guide, setGuide] = useState(false);
   const { branding } = useOrgBranding();
+  const path = useRouterState({ select: (s) => s.location.pathname });
   const b = branding as { logoUrl?: string | null; name?: string | null } | null | undefined;
   const logo = b?.logoUrl || "/favicon.png";
 
@@ -74,7 +76,7 @@ export function InstallPrompt() {
     }
   };
 
-  if (!open || (!ios && !deferred)) return null;
+  if (!open || (!ios && !deferred) || path.startsWith("/messages")) return null;
 
   return (
     <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-50 mx-auto max-w-md">
