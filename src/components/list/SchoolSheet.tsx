@@ -9,7 +9,6 @@ import { ActivityChips } from "@/components/list/ActivityChips";
 import { OutreachComposer } from "@/components/list/OutreachComposer";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
-import { TrueFitPanel } from "@/components/profile/TrueFitPanel";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
 import { Panel, StatCard } from "@/components/profile/ProfileUI";
 import { count, money, pct } from "@/lib/profile-fields";
@@ -175,7 +174,6 @@ export function SchoolSheet({
               {(
                 [
                   ["overview", "School"],
-                  ["fit", "Fit"],
                   ["activity", "Track"],
                   ["roster", "Roster"],
                   ["intel", "Intel"],
@@ -192,12 +190,6 @@ export function SchoolSheet({
               ))}
             </TabsList>
 
-            <TabsContent value="fit" className="pt-5">
-              <TrueFitPanel
-                programId={entry.programId}
-                athleteId={entry.athleteId ?? athleteId}
-              />
-            </TabsContent>
 
 
             <TabsContent value="activity" className="space-y-3 pt-5">
