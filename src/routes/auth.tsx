@@ -66,18 +66,18 @@ function AuthPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface-0">
-      <div className="absolute inset-0 lg:left-1/2">
+      <div className="relative aspect-[3/2] w-full lg:absolute lg:inset-0 lg:left-1/2 lg:aspect-auto lg:w-auto">
         <img
           src={heroPitcher}
-          alt="A college pitcher in his windup under stadium lights"
-          width={1280}
-          height={1600}
+          alt="A baseball hitter and a softball pitcher under stadium lights"
+          width={1600}
+          height={1066}
           className="size-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/80 to-surface-0/30 lg:bg-gradient-to-r lg:from-surface-0 lg:via-transparent lg:to-surface-0/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-surface-0 via-transparent to-surface-0/60 lg:bg-gradient-to-r lg:from-surface-0 lg:via-transparent lg:to-surface-0/40" />
       </div>
 
-      <div className="relative z-10 flex min-h-screen flex-col px-6 py-8 sm:px-12 sm:py-12 lg:w-1/2 lg:stadium-gradient">
+      <div className="relative z-10 flex flex-col px-6 pb-10 sm:px-12 sm:pb-12 lg:min-h-screen lg:w-1/2 lg:py-12 lg:stadium-gradient">
         <Link to="/" className="inline-flex items-center gap-2.5 self-start">
           <img src={curveMark.url} alt="" aria-hidden className="size-9 object-contain" />
           <span className="font-display text-lg font-bold text-white">Curve Recruit</span>
