@@ -56,6 +56,8 @@ function ResetPasswordPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+      // Invites flip from "Sent" to "Accepted" only once a password is set.
+      await (supabase as any).rpc("complete_my_invites").then(() => undefined, () => undefined);
       toast.success("Password updated — sign in with your new password");
       await supabase.auth.signOut();
       navigate({ to: "/auth", replace: true });

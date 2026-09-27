@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Mail, RotateCcw, Send, UserMinus, X } from "lucide-react";
+import { Mail, RotateCcw, Send, Trash2, UserMinus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   INVITE_ROLE_LABEL,
   listInvites,
+  removeOrgMember,
   resendOrgInvite,
   revokeOrgInvite,
   sendOrgInvite,
@@ -48,6 +49,7 @@ export function InvitePanel({
   const resendFn = useServerFn(resendOrgInvite);
   const revokeFn = useServerFn(revokeOrgInvite);
   const unlinkFn = useServerFn(unlinkFamilyMember);
+  const removeFn = useServerFn(removeOrgMember);
   const queryClient = useQueryClient();
 
   const [email, setEmail] = useState("");
@@ -163,25 +165,51 @@ export function InvitePanel({
                   {INVITE_ROLE_LABEL[person.role] ?? person.role}
                 </span>
                 <span className="font-mono text-xs text-steel">{person.email ?? "—"}</span>
-                {athleteId ? (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!window.confirm(`Remove ${person.name ?? person.email} from this athlete?`))
-                        return;
-                      try {
-                        await unlinkFn({ data: { athleteId, userId: person.id } });
-                        await invalidate();
-                        toast.success("Family access removed");
-                      } catch (error) {
-                        toast.error((error as Error).message);
-                      }
-                    }}
-                    className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-steel hover:text-seam-red"
-                  >
-                    <UserMinus className="size-3.5" aria-hidden /> Remove access
-                  </button>
-                ) : null}
+                <span className="ml-auto flex items-center gap-3">
+                  {athleteId ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!window.confirm(`Remove ${person.name ?? person.email} from this athlete?`))
+                          return;
+                        try {
+                          await unlinkFn({ data: { athleteId, userId: person.id } });
+                          await invalidate();
+                          toast.success("Family access removed");
+                        } catch (error) {
+                          toast.error((error as Error).message);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-steel hover:text-seam-red"
+                    >
+                      <UserMinus className="size-3.5" aria-hidden /> Remove access
+                    </button>
+                  ) : null}
+                  {data?.canInviteStaff && person.role !== "org_owner" ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (
+                          !window.confirm(
+                            `Delete ${person.name ?? person.email}'s account? They will no longer be able to sign in.`,
+                          )
+                        )
+                          return;
+                        try {
+                          await removeFn({ data: { userId: person.id } });
+                          await invalidate();
+                          await queryClient.invalidateQueries({ queryKey: ["season-detail"] });
+                          toast.success("Account deleted");
+                        } catch (error) {
+                          toast.error((error as Error).message);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-seam-red hover:underline"
+                    >
+                      <Trash2 className="size-3.5" aria-hidden /> Delete account
+                    </button>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>
@@ -215,7 +243,7 @@ export function InvitePanel({
                       STATUS_STYLE[status] ?? STATUS_STYLE['revoked'],
                     )}
                   >
-                    {status}
+                    {status === "pending" ? "sent" : status}
                   </span>
                   <span className="font-mono text-[11px] text-steel">
                     sent {new Date(invite['created_at']).toLocaleDateString()}

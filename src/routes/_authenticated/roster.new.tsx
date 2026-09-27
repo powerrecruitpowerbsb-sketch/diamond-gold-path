@@ -72,6 +72,7 @@ function NewAthlete() {
     sport: "",
     playerEmail: "",
     parentEmail: "",
+    parent2Email: "",
   });
 
   const set = (key: keyof typeof form) => (value: string) =>
@@ -102,6 +103,7 @@ function NewAthlete() {
         const targets = [
           { email: form.playerEmail.trim(), role: "player" as const },
           { email: form.parentEmail.trim(), role: "parent" as const },
+          { email: form.parent2Email.trim(), role: "parent" as const },
         ].filter((t) => t.email);
         for (const t of targets) {
           try {
@@ -229,11 +231,20 @@ function NewAthlete() {
             />
           </label>
           <label>
-            <span className={LABEL}>Parent email</span>
+            <span className={LABEL}>Parent 1 email</span>
             <input
               type="email"
               value={form.parentEmail}
               onChange={(event) => set("parentEmail")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            />
+          </label>
+          <label>
+            <span className={LABEL}>Parent 2 email</span>
+            <input
+              type="email"
+              value={form.parent2Email}
+              onChange={(event) => set("parent2Email")(event.target.value)}
               className={`mt-1 ${FIELD}`}
             />
           </label>

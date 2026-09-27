@@ -488,6 +488,7 @@ export const importAthletes = createServerFn({ method: "POST" })
         action?: "create" | "update" | "skip";
         matchId?: string | null;
         parentEmail?: string | null;
+        parent2Email?: string | null;
         playerEmail?: string | null;
         team?: string | null;
       })[];
@@ -519,7 +520,7 @@ export const importAthletes = createServerFn({ method: "POST" })
       data.rows.some(
         (row) =>
           row.action !== "skip" &&
-          (String(row.parentEmail ?? "").trim() || String(row.playerEmail ?? "").trim()),
+          (String(row.parentEmail ?? "").trim() || String(row.parent2Email ?? "").trim() || String(row.playerEmail ?? "").trim()),
       );
     const sendInviteCore = wantsInvites
       ? (await import("./invites.server")).sendInviteCore
@@ -581,6 +582,7 @@ export const importAthletes = createServerFn({ method: "POST" })
       // Same invite path as the athlete page — one service, three entry points.
       const targets: { email: string; role: "parent" | "player" }[] = [
         { email: String(row.parentEmail ?? "").trim().toLowerCase(), role: "parent" },
+        { email: String(row.parent2Email ?? "").trim().toLowerCase(), role: "parent" },
         { email: String(row.playerEmail ?? "").trim().toLowerCase(), role: "player" },
       ];
       for (const target of targets) {
