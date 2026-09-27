@@ -24,6 +24,7 @@ import {
 } from "@/lib/seasons.functions";
 
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 
 const FIELD =
@@ -60,22 +61,29 @@ export function TeamsSeasonsPanel() {
     );
   }
 
+  const teamCount = detail?.teams?.length ?? 0;
+  const rostered = (detail?.teams ?? []).reduce((n: number, t: any) => n + t.athletes.length, 0);
+  const unassignedCount = detail?.unassigned?.length ?? 0;
+
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[300px_1fr]">
+    <div className="mt-6 space-y-5">
       <SeasonList ctx={ctx} onChanged={refresh} onRollover={setRolloverFrom} />
+      {ctx.seasonId && detail ? (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Teams", value: teamCount, tone: "text-graphite" },
+            { label: "Rostered", value: rostered, tone: "text-diamond-green" },
+            { label: "Unassigned", value: unassignedCount, tone: unassignedCount ? "text-seam-red" : "text-steel" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className={LABEL}>{s.label}</p>
+              <p className={cn("font-display text-2xl font-bold tabular-nums", s.tone)}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="min-w-0">
-        {rolloverFrom ? (
-          <RolloverWizard
-            fromSeasonId={rolloverFrom}
-            fromSeasonName={ctx.seasons.find((s) => s.id === rolloverFrom)?.name ?? ""}
-            onClose={() => setRolloverFrom(null)}
-            onDone={async (seasonId) => {
-              setRolloverFrom(null);
-              await refresh();
-              ctx.setSeasonId(seasonId);
-            }}
-          />
-        ) : !ctx.seasonId ? (
+        {!ctx.seasonId ? (
           <div className={CARD}><p className="text-sm text-steel">Create a season to start building teams.</p></div>
         ) : isPending ? (
           <div className={CARD}><p className="text-sm text-steel">Loading teams…</p></div>
@@ -83,6 +91,23 @@ export function TeamsSeasonsPanel() {
           <TeamManager seasonId={ctx.seasonId} detail={detail} onChanged={refresh} />
         )}
       </div>
+      <Dialog open={Boolean(rolloverFrom)} onOpenChange={(o) => !o && setRolloverFrom(null)}>
+        <DialogContent className="max-h-[90dvh] max-w-3xl overflow-y-auto">
+          <DialogTitle className="sr-only">Start new season</DialogTitle>
+          {rolloverFrom ? (
+            <RolloverWizard
+              fromSeasonId={rolloverFrom}
+              fromSeasonName={ctx.seasons.find((s) => s.id === rolloverFrom)?.name ?? ""}
+              onClose={() => setRolloverFrom(null)}
+              onDone={async (seasonId) => {
+                setRolloverFrom(null);
+                await refresh();
+                ctx.setSeasonId(seasonId);
+              }}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
