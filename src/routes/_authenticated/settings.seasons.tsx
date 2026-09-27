@@ -461,18 +461,26 @@ function TeamManager({
                         {athlete.gradYear ?? "—"} · {athlete.position ?? "—"}
                       </span>
                     </Link>
-                    <button
-                      type="button"
-                      onClick={async () => {
+                    <select
+                      value={team.id}
+                      aria-label={`Move ${athlete.name}`}
+                      onChange={async (event) => {
+                        const next = event.target.value;
                         await assignFn({
-                          data: { athleteId: athlete.athleteId, seasonId, teamId: null },
+                          data: { athleteId: athlete.athleteId, seasonId, teamId: next || null },
                         });
+                        toast.success(next ? "Player moved" : "Removed from team");
                         await onChanged();
                       }}
-                      className="font-mono text-[11px] text-steel hover:text-seam-red"
+                      className="min-h-8 shrink-0 rounded-md border border-border bg-card px-1.5 text-[11px] font-semibold text-graphite"
                     >
-                      remove
-                    </button>
+                      {teams.map((t: any) => (
+                        <option key={t.id} value={t.id}>
+                          {t.id === team.id ? t.name : `Move to ${t.name}`}
+                        </option>
+                      ))}
+                      <option value="">Remove from team</option>
+                    </select>
                   </li>
                 ))}
               </ul>

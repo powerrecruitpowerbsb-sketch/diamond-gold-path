@@ -195,6 +195,20 @@ function RosterScreen() {
             </button>
           );
         })}
+        {ctx.hasSeasons ? (
+          <button
+            type="button"
+            aria-pressed={ctx.teamId === "__unassigned"}
+            onClick={() => ctx.setTeamId(ctx.teamId === "__unassigned" ? "" : "__unassigned")}
+            className={
+              ctx.teamId === "__unassigned"
+                ? "min-h-9 rounded-full bg-seam-red px-3 text-xs font-semibold text-white"
+                : "min-h-9 rounded-full border border-seam-red/40 bg-card px-3 text-xs font-semibold text-seam-red"
+            }
+          >
+            Unassigned
+          </button>
+        ) : null}
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-[0_2px_14px_-10px_rgba(18,35,58,0.4)]">
