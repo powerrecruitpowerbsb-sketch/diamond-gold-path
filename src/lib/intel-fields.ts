@@ -235,7 +235,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   // ---- Recruiting: the conclusion families are paying for -----------------
   {
     key: "style_of_play",
-    label: "Style of play",
+    label: "Style of Play",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -244,7 +244,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "recruiting_philosophy",
-    label: "Recruiting philosophy",
+    label: "Recruiting Philosophy",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -253,7 +253,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "preferred_pitcher_profile",
-    label: "Preferred pitcher profile",
+    label: "Preferred Pitcher Profile",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -262,7 +262,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "preferred_position_player_profile",
-    label: "Preferred position player profile",
+    label: "Preferred Position Player Profile",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -271,7 +271,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "physical_traits_valued",
-    label: "Physical traits valued",
+    label: "Physical Traits Valued",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -280,7 +280,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "positions_prioritized",
-    label: "Positions prioritized",
+    label: "Positions Prioritized",
     group: "recruiting",
     kind: "positions",
     audience: "family",
@@ -288,7 +288,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "hs_vs_transfer_lean",
-    label: "High school vs transfer lean",
+    label: "High School vs Transfers",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -296,7 +296,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "portal_usage",
-    label: "Transfer portal usage",
+    label: "Transfer Portal Usage",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -305,7 +305,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "juco_recruiting",
-    label: "JUCO recruiting",
+    label: "JUCO Recruiting",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -313,7 +313,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "recruiting_timeline",
-    label: "Recruiting timeline",
+    label: "Recruiting Timeline",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -322,7 +322,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "freshman_tendencies",
-    label: "Freshman tendencies",
+    label: "Freshman Tendencies",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -340,7 +340,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "geographic_tendencies",
-    label: "Geographic tendencies",
+    label: "Geographic Recruiting",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -349,7 +349,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "roster_construction_tendencies",
-    label: "Roster construction tendencies",
+    label: "Roster Construction",
     group: "recruiting",
     kind: "choice",
     audience: "family",
@@ -358,7 +358,7 @@ export const INTEL_FIELDS: IntelFieldDef[] = [
   },
   {
     key: "development_philosophy",
-    label: "Development philosophy",
+    label: "Development Philosophy",
     group: "recruiting",
     kind: "choice",
     audience: "family",
