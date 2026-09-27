@@ -227,8 +227,9 @@ function SearchScreen() {
   });
 
 
+  // Filters update the URL in place — never jump the page back to the top.
   const set = (patch: Partial<SearchParams>) =>
-    navigate({ search: (prev) => ({ ...prev, ...patch }) });
+    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true, resetScroll: false });
 
   const divisions = DIVISIONS_BY_BODY[params.governingBody] ?? [];
   const secondaryCount = activeSecondaryCount(params);
