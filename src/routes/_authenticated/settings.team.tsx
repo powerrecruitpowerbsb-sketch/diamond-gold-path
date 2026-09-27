@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarRange, Upload, UserPlus, X } from "lucide-react";
+import { Upload, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { InvitePanel } from "@/components/admin/InvitePanel";
+import { TeamsSeasonsPanel } from "@/components/admin/TeamsSeasons";
 import { AppShell } from "@/components/brand/AppShell";
 import { AuthButton } from "@/components/brand/AuthButton";
 import { useSeasonContext } from "@/hooks/use-season-context";
@@ -23,12 +23,15 @@ export const Route = createFileRoute("/_authenticated/settings/team")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { tab?: "staff" | "families" | "teams" } =>
+    s.tab === "families" || s.tab === "teams" || s.tab === "staff" ? { tab: s.tab } : {},
   component: ClubManagement,
 });
 
 const TABS = [
   { id: "staff", label: "Staff" },
   { id: "families", label: "Players & Families" },
+  { id: "teams", label: "Teams & Seasons" },
 ] as const;
 
 const CARD =
@@ -36,7 +39,9 @@ const CARD =
 const LABEL = "font-mono text-[11px] tracking-wide text-steel uppercase";
 
 function ClubManagement() {
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("staff");
+  const { tab = "staff" } = Route.useSearch();
+  const navigate = useNavigate({ from: "/settings/team" });
+  const setTab = (next: (typeof TABS)[number]["id"]) => navigate({ search: { tab: next }, replace: true });
   return (
     <AppShell right={<AuthButton />}>
       <div className="stadium-gradient rounded-2xl px-5 py-7 sm:px-8">
@@ -46,7 +51,7 @@ function ClubManagement() {
         </h1>
       </div>
 
-      <div className="mt-6 inline-flex rounded-lg border border-border bg-card p-1">
+      <div className="mt-6 flex max-w-full overflow-x-auto rounded-lg sm:inline-flex border border-border bg-card p-1">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -54,23 +59,19 @@ function ClubManagement() {
             aria-pressed={tab === t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "touch-target rounded-md px-4 text-sm font-semibold",
+              "touch-target shrink-0 whitespace-nowrap rounded-md px-4 text-sm font-semibold",
               tab === t.id ? "bg-org-primary text-org-primary-foreground" : "text-steel hover:text-graphite",
             )}
           >
             {t.label}
           </button>
         ))}
-        <Link
-          to="/settings/seasons"
-          className="touch-target inline-flex items-center gap-1.5 rounded-md px-4 text-sm font-semibold text-steel hover:text-graphite"
-        >
-          <CalendarRange className="size-4" aria-hidden /> Teams
-        </Link>
       </div>
 
-      <div className="max-w-5xl">
-        {tab === "staff" ? (
+      <div className={tab === "teams" ? "" : "max-w-5xl"}>
+        {tab === "teams" ? (
+          <TeamsSeasonsPanel />
+        ) : tab === "staff" ? (
           <>
             <StaffDirectory />
             <InvitePanel
@@ -150,7 +151,7 @@ function StaffDirectory() {
       </div>
       {!ctx.seasonId && !ctx.isPending ? (
         <p className="mt-3 text-sm text-steel">
-          Create a season on the Teams tab to assign coaches.
+          Create a season on the Teams & Seasons tab to assign coaches.
         </p>
       ) : isPending ? (
         <p className="mt-3 text-sm text-steel">Loading…</p>

@@ -22,7 +22,7 @@ export function SeasonTeamPicker({ ctx, showTeam = true }: { ctx: Ctx; showTeam?
       <div className="rounded-xl border border-org-accent/40 bg-org-accent/10 px-3 py-2 text-sm text-graphite">
         No seasons yet.{" "}
         {ctx.canManage ? (
-          <Link to="/settings/seasons" className="font-semibold underline hover:text-org-primary">
+          <Link to="/settings/team" search={{ tab: "teams" }} className="font-semibold underline hover:text-org-primary">
             Create your first season
           </Link>
         ) : (

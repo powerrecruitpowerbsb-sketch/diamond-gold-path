@@ -109,7 +109,7 @@ function RosterScreen() {
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>a]:px-3">
           {ctx.canManage ? (
-            <ActionLink to="/settings/seasons" tone="secondary">
+            <ActionLink to="/settings/team" search={{ tab: "teams" }} tone="secondary">
               <CalendarRange className="size-4" aria-hidden /> Seasons &amp; teams
             </ActionLink>
           ) : null}
