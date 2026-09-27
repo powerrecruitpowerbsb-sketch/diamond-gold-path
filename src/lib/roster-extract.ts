@@ -211,7 +211,7 @@ function weightValue(cell: string): string | null {
 
 /** State/province/country tails, so "Smith, John" is never read as a hometown. */
 const PLACE_TAIL =
-  /^(ala|alaska|ariz|ark|calif|cal|colo|conn|del|fla|ga|hawaii|idaho|ill|ind|iowa|kan|kans|ky|la|maine|md|mass|mich|minn|miss|mo|mont|neb|nebr|nev|ohio|okla|ore|pa|penn|tenn|texas|tex|utah|vt|va|wash|wis|wisc|wyo|d\.?c|n\.?[hjmycd]|r\.?i|s\.?[cd]|w\.?va|[A-Z]{2}|canada|japan|mexico|australia|puerto rico|dominican republic|venezuela|cuba|panama|colombia|curacao|curaçao|bahamas|germany|england|netherlands|aruba|nicaragua|brazil|taiwan|korea|ontario|ont|quebec|que|alberta|alta|british columbia|b\.?c|manitoba|man|saskatchewan|sask|nfld|n\.?[bs]|p\.?e\.?i)\.?$/i;
+  /^(alabama|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|illinois|indiana|kansas|kentucky|louisiana|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|vermont|virginia|washington|west virginia|wisconsin|wyoming|ala|alaska|ariz|ark|calif|cal|colo|conn|del|fla|ga|hawaii|idaho|ill|ind|iowa|kan|kans|ky|la|maine|md|mass|mich|minn|miss|mo|mont|neb|nebr|nev|ohio|okla|ore|pa|penn|tenn|texas|tex|utah|vt|va|wash|wis|wisc|wyo|d\.?c|n\.?[hjmycd]|r\.?i|s\.?[cd]|w\.?va|[A-Z]{2}|canada|japan|mexico|australia|puerto rico|dominican republic|venezuela|cuba|panama|colombia|curacao|curaçao|bahamas|germany|england|netherlands|aruba|nicaragua|brazil|taiwan|korea|ontario|ont|quebec|que|alberta|alta|british columbia|b\.?c|manitoba|man|saskatchewan|sask|nfld|n\.?[bs]|p\.?e\.?i)\.?$/i;
 
 function hometownValue(cell: string, options: { inHometownColumn?: boolean } = {}): string | null {
   // Pages often print "Hometown / High School" or "Hometown / Last School" in
@@ -560,6 +560,8 @@ function normalizeLines(text: string): string[] {
     .map((line) =>
       line
         .replace(/\bOpens in a new window\b/gi, "")
+        // Photo alt text: "![Isaac Yearwood bio photo](…)" is the name alone.
+        .replace(/(!\[[^\]]*?)\s+(?:bio\s+)?(?:photo|headshot|image)\]/gi, "$1]")
         .replace(/\s+/g, " ")
         .trim(),
     )
@@ -1008,8 +1010,63 @@ function parseCards(input: string[]): PlayerRow[] {
  * hard attribute are returned; everything else is reported so a big number can
  * be read as a real squad or a bad parse.
  */
+/**
+ * PrestoSports rendered rosters print every row as
+ * `| 12 | [First\<br>\<br>Last](…/bios/…)… | Pos.:<br> RHP | Cl.:<br> So | … |`
+ * with no header row: each cell carries its own label. Rebuild a plain table
+ * (header from the first row's labels) so the table reader handles it.
+ */
+export function normalizePrestoRows(text: string): string {
+  const lines = text.split("\n");
+  const clean = (v: string) =>
+    v.replace(/!\[[^\]]*\]\([^)]*\)/g, " ").replace(/\\<br>/g, " ").replace(/<br>/g, " ").replace(/\\/g, "").replace(/\s+/g, " ").trim();
+  const LABEL = /^([A-Za-z][A-Za-z./ #&-]*?):\s*(.*)$/;
+  const parse = (line: string) => {
+    if (!line.startsWith("|") || !line.includes("/bios/")) return null;
+    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+    const at = cells.findIndex((c) => /\]\([^)]*\/bios\/[^)]*\)/.test(c));
+    if (at < 0 || at > 1) return null;
+    const rest = cells.slice(at + 1);
+    if (!rest.some((c) => LABEL.test(c))) return null;
+    // The name is the first link's text, photo alt text removed.
+    const link = cells[at]!.match(/^\[((?:!\[[^\]]*\]\([^)]*\))?[^\]]*)\]\(/);
+    const name = clean(link?.[1] ?? "");
+    if (!name) return null;
+    const number = at === 1 ? clean(cells[0]!.replace(/^no\.?:/i, "")) : "";
+    const labels: string[] = [];
+    const values: string[] = [];
+    for (const cell of rest) {
+      const lm = cell.match(LABEL);
+      if (!lm) continue;
+      // "Hometown/Previous School" carries the same town / last-school pair.
+      labels.push(lm[1]!.trim().replace(/^hometown\s*\/\s*previous\s+school$/i, "Hometown / Last School"));
+      values.push(clean(lm[2]!).replace(/\s*\/$/, "").replace(/^\/$/, ""));
+    }
+    return { number, name, labels, values };
+  };
+  if (!lines.some((l) => parse(l))) return text;
+  const out: string[] = [];
+  let headerDone = false;
+  for (const line of lines) {
+    const row = parse(line);
+    if (!row) {
+      // The page's own header is replaced by one built from the row labels.
+      if (!headerDone || !/^\|/.test(line)) out.push(line);
+      continue;
+    }
+    if (!headerDone) {
+      while (out.length && /^\|/.test(out.at(-1)!)) out.pop();
+      out.push(`| # | Name | ${row.labels.join(" | ")} |`);
+      out.push(`| ${["---", "---", ...row.labels.map(() => "---")].join(" | ")} |`);
+      headerDone = true;
+    }
+    out.push(`| ${row.number} | ${row.name} | ${row.values.join(" | ")} |`);
+  }
+  return out.join("\n");
+}
+
 export function parseRoster(text: string | null | undefined, sport?: string | null): RosterShape {
-  const lines = normalizeLines(String(text ?? ""));
+  const lines = normalizeLines(normalizePrestoRows(String(text ?? "")));
   const players: PlayerRow[] = [];
 
   const bareNames: string[] = [];

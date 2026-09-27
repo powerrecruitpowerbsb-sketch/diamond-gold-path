@@ -645,3 +645,16 @@ Outfielder 5 8 150 lbs Senior
     ]);
   });
 });
+
+describe("PrestoSports rendered rows", () => {
+  it("reads rows whose cells carry their own labels", () => {
+    const page = [
+      "| 0 | [Isabel\\<br>\\<br>Otero](https://x.prestosports.com/sports/sball/2025-26/bios/otero_isabel_9sgm)<br>[Isabel\\<br>\\<br>Otero](https://x.prestosports.com/sports/sball/2025-26/bios/otero_isabel_9sgm) | Pos.:<br> <br> <br> INF | B/T:<br> <br> <br> R/R | Cl.:<br> <br> <br> Sophomore | Ht.:<br> <br> <br> 5'3 | Hometown/Previous School:<br> <br> <br> Winter Park, Florida<br> /<br> Winter Park High School |",
+      "| 2 | [Brooklyn\\<br>\\<br>Scott](https://x.prestosports.com/sports/sball/2025-26/bios/scott_brooklyn_2ovt) | Pos.:<br> <br> <br> IF/OF | B/T:<br> <br> <br> L/R | Cl.:<br> <br> <br> Freshman | Ht.:<br> <br> <br> 5'9 | Hometown/Previous School:<br> <br> <br> Saint Cloud, Florida<br> /<br> St. Cloud HS |",
+    ].join("\n");
+    expect(parseRoster(page, "softball").players).toMatchObject([
+      { name: "Isabel Otero", number: "0", position: "INF", class_year: "SO", bats: "R", throws: "R", home_state: "FL" },
+      { name: "Brooklyn Scott", number: "2", position: "IF/OF", class_year: "FR", bats: "L" },
+    ]);
+  });
+});

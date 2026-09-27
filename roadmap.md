@@ -13,6 +13,12 @@
 - [x] Unique index roster_snapshots (program_id, season_year); the crawl now replaces a season's summary instead of stacking another.
 - [x] Coach staff-page fallback (coach-path.ts): when the stored address cannot be read and no staff name came out of the run, try the common /sports/<slug>/<coaches|staff|…> paths on the school's OWN athletics host; the page must still name this school, and the stored address is never rewritten.
 
+## JUCO/NAIA rosters (approved 2026-09-27)
+- [x] Misses sorted: 439 unread teams with an address; ~73% PrestoSports, most behind a site firewall
+- [x] PrestoSports labelled-row layouts read; spelled-out state names; photo alt text stripped from names
+- [x] Firewall challenge now gets one rendered read before quarantine
+- [x] Backlog pass: 64 of 394 checked so far newly saved (run finishing in background)
+- [ ] Slow retry of the misses (one or two at a time) — rendering service times out under load; many sites also block automated reading entirely
 ## Open
 - [x] League pass applied 2026-09-20: 149 league + 65 NJCAA rows marked not_offered (run 99db7ebf, 207 already were), and 17 of the 556 matched rows confirmed as offered (run 119ec3f2; the other 539 were already verified). Both reversible from program_level_archive. Counts now: 3,123 verified / 369 not_offered / 112 unverified.
 - Crawl running since 2026-09-20; progress is checkpointed in public.crawl_progress (pass + program), so a sandbox restart resumes instead of re-reading from the first team.
