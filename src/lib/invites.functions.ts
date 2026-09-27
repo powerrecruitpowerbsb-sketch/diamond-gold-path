@@ -285,6 +285,59 @@ export const unlinkFamilyMember = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Deletes a coach, admin, player or parent account from the organization.
+ * Owner/admin only; can't remove yourself, an owner, or Curve Recruit staff.
+ */
+export const removeOrgMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string }) => ({ userId: str(input?.userId) }))
+  .handler(async ({ context, data }) => {
+    const actor = await requireInviteActor(context as any);
+    if (!actor.isSuperadmin && !actor.isOrgAdmin) {
+      throw new Error("Only the organization owner or an admin can remove people");
+    }
+    if (data.userId === context.userId) throw new Error("You can't remove your own account");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: target } = await supabaseAdmin
+      .from("users")
+      .select("id, organization_id, user_type")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (!target || (target as any).organization_id !== actor.orgId) {
+      throw new Error("That person isn't in this organization");
+    }
+    const type = (target as any).user_type as string;
+    if (type === "superadmin" || type === "org_owner") {
+      throw new Error("Owners and Curve Recruit staff can't be removed here");
+    }
+
+    await supabaseAdmin.from("athlete_family_links").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("team_coaches").delete().eq("user_id", data.userId);
+    await supabaseAdmin
+      .from("org_athletes")
+      .update({ linked_parent_user_id: null })
+      .eq("linked_parent_user_id", data.userId);
+    await supabaseAdmin
+      .from("org_member_invites")
+      .update({ status: "revoked" })
+      .eq("accepted_user_id", data.userId)
+      .eq("status", "pending");
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) {
+      // Fall back to cutting access if history rows still point at the account.
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+      await supabaseAdmin
+        .from("users")
+        .update({ organization_id: null, linked_org_athlete_id: null })
+        .eq("id", data.userId);
+      await supabaseAdmin.auth.admin.updateUserById(data.userId, { ban_duration: "876000h" });
+    }
+    return { ok: true };
+  });
+
 /* ------------------------------------------------------------------ */
 /* Family portal read                                                  */
 /* ------------------------------------------------------------------ */
