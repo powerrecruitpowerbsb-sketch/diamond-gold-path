@@ -300,6 +300,17 @@ function TeamManager({
         </div>
       </form>
 
+      {unassigned.length && teams.length ? (
+        <UnassignedTray
+          unassigned={unassigned}
+          teams={teams}
+          onAssign={async (ids, teamId) => {
+            for (const athleteId of ids) await assignFn({ data: { athleteId, seasonId, teamId } });
+            await onChanged();
+          }}
+        />
+      ) : null}
+
       {teams.length === 0 ? (
         <div className={CARD}>
           <p className="text-sm text-steel">No teams in this season yet.</p>
