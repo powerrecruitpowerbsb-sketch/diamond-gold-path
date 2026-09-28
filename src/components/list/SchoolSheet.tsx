@@ -207,7 +207,7 @@ export function SchoolSheet({
             }
             className="px-5 py-5 sm:px-7"
           >
-            <TabsList className="sticky top-[3.25rem] z-20 -mx-5 flex h-auto w-[calc(100%+2.5rem)] flex-nowrap justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-background/95 px-5 py-0 backdrop-blur [scrollbar-width:none] sm:-mx-7 sm:w-[calc(100%+3.5rem)] sm:px-7 [&::-webkit-scrollbar]:hidden">
+            <TabsList className="sticky top-[3.25rem] z-20 flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-background/95 px-0 py-0 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {(
                 [
                   ["overview", "School"],
@@ -395,8 +395,23 @@ export function SchoolSheet({
               )}
             </TabsContent>
 
-            <TabsContent value="intel" className="pt-4">
-              <IntelligencePanel rows={intel} />
+            <TabsContent value="intel" className="min-w-0 space-y-3 pt-4">
+              {relRows.length ? (
+                <div className="rounded border border-border border-l-2 border-l-seam-red bg-seam-red-tint p-4">
+                  <p className="meta text-seam-red">Your club’s relationship</p>
+                  <dl className="mt-3 grid grid-cols-2 gap-3">
+                    {relRows.map((r) => (
+                      <div key={r.label} className="min-w-0">
+                        <dt className="meta text-seam-red">{r.label.toUpperCase()}</dt>
+                        <dd className="mt-1 text-sm font-semibold break-words text-graphite">{r.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ) : null}
+              {intel.length || !relRows.length ? (
+                <IntelligencePanel rows={intel} showVisibility={canEditIntel} />
+              ) : null}
               {canEditIntel ? (
                 <Link
                   to="/intelligence"
