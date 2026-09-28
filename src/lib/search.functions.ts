@@ -376,6 +376,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
                 supabase
                   .from("recruiting_intelligence")
                   .select("program_id, field_type, structured_value, positions")
+                  .eq("organization_id", reader.orgId ?? "00000000-0000-0000-0000-000000000000")
                   .in("program_id", group)
                   .range(from, to),
               40000,
@@ -389,6 +390,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
                 supabase
                   .from("program_relationships")
                   .select("program_id, strength_label")
+                  .eq("organization_id", reader.orgId ?? "00000000-0000-0000-0000-000000000000")
                   .in("program_id", group)
                   .range(from, to),
               40000,
@@ -450,6 +452,44 @@ export const searchPrograms = createServerFn({ method: "POST" })
 
       // Strict mode is opt-in: only programs meeting every condition remain.
       if (f.intelOnly) results = results.filter((row) => (row as any).fit.matched === criteria);
+    }
+
+    // Mark every card that carries this organization's own intelligence, so a
+    // saved write-up shows on the card even when no intelligence filter is on.
+    if (reader.orgId && reader.isStaff && results.length > 0) {
+      const [{ data: ownIntel }, { data: ownRel }] = await Promise.all([
+        supabase
+          .from("recruiting_intelligence")
+          .select("program_id")
+          .eq("organization_id", reader.orgId)
+          .eq("status", "approved")
+          .limit(20000),
+        supabase
+          .from("program_relationships")
+          .select("program_id, strength_label, placed_players_before")
+          .eq("organization_id", reader.orgId)
+          .limit(20000),
+      ]);
+      const intelCount = new Map<string, number>();
+      for (const r of (ownIntel ?? []) as any[]) {
+        intelCount.set(String(r.program_id), (intelCount.get(String(r.program_id)) ?? 0) + 1);
+      }
+      const rel = new Map<string, any>(((ownRel ?? []) as any[]).map((r) => [String(r.program_id), r]));
+      results = results.map((row) => {
+        const r = rel.get(row.id);
+        const notes = intelCount.get(row.id) ?? 0;
+        const hasRel = Boolean(r && (r.strength_label || r.placed_players_before !== null));
+        return notes || hasRel
+          ? {
+              ...row,
+              onFile: {
+                notes,
+                strength: (r?.strength_label ?? null) as string | null,
+                placed: (r?.placed_players_before ?? null) as boolean | null,
+              },
+            }
+          : row;
+      });
     }
 
     results.sort((a, b) => {
