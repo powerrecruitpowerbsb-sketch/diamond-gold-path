@@ -3,6 +3,26 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchAllRows } from "@/lib/paginate";
+
+/**
+ * The one organization whose intelligence this reader sees. Intelligence is
+ * private per organization; Curve Recruit staff see only the organization they
+ * are working inside (or their own), never every club's notes mixed together.
+ */
+async function readerOrg(context: { supabase: any; userId: string }) {
+  const [{ data: profile }, { data: roles }] = await Promise.all([
+    context.supabase.from("users").select("organization_id, user_type").eq("id", context.userId).maybeSingle(),
+    context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
+  ]);
+  const superadmin = ((roles ?? []) as { role: string }[]).some((r) => r.role === "superadmin");
+  const { actingOrgId } = await import("@/lib/acting-org");
+  const acting = await actingOrgId(context, superadmin);
+  const type = String((profile as any)?.user_type ?? "player");
+  return {
+    orgId: (acting ?? (profile as any)?.organization_id ?? null) as string | null,
+    isStaff: superadmin || ["org_owner", "org_admin", "org_staff"].includes(type),
+  };
+}
 import { isPitcher, positionGroup, type PositionGroup } from "@/lib/position-group";
 import {
   UNIVERSITY_COLS,
