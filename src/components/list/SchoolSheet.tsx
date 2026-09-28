@@ -10,6 +10,7 @@ import { OutreachComposer } from "@/components/list/OutreachComposer";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
+import { fieldLabel, POSITION_LABELS, structuredLabel } from "@/lib/intel-fields";
 import { Panel, StatCard } from "@/components/profile/ProfileUI";
 import { count, money, pct } from "@/lib/profile-fields";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,43 @@ export function SchoolSheet({
   });
 
   const roster = (profile.data?.roster ?? []) as RosterRow[];
-  const intel = (profile.data?.intelligence ?? []) as any[];
+  const intel = ((profile.data?.intelligence ?? []) as any[]).map((row) => {
+    const parts: string[] = [];
+    const choice = structuredLabel(String(row.field_type), row.structured_value);
+    if (choice) parts.push(choice);
+    if ((row.positions ?? []).length) {
+      parts.push((row.positions as string[]).map((p) => POSITION_LABELS[p] ?? p).join(", "));
+    }
+    const detail = row.structured_detail as { positions?: string[]; year?: string } | null;
+    if (detail?.positions?.length) {
+      parts.push(
+        `${detail.positions.map((p) => POSITION_LABELS[p] ?? p).join(", ")}${detail.year ? ` (${detail.year})` : ""}`,
+      );
+    }
+    if ((row.content ?? "").trim()) parts.push(String(row.content).trim());
+    return {
+      id: String(row.id),
+      label: fieldLabel(String(row.field_type)) || String(row.field_type).replace(/_/g, " "),
+      body: parts.join(" — "),
+      visibility: (row.visibility ?? "org_only") as "org_only" | "shared_with_families",
+    };
+  });
+  const rel = (profile.data as any)?.relationshipSummary as
+    | { strength_label: string | null; placed_players_before: boolean | null }
+    | null;
+  const relDetail = (profile.data as any)?.relationshipDetail as
+    | { primary_college_contact: string | null; program_stability_note: string | null }
+    | null;
+  const relRows: { label: string; value: string }[] = [];
+  const nice = (s: string) => s.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+  if (rel?.strength_label) relRows.push({ label: "Relationship", value: nice(rel.strength_label) });
+  if (rel?.placed_players_before !== null && rel?.placed_players_before !== undefined)
+    relRows.push({ label: "Placed players here", value: rel.placed_players_before ? "Yes" : "No" });
+  if (relDetail?.primary_college_contact)
+    relRows.push({ label: "Main contact", value: nice(relDetail.primary_college_contact) });
+  if (relDetail?.program_stability_note)
+    relRows.push({ label: "Program stability", value: nice(relDetail.program_stability_note) });
+  const hasOwnIntel = intel.length > 0 || relRows.length > 0;
   const university = (profile.data?.university ?? {}) as Record<string, any>;
   const program = (profile.data?.program ?? {}) as Record<string, any>;
 
@@ -73,7 +110,7 @@ export function SchoolSheet({
     <Sheet open={open} onOpenChange={(next) => (next ? null : onClose())}>
       <SheetContent
         side="right"
-        className="w-full overflow-y-auto border-l border-border p-0 sm:max-w-3xl [&>button:last-child]:hidden"
+        className="w-full max-w-full overflow-x-hidden overflow-y-auto border-l border-border p-0 sm:max-w-3xl [&>button:last-child]:hidden"
       >
         <div className="sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-background/95 px-2 py-1 pt-[max(0.25rem,env(safe-area-inset-top))] backdrop-blur">
           <button
