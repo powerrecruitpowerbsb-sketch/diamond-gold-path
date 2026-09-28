@@ -1038,6 +1038,15 @@ function SearchScreen() {
                                   : "Not written up yet"}
                             </Link>
                           ) : null}
+                          {!fitActive && row.onFile ? (
+                            <span className="rounded-md border border-seam-red/50 bg-seam-red-tint px-2 py-0.5 text-[11px] font-semibold text-seam-red">
+                              {row.onFile.strength
+                                ? `${String(row.onFile.strength).replace(/^\w/, (c: string) => c.toUpperCase())} relationship`
+                                : row.onFile.placed
+                                  ? "Placed players here"
+                                  : "Intel on file"}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                     </div>

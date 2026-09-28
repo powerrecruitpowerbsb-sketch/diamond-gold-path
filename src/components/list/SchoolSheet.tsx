@@ -10,6 +10,7 @@ import { OutreachComposer } from "@/components/list/OutreachComposer";
 import { RosterComposition, type RosterRow } from "@/components/profile/Composition";
 import { RosterTable } from "@/components/profile/RosterTable";
 import { IntelligencePanel } from "@/components/profile/DataLayers";
+import { fieldLabel, POSITION_LABELS, structuredLabel } from "@/lib/intel-fields";
 import { Panel, StatCard } from "@/components/profile/ProfileUI";
 import { count, money, pct } from "@/lib/profile-fields";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,43 @@ export function SchoolSheet({
   });
 
   const roster = (profile.data?.roster ?? []) as RosterRow[];
-  const intel = (profile.data?.intelligence ?? []) as any[];
+  const intel = ((profile.data?.intelligence ?? []) as any[]).map((row) => {
+    const parts: string[] = [];
+    const choice = structuredLabel(String(row.field_type), row.structured_value);
+    if (choice) parts.push(choice);
+    if ((row.positions ?? []).length) {
+      parts.push((row.positions as string[]).map((p) => POSITION_LABELS[p] ?? p).join(", "));
+    }
+    const detail = row.structured_detail as { positions?: string[]; year?: string } | null;
+    if (detail?.positions?.length) {
+      parts.push(
+        `${detail.positions.map((p) => POSITION_LABELS[p] ?? p).join(", ")}${detail.year ? ` (${detail.year})` : ""}`,
+      );
+    }
+    if ((row.content ?? "").trim()) parts.push(String(row.content).trim());
+    return {
+      id: String(row.id),
+      label: fieldLabel(String(row.field_type)) || String(row.field_type).replace(/_/g, " "),
+      body: parts.join(" — "),
+      visibility: (row.visibility ?? "org_only") as "org_only" | "shared_with_families",
+    };
+  });
+  const rel = (profile.data as any)?.relationshipSummary as
+    | { strength_label: string | null; placed_players_before: boolean | null }
+    | null;
+  const relDetail = (profile.data as any)?.relationshipDetail as
+    | { primary_college_contact: string | null; program_stability_note: string | null }
+    | null;
+  const relRows: { label: string; value: string }[] = [];
+  const nice = (s: string) => s.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+  if (rel?.strength_label) relRows.push({ label: "Relationship", value: nice(rel.strength_label) });
+  if (rel?.placed_players_before !== null && rel?.placed_players_before !== undefined)
+    relRows.push({ label: "Placed players here", value: rel.placed_players_before ? "Yes" : "No" });
+  if (relDetail?.primary_college_contact)
+    relRows.push({ label: "Main contact", value: nice(relDetail.primary_college_contact) });
+  if (relDetail?.program_stability_note)
+    relRows.push({ label: "Program stability", value: nice(relDetail.program_stability_note) });
+  const hasOwnIntel = intel.length > 0 || relRows.length > 0;
   const university = (profile.data?.university ?? {}) as Record<string, any>;
   const program = (profile.data?.program ?? {}) as Record<string, any>;
 
@@ -73,7 +110,7 @@ export function SchoolSheet({
     <Sheet open={open} onOpenChange={(next) => (next ? null : onClose())}>
       <SheetContent
         side="right"
-        className="w-full overflow-y-auto border-l border-border p-0 sm:max-w-3xl [&>button:last-child]:hidden"
+        className="w-full max-w-full overflow-x-hidden overflow-y-auto border-l border-border p-0 sm:max-w-3xl [&>button:last-child]:hidden"
       >
         <div className="sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-background/95 px-2 py-1 pt-[max(0.25rem,env(safe-area-inset-top))] backdrop-blur">
           <button
@@ -121,8 +158,13 @@ export function SchoolSheet({
                     {entry.sport}
                   </span>
                 ) : null}
+                {hasOwnIntel ? (
+                  <span className="rounded-md bg-seam-red px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-white uppercase">
+                    Intel on file
+                  </span>
+                ) : null}
               </div>
-              <SheetTitle className="font-display mt-2 text-[1.6rem] leading-[1.1] font-bold text-white sm:text-3xl">
+              <SheetTitle className="font-display mt-2 text-[1.6rem] leading-[1.1] font-bold break-words text-white sm:text-3xl">
                 {entry?.school ?? ""}
               </SheetTitle>
               <p className="mt-1.5 text-sm text-white/70">
@@ -168,9 +210,9 @@ export function SchoolSheet({
             defaultValue={
               defaultTab === "email" ? "activity" : defaultTab === "academics" ? "overview" : (defaultTab ?? "overview")
             }
-            className="px-5 py-5 sm:px-7"
+            className="min-w-0 max-w-full px-5 py-5 sm:px-7"
           >
-            <TabsList className="sticky top-[3.25rem] z-20 -mx-5 flex h-auto w-[calc(100%+2.5rem)] flex-nowrap justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-background/95 px-5 py-0 backdrop-blur [scrollbar-width:none] sm:-mx-7 sm:w-[calc(100%+3.5rem)] sm:px-7 [&::-webkit-scrollbar]:hidden">
+            <TabsList className="sticky top-[3.25rem] z-20 flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-background/95 px-0 py-0 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {(
                 [
                   ["overview", "School"],
@@ -358,8 +400,23 @@ export function SchoolSheet({
               )}
             </TabsContent>
 
-            <TabsContent value="intel" className="pt-4">
-              <IntelligencePanel rows={intel} />
+            <TabsContent value="intel" className="min-w-0 space-y-3 pt-4">
+              {relRows.length ? (
+                <div className="rounded border border-border border-l-2 border-l-seam-red bg-seam-red-tint p-4">
+                  <p className="meta text-seam-red">Your club’s relationship</p>
+                  <dl className="mt-3 grid grid-cols-2 gap-3">
+                    {relRows.map((r) => (
+                      <div key={r.label} className="min-w-0">
+                        <dt className="meta text-seam-red">{r.label.toUpperCase()}</dt>
+                        <dd className="mt-1 text-sm font-semibold break-words text-graphite">{r.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ) : null}
+              {intel.length || !relRows.length ? (
+                <IntelligencePanel rows={intel} showVisibility={canEditIntel} />
+              ) : null}
               {canEditIntel ? (
                 <Link
                   to="/intelligence"

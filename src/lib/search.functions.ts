@@ -3,6 +3,26 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchAllRows } from "@/lib/paginate";
+
+/**
+ * The one organization whose intelligence this reader sees. Intelligence is
+ * private per organization; Curve Recruit staff see only the organization they
+ * are working inside (or their own), never every club's notes mixed together.
+ */
+async function readerOrg(context: { supabase: any; userId: string }) {
+  const [{ data: profile }, { data: roles }] = await Promise.all([
+    context.supabase.from("users").select("organization_id, user_type").eq("id", context.userId).maybeSingle(),
+    context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
+  ]);
+  const superadmin = ((roles ?? []) as { role: string }[]).some((r) => r.role === "superadmin");
+  const { actingOrgId } = await import("@/lib/acting-org");
+  const acting = await actingOrgId(context, superadmin);
+  const type = String((profile as any)?.user_type ?? "player");
+  return {
+    orgId: (acting ?? (profile as any)?.organization_id ?? null) as string | null,
+    isStaff: superadmin || ["org_owner", "org_admin", "org_staff"].includes(type),
+  };
+}
 import { isPitcher, positionGroup, type PositionGroup } from "@/lib/position-group";
 import {
   UNIVERSITY_COLS,
@@ -68,6 +88,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
   .inputValidator((input: unknown): SearchFilters => normalizeSearchInput(input))
   .handler(async ({ context, data: f }) => {
     const supabase = context.supabase as any;
+    const reader = await readerOrg(context as any);
 
     // Pre-resolve university-id restrictions that need a join table.
     const restrict: { ids: string[] | null } = { ids: null };
@@ -356,6 +377,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
                 supabase
                   .from("recruiting_intelligence")
                   .select("program_id, field_type, structured_value, positions")
+                  .eq("organization_id", reader.orgId ?? "00000000-0000-0000-0000-000000000000")
                   .in("program_id", group)
                   .range(from, to),
               40000,
@@ -369,6 +391,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
                 supabase
                   .from("program_relationships")
                   .select("program_id, strength_label")
+                  .eq("organization_id", reader.orgId ?? "00000000-0000-0000-0000-000000000000")
                   .in("program_id", group)
                   .range(from, to),
               40000,
@@ -432,6 +455,44 @@ export const searchPrograms = createServerFn({ method: "POST" })
       if (f.intelOnly) results = results.filter((row) => (row as any).fit.matched === criteria);
     }
 
+    // Mark every card that carries this organization's own intelligence, so a
+    // saved write-up shows on the card even when no intelligence filter is on.
+    if (reader.orgId && reader.isStaff && results.length > 0) {
+      const [{ data: ownIntel }, { data: ownRel }] = await Promise.all([
+        supabase
+          .from("recruiting_intelligence")
+          .select("program_id")
+          .eq("organization_id", reader.orgId)
+          .eq("status", "approved")
+          .limit(20000),
+        supabase
+          .from("program_relationships")
+          .select("program_id, strength_label, placed_players_before")
+          .eq("organization_id", reader.orgId)
+          .limit(20000),
+      ]);
+      const intelCount = new Map<string, number>();
+      for (const r of (ownIntel ?? []) as any[]) {
+        intelCount.set(String(r.program_id), (intelCount.get(String(r.program_id)) ?? 0) + 1);
+      }
+      const rel = new Map<string, any>(((ownRel ?? []) as any[]).map((r) => [String(r.program_id), r]));
+      results = results.map((row) => {
+        const r = rel.get(row.id);
+        const notes = intelCount.get(row.id) ?? 0;
+        const hasRel = Boolean(r && (r.strength_label || r.placed_players_before !== null));
+        return notes || hasRel
+          ? {
+              ...row,
+              onFile: {
+                notes,
+                strength: (r?.strength_label ?? null) as string | null,
+                placed: (r?.placed_players_before ?? null) as boolean | null,
+              },
+            }
+          : row;
+      });
+    }
+
     results.sort((a, b) => {
       const left = (a as any).fit?.matched ?? 0;
       const right = (b as any).fit?.matched ?? 0;
@@ -483,6 +544,8 @@ export const getProgramProfile = createServerFn({ method: "GET" })
     if (!program) return null;
 
     const university = (program as any).universities;
+    const reader = await readerOrg(context as any);
+    const NO_ORG = "00000000-0000-0000-0000-000000000000";
 
     const [intel, roster, sources, classifications, siblings, majors, links] = await Promise.all([
       supabase
@@ -491,7 +554,8 @@ export const getProgramProfile = createServerFn({ method: "GET" })
           `id, field_type, content, structured_value, positions, structured_detail,
            visibility, status, updated_at, author_user_id, editor_user_id`,
         )
-        .eq("program_id", data.programId),
+        .eq("program_id", data.programId)
+        .eq("organization_id", reader.orgId ?? NO_ORG),
 
       supabase
         .from("roster_players")
@@ -534,18 +598,42 @@ export const getProgramProfile = createServerFn({ method: "GET" })
 
     const { universities: _drop, ...programFields } = program as any;
 
-    // The rating and the placed-players answer only — the narrow lookup exposes
-    // nothing else from the relationship record, whoever is reading.
-    const { data: relationship } = await supabase.rpc("program_relationship_summary" as any, {
-      _program_id: data.programId,
-    } as any);
-    const summary = Array.isArray(relationship) ? (relationship[0] ?? null) : (relationship ?? null);
+    // Staff read their own organization's full relationship record; families get
+    // only the rating and placed-players answer through the narrow lookup.
+    let summary: any = null;
+    let relationshipDetail: {
+      primary_college_contact: string | null;
+      program_stability_note: string | null;
+      last_meaningful_interaction_at: string | null;
+    } | null = null;
+    if (reader.isStaff && reader.orgId) {
+      const { data: rel } = await supabase
+        .from("program_relationships")
+        .select(
+          "strength_label, placed_players_before, primary_college_contact, program_stability_note, last_meaningful_interaction_at",
+        )
+        .eq("program_id", data.programId)
+        .eq("organization_id", reader.orgId)
+        .maybeSingle();
+      if (rel) {
+        summary = { strength_label: (rel as any).strength_label, placed_players_before: (rel as any).placed_players_before };
+        relationshipDetail = {
+          primary_college_contact: (rel as any).primary_college_contact ?? null,
+          program_stability_note: (rel as any).program_stability_note ?? null,
+          last_meaningful_interaction_at: (rel as any).last_meaningful_interaction_at ?? null,
+        };
+      }
+    } else {
+      const { data: relationship } = await supabase.rpc("program_relationship_summary" as any, {
+        _program_id: data.programId,
+      } as any);
+      summary = Array.isArray(relationship) ? (relationship[0] ?? null) : (relationship ?? null);
+    }
 
     return {
       program: programFields,
       university,
-      // Access rules already limit these rows to the reader's own organization
-      // and, for families, to conclusions or records shared with them.
+      // Only the reader's own organization's approved write-up — never another club's.
       intelligence: ((intel.data ?? []) as any[]).filter(
         (r) =>
           r.status === "approved" &&
@@ -558,6 +646,7 @@ export const getProgramProfile = createServerFn({ method: "GET" })
         strength_label: string | null;
         placed_players_before: boolean | null;
       } | null,
+      relationshipDetail,
 
       classifications: (classifications.data ?? []) as any[],
       sources: (sources.data ?? []) as any[],
