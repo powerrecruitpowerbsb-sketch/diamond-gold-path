@@ -88,6 +88,7 @@ export const searchPrograms = createServerFn({ method: "POST" })
   .inputValidator((input: unknown): SearchFilters => normalizeSearchInput(input))
   .handler(async ({ context, data: f }) => {
     const supabase = context.supabase as any;
+    const reader = await readerOrg(context as any);
 
     // Pre-resolve university-id restrictions that need a join table.
     const restrict: { ids: string[] | null } = { ids: null };
