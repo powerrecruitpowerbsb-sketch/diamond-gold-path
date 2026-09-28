@@ -544,6 +544,8 @@ export const getProgramProfile = createServerFn({ method: "GET" })
     if (!program) return null;
 
     const university = (program as any).universities;
+    const reader = await readerOrg(context as any);
+    const NO_ORG = "00000000-0000-0000-0000-000000000000";
 
     const [intel, roster, sources, classifications, siblings, majors, links] = await Promise.all([
       supabase
@@ -552,7 +554,8 @@ export const getProgramProfile = createServerFn({ method: "GET" })
           `id, field_type, content, structured_value, positions, structured_detail,
            visibility, status, updated_at, author_user_id, editor_user_id`,
         )
-        .eq("program_id", data.programId),
+        .eq("program_id", data.programId)
+        .eq("organization_id", reader.orgId ?? NO_ORG),
 
       supabase
         .from("roster_players")
@@ -595,18 +598,42 @@ export const getProgramProfile = createServerFn({ method: "GET" })
 
     const { universities: _drop, ...programFields } = program as any;
 
-    // The rating and the placed-players answer only — the narrow lookup exposes
-    // nothing else from the relationship record, whoever is reading.
-    const { data: relationship } = await supabase.rpc("program_relationship_summary" as any, {
-      _program_id: data.programId,
-    } as any);
-    const summary = Array.isArray(relationship) ? (relationship[0] ?? null) : (relationship ?? null);
+    // Staff read their own organization's full relationship record; families get
+    // only the rating and placed-players answer through the narrow lookup.
+    let summary: any = null;
+    let relationshipDetail: {
+      primary_college_contact: string | null;
+      program_stability_note: string | null;
+      last_meaningful_interaction_at: string | null;
+    } | null = null;
+    if (reader.isStaff && reader.orgId) {
+      const { data: rel } = await supabase
+        .from("program_relationships")
+        .select(
+          "strength_label, placed_players_before, primary_college_contact, program_stability_note, last_meaningful_interaction_at",
+        )
+        .eq("program_id", data.programId)
+        .eq("organization_id", reader.orgId)
+        .maybeSingle();
+      if (rel) {
+        summary = { strength_label: (rel as any).strength_label, placed_players_before: (rel as any).placed_players_before };
+        relationshipDetail = {
+          primary_college_contact: (rel as any).primary_college_contact ?? null,
+          program_stability_note: (rel as any).program_stability_note ?? null,
+          last_meaningful_interaction_at: (rel as any).last_meaningful_interaction_at ?? null,
+        };
+      }
+    } else {
+      const { data: relationship } = await supabase.rpc("program_relationship_summary" as any, {
+        _program_id: data.programId,
+      } as any);
+      summary = Array.isArray(relationship) ? (relationship[0] ?? null) : (relationship ?? null);
+    }
 
     return {
       program: programFields,
       university,
-      // Access rules already limit these rows to the reader's own organization
-      // and, for families, to conclusions or records shared with them.
+      // Only the reader's own organization's approved write-up — never another club's.
       intelligence: ((intel.data ?? []) as any[]).filter(
         (r) =>
           r.status === "approved" &&
@@ -619,6 +646,7 @@ export const getProgramProfile = createServerFn({ method: "GET" })
         strength_label: string | null;
         placed_players_before: boolean | null;
       } | null,
+      relationshipDetail,
 
       classifications: (classifications.data ?? []) as any[],
       sources: (sources.data ?? []) as any[],
