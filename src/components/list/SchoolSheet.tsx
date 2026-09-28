@@ -158,8 +158,13 @@ export function SchoolSheet({
                     {entry.sport}
                   </span>
                 ) : null}
+                {hasOwnIntel ? (
+                  <span className="rounded-md bg-seam-red px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-white uppercase">
+                    Intel on file
+                  </span>
+                ) : null}
               </div>
-              <SheetTitle className="font-display mt-2 text-[1.6rem] leading-[1.1] font-bold text-white sm:text-3xl">
+              <SheetTitle className="font-display mt-2 text-[1.6rem] leading-[1.1] font-bold break-words text-white sm:text-3xl">
                 {entry?.school ?? ""}
               </SheetTitle>
               <p className="mt-1.5 text-sm text-white/70">
@@ -205,7 +210,7 @@ export function SchoolSheet({
             defaultValue={
               defaultTab === "email" ? "activity" : defaultTab === "academics" ? "overview" : (defaultTab ?? "overview")
             }
-            className="px-5 py-5 sm:px-7"
+            className="min-w-0 max-w-full px-5 py-5 sm:px-7"
           >
             <TabsList className="sticky top-[3.25rem] z-20 flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-background/95 px-0 py-0 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {(
