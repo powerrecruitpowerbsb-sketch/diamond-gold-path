@@ -154,7 +154,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
       accentColor={themed ? (branding?.accent ?? null) : null}
       sport={themed ? sport : null}
     >
-    <div className="min-h-screen bg-chalk pb-[calc(72px+env(safe-area-inset-bottom))] min-[680px]:pb-0">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-chalk pb-[calc(72px+env(safe-area-inset-bottom))] min-[680px]:pb-0">
       {actingOrg ? <ActingOrgBar name={actingOrg.name} /> : null}
 
       {/* Chrome: top nav on desktop, condensed bar + hamburger on mobile */}

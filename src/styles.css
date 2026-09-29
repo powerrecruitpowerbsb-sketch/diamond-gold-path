@@ -325,7 +325,13 @@
   /* Never let a page scroll sideways on a phone. */
   html,
   body {
-    overflow-x: clip;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+  body {
+    position: relative;
   }
   img,
   video {
