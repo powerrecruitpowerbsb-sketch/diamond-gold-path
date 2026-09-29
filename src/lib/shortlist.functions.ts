@@ -332,6 +332,23 @@ export const getOrgDashboard = createServerFn({ method: "GET" })
 
     }
 
+    // Option A: a player's "top schools" are the furthest-along ones.
+    const RANK: Record<string, number> = { committed: 0, offered: 1, contacted: 2, researching: 3 };
+    const topByAthlete = new Map<string, { name: string; status: ShortlistStatus }[]>();
+    for (const row of saved) {
+      const status = row['status'] as ShortlistStatus;
+      if (!(status in RANK)) continue;
+      const name = row['programs']?.universities?.name as string | undefined;
+      if (!name) continue;
+      const list = topByAthlete.get(row['org_athlete_id']) ?? [];
+      list.push({ name, status });
+      topByAthlete.set(row['org_athlete_id'], list);
+    }
+    for (const [key, list] of topByAthlete) {
+      list.sort((a, b) => RANK[a.status]! - RANK[b.status]! || a.name.localeCompare(b.name));
+      topByAthlete.set(key, list.slice(0, 3));
+    }
+
     return {
       orgName,
       athletes: athletes.map((athlete) => ({
@@ -341,6 +358,7 @@ export const getOrgDashboard = createServerFn({ method: "GET" })
         position: athlete['primary_position'],
         status: (athlete['status'] ?? "active") as string,
         teamName: teamNameByAthlete.get(athlete['id'] as string) ?? null,
+        topSchools: topByAthlete.get(athlete['id'] as string) ?? [],
         counts: byAthlete.get(athlete['id'] as string) ?? emptyCounts(),
         total: Object.values(byAthlete.get(athlete['id'] as string) ?? emptyCounts()).reduce(
           (sum, n) => sum + n,
