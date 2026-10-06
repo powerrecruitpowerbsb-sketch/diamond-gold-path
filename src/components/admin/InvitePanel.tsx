@@ -14,6 +14,7 @@ import {
   unlinkFamilyMember,
 } from "@/lib/invites.functions";
 import { cn } from "@/lib/utils";
+import { InviteRows, type InviteRow } from "@/components/admin/InviteRows";
 
 type Props = {
   /** Present for family invites on an athlete page; omitted for staff invites. */
@@ -52,9 +53,6 @@ export function InvitePanel({
   const removeFn = useServerFn(removeOrgMember);
   const queryClient = useQueryClient();
 
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState(roles[0]?.value ?? "parent");
   const [busy, setBusy] = useState(false);
 
   const queryKey = ["org-invites", athleteId ?? "org"];
@@ -69,31 +67,28 @@ export function InvitePanel({
     if (athleteId) await queryClient.invalidateQueries({ queryKey: ["org-athlete", athleteId] });
   };
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
+  async function sendRows(rows: InviteRow[]) {
     setBusy(true);
+    let sent = 0;
+    let failed = 0;
     try {
-      // Several addresses at once: comma, space or new line separated.
-      const emails = Array.from(new Set(email.split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean)));
-      let sent = 0;
-      for (const one of emails) {
+      for (const row of rows) {
+        const name = `${row.firstName} ${row.lastName}`.trim() || null;
         try {
-          const result = await sendFn({ data: { email: one, role: role as any, athleteId, name: emails.length === 1 ? name : null } });
+          const result = await sendFn({ data: { email: row.email.trim(), role: row.role as any, athleteId, name } });
           if (result.status === "sent") sent++;
           else toast.info(result.message);
         } catch (error) {
-          toast.error(`${one}: ${(error as Error).message}`);
+          failed++;
+          toast.error(`${row.email}: ${(error as Error).message}`);
         }
       }
       if (sent) toast.success(`${sent} invite${sent === 1 ? "" : "s"} sent`);
-      setEmail("");
-      setName("");
       await invalidate();
-    } catch (error) {
-      toast.error((error as Error).message);
     } finally {
       setBusy(false);
     }
+    return failed === 0;
   }
 
   const invites = (data?.invites ?? []) as Record<string, any>[];
@@ -110,56 +105,7 @@ export function InvitePanel({
           Only organization admins can invite staff members.
         </p>
       ) : (
-        <form onSubmit={submit} className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="min-w-[180px] flex-1 text-sm">
-            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Full name</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Jordan Smith"
-              autoComplete="off"
-              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary"
-            />
-          </label>
-          <label className="min-w-[220px] flex-1 text-sm">
-            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Emails</span>
-            <input
-              type="text"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="one@example.com, two@example.com"
-              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary"
-            />
-          </label>
-          <label className="text-sm">
-            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Role</span>
-            <select
-              value={role}
-              onChange={(event) => setRole(event.target.value)}
-              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm font-semibold text-graphite outline-none focus:border-org-primary"
-            >
-              {roles.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            disabled={busy}
-            className="touch-target inline-flex items-center gap-2 rounded bg-seam-red px-4 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            <Send className="size-4" aria-hidden />
-            {busy ? "Sending…" : "Send invite"}
-          </button>
-          <p className="w-full font-mono text-[11px] text-steel">
-            {roles.find((option) => option.value === role)?.hint ??
-              "They get an email to set a password and land in the app."}
-          </p>
-        </form>
+        <InviteRows roles={roles} busy={busy} onSend={sendRows} />
       )}
 
       {/* Accepted / linked people */}
