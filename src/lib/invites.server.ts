@@ -23,15 +23,25 @@ export async function sendInviteCore(args: {
   role: InviteRoleValue;
   athleteId: string | null;
   redirectTo?: string | undefined;
+  name?: string | null;
 }): Promise<SendInviteResult> {
   const email = args.email.trim().toLowerCase();
+  const name = (args.name ?? "").trim().slice(0, 100) || null;
 
   // Already has an account in this organization → link, don't re-invite.
   const { data: existing } = await supabaseAdmin
     .from("users")
-    .select("id, organization_id")
+    .select("id, organization_id, name")
     .ilike("email", email)
     .maybeSingle();
+
+  // Give an existing account a real name if it only has its email so far.
+  if (existing && name) {
+    const current = String((existing as any).name ?? "").trim();
+    if (!current || current.toLowerCase() === email) {
+      await supabaseAdmin.from("users").update({ name }).eq("id", (existing as any).id);
+    }
+  }
 
   if (existing && (existing as any).organization_id === args.orgId) {
     if (args.athleteId) {
@@ -84,7 +94,10 @@ export async function sendInviteCore(args: {
   const inviteId = (inserted as { id: string }).id;
   const options = args.redirectTo ? { redirectTo: args.redirectTo } : {};
 
-  const { error: sendError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, options);
+  const { error: sendError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+    ...options,
+    ...(name ? { data: { name } } : {}),
+  });
 
   if (sendError) {
     const message = sendError.message ?? "";
