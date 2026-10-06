@@ -305,7 +305,7 @@ export const removeOrgMember = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: target } = await supabaseAdmin
       .from("users")
-      .select("id, organization_id, user_type")
+      .select("id, organization_id, user_type, email")
       .eq("id", data.userId)
       .maybeSingle();
     if (!target || (target as any).organization_id !== actor.orgId) {
@@ -322,11 +322,16 @@ export const removeOrgMember = createServerFn({ method: "POST" })
       .from("org_athletes")
       .update({ linked_parent_user_id: null })
       .eq("linked_parent_user_id", data.userId);
-    await supabaseAdmin
-      .from("org_member_invites")
-      .update({ status: "revoked" })
-      .eq("accepted_user_id", data.userId)
-      .eq("status", "pending");
+    // Clear their invite history so a deleted person no longer appears in the invites list.
+    await supabaseAdmin.from("org_member_invites").delete().eq("accepted_user_id", data.userId);
+    const targetEmail = String((target as any).email ?? "").trim().toLowerCase();
+    if (targetEmail) {
+      await supabaseAdmin
+        .from("org_member_invites")
+        .delete()
+        .eq("organization_id", actor.orgId)
+        .ilike("email", targetEmail);
+    }
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) {
