@@ -83,6 +83,9 @@
 - [ ] Welcome walkthrough
 - [x] Messages hub: standalone tab/page for players, parents, coaches (school threads moved out of drawer)
 
+## Invite form redesign (2026-10-06)
+- [x] InvitePanel: rows of First name / Last name / Email / per-row Role, "+" to add a row, bulk add from a spreadsheet (CSV). Shared by staff and player/parent invites.
+
 ## Super admin overhaul (2026-09-27)
 - [x] Command center at /admin: running now, autopilot (on/off, run now, one-team refresh), needs-you inbox
 - [x] Super admin handbook at /admin/handbook (job, freshness, weekly routine, season calendar, fixes, rules)

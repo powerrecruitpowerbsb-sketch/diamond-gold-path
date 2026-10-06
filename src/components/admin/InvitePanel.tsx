@@ -52,9 +52,6 @@ export function InvitePanel({
   const removeFn = useServerFn(removeOrgMember);
   const queryClient = useQueryClient();
 
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState(roles[0]?.value ?? "parent");
   const [busy, setBusy] = useState(false);
 
   const queryKey = ["org-invites", athleteId ?? "org"];
@@ -69,31 +66,28 @@ export function InvitePanel({
     if (athleteId) await queryClient.invalidateQueries({ queryKey: ["org-athlete", athleteId] });
   };
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
+  async function sendRows(rows: InviteRow[]) {
     setBusy(true);
+    let sent = 0;
+    let failed = 0;
     try {
-      // Several addresses at once: comma, space or new line separated.
-      const emails = Array.from(new Set(email.split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean)));
-      let sent = 0;
-      for (const one of emails) {
+      for (const row of rows) {
+        const name = `${row.firstName} ${row.lastName}`.trim() || null;
         try {
-          const result = await sendFn({ data: { email: one, role: role as any, athleteId, name: emails.length === 1 ? name : null } });
+          const result = await sendFn({ data: { email: row.email.trim(), role: row.role as any, athleteId, name } });
           if (result.status === "sent") sent++;
           else toast.info(result.message);
         } catch (error) {
-          toast.error(`${one}: ${(error as Error).message}`);
+          failed++;
+          toast.error(`${row.email}: ${(error as Error).message}`);
         }
       }
       if (sent) toast.success(`${sent} invite${sent === 1 ? "" : "s"} sent`);
-      setEmail("");
-      setName("");
       await invalidate();
-    } catch (error) {
-      toast.error((error as Error).message);
     } finally {
       setBusy(false);
     }
+    return failed === 0;
   }
 
   const invites = (data?.invites ?? []) as Record<string, any>[];
