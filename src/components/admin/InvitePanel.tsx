@@ -14,6 +14,7 @@ import {
   unlinkFamilyMember,
 } from "@/lib/invites.functions";
 import { cn } from "@/lib/utils";
+import { InviteRows, type InviteRow } from "@/components/admin/InviteRows";
 
 type Props = {
   /** Present for family invites on an athlete page; omitted for staff invites. */
@@ -104,56 +105,7 @@ export function InvitePanel({
           Only organization admins can invite staff members.
         </p>
       ) : (
-        <form onSubmit={submit} className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="min-w-[180px] flex-1 text-sm">
-            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Full name</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Jordan Smith"
-              autoComplete="off"
-              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary"
-            />
-          </label>
-          <label className="min-w-[220px] flex-1 text-sm">
-            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Emails</span>
-            <input
-              type="text"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="one@example.com, two@example.com"
-              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary"
-            />
-          </label>
-          <label className="text-sm">
-            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Role</span>
-            <select
-              value={role}
-              onChange={(event) => setRole(event.target.value)}
-              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm font-semibold text-graphite outline-none focus:border-org-primary"
-            >
-              {roles.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            disabled={busy}
-            className="touch-target inline-flex items-center gap-2 rounded bg-seam-red px-4 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            <Send className="size-4" aria-hidden />
-            {busy ? "Sending…" : "Send invite"}
-          </button>
-          <p className="w-full font-mono text-[11px] text-steel">
-            {roles.find((option) => option.value === role)?.hint ??
-              "They get an email to set a password and land in the app."}
-          </p>
-        </form>
+        <InviteRows roles={roles} busy={busy} onSend={sendRows} />
       )}
 
       {/* Accepted / linked people */}
