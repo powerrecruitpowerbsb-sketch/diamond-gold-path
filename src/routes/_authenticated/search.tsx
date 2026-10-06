@@ -1,7 +1,7 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -234,12 +234,20 @@ function SearchScreen() {
 
   // The name box types locally and updates the search after a short pause.
   const [qDraft, setQDraft] = useState(params.q);
+  // Last value this box sent to the URL; only outside changes overwrite the box.
+  const submittedQ = useRef(params.q);
   useEffect(() => {
-    setQDraft((current) => (current.trim() === params.q.trim() ? current : params.q));
+    if (params.q === submittedQ.current) return;
+    submittedQ.current = params.q;
+    setQDraft(params.q);
   }, [params.q]);
+  const submitQ = (value: string) => {
+    if (value === submittedQ.current) return;
+    submittedQ.current = value;
+    set({ q: value });
+  };
   useEffect(() => {
-    if (qDraft === params.q) return;
-    const timer = setTimeout(() => set({ q: qDraft }), 300);
+    const timer = setTimeout(() => submitQ(qDraft), 350);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qDraft]);
@@ -474,6 +482,9 @@ function SearchScreen() {
               <input
                 value={qDraft}
                 onChange={(event) => setQDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") submitQ(qDraft);
+                }}
                 placeholder="Search a school by name"
                 className="h-full w-full bg-transparent text-sm outline-none"
               />
