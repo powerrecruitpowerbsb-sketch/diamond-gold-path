@@ -40,21 +40,21 @@ export function InviteRows({ roles, busy, onSend }: Props) {
   async function submitRows(event: React.FormEvent) {
     event.preventDefault();
     const filled = rows.filter((r) => r.email.trim());
-    if (!filled.length) return toast.error("Add at least one email");
+    if (!filled.length) { toast.error("Add at least one email"); return; }
     if (await onSend(filled)) setRows([blank()]);
   }
 
   async function readFile(file: File) {
     const table = parseCsv(await file.text());
     const [headers, ...body] = table;
-    if (!headers || !body.length) return toast.error("That file has no rows");
+    if (!headers || !body.length) { toast.error("That file has no rows"); return; }
     const col = (hints: string[]) => headers.indexOf(findHeader(headers, hints));
     const first = col(["first name", "first", "given"]);
     const last = col(["last name", "last", "surname", "family"]);
     const full = col(["full name", "name"]);
     const email = col(["email", "e-mail"]);
     const role = col(["role", "type", "title"]);
-    if (email === -1) return toast.error("Couldn't find an Email column");
+    if (email === -1) { toast.error("Couldn't find an Email column"); return; }
     const parsed = body
       .map((cells) => {
         let f = first >= 0 ? cells[first] ?? "" : "";
