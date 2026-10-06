@@ -73,6 +73,8 @@ function NewAthlete() {
     playerEmail: "",
     parentEmail: "",
     parent2Email: "",
+    parentName: "",
+    parent2Name: "",
   });
 
   const set = (key: keyof typeof form) => (value: string) =>
@@ -101,13 +103,13 @@ function NewAthlete() {
 
       if (sendInvites) {
         const targets = [
-          { email: form.playerEmail.trim(), role: "player" as const },
-          { email: form.parentEmail.trim(), role: "parent" as const },
-          { email: form.parent2Email.trim(), role: "parent" as const },
+          { email: form.playerEmail.trim(), role: "player" as const, name: form.name.trim() },
+          { email: form.parentEmail.trim(), role: "parent" as const, name: form.parentName.trim() },
+          { email: form.parent2Email.trim(), role: "parent" as const, name: form.parent2Name.trim() },
         ].filter((t) => t.email);
         for (const t of targets) {
           try {
-            const r = await inviteFn({ data: { email: t.email, role: t.role, athleteId: result.id } });
+            const r = await inviteFn({ data: { email: t.email, role: t.role, athleteId: result.id, name: t.name || null } });
             toast.success(r.message);
           } catch (e) {
             toast.error(`${t.email}: ${(e as Error).message}`);
@@ -227,6 +229,22 @@ function NewAthlete() {
               type="email"
               value={form.playerEmail}
               onChange={(event) => set("playerEmail")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            />
+          </label>
+          <label>
+            <span className={LABEL}>Parent 1 name</span>
+            <input
+              value={form.parentName}
+              onChange={(event) => set("parentName")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            />
+          </label>
+          <label>
+            <span className={LABEL}>Parent 2 name</span>
+            <input
+              value={form.parent2Name}
+              onChange={(event) => set("parent2Name")(event.target.value)}
               className={`mt-1 ${FIELD}`}
             />
           </label>

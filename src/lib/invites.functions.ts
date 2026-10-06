@@ -181,8 +181,10 @@ export const sendOrgInvite = createServerFn({ method: "POST" })
       role: InviteRole;
       athleteId?: string | null;
       organizationId?: string | null;
+      name?: string | null;
     }) => ({
       email: str(input?.email),
+      name: str(input?.name).slice(0, 100) || null,
       role: str(input?.role),
       athleteId: str(input?.athleteId) || null,
       organizationId: str(input?.organizationId) || null,
@@ -213,6 +215,7 @@ export const sendOrgInvite = createServerFn({ method: "POST" })
       role: data.role as any,
       athleteId: isFamily ? data.athleteId : null,
       redirectTo: acceptUrl(),
+      name: data.name,
     });
   });
 

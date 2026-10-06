@@ -53,6 +53,7 @@ export function InvitePanel({
   const queryClient = useQueryClient();
 
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [role, setRole] = useState(roles[0]?.value ?? "parent");
   const [busy, setBusy] = useState(false);
 
@@ -77,7 +78,7 @@ export function InvitePanel({
       let sent = 0;
       for (const one of emails) {
         try {
-          const result = await sendFn({ data: { email: one, role: role as any, athleteId } });
+          const result = await sendFn({ data: { email: one, role: role as any, athleteId, name: emails.length === 1 ? name : null } });
           if (result.status === "sent") sent++;
           else toast.info(result.message);
         } catch (error) {
@@ -86,6 +87,7 @@ export function InvitePanel({
       }
       if (sent) toast.success(`${sent} invite${sent === 1 ? "" : "s"} sent`);
       setEmail("");
+      setName("");
       await invalidate();
     } catch (error) {
       toast.error((error as Error).message);
@@ -109,6 +111,17 @@ export function InvitePanel({
         </p>
       ) : (
         <form onSubmit={submit} className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="min-w-[180px] flex-1 text-sm">
+            <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Full name</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Jordan Smith"
+              autoComplete="off"
+              className="touch-target mt-1 w-full rounded-lg border border-border bg-card px-3 text-sm text-graphite outline-none focus:border-org-primary"
+            />
+          </label>
           <label className="min-w-[220px] flex-1 text-sm">
             <span className="font-mono text-[11px] tracking-wide text-steel uppercase">Emails</span>
             <input
