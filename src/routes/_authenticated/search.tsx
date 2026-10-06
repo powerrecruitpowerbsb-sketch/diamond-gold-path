@@ -224,12 +224,25 @@ function SearchScreen() {
     queryKey: ["program-search", params],
     queryFn: () => searchFn({ data: params }),
     enabled: searching,
+    placeholderData: (prev) => prev,
   });
 
 
   // Filters update the URL in place — never jump the page back to the top.
   const set = (patch: Partial<SearchParams>) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true, resetScroll: false });
+
+  // The name box types locally and updates the search after a short pause.
+  const [qDraft, setQDraft] = useState(params.q);
+  useEffect(() => {
+    setQDraft((current) => (current.trim() === params.q.trim() ? current : params.q));
+  }, [params.q]);
+  useEffect(() => {
+    if (qDraft === params.q) return;
+    const timer = setTimeout(() => set({ q: qDraft }), 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qDraft]);
 
   const divisions = DIVISIONS_BY_BODY[params.governingBody] ?? [];
   const secondaryCount = activeSecondaryCount(params);
@@ -459,8 +472,8 @@ function SearchScreen() {
             <div className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 focus-within:border-org-primary">
               <SearchIcon className="size-4 shrink-0 text-steel" aria-hidden />
               <input
-                value={params.q}
-                onChange={(event) => set({ q: event.target.value })}
+                value={qDraft}
+                onChange={(event) => setQDraft(event.target.value)}
                 placeholder="Search a school by name"
                 className="h-full w-full bg-transparent text-sm outline-none"
               />
