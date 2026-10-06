@@ -29,6 +29,7 @@ function ResetPasswordPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [recovery, setRecovery] = useState(false);
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,6 +42,20 @@ function ResetPasswordPage() {
     });
     supabase.auth.getSession().then(({ data }) => {
       if (isRecovery || data.session) setRecovery(true);
+      const user = data.session?.user;
+      if (user) {
+        void supabase
+          .from("users")
+          .select("name")
+          .eq("id", user.id)
+          .maybeSingle()
+          .then(({ data: row }) => {
+            const current = String((row as any)?.name ?? user.user_metadata?.["name"] ?? "").trim();
+            if (current && current.toLowerCase() !== (user.email ?? "").toLowerCase()) {
+              setName((prev) => prev || current);
+            }
+          });
+      }
       setReady(true);
     });
     return () => sub.subscription.unsubscribe();
@@ -52,10 +67,18 @@ function ResetPasswordPage() {
       toast.error("Passwords don't match");
       return;
     }
+    const fullName = name.trim();
+    if (!fullName) {
+      toast.error("Enter your full name");
+      return;
+    }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { data: updated, error } = await supabase.auth.updateUser({ password, data: { name: fullName } });
       if (error) throw error;
+      if (updated.user) {
+        await supabase.from("users").update({ name: fullName }).eq("id", updated.user.id);
+      }
       // Invites flip from "Sent" to "Accepted" only once a password is set.
       await (supabase as any).rpc("complete_my_invites").then(() => undefined, () => undefined);
       toast.success("Password updated — sign in with your new password");
@@ -83,6 +106,18 @@ function ResetPasswordPage() {
           </>
         ) : (
           <form onSubmit={submit} className="mt-5 grid gap-4">
+            <div>
+              <Label htmlFor="full-name">Full name</Label>
+              <Input
+                id="full-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoComplete="name"
+                maxLength={100}
+                required
+                className="mt-1.5"
+              />
+            </div>
             <div>
               <Label htmlFor="password">New password</Label>
               <Input

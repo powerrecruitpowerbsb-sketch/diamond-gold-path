@@ -233,6 +233,22 @@ function NewAthlete() {
             />
           </label>
           <label>
+            <span className={LABEL}>Parent 1 name</span>
+            <input
+              value={form.parentName}
+              onChange={(event) => set("parentName")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            />
+          </label>
+          <label>
+            <span className={LABEL}>Parent 2 name</span>
+            <input
+              value={form.parent2Name}
+              onChange={(event) => set("parent2Name")(event.target.value)}
+              className={`mt-1 ${FIELD}`}
+            />
+          </label>
+          <label>
             <span className={LABEL}>Parent 1 email</span>
             <input
               type="email"
