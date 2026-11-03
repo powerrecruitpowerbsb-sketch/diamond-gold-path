@@ -81,7 +81,7 @@ export default function CollegeMapCanvas({ programs, selectedId, onSelect, onBou
   }, [selectedId, ready]);
 
   return <div className="relative h-full min-h-80 w-full overflow-hidden bg-muted">
-    <div ref={container} className="absolute inset-0" aria-label="Interactive college map" />
+    <div ref={container} className="h-full w-full" aria-label="Interactive college map" />
     <Button variant="secondary" size="icon" aria-label="Reset map" title="Reset map" className="absolute right-3 top-24 z-10" onClick={() => mapRef.current?.easeTo({ center: [-97, 38], zoom: 3.4 })}><RotateCcw className="size-4" /></Button>
     {!ready && !failed ? <div className="pointer-events-none absolute left-4 top-4 rounded-md bg-background px-3 py-2 text-sm text-foreground">Loading map…</div> : null}
     {failed && !ready ? <div role="alert" className="absolute left-4 right-16 top-4 rounded-md bg-background p-3 text-sm text-foreground">The map couldn’t load. College results are still available in List.</div> : null}
