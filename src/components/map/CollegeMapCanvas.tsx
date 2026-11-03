@@ -76,6 +76,17 @@ export default function CollegeMapCanvas({ programs, selectedId, onSelect, onBou
   }, [programs, selectedId, ready]);
 
   useEffect(() => {
+    const map = mapRef.current;
+    const points = programs.flatMap((p) => p.coordinates ? [p.coordinates] : []);
+    if (!ready || !map || !points.length || points.length > 100) return;
+    const first = points[0];
+    if (!first) return;
+    const bounds = new maplibregl.LngLatBounds(first, first);
+    for (const point of points) bounds.extend(point);
+    map.fitBounds(bounds, { padding: 70, maxZoom: 9, duration: 600 });
+  }, [programs, ready]);
+
+  useEffect(() => {
     const p = latest.current.programs.find((p) => p.id === selectedId);
     if (p?.coordinates && mapRef.current && ready) mapRef.current.easeTo({ center: p.coordinates, zoom: Math.max(mapRef.current.getZoom(), 8) });
   }, [selectedId, ready]);

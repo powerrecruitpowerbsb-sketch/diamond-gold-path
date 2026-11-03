@@ -1,8 +1,8 @@
 # Power Recruit roadmap
 
 ## College map preview (2026-11-03)
-- [ ] Standalone /map with real campus points, clustered pins, synchronized list, filters, and college details; leave Search unchanged.
-- [ ] Verify signed-in map discovery and phone-width layout.
+- [x] Standalone /map with real campus points, clustered pins, synchronized list, filters, and college details; no map embedded into Search.
+- [x] Verify signed-in map discovery, Rollins college details, list toggle, and phone-width layout (390px, no horizontal overflow).
 
 ## Done (this round)
 - Roster/coach provenance: source page, domain, read time, run id on every player row and coach name; roster and coach writes refused without a source page, or when the domain belongs to another school (logged to roster_write_refusals).
