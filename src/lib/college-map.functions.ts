@@ -9,10 +9,10 @@ export const getCollegeMapPrograms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<CollegeMapProgram[]> => {
     const [programs, universities] = await Promise.all([
-      fetchAllRows((from, to) => context.supabase.from("programs")
+      fetchAllRows(async (from, to) => await context.supabase.from("programs")
         .select("id, university_id, sport, governing_body, division, conference")
         .eq("offering_status", "verified").order("id").range(from, to)),
-      fetchAllRows((from, to) => context.supabase.from("universities")
+      fetchAllRows(async (from, to) => await context.supabase.from("universities")
         .select("id, name, city, state, ipeds_unitid").is("retired_at", null).order("id").range(from, to)),
     ]);
     const schools = new Map(universities.map((u) => [u.id, u]));
