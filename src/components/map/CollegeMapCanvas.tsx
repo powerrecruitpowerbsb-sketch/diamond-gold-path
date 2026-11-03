@@ -6,8 +6,9 @@ import type { CollegeMapProgram, MapBounds } from "@/lib/college-map";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 
-export default function CollegeMapCanvas({ programs, selectedId, onSelect, onBounds }: {
+export default function CollegeMapCanvas({ programs, selectedId, highlightedId, fitKey, onSelect, onBounds }: {
   programs: CollegeMapProgram[]; selectedId: string | null;
+  highlightedId: string | null; fitKey: string;
   onSelect: (id: string) => void; onBounds: (bounds: MapBounds) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
@@ -71,20 +72,20 @@ export default function CollegeMapCanvas({ programs, selectedId, onSelect, onBou
     if (!ready || !source) return;
     source.setData({ type: "FeatureCollection", features: programs.flatMap((p) => p.coordinates ? [{
       type: "Feature" as const, geometry: { type: "Point" as const, coordinates: p.coordinates },
-      properties: { id: p.id, selected: p.id === selectedId },
+      properties: { id: p.id, selected: p.id === selectedId || p.id === highlightedId },
     }] : []) });
-  }, [programs, selectedId, ready]);
+  }, [programs, selectedId, highlightedId, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
-    const points = programs.flatMap((p) => p.coordinates ? [p.coordinates] : []);
-    if (!ready || !map || !points.length || points.length > 100) return;
+    const points = latest.current.programs.flatMap((p) => p.coordinates ? [p.coordinates] : []);
+    if (!ready || !map || !points.length) return;
     const first = points[0];
     if (!first) return;
     const bounds = new maplibregl.LngLatBounds(first, first);
     for (const point of points) bounds.extend(point);
     map.fitBounds(bounds, { padding: 70, maxZoom: 9, duration: 600 });
-  }, [programs, ready]);
+  }, [fitKey, ready]);
 
   useEffect(() => {
     const p = latest.current.programs.find((p) => p.id === selectedId);
