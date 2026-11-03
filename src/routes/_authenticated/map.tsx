@@ -105,12 +105,14 @@ function CollegeMapPage() {
       </div>
       <div className={cn("relative min-w-0", view === "map" ? "h-[58svh] min-h-80 lg:h-full" : "hidden")}>
         <ClientOnly fallback={<div className="h-full bg-muted" />}><Suspense fallback={<div className="h-full bg-muted" />}><CollegeMapCanvas programs={matches} selectedId={selectedId} highlightedId={highlightedId} fitKey={fitKey} onSelect={setSelectedId} onBounds={setBounds} /></Suspense></ClientOnly>
-        {selected && matches.some((p) => p.id === selected.id) ? <div className="absolute bottom-9 left-3 right-3 z-10 flex items-center gap-3 rounded-md border border-border bg-background p-3 shadow-lg lg:left-4 lg:right-auto lg:w-80">
+        <Button variant="secondary" size="sm" className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 shadow-lg lg:hidden" onClick={() => setView("list")}><List className="size-4" />List · {visible.length}</Button>
+        {selected && matches.some((p) => p.id === selected.id) ? <div className="absolute bottom-16 left-3 right-3 z-10 flex items-center gap-3 rounded-md border border-border bg-background p-3 shadow-lg lg:bottom-9 lg:left-4 lg:right-auto lg:w-80">
           <div className="min-w-0 flex-1"><p className="font-display text-sm font-bold text-graphite">{selected.school}</p><p className="text-xs text-steel">{[selected.city, selected.state, mapCategory(selected)].filter(Boolean).join(" · ")}</p><p className="mt-1 text-xs text-steel">{selected.conference}</p><Button size="sm" variant="link" className="h-8 p-0" onClick={() => openSchool(selected.id)}>View college <ArrowUpRight className="size-4" /></Button></div>
           <Button size="icon" variant="ghost" aria-label="Dismiss selected college" onClick={() => setSelectedId(null)}><X className="size-4" /></Button>
         </div> : null}
       </div>
     </div>
+    {view === "list" ? <Button variant="secondary" size="sm" className="fixed bottom-24 right-4 z-20 shadow-lg lg:hidden" onClick={() => setView("map")}><MapIcon className="size-4" />Map</Button> : null}
     <p className="mt-3 text-xs text-steel">Campus locations: NCES/IPEDS 2024.{missing ? ` ${missing.toLocaleString()} matching programs have no campus location and appear in List only.` : ""}</p>
     <SchoolSheet entry={entry} athleteId={null} onClose={() => setEntry(null)} />
   </AppShell>;
