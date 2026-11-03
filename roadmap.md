@@ -1,6 +1,7 @@
 # Power Recruit roadmap
 
 ## College map preview (2026-11-03)
+- [ ] Zillow-style category filters, location search, state zoom, map-area results, and linked college previews; verify Florida NCAA D1 end to end.
 - [x] Standalone /map with real campus points, clustered pins, synchronized list, filters, and college details; no map embedded into Search.
 - [x] Verify signed-in map discovery, Rollins college details, list toggle, and phone-width layout (390px, no horizontal overflow).
 
