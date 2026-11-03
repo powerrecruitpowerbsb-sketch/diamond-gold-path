@@ -12,6 +12,7 @@ import {
   Mail,
   ListChecks,
   Menu,
+  Map,
   MessageSquare,
 
   Palette,
@@ -118,6 +119,7 @@ export function AppShell({ children, right }: { children: ReactNode; right?: Rea
   ];
 
   const overflowNav: NavItem[] = [
+    { to: "/map", label: "College Map · Preview", icon: Map },
     ...(isStaff ? [{ to: "/admin/universities", label: "College database", icon: Database }] : []),
     ...(isAdminLevel(role) || actingOrg ? [{ to: "/settings/team", label: "Club", icon: Mail }] : []),
     ...(isOrgOwner
