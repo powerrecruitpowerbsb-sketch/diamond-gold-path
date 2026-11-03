@@ -2,10 +2,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams, useNavigate, type SearchSchemaInput } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { ChevronDown, Columns3, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { useMyAccount } from "@/hooks/use-my-account";
@@ -49,7 +48,7 @@ import { NOT_REPORTED } from "@/lib/profile-fields";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/search")({
-  validateSearch: zodValidator(searchParamsSchema),
+  validateSearch: (input: Partial<SearchParams> & SearchSchemaInput): SearchParams => searchParamsSchema.parse(input),
   search: { middlewares: [stripSearchParams(SEARCH_DEFAULTS)] },
   head: () => ({
     meta: [

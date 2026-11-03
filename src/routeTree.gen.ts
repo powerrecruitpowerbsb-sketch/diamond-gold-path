@@ -21,6 +21,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authenticated/intelligence'
 import { Route as AuthenticatedListRouteImport } from './routes/_authenticated/list'
+import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
@@ -129,6 +130,11 @@ const AuthenticatedIntelligenceRoute =
 const AuthenticatedListRoute = AuthenticatedListRouteImport.update({
   id: '/list',
   path: '/list',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMapRoute = AuthenticatedMapRouteImport.update({
+  id: '/map',
+  path: '/map',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
@@ -423,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/family': typeof AuthenticatedFamilyRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/list': typeof AuthenticatedListRoute
+  '/map': typeof AuthenticatedMapRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/schedule': typeof AuthenticatedScheduleRoute
@@ -484,6 +491,7 @@ export interface FileRoutesByTo {
   '/family': typeof AuthenticatedFamilyRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/list': typeof AuthenticatedListRoute
+  '/map': typeof AuthenticatedMapRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/schedule': typeof AuthenticatedScheduleRoute
@@ -548,6 +556,7 @@ export interface FileRoutesById {
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/intelligence': typeof AuthenticatedIntelligenceRoute
   '/_authenticated/list': typeof AuthenticatedListRoute
+  '/_authenticated/map': typeof AuthenticatedMapRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
@@ -612,6 +621,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/intelligence'
     | '/list'
+    | '/map'
     | '/messages'
     | '/profile'
     | '/schedule'
@@ -673,6 +683,7 @@ export interface FileRouteTypes {
     | '/family'
     | '/intelligence'
     | '/list'
+    | '/map'
     | '/messages'
     | '/profile'
     | '/schedule'
@@ -736,6 +747,7 @@ export interface FileRouteTypes {
     | '/_authenticated/family'
     | '/_authenticated/intelligence'
     | '/_authenticated/list'
+    | '/_authenticated/map'
     | '/_authenticated/messages'
     | '/_authenticated/profile'
     | '/_authenticated/schedule'
@@ -885,6 +897,13 @@ declare module '@tanstack/react-router' {
       path: '/list'
       fullPath: '/list'
       preLoaderRoute: typeof AuthenticatedListRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/map': {
+      id: '/_authenticated/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof AuthenticatedMapRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/messages': {
@@ -1311,6 +1330,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedIntelligenceRoute: typeof AuthenticatedIntelligenceRoute
   AuthenticatedListRoute: typeof AuthenticatedListRoute
+  AuthenticatedMapRoute: typeof AuthenticatedMapRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
@@ -1335,6 +1355,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedIntelligenceRoute: AuthenticatedIntelligenceRoute,
   AuthenticatedListRoute: AuthenticatedListRoute,
+  AuthenticatedMapRoute: AuthenticatedMapRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
