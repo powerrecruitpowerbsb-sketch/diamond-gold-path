@@ -15,3 +15,4 @@
 - A firewall challenge on the plain request still gets one rendered read before the host is quarantined. Why: PrestoSports' Amazon challenge lets the rendering service through on roughly half of junior-college sites.
 - College Map is isolated at /map, lazy-loads MapLibre with an explicit Vite worker URL, and joins NCES/IPEDS campus coordinates by exact institution ID; missing locations remain list-only. Why: test geographic discovery without changing Search or guessing campus positions.
 - Map categories combine association and normalized division; location choices are distinct from school-name searches, and only filter changes fit the map, not viewport updates. Why: prevent ambiguous D1 matches and map-area feedback loops.
+- Map list rows and pin previews reuse ShortlistSaveButton and its scoped athlete picker; single-athlete families save directly. Why: keep map saves consistent with Search and existing authorization.

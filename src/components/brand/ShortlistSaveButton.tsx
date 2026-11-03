@@ -18,6 +18,7 @@ import {
   type ShortlistStatus,
 } from "@/lib/shortlist.functions";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   programId: string;
@@ -108,7 +109,8 @@ export function ShortlistSaveButton({
 
   return (
     <>
-      <button
+      <Button
+        variant="ghost"
         type="button"
         disabled={busy || Boolean(savedStatus)}
         title={iconOnly ? label : undefined}
@@ -148,7 +150,7 @@ export function ShortlistSaveButton({
           <BookmarkPlus className="size-4" aria-hidden />
         )}
         {iconOnly ? null : label}
-      </button>
+      </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
@@ -183,11 +185,12 @@ export function ShortlistSaveButton({
                   const already = savedProgramIdsByAthlete.get(athlete['id'] as string);
                   return (
                     <li key={athlete['id']}>
-                      <button
+                      <Button
+                        variant="ghost"
                         type="button"
                         disabled={busy || Boolean(already)}
                         onClick={() => void save(athlete['id'] as string, String(athlete['name']))}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-chalk disabled:opacity-60"
+                        className="flex h-auto w-full justify-start gap-3 whitespace-normal rounded-none px-4 py-3 text-left text-sm hover:bg-chalk disabled:opacity-60"
                       >
                         <span className="font-semibold text-graphite">{athlete['name']}</span>
                         <span className="font-mono text-[11px] text-steel tabular-nums">
@@ -197,7 +200,7 @@ export function ShortlistSaveButton({
                         <span className="ml-auto text-[11px] font-semibold text-diamond-green">
                           {already ? SHORTLIST_STATUS_LABEL[already as ShortlistStatus] : ""}
                         </span>
-                      </button>
+                      </Button>
                     </li>
                   );
                 })}

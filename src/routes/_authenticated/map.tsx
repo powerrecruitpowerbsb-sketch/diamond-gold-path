@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { List, Map as MapIcon, Search, X, ArrowUpRight } from "lucide-react";
 import { AppShell } from "@/components/brand/AppShell";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SchoolSheet, type SheetEntry } from "@/components/list/SchoolSheet";
+import { ShortlistSaveButton } from "@/components/brand/ShortlistSaveButton";
+import { listAthletePicker } from "@/lib/shortlist.functions";
+import { useMyAccount } from "@/hooks/use-my-account";
 import { getCollegeMapPrograms } from "@/lib/college-map.functions";
 import { filterMapPrograms, MAP_CATEGORIES, mapCategory, mapLocationSuggestions, type MapCategory, type CollegeMapFilters, type MapBounds } from "@/lib/college-map";
 import { stateCode, stateName } from "@/lib/regions";
@@ -38,6 +42,13 @@ function FilterSelect({ label, value, values, onChange }: { label: string; value
 function CollegeMapPage() {
   const { data: programs } = useSuspenseQuery(mapQuery);
   const { sport, setSport } = useSportMode();
+  const { account } = useMyAccount();
+  const pickerFn = useServerFn(listAthletePicker);
+  const picker = useQuery({ queryKey: ["athlete-picker"], queryFn: () => pickerFn(), staleTime: 30_000, retry: false });
+  const family = account?.primaryRole === "player" || account?.primaryRole === "parent";
+  const familyAthletes = (picker.data?.athletes ?? []).filter((athlete) => athlete["sport"] === sport);
+  const ownAthlete = family && familyAthletes.length === 1 ? familyAthletes[0] : undefined;
+  const saveProps = { athleteId: ownAthlete ? String(ownAthlete["id"]) : undefined, athleteName: account?.primaryRole === "player" ? "me" : ownAthlete ? String(ownAthlete["name"]) : undefined };
   const [q, setQ] = useState("");
   const [state, setState] = useState("");
   const [categories, setCategories] = useState<MapCategory[]>([]);
@@ -101,19 +112,20 @@ function CollegeMapPage() {
           <p className="mt-1 text-xs text-steel">{[p.city, p.state].filter(Boolean).join(", ")}</p>
           <p className="mt-2 text-xs font-semibold text-org-primary">{[mapCategory(p) ?? [p.body, p.division].filter(Boolean).join(" "), p.conference].filter(Boolean).join(" · ")}</p>
           <div className="mt-2 flex items-center justify-between gap-2">{!p.coordinates ? <span className="text-xs text-steel">Campus location unavailable</span> : <span className="text-xs capitalize text-steel">{p.sport}</span>}<Button variant="ghost" size="sm" aria-label={`View ${p.school}`} onClick={() => openSchool(p.id)}><ArrowUpRight className="size-4" /></Button></div>
+          <div className="mt-2"><ShortlistSaveButton programId={p.id} {...saveProps} className="max-w-full whitespace-normal" /></div>
         </div>)}
       </div>
       <div className={cn("relative min-w-0", view === "map" ? "h-[58svh] min-h-80 lg:h-full" : "hidden")}>
         <ClientOnly fallback={<div className="h-full bg-muted" />}><Suspense fallback={<div className="h-full bg-muted" />}><CollegeMapCanvas programs={matches} selectedId={selectedId} highlightedId={highlightedId} fitKey={fitKey} onSelect={setSelectedId} onBounds={setBounds} /></Suspense></ClientOnly>
         <Button variant="secondary" size="sm" className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 shadow-lg lg:hidden" onClick={() => setView("list")}><List className="size-4" />List · {visible.length}</Button>
         {selected && matches.some((p) => p.id === selected.id) ? <div className="absolute bottom-16 left-3 right-3 z-10 flex items-center gap-3 rounded-md border border-border bg-background p-3 shadow-lg lg:bottom-9 lg:left-4 lg:right-auto lg:w-80">
-          <div className="min-w-0 flex-1"><p className="font-display text-sm font-bold text-graphite">{selected.school}</p><p className="text-xs text-steel">{[selected.city, selected.state, mapCategory(selected)].filter(Boolean).join(" · ")}</p><p className="mt-1 text-xs text-steel">{selected.conference}</p><Button size="sm" variant="link" className="h-8 p-0" onClick={() => openSchool(selected.id)}>View college <ArrowUpRight className="size-4" /></Button></div>
+          <div className="min-w-0 flex-1"><p className="font-display text-sm font-bold text-graphite">{selected.school}</p><p className="text-xs text-steel">{[selected.city, selected.state, mapCategory(selected)].filter(Boolean).join(" · ")}</p><p className="mt-1 text-xs text-steel">{selected.conference}</p><Button size="sm" variant="link" className="h-8 p-0" onClick={() => openSchool(selected.id)}>View college <ArrowUpRight className="size-4" /></Button><div className="mt-1"><ShortlistSaveButton programId={selected.id} {...saveProps} className="max-w-full whitespace-normal" /></div></div>
           <Button size="icon" variant="ghost" aria-label="Dismiss selected college" onClick={() => setSelectedId(null)}><X className="size-4" /></Button>
         </div> : null}
       </div>
     </div>
     {view === "list" ? <Button variant="secondary" size="sm" className="fixed bottom-24 right-4 z-20 shadow-lg lg:hidden" onClick={() => setView("map")}><MapIcon className="size-4" />Map</Button> : null}
     <p className="mt-3 text-xs text-steel">Campus locations: NCES/IPEDS 2024.{missing ? ` ${missing.toLocaleString()} matching programs have no campus location and appear in List only.` : ""}</p>
-    <SchoolSheet entry={entry} athleteId={null} onClose={() => setEntry(null)} />
+    <SchoolSheet entry={entry} athleteId={saveProps.athleteId ?? null} onClose={() => setEntry(null)} />
   </AppShell>;
 }
